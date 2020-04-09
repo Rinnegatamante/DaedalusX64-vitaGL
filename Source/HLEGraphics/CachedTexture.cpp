@@ -57,7 +57,7 @@ static const bool kUpdateTexturesEveryFrame = true;
 #endif
 
 
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_ACCURATE_TMEM)
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_ACCURATE_TMEM) || defined(DAEDALUS_VITA)
 static ETextureFormat SelectNativeFormat(const TextureInfo & ti)
 {
 	// On OSX, always use RGBA 8888 textures.
