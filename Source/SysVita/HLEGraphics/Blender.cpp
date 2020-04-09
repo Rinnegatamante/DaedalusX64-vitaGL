@@ -206,7 +206,7 @@ void InitBlenderMode( u32 blendmode )					// Set Alpha Blender mode
 			}
 			else if (blendmode == 0x0050) // Box that appears under the players..
 			{
-				glBlendEquation(GL_ADD);
+				glBlendEquation(GL_FUNC_ADD);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 			}
 		}
@@ -216,7 +216,7 @@ void InitBlenderMode( u32 blendmode )					// Set Alpha Blender mode
 			DebugBlender( blendmode );
 			DL_PF( "		 Blend: SRCALPHA/INVSRCALPHA (default: 0x%04x)", blendmode );
 #endif
-			glBlendEquation(GL_ADD);
+			glBlendEquation(GL_FUNC_ADD);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 		break;
