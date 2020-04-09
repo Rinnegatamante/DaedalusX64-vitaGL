@@ -279,12 +279,108 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 								f32 u0, f32 v0, f32 u1, f32 v1,
 								const CNativeTexture * texture)
 {
+	gRDPOtherMode.cycle_type = CYCLE_COPY;
+	PrepareRenderState(mScreenToDevice.mRaw, false);
+	
+	glEnable(GL_BLEND);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
+	float sx0 = N64ToScreenX(x0);
+	float sy0 = N64ToScreenY(y0);
+
+	float sx1 = N64ToScreenX(x1);
+	float sy1 = N64ToScreenY(y1);
+
+	const f32 depth = 0.0f;
+
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	gVertexBuffer[0] = sx0;
+	gVertexBuffer[1] = sy0;
+	gVertexBuffer[2] = depth;
+	gVertexBuffer[3] = sx1;
+	gVertexBuffer[4] = sy0;
+	gVertexBuffer[5] = depth;
+	gVertexBuffer[6] = sx0;
+	gVertexBuffer[7] = sy1;
+	gVertexBuffer[8] = depth;
+	gVertexBuffer[9] = sx1;
+	gVertexBuffer[10] = sy1;
+	gVertexBuffer[11] = depth;
+	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
+	gTexCoordBuffer[0] = u0;
+	gTexCoordBuffer[1] = v0;
+	gTexCoordBuffer[2] = u1;
+	gTexCoordBuffer[3] = v0;
+	gTexCoordBuffer[4] = u0;
+	gTexCoordBuffer[5] = v1;
+	gTexCoordBuffer[6] = u1;
+	gTexCoordBuffer[7] = v1;
+	vglVertexPointerMapped(gVertexBuffer);
+	vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
+	vglTexCoordPointerMapped(gTexCoordBuffer);
+	gColorBuffer += 4;
+	gVertexBuffer += 12;
+	gTexCoordBuffer += 8;
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
 								 f32 x2, f32 y2, f32 x3, f32 y3,
 								 f32 s, f32 t)
 {
+	gRDPOtherMode.cycle_type = CYCLE_COPY;
+	PrepareRenderState(mScreenToDevice.mRaw, false);
+	
+	glEnable(GL_BLEND);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
+	float sx0 = N64ToScreenX(x0);
+	float sy0 = N64ToScreenY(y0);
+
+	float sx1 = N64ToScreenX(x1);
+	float sy1 = N64ToScreenY(y1);
+
+	const f32 depth = 0.0f;
+
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	gVertexBuffer[0] = N64ToScreenX(x0);
+	gVertexBuffer[1] = N64ToScreenY(y0);
+	gVertexBuffer[2] = depth;
+	gVertexBuffer[3] = N64ToScreenX(x1);
+	gVertexBuffer[4] = N64ToScreenY(y1);
+	gVertexBuffer[5] = depth;
+	gVertexBuffer[6] = N64ToScreenX(x2);
+	gVertexBuffer[7] = N64ToScreenY(y2);
+	gVertexBuffer[8] = depth;
+	gVertexBuffer[9] = N64ToScreenX(x3);
+	gVertexBuffer[10] = N64ToScreenY(y3);
+	gVertexBuffer[11] = depth;
+	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
+	gTexCoordBuffer[0] = 0.0f;
+	gTexCoordBuffer[1] = 0.0f;
+	gTexCoordBuffer[2] = s;
+	gTexCoordBuffer[3] = 0.0f;
+	gTexCoordBuffer[4] = s;
+	gTexCoordBuffer[5] = t;
+	gTexCoordBuffer[6] = 0.0f;
+	gTexCoordBuffer[7] = t;
+	vglVertexPointerMapped(gVertexBuffer);
+	vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
+	vglTexCoordPointerMapped(gTexCoordBuffer);
+	gColorBuffer += 4;
+	gVertexBuffer += 12;
+	gTexCoordBuffer += 8;
+	vglDrawObjects(GL_TRIANGLE_FAN, 4, GL_TRUE);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 bool CreateRenderer()

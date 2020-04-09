@@ -29,209 +29,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <vitaGL.h>
 
-//*****************************************************************************
-//
-//*****************************************************************************
-namespace
-{
 static const u32 kPalette4BytesRequired = 16 * sizeof( NativePf8888 );
 static const u32 kPalette8BytesRequired = 256 * sizeof( NativePf8888 );
 
-//*****************************************************************************
-//
-//*****************************************************************************
-enum	EPspTextureFormat
+static u32 GetTextureBlockWidth( u32 dimension, ETextureFormat texture_format )
 {
-	PspTexFmt_5650	= 0,//GU_PSM_5650,
-	PspTexFmt_5551	= 1,//GU_PSM_5551,
-	PspTexFmt_4444	= 2,//GU_PSM_4444,
-	PspTexFmt_8888	= 3,//GU_PSM_8888,
-	PspTexFmt_T4	= 4,//GU_PSM_T4,
-	PspTexFmt_T8	= 5,//GU_PSM_T8,
-	PspTexFmt_T16	= 6,//GU_PSM_T16,
-	PspTexFmt_T32	= 7,//GU_PSM_T32,
-	PspTexFmt_DXT1	= 8,//GU_PSM_DXT1,
-	PspTexFmt_DXT3	= 9,//GU_PSM_DXT3,
-	PspTexFmt_DXT5	= 10,//GU_PSM_DXT5,
-};
-
-//*****************************************************************************
-//
-//*****************************************************************************
-EPspTextureFormat	GetPspTextureFormat( ETextureFormat texture_format )
-{
-	switch( texture_format )
-	{
-	case TexFmt_5650:		return PspTexFmt_5650;
-	case TexFmt_5551:		return PspTexFmt_5551;
-	case TexFmt_4444:		return PspTexFmt_4444;
-	case TexFmt_8888:		return PspTexFmt_8888;
-
-	case TexFmt_CI4_8888:	return PspTexFmt_T4;
-	case TexFmt_CI8_8888:	return PspTexFmt_T8;
-	}
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR( "Unhandled texture format" );
-	#endif
-	return PspTexFmt_8888;
-}
-
-//*****************************************************************************
-//	This is slower, but necessary because it deals with heights of < 8
-//*****************************************************************************
-/*void swizzle_slow(u8* out, const u8* in, u32 width, u32 height)
-{
-	u32 rowblocks = (width / 16);
-
-	for (u32 j = 0; j < height; ++j)
-	{
-		for (u32 i = 0; i < width; ++i)
-		{
-			u32 blockx = i / 16;
-			u32 blocky = j / 8;
-
-			u32 x = (i - blockx * 16);
-			u32 y = (j - blocky * 8);
-			u32 block_index = blockx + ((blocky) * rowblocks);
-			u32 block_address = block_index * 16 * 8;
-
-			out[block_address + x + y * 16] = in[i + j * width];
-		}
-	}
-}
-*/
-//*****************************************************************************
-//
-//*****************************************************************************
-inline void swizzle_fast(u8* out, const u8* in, u32 width, u32 height)
-{
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( (width & 15 ) == 0, "Width is not a multiple of 16 - is %d", width );
-	DAEDALUS_ASSERT( (height & 7 ) == 0, "Height is not a multiple of 8 - is %d", height );
-	#endif
-#if 1	//1->Raphaels version, 0->Original
-	u32 rowblocks = (width / 16);
-	u32 rowblocks_add = (rowblocks - 1) * 128;
-	u32 block_address = 0;
-	u32 *src = (u32*)in;
-
-	for (u32 j = 0; j < height; j++,block_address+=16)
-	{
-		u32 *block = (u32*)&out[block_address];
-
-		for (u32 i = 0; i < rowblocks; i++)
-		{
-			*block++ = *src++;
-			*block++ = *src++;
-			*block++ = *src++;
-			*block++ = *src++;
-			block += 28;
-		}
-
-		if ((j & 0x7) == 0x7) block_address += rowblocks_add;
-	}
-#else
-	u32 width_blocks = (width / 16);
-	u32 height_blocks = (height / 8);
-
-	u32 src_pitch = (width - 16) / 4;
-	u32 src_row = width * 8;
-
-	const u8* ysrc = in;
-	u32* dst = (u32*)out;
-
-	for (u32 blocky = 0; blocky < height_blocks; ++blocky)
-	{
-		const u8* xsrc = ysrc;
-		for (u32 blockx = 0; blockx < width_blocks; ++blockx)
-		{
-			const u32* src = (u32*)xsrc;
-			for (u32 j = 0; j < 8; ++j)
-			{
-				*(dst++) = *(src++);
-				*(dst++) = *(src++);
-				*(dst++) = *(src++);
-				*(dst++) = *(src++);
-				src += src_pitch;
-			}
-			xsrc += 16;
-		}
-		ysrc += src_row;
-	}
-#endif
-}
-
-//*****************************************************************************
-//
-//*****************************************************************************
-inline bool swizzle(u8* out, const u8* in, u32 width, u32 height)
-{
-	if(width < 16 || height < 8)
-	{
-		//swizzle_slow( out, in, width, height );
-
-		//memcpy_vfpu( out, in, width * height );
-		return false;
-	}
-	else
-	{
-		swizzle_fast( out, in, width, height );
-		return true;
-	}
-}
-
-//*****************************************************************************
-//	Swizzle the texture, explicitly setting the texture colour to the specified value (alpha is left alone!)
-//*****************************************************************************
-/*void swizzle_fast_setcolour(u8* out, const u8* in, u32 width, u32 height, u32 mask, u32 colour)
-{
-	u32 blockx, blocky;
-	u32 j;
-
-	u32 width_blocks = (width / 16);
-	u32 height_blocks = (height / 8);
-
-	u32 src_pitch = (width-16)/4;
-	u32 src_row = width * 8;
-
-	const u8* ysrc = in;
-	u32* dst = (u32*)out;
-
-	const u32	MASK = mask;
-	const u32	INV_MASK  = ~mask;
-
-	// For speed, clear out the bits we're not setting
-	u32 just_colour( colour & MASK );
-
-	for (blocky = 0; blocky < height_blocks; ++blocky)
-	{
-		const u8* xsrc = ysrc;
-		for (blockx = 0; blockx < width_blocks; ++blockx)
-		{
-			const u32* src = (u32*)xsrc;
-			for (j = 0; j < 8; ++j)
-			{
-				*(dst++) = (*(src++) & INV_MASK) | just_colour;
-				*(dst++) = (*(src++) & INV_MASK) | just_colour;
-				*(dst++) = (*(src++) & INV_MASK) | just_colour;
-				*(dst++) = (*(src++) & INV_MASK) | just_colour;
-				src += src_pitch;
-			}
-			xsrc += 16;
-		}
-		ysrc += src_row;
-	}
-}
-*/
-//*****************************************************************************
-//
-//*****************************************************************************
-u32	GetTextureBlockWidth( u32 dimension, ETextureFormat texture_format )
-{
-	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( GetNextPowerOf2( dimension ) == dimension, "This is not a power of 2" );
-	#endif
+
 	// Ensure that the pitch is at least 16 bytes
 	while( CalcBytesRequired( dimension, texture_format ) < 16 )
 	{
@@ -241,28 +45,17 @@ u32	GetTextureBlockWidth( u32 dimension, ETextureFormat texture_format )
 	return dimension;
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
-u32	CorrectDimension( u32 dimension )
+static inline u32 CorrectDimension( u32 dimension )
 {
 	static const u32 MIN_TEXTURE_DIMENSION = 1;
 	return Max( GetNextPowerOf2( dimension ), MIN_TEXTURE_DIMENSION );
 }
 
-}
-
-//*****************************************************************************
-//
-//*****************************************************************************
 CRefPtr<CNativeTexture>	CNativeTexture::Create( u32 width, u32 height, ETextureFormat texture_format )
 {
 	return new CNativeTexture( width, height, texture_format );
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
 CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 :	mTextureFormat( texture_format )
 ,	mWidth( w )
@@ -270,122 +63,44 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mCorrectedWidth( CorrectDimension( w ) )
 ,	mCorrectedHeight( CorrectDimension( h ) )
 ,	mTextureBlockWidth( GetTextureBlockWidth( mCorrectedWidth, texture_format ) )
-,	mpPalette( nullptr )
-,	mIsPaletteVidMem( false )
-,	mIsSwizzled( true )
-#ifdef DAEDALUS_ENABLE_ASSERTS
-,	mPaletteSet( false )
-#endif
+,	mpData( NULL )
+,	mpPalette( NULL )
+,	mTextureId( 0 )
 {
-	mScale.x = 1.0f / mCorrectedWidth;
-	mScale.y = 1.0f / mCorrectedHeight;
+	glGenTextures( 1, &mTextureId );
 
-	u32		bytes_required( GetBytesRequired() );
-#if 0
-	if( !CVideoMemoryManager::Get()->Alloc( bytes_required, &mpData, &mIsDataVidMem ) )
-	{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Out of memory for texels ( %d bytes)", bytes_required );
-		#endif
-	}
-	switch( texture_format )
-	{
-	case TexFmt_CI4_8888:
-		if( !CVideoMemoryManager::Get()->Alloc( kPalette4BytesRequired, &mpPalette, &mIsPaletteVidMem ) )
-		{
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-			DAEDALUS_ERROR( "Out of memory for 4-bit palette, %d bytes", kPalette4BytesRequired );
-			#endif
-		}
-		break;
+	size_t data_len = GetBytesRequired();
+	mpData = malloc(data_len);
+	memset(mpData, 0, data_len);
 
-	case TexFmt_CI8_8888:
-		if( !CVideoMemoryManager::Get()->Alloc( kPalette8BytesRequired, &mpPalette, &mIsPaletteVidMem ) )
-		{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DAEDALUS_ERROR( "Out of memory for 8-bit palette, %d bytes", kPalette8BytesRequired );
-			#endif
-		}
-		break;
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	default:
-		DAEDALUS_ASSERT( !IsTextureFormatPalettised( texture_format ), "Unhandled palette texture" );
-		break;
-		#endif
+	if (texture_format == TexFmt_CI4_8888)
+	{
+		mpPalette = malloc(kPalette8BytesRequired);
 	}
-#endif
+	else if (texture_format == TexFmt_CI8_8888)
+	{
+		mpPalette = malloc(kPalette4BytesRequired);
+	}
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
 CNativeTexture::~CNativeTexture()
 {
-	//CVideoMemoryManager::Get()->Free( mpData );
-	//CVideoMemoryManager::Get()->Free( mpPalette );
+	if (mpData)
+		free(mpData);
+	if (mpPalette)
+		free(mpPalette);
+
+	glDeleteTextures( 1, &mTextureId );
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
-bool	CNativeTexture::HasData() const
+bool CNativeTexture::HasData() const
 {
-	return mpData != nullptr && (!IsTextureFormatPalettised( mTextureFormat ) || mpPalette != nullptr );
+	return mTextureId != 0;
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
-void	CNativeTexture::InstallTexture() const
+void CNativeTexture::InstallTexture() const
 {
-	// This needed otherwise we'll crash if running out of memory
-	if( !HasData() )
-	{
-		// Todo : Fix placeholder
-		// Use the placeholder texture
-		//sceGuTexMode( GU_PSM_4444, 0, 0, 1 );		// maxmips/a2/swizzle = 0
-		//sceGuTexImage( 0, gPlaceholderTextureWidth, gPlaceholderTextureHeight, gPlaceholderTextureWidth, gWhiteTexture );
-	}
-	else
-	{
-		EPspTextureFormat psp_texture_format( GetPspTextureFormat( mTextureFormat ) );
-		switch (psp_texture_format) {
-			case PspTexFmt_5551:
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mCorrectedWidth, mCorrectedHeight, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, mpData);
-				break;
-			case PspTexFmt_8888:
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mCorrectedWidth, mCorrectedHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, mpData);
-				break;
-			default:
-				break;
-		}
-#ifndef DAEDALUS_VITA
-#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( !IsTextureFormatPalettised( mTextureFormat ) || mPaletteSet, "The palette has not been set" );
-
-		DAEDALUS_ASSERT( ((u32)mpData & 0xf) == 0, "Palette not 16-byte aligned" )
-		DAEDALUS_ASSERT( ((u32)mpPalette & 0xf) == 0, "Palette not 16-byte aligned" )
-#endif
-		switch( mTextureFormat )
-		{
-		case TexFmt_CI4_8888:
-			sceGuClutMode( GU_PSM_8888, 0, 0xf, 0 );		// shift, mask, startentry
-			sceGuClutLoad( 16/8, mpPalette );
-			break;
-
-		case TexFmt_CI8_8888:
-			sceGuClutMode( GU_PSM_8888, 0, 0xff, 0 );		// shift, mask, startentry
-			sceGuClutLoad( 256/8, mpPalette );
-			break;
-
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		default:
-			DAEDALUS_ASSERT( !IsTextureFormatPalettised( mTextureFormat ), "Unhandled palette texture" );
-			break;
-			#endif
-		}
-#endif
-	}
+	glBindTexture( GL_TEXTURE_2D, mTextureId );
 }
 
 
@@ -449,187 +164,232 @@ namespace
 		const size_t	SIGNATURE_SIZE = 8;
 		u8	signature[ SIGNATURE_SIZE ];
 
-		FILE * fh( fopen( p_filename,"rb" ) );
-		if(fh == nullptr)
+		FILE * fh = fopen( p_filename,"rb" );
+		if (fh == NULL)
 		{
-			return nullptr;
+			return NULL;
 		}
 
 		if (fread( signature, sizeof(u8), SIGNATURE_SIZE, fh ) != SIGNATURE_SIZE)
 		{
 			fclose(fh);
-			return nullptr;
+			return NULL;
 		}
 
-		if ( !png_check_sig( signature, SIGNATURE_SIZE ) )
+		if (!png_check_sig( signature, SIGNATURE_SIZE ))
 		{
-			return nullptr;
+			return NULL;
 		}
 
-		png_struct * p_png_struct( png_create_read_struct( PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr ) );
-		if ( p_png_struct == nullptr)
+		png_struct * p_png_struct = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
+		if (p_png_struct == NULL)
 		{
-			return nullptr;
+			return NULL;
 		}
 
-		png_info * p_png_info( png_create_info_struct( p_png_struct ) );
-		if ( p_png_info == nullptr )
+		png_info * p_png_info = png_create_info_struct( p_png_struct );
+		if (p_png_info == NULL)
 		{
-			png_destroy_read_struct( &p_png_struct, nullptr, nullptr );
-			return nullptr;
+			png_destroy_read_struct( &p_png_struct, NULL, NULL );
+			return NULL;
 		}
 
-		if ( setjmp( png_jmpbuf(p_png_struct) ) != 0 )
+		if (setjmp( png_jmpbuf(p_png_struct) ) != 0)
 		{
-			png_destroy_read_struct( &p_png_struct, nullptr, nullptr );
-			return nullptr;
+			png_destroy_read_struct( &p_png_struct, NULL, NULL );
+			return NULL;
 		}
 
 		png_init_io( p_png_struct, fh );
 		png_set_sig_bytes( p_png_struct, SIGNATURE_SIZE );
-		png_read_png( p_png_struct, p_png_info, PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND | PNG_TRANSFORM_BGR, nullptr );
+		png_read_png( p_png_struct, p_png_info, PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND | PNG_TRANSFORM_BGR, NULL );
 
-		png_uint_32 width = png_get_image_width(p_png_struct, p_png_info);//p_png_info->width;
-		png_uint_32 height = png_get_image_height(p_png_struct, p_png_info);//p_png_info->height;
-
+		png_uint_32 width  = png_get_image_width( p_png_struct, p_png_info );
+		png_uint_32 height = png_get_image_height( p_png_struct, p_png_info );
 
 		CRefPtr<CNativeTexture>	texture = CNativeTexture::Create( width, height, texture_format );
 
-		#ifdef DAEDALUS_ENABLE_ASSERTS
 		DAEDALUS_ASSERT( texture->GetWidth() >= width, "Width is unexpectedly small" );
 		DAEDALUS_ASSERT( texture->GetHeight() >= height, "Height is unexpectedly small" );
 		DAEDALUS_ASSERT( texture_format == texture->GetFormat(), "Texture format doesn't match" );
-		#endif
-		u8 *	p_dest( new u8[ texture->GetBytesRequired() ] );
-		if( !p_dest )
+
+		u8 * buffer = new u8[ texture->GetBytesRequired() ];
+		if( !buffer )
 		{
-			texture = nullptr;
+			texture = NULL;
 		}
 		else
 		{
-			u32		stride( texture->GetStride() );
+			u32 	stride       = texture->GetStride();
+			u8 ** 	row_pointers = png_get_rows( p_png_struct, p_png_info );
+			int 	color_type   = png_get_color_type( p_png_struct, p_png_info );
 
 			switch( texture_format )
 			{
-				case TexFmt_5650:
-					ReadPngData< NativePf5650 >( width, height, stride, png_get_rows(p_png_struct, p_png_info), png_get_color_type(p_png_struct, p_png_info), reinterpret_cast< NativePf5650 * >( p_dest ) );
-					break;
-				case TexFmt_5551:
-					ReadPngData< NativePf5551 >( width, height, stride, png_get_rows(p_png_struct, p_png_info), png_get_color_type(p_png_struct, p_png_info), reinterpret_cast< NativePf5551 * >( p_dest ) );
-					break;
-				case TexFmt_4444:
-					ReadPngData< NativePf4444 >( width, height, stride, png_get_rows(p_png_struct, p_png_info), png_get_color_type(p_png_struct, p_png_info), reinterpret_cast< NativePf4444 * >( p_dest ) );
-					break;
-				case TexFmt_8888:
-					ReadPngData< NativePf8888 >( width, height, stride, png_get_rows(p_png_struct, p_png_info), png_get_color_type(p_png_struct, p_png_info), reinterpret_cast< NativePf8888 * >( p_dest ) );
-					break;
+			case TexFmt_5650:
+				ReadPngData< NativePf5650 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf5650 * >( buffer ) );
+				break;
+			case TexFmt_5551:
+				ReadPngData< NativePf5551 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf5551 * >( buffer ) );
+				break;
+			case TexFmt_4444:
+				ReadPngData< NativePf4444 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf4444 * >( buffer ) );
+				break;
+			case TexFmt_8888:
+				ReadPngData< NativePf8888 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf8888 * >( buffer ) );
+				break;
 
 			case TexFmt_CI4_8888:
 			case TexFmt_CI8_8888:
-			#ifdef DAEDALUS_DEBUG_CONSOLE
 				DAEDALUS_ERROR( "Can't use palettised format for png." );
-				#endif
 				break;
 
 			default:
-						#ifdef DAEDALUS_DEBUG_CONSOLE
 				DAEDALUS_ERROR( "Unhandled texture format" );
-				#endif
 				break;
 			}
 
-			texture->SetData( p_dest, nullptr );
+			texture->SetData( buffer, NULL );
 		}
 
 		//
 		// Cleanup
 		//
-		delete [] p_dest;
-		png_destroy_read_struct( &p_png_struct, &p_png_info, nullptr );
+		delete [] buffer;
+		png_destroy_read_struct( &p_png_struct, &p_png_info, NULL );
 		fclose(fh);
 
 		return texture;
 	}
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
 CRefPtr<CNativeTexture>	CNativeTexture::CreateFromPng( const char * p_filename, ETextureFormat texture_format )
 {
 	return LoadPng( p_filename, texture_format );
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
-void	CNativeTexture::SetData( void * data, void * palette )
+
+void CNativeTexture::SetData( void * data, void * palette )
 {
-	u32		bytes_per_row( GetStride() );
+	// It's pretty gross that we don't pass this in, or better yet, provide a way for
+	// the caller to write directly to our buffers instead of setting the data.
+	size_t data_len = GetBytesRequired();
+	memcpy(mpData, data, data_len);
 
-	if( HasData() )
+	if (mTextureFormat == TexFmt_CI4_8888)
 	{
-		mIsSwizzled = swizzle( reinterpret_cast< u8 * >( mpData ), reinterpret_cast< u8 * >( data ), bytes_per_row, mCorrectedHeight );
+		memcpy(mpPalette, palette, kPalette4BytesRequired);
+	}
+	else if (mTextureFormat == TexFmt_CI8_8888)
+	{
+		memcpy(mpPalette, palette, kPalette8BytesRequired);
+	}
 
-		// We need to flush out the data from the cache if this isn't in vid mem
-		if( !mIsDataVidMem )
+	if (HasData())
+	{
+		glBindTexture( GL_TEXTURE_2D, mTextureId );
+
+		switch (mTextureFormat)
 		{
-			//sceKernelDcacheWritebackAll();
-			//sceGuTexFlush();
-		}
+/*		case TexFmt_5650:
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
+						  mCorrectedWidth, mCorrectedHeight,
+						  0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5_REV, data );
+			break;*/
+		case TexFmt_5551:
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
+						  mCorrectedWidth, mCorrectedHeight,
+						  0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, data );
+			break;
+/*		case TexFmt_4444:
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
+						  mCorrectedWidth, mCorrectedHeight,
+						  0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4_REV, data );
 
-		if( mpPalette != nullptr )
-		{
-			#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT( palette != nullptr, "No palette provided" );
-			mPaletteSet = true;
-			#endif
+			break;*/
+		case TexFmt_8888:
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
+						  mCorrectedWidth, mCorrectedHeight,
+						  0, GL_RGBA, GL_UNSIGNED_BYTE, data );
 
-			switch( mTextureFormat )
+			break;
+/*		case TexFmt_CI4_8888:
 			{
-			case TexFmt_CI4_8888:
-				//memcpy_vfpu( mpPalette, palette, kPalette4BytesRequired );
-				break;
-			case TexFmt_CI8_8888:
-				//memcpy_vfpu( mpPalette, palette, kPalette8BytesRequired );
-				break;
+				// Convert palletised texture to non-palletised. This is wsteful - we should avoid generating these updated for OSX.
+				const NativePfCI44 * pix_ptr = static_cast< const NativePfCI44 * >( data );
+				const NativePf8888 * pal_ptr = static_cast< const NativePf8888 * >( palette );
 
-			default:
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				DAEDALUS_ERROR( "Unhandled palette format" );
-				#endif
-				break;
+				NativePf8888 * out = static_cast<NativePf8888 *>( malloc(mCorrectedWidth * mCorrectedHeight * sizeof(NativePf8888)) );
+				NativePf8888 * out_ptr = out;
+
+				u32 pitch = GetStride();
+
+				for (u32 y = 0; y < mCorrectedHeight; ++y)
+				{
+					for (u32 x = 0; x < mCorrectedWidth; ++x)
+					{
+						NativePfCI44	colors  = pix_ptr[ x / 2 ];
+						u8				pal_idx = (x&1) ? colors.GetIdxA() : colors.GetIdxB();
+
+						*out_ptr = pal_ptr[ pal_idx ];
+						out_ptr++;
+					}
+
+					pix_ptr = reinterpret_cast<const NativePfCI44 *>( reinterpret_cast<const u8 *>(pix_ptr) + pitch );
+				}
+
+				glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
+							  mCorrectedWidth, mCorrectedHeight,
+							  0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, out );
+
+				free(out);
 			}
+			break;
 
-			// We need to flush out the data from the cache if this isn't in vid mem
-			if( !mIsPaletteVidMem )
+		case TexFmt_CI8_8888:
 			{
-				//sceKernelDcacheWritebackAll();
-				//sceGuTexFlush();
+				// Convert palletised texture to non-palletised. This is wsteful - we should avoid generating these updated for OSX.
+				const NativePfCI8 *  pix_ptr = static_cast< const NativePfCI8 * >( data );
+				const NativePf8888 * pal_ptr = static_cast< const NativePf8888 * >( palette );
+
+				NativePf8888 * out = static_cast<NativePf8888 *>( malloc(mCorrectedWidth * mCorrectedHeight * sizeof(NativePf8888)) );
+				NativePf8888 * out_ptr = out;
+
+				u32 pitch = GetStride();
+
+				for (u32 y = 0; y < mCorrectedHeight; ++y)
+				{
+					for (u32 x = 0; x < mCorrectedWidth; ++x)
+					{
+						u8	pal_idx = pix_ptr[ x ].Bits;
+
+						*out_ptr = pal_ptr[ pal_idx ];
+						out_ptr++;
+					}
+
+					pix_ptr = reinterpret_cast<const NativePfCI8 *>( reinterpret_cast<const u8 *>(pix_ptr) + pitch );
+				}
+
+				glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
+							  mCorrectedWidth, mCorrectedHeight,
+							  0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, out );
+
+				free(out);
 			}
-		}
-		else
-		{
-			#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT( palette == nullptr, "Palette provided when not needed" );
-			#endif
+			break;
+*/
+		default:
+			break;
 		}
 	}
 }
 
-//*****************************************************************************
-//
-//*****************************************************************************
 u32	CNativeTexture::GetStride() const
 {
 	return CalcBytesRequired( mTextureBlockWidth, mTextureFormat );
-
 }
-//*****************************************************************************
-//
-//*****************************************************************************
 
-u32		CNativeTexture::GetBytesRequired() const
+u32 CNativeTexture::GetBytesRequired() const
 {
 	return GetStride() * mCorrectedHeight;
 }

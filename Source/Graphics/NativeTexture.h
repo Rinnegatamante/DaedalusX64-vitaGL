@@ -31,6 +31,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "SysGL/GL.h"
 #endif
 
+#ifdef DAEDALUS_VITA
+#include <vitaGL.h>
+#endif
+
 class c32;
 
 class CNativeTexture : public CRefCounted
@@ -79,7 +83,7 @@ class CNativeTexture : public CRefCounted
 		void *				mpData;
 		void *				mpPalette;
 
-#ifdef DAEDALUS_GL
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 		GLuint				mTextureId;
 #endif
 
