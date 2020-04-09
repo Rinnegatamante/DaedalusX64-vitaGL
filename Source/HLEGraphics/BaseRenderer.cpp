@@ -60,10 +60,7 @@ struct TempVerts
 
 	~TempVerts()
 	{
-#ifdef DAEDALUS_GL
-		free(Verts);
-#endif
-#ifdef DAEDALUS_VITA
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 		free(Verts);
 #endif
 	}
@@ -74,10 +71,7 @@ struct TempVerts
 #ifdef DAEDALUS_PSP
 		Verts = static_cast<DaedalusVtx*>(sceGuGetMemory(bytes));
 #endif
-#ifdef DAEDALUS_GL
-		Verts = static_cast<DaedalusVtx*>(malloc(bytes));
-#endif
-#ifdef DAEDALUS_VITA
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 		Verts = static_cast<DaedalusVtx*>(malloc(bytes));
 #endif
 

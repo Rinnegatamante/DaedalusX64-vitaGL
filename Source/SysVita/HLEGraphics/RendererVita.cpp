@@ -19,8 +19,6 @@
 #include "Utility/IO.h"
 #include "Utility/Profiler.h"
 
-#define DRAW_MODE GL_TRIANGLES
-
 BaseRenderer *gRenderer    = nullptr;
 RendererVita  *gRendererVita = nullptr;
 
@@ -29,14 +27,6 @@ extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
 
 extern void InitBlenderMode( u32 blendmode );
-
-struct ScePspFMatrix4
-{
-	float m[16];
-};
-
-
-static ScePspFMatrix4 gProjection;
 
 RendererVita::RendererVita()
 {
@@ -64,8 +54,8 @@ void RendererVita::RestoreRenderStates()
 	glDisable(GL_BLEND);
 	
 	// Default is ZBuffer disabled
-	glDepthMask(GL_TRUE);	// GL_TRUE to disable z-writes
-	glDepthFunc(GL_GEQUAL);		// GEQUAL?
+	glDepthMask(GL_FALSE);
+	glDepthFunc(GL_GEQUAL);
 	glDisable(GL_DEPTH_TEST);
 	
 	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -78,6 +68,7 @@ void RendererVita::RestoreRenderStates()
 
 void RendererVita::PrepareCurrentBlendMode( u32 render_mode, bool disable_zbuffer )
 {
+	return;
 	if ( disable_zbuffer )
 	{
 		glDisable(GL_DEPTH_TEST);
@@ -85,6 +76,17 @@ void RendererVita::PrepareCurrentBlendMode( u32 render_mode, bool disable_zbuffe
 	}
 	else
 	{
+		// Decal mode
+		if( gRDPOtherMode.zmode == 3 )
+		{
+			glPolygonOffset(-1.0, -1.0);
+		}
+		else
+		{
+			glPolygonOffset(0.0, 0.0);
+		}
+
+		
 		// Enable or Disable ZBuffer test
 		if ( (mTnL.Flags.Zbuffer & gRDPOtherMode.z_cmp) | gRDPOtherMode.z_upd )
 		{
@@ -133,7 +135,7 @@ void RendererVita::PrepareCurrentBlendMode( u32 render_mode, bool disable_zbuffe
 	if( (gRDPOtherMode.alpha_compare == G_AC_THRESHOLD) && !gRDPOtherMode.alpha_cvg_sel )
 	{
 		u8 alpha_threshold = mBlendColour.GetA();
-		float alpha_val = 1.0f / (float)alpha_threshold;
+		float alpha_val = (float)alpha_threshold / 255.0f;
 		glAlphaFunc( (alpha_threshold | g_ROM.ALPHA_HACK) ? GL_GEQUAL : GL_GREATER, alpha_val);
 		glEnable(GL_ALPHA_TEST);
 	}
@@ -237,20 +239,22 @@ void RendererVita::RenderTriangles(DaedalusVtx * p_vertices, u32 num_vertices, b
 	{
 		#ifdef DAEDALUS_DEBUG_CONSOLE
 		// Set default states
-		DAEDALUS_ERROR( "Unhandled blend mode" );
+//		DAEDALUS_ERROR( "Unhandled blend mode" );
 		#endif
 		glEnableClientState(GL_COLOR_ARRAY);
 		float *vtx_ptr = gVertexBuffer;
 		uint8_t *vtx_clr = (uint8_t*)gColorBuffer;
 		for (int i = 0; i < num_vertices; i++) {
-			memcpy(gVertexBuffer, (float*)&p_vertices->Position.x, sizeof(float) * 3);
-			gColorBuffer[0] = p_vertices->Colour.GetColour();
+			gVertexBuffer[0] = p_vertices[i].Position.x;
+			gVertexBuffer[1] = p_vertices[i].Position.y;
+			gVertexBuffer[2] = p_vertices[i].Position.z;
+			gColorBuffer[0] = p_vertices[i].Colour.GetColour();
 			gColorBuffer++;
 			gVertexBuffer += 3;
 		}
 		vglVertexPointerMapped(vtx_ptr);
 		vglColorPointerMapped(GL_UNSIGNED_BYTE, vtx_clr);
-		vglDrawObjects(DRAW_MODE, num_vertices, GL_TRUE);
+		vglDrawObjects(GL_TRIANGLES, num_vertices, GL_TRUE);
 	}
 }
 
@@ -271,25 +275,27 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	ConvertN64ToScreen( xy0, screen0 );
 	ConvertN64ToScreen( xy1, screen1 );
 	
+	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
+	
 	glEnableClientState(GL_COLOR_ARRAY);
 	gVertexBuffer[0] = screen0.x;
 	gVertexBuffer[1] = screen0.y;
-	gVertexBuffer[2] = 0.0f;
+	gVertexBuffer[2] = depth;
 	gVertexBuffer[3] = screen1.x;
 	gVertexBuffer[4] = screen0.y;
-	gVertexBuffer[5] = 0.0f;
-	gVertexBuffer[6] = screen1.x;
+	gVertexBuffer[5] = depth;
+	gVertexBuffer[6] = screen0.x;
 	gVertexBuffer[7] = screen1.y;
-	gVertexBuffer[8] = 0.0f;
-	gVertexBuffer[9] = screen0.x;
+	gVertexBuffer[8] = depth;
+	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
-	gVertexBuffer[11] = 0.0f;
+	gVertexBuffer[11] = depth;
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = color;
 	vglVertexPointerMapped(gVertexBuffer);
 	vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
 	gColorBuffer += 4;
 	gVertexBuffer += 12;
-	vglDrawObjects(GL_TRIANGLE_FAN, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
 void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
