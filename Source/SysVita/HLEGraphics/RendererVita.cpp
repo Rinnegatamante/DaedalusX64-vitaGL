@@ -28,6 +28,21 @@ extern float *gTexCoordBuffer;
 
 extern void InitBlenderMode( u32 blendmode );
 
+struct ScePspFMatrix4
+{
+	float m[16];
+};
+
+
+ScePspFMatrix4		gProjection;
+void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx)
+{
+	if (type == GL_PROJECTION)
+	{
+		memcpy(&gProjection, mtx, sizeof(gProjection));
+	}
+}
+
 RendererVita::RendererVita()
 {
 }
@@ -66,9 +81,8 @@ void RendererVita::RestoreRenderStates()
 	glLoadIdentity();
 }
 
-void RendererVita::PrepareCurrentBlendMode( u32 render_mode, bool disable_zbuffer )
+void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disable_zbuffer )
 {
-	return;
 	if ( disable_zbuffer )
 	{
 		glDisable(GL_DEPTH_TEST);
@@ -150,112 +164,75 @@ void RendererVita::PrepareCurrentBlendMode( u32 render_mode, bool disable_zbuffe
 	{
 		glDisable(GL_ALPHA_TEST);
 	}
+	
+	// Second texture is sampled in 2 cycle mode if text_lod is clear (when set,
+	// gRDPOtherMode.text_lod enables mipmapping, but we just set lod_frac to 0.
+	bool use_t1 = cycle_mode == CYCLE_2CYCLE;
+
+	bool install_textures[] = { true, use_t1 };
+	
+	if (install_textures[0]) {
+		CNativeTexture * texture = mBoundTexture[0];
+		if (texture != NULL) {
+			texture->InstallTexture();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[0].u);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[0].v);
+		}
+	}
+	
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf((float*)mat_project);
 }
 
 void RendererVita::RenderTriangles(DaedalusVtx * p_vertices, u32 num_vertices, bool disable_zbuffer)
 {
-	PrepareCurrentBlendMode(0, gRDPOtherMode.depth_source ? false : true);
-	
-/*	SBlendStateEntry		blend_entry;
-
-	switch ( cycle_mode )
+	/*if (mTnL.Flags.Texture)
 	{
-		case CYCLE_COPY:		blend_entry.States = mCopyBlendStates; break;
-		case CYCLE_FILL:		blend_entry.States = mFillBlendStates; break;
-		case CYCLE_1CYCLE:		blend_entry = LookupBlendState( mMux, false ); break;
-		case CYCLE_2CYCLE:		blend_entry = LookupBlendState( mMux, true ); break;
-	}
+		UpdateTileSnapshots( mTextureTile );
 
-	u32 render_flags( GU_TEXTURE_32BITF | GU_COLOR_8888 | GU_VERTEX_32BITF | render_mode );
-
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	// Used for Blend Explorer, or Nasty texture
-	//
-	if( DebugBlendmode( p_vertices, num_vertices, triangle_mode, render_flags, mMux ) )
-		return;
-#endif
-
-	// This check is for inexact blends which were handled either by a custom blendmode or auto blendmode thing
-	//
-	if( blend_entry.OverrideFunction != NULL )
-	{
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		// Used for dumping mux and highlight inexact blend
-		//
-		DebugMux( blend_entry.States, p_vertices, num_vertices, triangle_mode, render_flags, mMux );
-#endif
-
-		// Local vars for now
-		SBlendModeDetails details;
-
-		details.EnvColour = mEnvColour;
-		details.PrimColour = mPrimitiveColour;
-		details.InstallTexture = true;
-		details.ColourAdjuster.Reset();
-
-		blend_entry.OverrideFunction( details );
-
-		bool installed_texture( false );
-
-		if( details.InstallTexture )
+		// FIXME: this should be applied in SetNewVertexInfo, and use TextureScaleX/Y to set the scale
+		if (mTnL.Flags.Light && mTnL.Flags.TexGen)
 		{
-			u32 texture_idx = g_ROM.T1_HACK ? 1 : 0;
-
-			if( mBoundTexture[ texture_idx ] )
+			if (CNativeTexture *texture = mBoundTexture[0])
 			{
-				mBoundTexture[ texture_idx ]->InstallTexture();
-
-				sceGuTexWrap( mTexWrap[ texture_idx ].u, mTexWrap[ texture_idx ].v );
-
-				installed_texture = true;
+				// FIXME(strmnnrmn): I don't understand why the tile t/l is used here,
+				// but without it the Goldeneye Rareware logo looks off.
+				// It implies that the RSP code is checking RDP tile state, which seems wrong.
+				// gsDPSetHilite1Tile might set up some RSP state?
+				float x = (float)mTileTopLeft[0].s / 4.f;
+				float y = (float)mTileTopLeft[0].t / 4.f;
+				float w = (float)texture->GetCorrectedWidth();
+				float h = (float)texture->GetCorrectedHeight();
+				float *vtx_tex = gTexCoordBuffer;
+				for (u32 i = 0; i < num_vertices; ++i)
+				{
+					gTexCoordBuffer[0] = (p_vertices[i].Texture.x * w) + x;
+					gTexCoordBuffer[1] = (p_vertices[i].Texture.y * h) + y;
+					gTexCoordBuffer += 2;
+				}
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				vglTexCoordPointerMapped(vtx_tex);
 			}
 		}
-
-		// If no texture was specified, or if we couldn't load it, clear it out
-		if( !installed_texture )
-		{
-			sceGuDisable( GU_TEXTURE_2D );
-		}
-
-		if ( mTnL.Flags.Fog )
-		{
-			DaedalusVtx * p_FogVtx = static_cast<DaedalusVtx *>(sceGuGetMemory(num_vertices * sizeof(DaedalusVtx)));
-			memcpy( p_FogVtx, p_vertices, num_vertices * sizeof( DaedalusVtx ) );
-			details.ColourAdjuster.Process( p_vertices, num_vertices );
-			sceGuDrawArray( triangle_mode, render_flags, num_vertices, NULL, p_vertices );
-			RenderFog( p_FogVtx, num_vertices, triangle_mode, render_flags );
-		}
-		else
-		{
-			details.ColourAdjuster.Process( p_vertices, num_vertices );
-			sceGuDrawArray( triangle_mode, render_flags, num_vertices, NULL, p_vertices );
-		}
+	}*/
+	
+	PrepareRenderState(gProjection.m, disable_zbuffer);
+	
+	glEnableClientState(GL_COLOR_ARRAY);
+	float *vtx_ptr = gVertexBuffer;
+	uint8_t *vtx_clr = (uint8_t*)gColorBuffer;
+	for (int i = 0; i < num_vertices; i++) {
+		gVertexBuffer[0] = p_vertices[i].Position.x;
+		gVertexBuffer[1] = p_vertices[i].Position.y;
+		gVertexBuffer[2] = p_vertices[i].Position.z;
+		gColorBuffer[0] = p_vertices[i].Colour.GetColour();
+		gColorBuffer++;
+		gVertexBuffer += 3;
 	}
-	else if( blend_entry.States != NULL )
-	{
-		RenderUsingRenderSettings( blend_entry.States, p_vertices, num_vertices, triangle_mode, render_flags );
-	}
-	else*/
-	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		// Set default states
-//		DAEDALUS_ERROR( "Unhandled blend mode" );
-		#endif
-		glEnableClientState(GL_COLOR_ARRAY);
-		float *vtx_ptr = gVertexBuffer;
-		uint8_t *vtx_clr = (uint8_t*)gColorBuffer;
-		for (int i = 0; i < num_vertices; i++) {
-			gVertexBuffer[0] = p_vertices[i].Position.x;
-			gVertexBuffer[1] = p_vertices[i].Position.y;
-			gVertexBuffer[2] = p_vertices[i].Position.z;
-			gColorBuffer[0] = p_vertices[i].Colour.GetColour();
-			gColorBuffer++;
-			gVertexBuffer += 3;
-		}
-		vglVertexPointerMapped(vtx_ptr);
-		vglColorPointerMapped(GL_UNSIGNED_BYTE, vtx_clr);
-		vglDrawObjects(GL_TRIANGLES, num_vertices, GL_TRUE);
-	}
+	vglVertexPointerMapped(vtx_ptr);
+	vglColorPointerMapped(GL_UNSIGNED_BYTE, vtx_clr);
+	vglDrawObjects(GL_TRIANGLES, num_vertices, GL_TRUE);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
@@ -268,7 +245,7 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 
 void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 {
-	PrepareCurrentBlendMode(0, true);
+	PrepareRenderState(mScreenToDevice.mRaw, gRDPOtherMode.depth_source ? false : true);
 	
 	v2 screen0;
 	v2 screen1;

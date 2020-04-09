@@ -45,6 +45,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <vector>
 
+#ifdef DAEDALUS_VITA
+struct ScePspFMatrix4
+{
+	float m[16];
+};
+
+#include <vitaGL.h>
+extern void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx);
+#define GU_PROJECTION GL_PROJECTION
+#endif
+
 // Vertex allocation.
 // AllocVerts/FreeVerts:
 //   Allocate vertices whose lifetime must extend beyond the current scope.
@@ -323,7 +334,7 @@ void BaseRenderer::InitViewport()
 		mN64ToScreenTranslate.y += (FastRand() & 3);
 	}
 
-#if defined(DAEDALUS_GL)
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 	f32 w = mScreenWidth;
 	f32 h = mScreenHeight;
 
@@ -1410,12 +1421,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 		if( mWPmodified )
 		{	//Only reload matrix if it has been changed and no billbording //Corn
 			mWPmodified = false;
-#ifdef DAEDALUS_PSP
 			sceGuSetMatrix( GU_PROJECTION, reinterpret_cast< const ScePspFMatrix4 * >( &mat_world_project) );
-#elif defined(DAEDALUS_VITA)
-			glMatrixMode(GL_PROJECTION);
-			glLoadMatrixf((GLfloat *)( &mat_world_project));
-#endif
 		}
 #ifdef DAEDALUS_PSP_USE_VFPU
 		_TnLVFPUDKR( n, &mat_world_project, (const FiddledVtx*)pVtxBase, &mVtxProjected[v0] );
@@ -1721,7 +1727,7 @@ void BaseRenderer::UpdateTileSnapshots( u32 tile_idx )
 		// LOD is disabled - use two textures
 		UpdateTileSnapshot( 1, tile_idx + 1 );
 	}
-#elif defined(DAEDALUS_GL) || defined(RDP_USE_TEXEL1)
+#elif defined(DAEDALUS_GL) || defined(RDP_USE_TEXEL1) || defined(DAEDALUS_VITA)
 // FIXME(strmnnrmn): What's RDP_USE_TEXEL1? Can we remove it?
 
 	if (gRDPOtherMode.cycle_type == CYCLE_2CYCLE)
@@ -1975,7 +1981,7 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 	if (rdp_tile.mirror_s)	size_x *= 2;
 	if (rdp_tile.mirror_t)	size_y *= 2;
 
-#ifdef DAEDALUS_GL
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 	// If using shift, we need to take it into account here.
 	offset.s = ApplyShift(offset.s, rdp_tile.shift_s);
 	offset.t = ApplyShift(offset.t, rdp_tile.shift_t);
@@ -2072,12 +2078,7 @@ void BaseRenderer::SetProjection(const u32 address, bool bReplace)
 	}
 
 	mWorldProjectValid = false;
-#ifdef DAEDALUS_PSP
 	sceGuSetMatrix( GU_PROJECTION, reinterpret_cast< const ScePspFMatrix4 * >( &mProjectionMat) );
-#elif defined(DAEDALUS_VITA)
-	glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(reinterpret_cast< GLfloat * >( &mProjectionMat));
-#endif
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF(
 		"	 %#+12.5f %#+12.5f %#+12.7f %#+12.5f\n"
@@ -2188,12 +2189,7 @@ inline void BaseRenderer::UpdateWorldProject()
 		if( mReloadProj )
 		{
 			mReloadProj = false;
-#ifdef DAEDALUS_PSP
 			sceGuSetMatrix( GU_PROJECTION, reinterpret_cast< const ScePspFMatrix4 * >( &mProjectionMat) );
-#elif defined(DAEDALUS_VITA)
-			glMatrixMode(GL_PROJECTION);
-			glLoadMatrixf(reinterpret_cast< GLfloat * >( &mProjectionMat));
-#endif
 		}
 		MatrixMultiplyAligned( &mWorldProject, &mModelViewStack[mModelViewTop], &mProjectionMat );
 	}
@@ -2214,12 +2210,7 @@ inline void BaseRenderer::PokeWorldProject()
 			mWorldProject.mRaw[8] *= HD_SCALE;
 			mWorldProject.mRaw[12] *= HD_SCALE;
 		}
-#ifdef DAEDALUS_PSP
 		sceGuSetMatrix( GU_PROJECTION, reinterpret_cast< const ScePspFMatrix4 * >( &mWorldProject ) );
-#elif defined(DAEDALUS_VITA)
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(reinterpret_cast< GLfloat * >( &mWorldProject));
-#endif
 		mModelViewStack[mModelViewTop] = gMatrixIdentity;
 	}
 }
