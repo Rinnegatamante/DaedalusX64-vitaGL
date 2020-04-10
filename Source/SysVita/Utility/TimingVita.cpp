@@ -20,25 +20,33 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include "Utility/Timing.h"
 
-#include <psp2/kernel/processmgr.h>
+#include <vitasdk.h>
 
 namespace NTiming {
 
 bool GetPreciseFrequency( u64 * p_freq )
 {
-	*p_freq = 1 * 1000 * 1000;  // Microseconds
+	*p_freq = ::sceRtcGetTickResolution();
 	return true;
 }
 
 bool GetPreciseTime( u64 * p_time )
 {
-	*p_time = sceKernelGetProcessTimeWide();
+	SceRtcTick tick;
+	if(::sceRtcGetCurrentTick( &tick ) == 0)
+	{
+		*p_time = tick.tick;
+		return true;
+	}
+
+	*p_time = 0;
 	return false;
 }
 
 u64 ToMilliseconds( u64 ticks )
 {
-	return (ticks*1000LL);
+	static u64 tick_resolution = sceRtcGetTickResolution();
+	return (ticks*1000LL) / tick_resolution;
 }
 
 } // NTiming
