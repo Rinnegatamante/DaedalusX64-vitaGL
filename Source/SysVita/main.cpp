@@ -37,7 +37,7 @@
 
 extern "C" {
 
-int32_t sceKernelChangeThreadVfpException(int32_t clear, uint32_t set);
+int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 int _newlib_heap_size_user = 128 * 1024 * 1024;
 
 }

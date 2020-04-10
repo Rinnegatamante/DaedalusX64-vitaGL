@@ -64,7 +64,7 @@ class CNativeTexture : public CRefCounted
 		inline const void *				GetData() const					{ return mpData; }
 		inline void *					GetData()						{ return mpData; }
 
-#if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_PSP)
 		inline f32						GetScaleX() const				{ return mScale.x; }
 		inline f32						GetScaleY() const				{ return mScale.y; }
 #endif
@@ -87,7 +87,7 @@ class CNativeTexture : public CRefCounted
 		GLuint				mTextureId;
 #endif
 
-#if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_PSP)
 		v2					mScale;
 		bool				mIsDataVidMem;
 		bool				mIsPaletteVidMem;
