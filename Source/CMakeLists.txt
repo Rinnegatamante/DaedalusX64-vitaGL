@@ -97,7 +97,7 @@ set (VITA_MAIN_FILES SysVita/main.cpp SysVita/debugScreenFont.c)
 set (VITA_DEBUG_FILES SysVita/Debug/DaedalusAssertVita.cpp SysVita/Debug/DBGConsoleVita.cpp )
 set (VITA_DYNAREC_FILES SysVita/DynaRec/CodeGeneratorVita.cpp)
 set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphics/NativeTextureVita.cpp)
-set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererVita.cpp SysVita/HLEGraphics/Blender.cpp)
+set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererVita.cpp)
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp)
 set (VITA_INPUTMANAGER_FILES SysVita/Input/InputManagerVita.cpp)
 set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp)
@@ -258,6 +258,7 @@ if (VITA_RELEASE)
 		ScePvf_stub
 		SceSysmodule_stub
 		SceCommonDialog_stub
+		SceKernelThreadMgr_stub
 		SceCtrl_stub
 		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 		-lc
