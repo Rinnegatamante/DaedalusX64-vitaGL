@@ -313,7 +313,7 @@ void CNativeTexture::SetData( void * data, void * palette )
 						  0, GL_RGBA, GL_UNSIGNED_BYTE, data );
 
 			break;
-/*		case TexFmt_CI4_8888:
+		case TexFmt_CI4_8888:
 			{
 				// Convert palletised texture to non-palletised. This is wsteful - we should avoid generating these updated for OSX.
 				const NativePfCI44 * pix_ptr = static_cast< const NativePfCI44 * >( data );
@@ -340,12 +340,11 @@ void CNativeTexture::SetData( void * data, void * palette )
 
 				glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
 							  mCorrectedWidth, mCorrectedHeight,
-							  0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, out );
+							  0, GL_RGBA, GL_UNSIGNED_BYTE, out );
 
 				free(out);
 			}
 			break;
-
 		case TexFmt_CI8_8888:
 			{
 				// Convert palletised texture to non-palletised. This is wsteful - we should avoid generating these updated for OSX.
@@ -372,13 +371,13 @@ void CNativeTexture::SetData( void * data, void * palette )
 
 				glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
 							  mCorrectedWidth, mCorrectedHeight,
-							  0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, out );
+							  0, GL_RGBA, GL_UNSIGNED_BYTE, out );
 
 				free(out);
 			}
 			break;
-*/
 		default:
+			printf("Unsupported texture format used %ld\n", mTextureFormat);
 			break;
 		}
 	}
