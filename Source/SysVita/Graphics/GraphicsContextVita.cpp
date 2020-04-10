@@ -125,28 +125,31 @@ void IGraphicsContext::ClearAllSurfaces()
 
 void IGraphicsContext::ClearToBlack()
 {
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClearDepth(0);
+	glDepthMask(GL_TRUE);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearDepth( 1.0f );
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void IGraphicsContext::ClearZBuffer()
 {
-	glClearDepth(0);
-	glClear(GL_DEPTH_BUFFER_BIT);
+	glDepthMask(GL_TRUE);
+	glClearDepth( 1.0f );
+	glClear( GL_DEPTH_BUFFER_BIT );
 }
 
 void IGraphicsContext::ClearColBuffer(const c32 & colour)
 {
-	glClearColor((float)colour.GetRf() / 255.0f, (float)colour.GetGf() / 255.0f, (float)colour.GetBf() / 255.0f, (float)colour.GetAf() / 255.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor( colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf() );
+	glClear( GL_COLOR_BUFFER_BIT );
 }
 
 void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 {
-	glClearColor((float)colour.GetRf() / 255.0f, (float)colour.GetGf() / 255.0f, (float)colour.GetBf() / 255.0f, (float)colour.GetAf() / 255.0f);
-	glClearDepth(0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDepthMask(GL_TRUE);
+	glClearDepth( 1.0f );
+	glClearColor( colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf() );
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
 void IGraphicsContext::BeginFrame()
