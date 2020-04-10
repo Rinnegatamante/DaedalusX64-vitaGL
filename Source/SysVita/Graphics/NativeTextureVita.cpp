@@ -67,6 +67,9 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mpPalette( NULL )
 ,	mTextureId( 0 )
 {
+	mScale.x = 1.0f / mCorrectedWidth;
+	mScale.y = 1.0f / mCorrectedHeight;
+	
 	glGenTextures( 1, &mTextureId );
 
 	size_t data_len = GetBytesRequired();

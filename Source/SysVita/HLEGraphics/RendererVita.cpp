@@ -297,41 +297,52 @@ void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disab
 	glLoadMatrixf((float*)mat_project);
 }
 
-void RendererVita::RenderTriangles(DaedalusVtx * p_vertices, u32 num_vertices, bool disable_zbuffer)
+void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bool disable_zbuffer)
 {
 	if (mTnL.Flags.Texture)
 	{
 		UpdateTileSnapshots( mTextureTile );
-
-		if (mTnL.Flags.Light && mTnL.Flags.TexGen)
+		
+		PrepareRenderState(gProjection.m, disable_zbuffer);
+		
+		CNativeTexture *texture = mBoundTexture[0];
+		if (texture != NULL)
 		{
-			if (CNativeTexture *texture = mBoundTexture[0])
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			
+			float scale_x {texture->GetScaleX()};
+			float scale_y {texture->GetScaleY()};
+			
+			// Hack to fix the sun in Zelda OOT/MM
+			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0c184241) )
 			{
-				// Hack to fix the sun in Zelda OOT/MM
-				const f32 scale = ( g_ROM.ZELDA_HACK &&(gRDPOtherMode.L == 0x0c184241) ) ? 16.f : 32.f;
-				
-				// FIXME(strmnnrmn): I don't understand why the tile t/l is used here,
-				// but without it the Goldeneye Rareware logo looks off.
-				// It implies that the RSP code is checking RDP tile state, which seems wrong.
-				// gsDPSetHilite1Tile might set up some RSP state?
-				float x = (float)mTileTopLeft[0].s / 4.f;
-				float y = (float)mTileTopLeft[0].t / 4.f;
-				float w = (float)texture->GetCorrectedWidth();
-				float h = (float)texture->GetCorrectedHeight();
+				scale_x *= 0.5f;
+				scale_y *= 0.5f;
+			}
+			
+			if (mTnL.Flags.Light && mTnL.Flags.TexGen)
+			{	
+				/*float *vtx_tex = gTexCoordBuffer;
+				for (u32 i = 0; i < num_vertices; ++i)
+				{
+					gTexCoordBuffer[0] = (p_vertices[i].Texture.x - mTileTopLeft[ 0 ].s * scale_x / 4.f) * scale_x;
+					gTexCoordBuffer[1] = (p_vertices[i].Texture.y - mTileTopLeft[ 0 ].t * scale_y / 4.f) * scale_y;
+					gTexCoordBuffer += 2;
+				}
+				vglTexCoordPointerMapped(vtx_tex);*/
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			} else {
 				float *vtx_tex = gTexCoordBuffer;
 				for (u32 i = 0; i < num_vertices; ++i)
 				{
-					gTexCoordBuffer[0] = ((p_vertices[i].Texture.x * w) + x) * scale;
-					gTexCoordBuffer[1] = ((p_vertices[i].Texture.y * h) + y) * scale;
+					gTexCoordBuffer[0] = p_vertices[i].Texture.x * scale_x;
+					gTexCoordBuffer[1] = p_vertices[i].Texture.y * scale_y;
 					gTexCoordBuffer += 2;
 				}
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 				vglTexCoordPointerMapped(vtx_tex);
 			}
 		}
-	}
-	
-	PrepareRenderState(gProjection.m, disable_zbuffer);
+	} else PrepareRenderState(gProjection.m, disable_zbuffer);
 	
 	glEnableClientState(GL_COLOR_ARRAY);
 	float *vtx_ptr = gVertexBuffer;
