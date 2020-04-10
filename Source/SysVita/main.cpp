@@ -29,8 +29,6 @@
 #include "Utility/Translate.h"
 #include "Utility/Timer.h"
 
-#include "debugScreen.h"
-
 #define DAEDALUS_VITA_PATH(p) "ux0:/data/DaedalusX64/" p
 #define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/Super Mario 64 (USA).n64")
 //#define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/rdpdemo.z64")

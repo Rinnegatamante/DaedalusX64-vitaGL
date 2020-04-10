@@ -93,7 +93,7 @@ set (LINUX_AUDIO SysPosix/HLEAudio/AudioPluginLinux.cpp)
 set (MAC_AUDIO SysPosix/HLEAudio/AudioPluginOSX.cpp)
 
 # Vita
-set (VITA_MAIN_FILES SysVita/main.cpp SysVita/debugScreenFont.c)
+set (VITA_MAIN_FILES SysVita/main.cpp)
 set (VITA_DEBUG_FILES SysVita/Debug/DaedalusAssertVita.cpp SysVita/Debug/DBGConsoleVita.cpp )
 set (VITA_DYNAREC_FILES SysVita/DynaRec/CodeGeneratorVita.cpp)
 set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphics/NativeTextureVita.cpp)
