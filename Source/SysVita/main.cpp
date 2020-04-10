@@ -37,14 +37,10 @@
 
 extern "C" {
 
-extern void __sinit(struct _reent *);
-
+int32_t sceKernelChangeThreadVfpException(int32_t clear, uint32_t set);
 int _newlib_heap_size_user = 128 * 1024 * 1024;
 
-int chdir(const char *path) {return 0;}
-int mkdir(const char *path) {return sceIoMkdir(path, 0777);}
-int chmod(const char *path, mode_t mode) {return 0;}
-long pathconf(const char *path, int name) {return 0;}
+}
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -59,38 +55,6 @@ void log2file(const char *format, ...) {
 		fwrite(msg, 1, strlen(msg), log);
 		fclose(log);
 	}
-}
-
-char *getcwd(char *buf, size_t size)
-{
-	strlcpy(buf, "ux0:/data", size);
-	return buf;
-}
-
-unsigned int sleep(unsigned int seconds)
-{
-	sceKernelDelayThreadCB(seconds * 1000 * 1000);
-	return 0;
-}
-
-int usleep(useconds_t usec)
-{
-	sceKernelDelayThreadCB(usec);
-	return 0;
-}
-
-void __assert_func(const char *filename, int line, const char *assert_func, const char *expr)
-{
-	log2file("assert on %s (line %ld) func: %s (%s)", filename, line, assert_func, expr);
-	abort();
-}
-
-void abort(void)
-{
-	sceKernelExitProcess(0);
-	while (1) sleep(1);
-}
-
 }
 
 static void wait_press()
@@ -109,6 +73,11 @@ static void Initialize()
 {
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
 	strcpy(g_DaedalusConfig.mSaveDir, DAEDALUS_VITA_PATH("SaveGames/"));
+	
+	// Disabling all FPU exceptions traps on main thread
+	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
+	
+	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
 
 	bool ret = System_Init();
 }
