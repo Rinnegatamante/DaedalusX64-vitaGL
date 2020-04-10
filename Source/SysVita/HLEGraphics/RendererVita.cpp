@@ -325,8 +325,8 @@ void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bo
 				/*float *vtx_tex = gTexCoordBuffer;
 				for (u32 i = 0; i < num_vertices; ++i)
 				{
-					gTexCoordBuffer[0] = (p_vertices[i].Texture.x - mTileTopLeft[ 0 ].s * scale_x / 4.f) * scale_x;
-					gTexCoordBuffer[1] = (p_vertices[i].Texture.y - mTileTopLeft[ 0 ].t * scale_y / 4.f) * scale_y;
+					gTexCoordBuffer[0] = (p_vertices[i].Texture.x * scale_x - mTileTopLeft[ 0 ].s * scale_x / 4.f) * scale_x;
+					gTexCoordBuffer[1] = (p_vertices[i].Texture.y * scale_y - mTileTopLeft[ 0 ].t * scale_y / 4.f) * scale_y;
 					gTexCoordBuffer += 2;
 				}
 				vglTexCoordPointerMapped(vtx_tex);*/
@@ -371,6 +371,9 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	PrepareTexRectUVs(&st0, &st1);
 
 	PrepareRenderState(mScreenToDevice.mRaw, gRDPOtherMode.depth_source ? false : true);
+	
+	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
+	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
 
 	v2 screen0;
 	v2 screen1;
@@ -378,6 +381,10 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	ConvertN64ToScreen( xy1, screen1 );
 
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
+
+	CNativeTexture *texture = mBoundTexture[0];
+	float scale_x {texture->GetScaleX()};
+	float scale_y {texture->GetScaleY()};
 
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -393,14 +400,14 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
 	gVertexBuffer[11] = depth;
-	gTexCoordBuffer[0] = st0.s;
-	gTexCoordBuffer[1] = st0.t;
-	gTexCoordBuffer[2] = st1.s;
-	gTexCoordBuffer[3] = st0.t;
-	gTexCoordBuffer[4] = st0.s;
-	gTexCoordBuffer[5] = st1.t;
-	gTexCoordBuffer[6] = st1.s;
-	gTexCoordBuffer[7] = st1.t;
+	gTexCoordBuffer[0] = uv0.x * scale_x;
+	gTexCoordBuffer[1] = uv0.y * scale_y;
+	gTexCoordBuffer[2] = uv1.x * scale_x;
+	gTexCoordBuffer[3] = uv0.y * scale_y;
+	gTexCoordBuffer[4] = uv0.x * scale_x;
+	gTexCoordBuffer[5] = uv1.y * scale_y;
+	gTexCoordBuffer[6] = uv1.x * scale_x;
+	gTexCoordBuffer[7] = uv1.y * scale_y;
 	vglVertexPointerMapped(gVertexBuffer);
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
@@ -420,12 +427,19 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 
 	PrepareRenderState(mScreenToDevice.mRaw, gRDPOtherMode.depth_source ? false : true);
 
+	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
+	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
+
 	v2 screen0;
 	v2 screen1;
 	ConvertN64ToScreen( xy0, screen0 );
 	ConvertN64ToScreen( xy1, screen1 );
 
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
+
+	CNativeTexture *texture = mBoundTexture[0];
+	float scale_x {texture->GetScaleX()};
+	float scale_y {texture->GetScaleY()};
 
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -441,14 +455,14 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
 	gVertexBuffer[11] = depth;
-	gTexCoordBuffer[0] = st0.s;
-	gTexCoordBuffer[1] = st0.t;
-	gTexCoordBuffer[2] = st0.s;
-	gTexCoordBuffer[3] = st1.t;
-	gTexCoordBuffer[4] = st1.s;
-	gTexCoordBuffer[5] = st0.t;
-	gTexCoordBuffer[6] = st1.s;
-	gTexCoordBuffer[7] = st1.t;
+	gTexCoordBuffer[0] = uv0.x * scale_x;
+	gTexCoordBuffer[1] = uv0.y * scale_y;
+	gTexCoordBuffer[2] = uv0.x * scale_x;
+	gTexCoordBuffer[3] = uv1.y * scale_y;
+	gTexCoordBuffer[4] = uv1.x * scale_x;
+	gTexCoordBuffer[5] = uv0.y * scale_y;
+	gTexCoordBuffer[6] = uv1.x * scale_x;
+	gTexCoordBuffer[7] = uv1.y * scale_y;
 	vglVertexPointerMapped(gVertexBuffer);
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
