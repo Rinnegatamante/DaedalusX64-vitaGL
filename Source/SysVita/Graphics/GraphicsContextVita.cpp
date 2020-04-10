@@ -20,10 +20,7 @@
 
 extern void HandleEndOfFrame();
 
-#define SCR_WIDTH 960
-#define SCR_HEIGHT 544
-
-#define MAX_INDEXES 20000
+#define MAX_INDEXES 0xFFFF
 uint16_t *gIndexes;
 float *gVertexBuffer;
 uint32_t *gColorBuffer;
@@ -91,18 +88,15 @@ template<> bool CSingleton< CGraphicsContext >::Create()
 IGraphicsContext::IGraphicsContext()
 	:	mInitialised(false)
 	,	mDumpNextScreen(false)
-{
-	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
-	vglUseVram(GL_TRUE);
-	
+{	
 	int i;
 	gIndexes = (uint16_t*)malloc(sizeof(uint16_t)*MAX_INDEXES);
 	for (i = 0; i < MAX_INDEXES; i++){
 		gIndexes[i] = i;
 	}
-	gVertexBufferPtr = (float*)malloc(0x400000);
-	gColorBufferPtr = (uint32_t*)malloc(0x200000);
-	gTexCoordBufferPtr = (float*)malloc(0x200000);
+	gVertexBufferPtr = (float*)malloc(0x800000);
+	gColorBufferPtr = (uint32_t*)malloc(0x600000);
+	gTexCoordBufferPtr = (float*)malloc(0x600000);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
 	gTexCoordBuffer = gTexCoordBufferPtr;
@@ -155,7 +149,6 @@ void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 void IGraphicsContext::BeginFrame()
 {
 	vglStartRendering();
-	glEnable(GL_TEXTURE_2D);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;

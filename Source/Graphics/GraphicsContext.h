@@ -25,6 +25,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/DaedalusTypes.h"
 #include "Utility/Singleton.h"
 
+#ifdef DAEDALUS_VITA
+#define SCR_WIDTH 960
+#define SCR_HEIGHT 544
+#define VERSION "1.18"
+#endif
+
 class c32;
 
 // This class basically provides an extra level of security for our

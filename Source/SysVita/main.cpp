@@ -3,6 +3,7 @@
 
 #include <vitasdk.h>
 #include <vitaGL.h>
+#include <imgui_vita.h>
 
 #include "BuildOptions.h"
 #include "Config/ConfigOptions.h"
@@ -28,10 +29,7 @@
 #include "Utility/Thread.h"
 #include "Utility/Translate.h"
 #include "Utility/Timer.h"
-
-#define DAEDALUS_VITA_PATH(p) "ux0:/data/DaedalusX64/" p
-#define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/Legend of Zelda, The - Ocarina of Time (USA) (Rev B).n64")
-//#define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/rdpdemo.z64")
+#include "UI/MainMenuScreen.h"
 
 extern "C" {
 
@@ -64,8 +62,21 @@ static void Initialize()
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
 	
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
+	
+	// FIXME: This ideally should be inside GraphicsContext initializer however we need vitaGL to draw menu
+	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
+	vglUseVram(GL_TRUE);
 
-	bool ret = System_Init();
+	System_Init();
+	
+	// TODO: Move this something else
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui_ImplVitaGL_Init();
+	ImGui_ImplVitaGL_TouchUsage(true);
+    ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
+	ImGui_ImplVitaGL_GamepadUsage(true);
+	ImGui::StyleColorsDark();
 }
 
 void HandleEndOfFrame()
@@ -74,9 +85,16 @@ void HandleEndOfFrame()
 
 int main(int argc, char* argv[])
 {
-
 	Initialize();
-	System_Open(LOAD_ROM);
+	
+	char *rom = nullptr;
+	do {
+		rom = DrawRomSelector();
+	} while (rom == nullptr);
+	
+	char fullpath[512];
+	sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
+	System_Open(fullpath);
 	CPU_Run();
 	System_Close();
 	System_Finalize();

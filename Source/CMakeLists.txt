@@ -100,6 +100,7 @@ set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphi
 set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererVita.cpp)
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp)
 set (VITA_INPUTMANAGER_FILES SysVita/Input/InputManagerVita.cpp)
+set (VITA_UI_FILES SysVita/UI/MainMenuScreen.cpp)
 set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp)
 set (VITA_BUILD ${VITA_DEBUG_FILES} ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES} ${VITA_HLEAUDIO_FILES} ${VITA_HLEGRAPHICS_FILES} ${VITA_INPUTMANAGER_FILES} ${VITA_UI_FILES} ${VITA_UTILITY_FILES})
 
@@ -260,12 +261,14 @@ if (VITA_RELEASE)
 		SceCommonDialog_stub
 		SceKernelThreadMgr_stub
 		SceCtrl_stub
+		SceTouch_stub
 		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 		-lc
 		-lstdc++
 		-lm
 		-lvitaGL
 		-lmathneon
+		-limgui
 	)
 
 	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf)

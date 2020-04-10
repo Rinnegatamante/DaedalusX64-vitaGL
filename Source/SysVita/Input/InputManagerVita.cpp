@@ -18,8 +18,6 @@
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
-#define DAEDALUS_VITA_PATH(p) "ux0:/data/DaedalusX64/" p
-
 v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
 namespace
