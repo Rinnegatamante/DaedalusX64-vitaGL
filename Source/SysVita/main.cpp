@@ -30,7 +30,7 @@
 #include "Utility/Timer.h"
 
 #define DAEDALUS_VITA_PATH(p) "ux0:/data/DaedalusX64/" p
-#define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/Super Mario 64 (USA).n64")
+#define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/Legend of Zelda, The - Ocarina of Time (USA) (Rev B).n64")
 //#define LOAD_ROM              DAEDALUS_VITA_PATH("Roms/rdpdemo.z64")
 
 extern "C" {
@@ -55,18 +55,6 @@ void log2file(const char *format, ...) {
 	}
 }
 
-static void wait_press()
-{
-	SceCtrlData pad;
-	memset(&pad, 0, sizeof(pad));
-	while (1) {
-		sceCtrlPeekBufferPositive(0, &pad, 1);
-
-		if (pad.buttons & SCE_CTRL_CROSS)
-			break;
-	}
-}
-
 static void Initialize()
 {
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
@@ -82,11 +70,6 @@ static void Initialize()
 
 void HandleEndOfFrame()
 {
-	SceCtrlData pad;
-	sceCtrlPeekBufferPositive(0, &pad, 1);
-
-	if (pad.buttons & SCE_CTRL_CROSS)
-		CPU_Halt("Exiting");
 }
 
 int main(int argc, char* argv[])
@@ -98,6 +81,5 @@ int main(int argc, char* argv[])
 	System_Close();
 	System_Finalize();
 
-	wait_press();
 	return 0;
 }
