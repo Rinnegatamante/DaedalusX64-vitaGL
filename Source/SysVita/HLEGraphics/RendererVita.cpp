@@ -181,7 +181,7 @@ void RendererVita::RestoreRenderStates()
 	// We do our own culling
 	glDisable(GL_CULL_FACE);
 	 
-	glBlendEquation(GL_ADD);
+	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDisable( GL_BLEND );
