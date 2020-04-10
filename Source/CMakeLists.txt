@@ -211,10 +211,10 @@ if (VITA_RELEASE)
 	set(VITA_TITLEID  "DAED00001")
 	set(VITA_VERSION  "01.00")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O2 -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
 
-	add_definitions("-DDAEDALUS_VITA -fpermissive")
+	add_definitions("-DDAEDALUS_VITA")
 
 	# Build SysGXM Lib
 	#add_library(sysGXM STATIC ${SYSGXM_BUILD})
