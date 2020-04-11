@@ -28,10 +28,13 @@
 #include "Utility/Profiler.h"
 #include "Utility/Thread.h"
 #include "Utility/Translate.h"
-#include "Utility/RomFile.h"
+#include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
 
 char selectedRom[512];
+
+// FIXME: This is a hack! Required to overwrite rom specific preferencies
+int enable_audio = APM_DISABLED;
 
 char *DrawRomSelector() {
 	bool selected = false;
@@ -39,7 +42,15 @@ char *DrawRomSelector() {
 	vglStartRendering();
 	ImGui_ImplVitaGL_NewFrame();
 	if (ImGui::BeginMainMenuBar()){
-		ImGui::Text("Daedalus X64 v.%s", VERSION);
+		if (ImGui::BeginMenu("Audio")){
+			if (ImGui::MenuItem("Disabled", nullptr, enable_audio == APM_DISABLED)){
+				enable_audio = APM_DISABLED;
+			}
+			if (ImGui::MenuItem("Synchronous", nullptr, enable_audio == APM_ENABLED_SYNC)){
+				enable_audio = APM_ENABLED_SYNC;
+			}
+			ImGui::EndMenu();
+		}
 		ImGui::SameLine();
 		ImGui::SetCursorPosX(870);
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate); 
@@ -48,7 +59,7 @@ char *DrawRomSelector() {
 		
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(960, 525), ImGuiSetCond_Always);
-	ImGui::Begin("Daedalus X64 Rom Selector", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	ImGui::Begin("Daedalus X64", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	std::string			full_path;
 

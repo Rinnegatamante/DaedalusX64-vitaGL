@@ -25,13 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
 #include "stdafx.h"
-#include <stdio.h>
-#include <new>
 
-#include <psp2/kernel/threadmgr.h>
-#include <psp2/audioout.h>
+#include <vitasdk.h>
 
-#include "Plugins/AudioPlugin.h"
+#include "AudioPluginVita.h"
+#include "AudioOutput.h"
 #include "HLEAudio/audiohle.h"
 
 #include "Config/ConfigOptions.h"
@@ -40,150 +38,119 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/Memory.h"
 #include "Core/ROM.h"
 #include "Core/RSP_HLE.h"
-#include "Debug/DBGConsole.h"
-#include "HLEAudio/AudioBuffer.h"
-#include "Utility/FramerateLimiter.h"
-#include "Utility/Thread.h"
 
 #define RSP_AUDIO_INTR_CYCLES     1
-extern u32 gSoundSync;
 
-static const u32	kOutputFrequency {44100};
-static const u32	MAX_OUTPUT_FREQUENCY {kOutputFrequency * 4};
+#define DEFAULT_FREQUENCY 44100	// Taken from Mupen64 : )
 
+// FIXME: Hack!
+extern int enable_audio;
 
-static bool audio_open {false};
-
-
-// Large kAudioBufferSize creates huge delay on sound //Corn
-static const u32	kAudioBufferSize {1024 * 2}; // OSX uses a circular buffer length, 1024 * 1024
-
-
-class AudioPluginVita : public CAudioPlugin
-{
-public:
-
- AudioPluginVita();
-	virtual ~AudioPluginVita();
-	virtual bool			StartEmulation();
-	virtual void			StopEmulation();
-
-	virtual void			DacrateChanged( int system_type );
-	virtual void			LenChanged();
-	virtual u32				ReadLength() {return 0;}
-	virtual EProcessResult	ProcessAList();
-
-	//virtual void SetFrequency(u32 frequency);
-	virtual void AddBuffer( u8 * start, u32 length);
-	virtual void FillBuffer( Sample * buffer, u32 num_samples);
-
-	virtual void StopAudio();
-	virtual void StartAudio();
-
-public:
-  CAudioBuffer *		mAudioBufferUncached;
-
-private:
-	CAudioBuffer * mAudioBuffer;
-	bool mKeepRunning;
-	bool mExitAudioThread;
-	u32 mFrequency;
-	s32 mAudioThread;
-	s32 mSemaphore;
-//	u32 mBufferLenMs;
-};
-
-static AudioPluginVita * ac;
-
-void AudioPluginVita::FillBuffer(Sample * buffer, u32 num_samples)
-{
-	sceKernelWaitSema( mSemaphore, 1, nullptr );
-
-	mAudioBufferUncached->Drain( buffer, num_samples );
-
-	sceKernelSignalSema( mSemaphore, 1 );
-}
-
-
+//*****************************************************************************
+//
+//*****************************************************************************
 EAudioPluginMode gAudioPluginEnabled( APM_DISABLED );
+//bool gAdaptFrequency( false );
 
-
-AudioPluginVita::AudioPluginVita()
-:mKeepRunning (false)
-//: mAudioBuffer( kAudioBufferSize )
-, mFrequency( 44100 )
-,	mSemaphore( sceKernelCreateSema( "AudioPluginVita", 0, 1, 1, nullptr ) )
-//, mAudioThread ( kInvalidThreadHandle )
-//, mKeepRunning( false )
-//, mBufferLenMs ( 0 )
+//*****************************************************************************
+//
+//*****************************************************************************
+CAudioPluginVita::CAudioPluginVita()
+:	mAudioOutput( new AudioOutput )
 {
-	// Allocate audio buffer with malloc_64 to avoid cached/uncached aliasing
-	void * mem = malloc( sizeof( CAudioBuffer ) );
-	mAudioBuffer = new( mem ) CAudioBuffer( kAudioBufferSize );
-  mAudioBufferUncached = (CAudioBuffer*)MAKE_UNCACHED_PTR(mem);
-	// Ideally we could just invalidate this range?
-	//dcache_wbinv_range_unaligned( mAudioBuffer, mAudioBuffer+sizeof( CAudioBuffer ) );
+	//mAudioOutput->SetAdaptFrequency( gAdaptFrequency );
+	gAudioPluginEnabled = enable_audio;
 }
 
-AudioPluginVita::~AudioPluginVita( )
+//*****************************************************************************
+//
+//*****************************************************************************
+CAudioPluginVita::~CAudioPluginVita()
 {
-	mAudioBuffer->~CAudioBuffer();
-  free(mAudioBuffer);
-  sceKernelDeleteSema(mSemaphore);
- // pspAudioEnd();
+	delete mAudioOutput;
 }
 
-bool		AudioPluginVita::StartEmulation()
+//*****************************************************************************
+//
+//*****************************************************************************
+CAudioPluginVita *	CAudioPluginVita::Create()
+{
+	return new CAudioPluginVita();
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+/*
+void	CAudioPluginVita::SetAdaptFrequecy( bool adapt )
+{
+	mAudioOutput->SetAdaptFrequency( adapt );
+}
+*/
+//*****************************************************************************
+//
+//*****************************************************************************
+bool		CAudioPluginVita::StartEmulation()
 {
 	return true;
 }
 
-
-void	AudioPluginVita::StopEmulation()
+//*****************************************************************************
+//
+//*****************************************************************************
+void	CAudioPluginVita::StopEmulation()
 {
-    Audio_Reset();
-  	StopAudio();
-    sceKernelDeleteSema(mSemaphore);
-    //pspAudioEndPre();
-    sceKernelDelayThread(100000);
-    //pspAudioEnd();
-
-
+	Audio_Reset();
+	mAudioOutput->StopAudio();
 }
 
-void	AudioPluginVita::DacrateChanged( int system_type )
+void	CAudioPluginVita::DacrateChanged( int SystemType )
 {
-u32 clock = (system_type == ST_NTSC) ? VI_NTSC_CLOCK : VI_PAL_CLOCK;
-u32 dacrate = Memory_AI_GetRegister(AI_DACRATE_REG);
-u32 frequency = clock / (dacrate + 1);
+//	printf( "DacrateChanged( %s )\n", (SystemType == ST_NTSC) ? "NTSC" : "PAL" );
+	u32 type {(u32)((SystemType == ST_NTSC) ? VI_NTSC_CLOCK : VI_PAL_CLOCK)};
+	u32 dacrate {Memory_AI_GetRegister(AI_DACRATE_REG)};
+	u32	frequency {type / (dacrate + 1)};
 
-#ifdef DAEDALUS_DEBUG_CONSOLE
-DBGConsole_Msg(0, "Audio frequency: %d", frequency);
-#endif
-mFrequency = frequency;
+	mAudioOutput->SetFrequency( frequency );
 }
 
 
-void	AudioPluginVita::LenChanged()
+//*****************************************************************************
+//
+//*****************************************************************************
+void	CAudioPluginVita::LenChanged()
 {
 	if( gAudioPluginEnabled > APM_DISABLED )
 	{
-		u32 address = Memory_AI_GetRegister(AI_DRAM_ADDR_REG) & 0xFFFFFF;
-		u32	length = Memory_AI_GetRegister(AI_LEN_REG);
+		//mAudioOutput->SetAdaptFrequency( gAdaptFrequency );
 
-		AddBuffer( g_pu8RamBase + address, length );
+		u32		address( Memory_AI_GetRegister(AI_DRAM_ADDR_REG) & 0xFFFFFF );
+		u32		length(Memory_AI_GetRegister(AI_LEN_REG));
+
+		mAudioOutput->AddBuffer( g_pu8RamBase + address, length );
 	}
 	else
 	{
-		StopAudio();
+		mAudioOutput->StopAudio();
 	}
 }
 
-EProcessResult	AudioPluginVita::ProcessAList()
+//*****************************************************************************
+//
+//*****************************************************************************
+u32		CAudioPluginVita::ReadLength()
+{
+	return 0;
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+EProcessResult	CAudioPluginVita::ProcessAList()
 {
 	Memory_SP_SetRegisterBits(SP_STATUS_REG, SP_STATUS_HALT);
 
-	EProcessResult	result = PR_NOT_STARTED;
+	EProcessResult	result( PR_NOT_STARTED );
 
 	switch( gAudioPluginEnabled )
 	{
@@ -191,11 +158,6 @@ EProcessResult	AudioPluginVita::ProcessAList()
 			result = PR_COMPLETED;
 			break;
 		case APM_ENABLED_ASYNC:
-			{
-				//SHLEStartJob	job;
-				//gJobManager.AddJob( &job, sizeof( job ) );
-			}
-			result = PR_STARTED;
 			break;
 		case APM_ENABLED_SYNC:
 			Audio_Ucode();
@@ -206,83 +168,10 @@ EProcessResult	AudioPluginVita::ProcessAList()
 	return result;
 }
 
-
-void audioCallback( void * buf, unsigned int length, void * userdata )
-{
-	AudioPluginVita * ac( reinterpret_cast< AudioPluginVita * >( userdata ) );
-
-	ac->FillBuffer( reinterpret_cast< Sample * >( buf ), length );
-}
-
-
-void AudioPluginVita::StartAudio()
-{
-	if (mKeepRunning)
-		return;
-
-	mKeepRunning = true;
-
-	ac = this;
-
-
-	//pspAudioInit();
-	//pspAudioSetChannelCallback( 0, audioCallback, this );
-
-	// Everything OK
-	audio_open = true;
-}
-
-void AudioPluginVita::AddBuffer( u8 *start, u32 length )
-{
-	if (length == 0)
-		return;
-
-	if (!mKeepRunning)
-		StartAudio();
-
-	u32 num_samples {length / sizeof( Sample )};
-
-	switch( gAudioPluginEnabled )
-	{
-	case APM_DISABLED:
-		break;
-
-	case APM_ENABLED_ASYNC:
-		{
-			//SAddSamplesJob	job( mAudioBufferUncached, reinterpret_cast< const Sample * >( start ), num_samples, mFrequency, kOutputFrequency );
-
-			//gJobManager.AddJob( &job, sizeof( job ) );
-		}
-		break;
-
-	case APM_ENABLED_SYNC:
-		{
-			//mAudioBufferUncached->AddSamples( reinterpret_cast< const Sample * >( start ), num_samples, mFrequency, kOutputFrequency );
-		}
-		break;
-	}
-
-	/*
-	u32 remaining_samples = mAudioBuffer.GetNumBufferedSamples();
-	mBufferLenMs = (1000 * remaining_samples) / kOutputFrequency);
-	float ms = (float) num_samples * 1000.f / (float)mFrequency;
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DPF_AUDIO("Queuing %d samples @%dHz - %.2fms - bufferlen now %d\n", num_samples, mFrequency, ms, mBufferLenMs);
-	#endif
-	*/
-}
-
-void AudioPluginVita::StopAudio()
-{
-	if (!mKeepRunning)
-		return;
-
-	mKeepRunning = false;
-
-	audio_open = false;
-}
-
+//*****************************************************************************
+//
+//*****************************************************************************
 CAudioPlugin *		CreateAudioPlugin()
 {
-	return new AudioPluginVita();
+	return CAudioPluginVita::Create();
 }
