@@ -43,9 +43,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define DEFAULT_FREQUENCY 44100	// Taken from Mupen64 : )
 
-// FIXME: Hack!
-extern int enable_audio;
-
 //*****************************************************************************
 //
 //*****************************************************************************
@@ -59,7 +56,7 @@ CAudioPluginVita::CAudioPluginVita()
 :	mAudioOutput( new AudioOutput )
 {
 	//mAudioOutput->SetAdaptFrequency( gAdaptFrequency );
-	gAudioPluginEnabled = enable_audio;
+	//gAudioPluginEnabled = enable_audio;
 }
 
 //*****************************************************************************

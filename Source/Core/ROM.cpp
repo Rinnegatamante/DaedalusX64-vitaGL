@@ -515,9 +515,10 @@ bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings, const SRom
 
 	DumpROMInfo( g_ROM.rh );
 
+#ifndef DAEDALUS_VITA // Disabling this until we have preferences working
 	// Read and apply preferences from preferences.ini
 	preferences.Apply();
-
+#endif
 	// Parse cheat file this rom, if cheat feature is enabled
 	// This is also done when accessing the cheat menu
 	// But we do this when ROM is loaded too, to allow any forced enabled cheats to work.

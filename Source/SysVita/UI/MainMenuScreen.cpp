@@ -33,9 +33,6 @@
 
 char selectedRom[512];
 
-// FIXME: This is a hack! Required to overwrite rom specific preferencies
-int enable_audio = APM_DISABLED;
-
 char *DrawRomSelector() {
 	bool selected = false;
 	
@@ -43,11 +40,11 @@ char *DrawRomSelector() {
 	ImGui_ImplVitaGL_NewFrame();
 	if (ImGui::BeginMainMenuBar()){
 		if (ImGui::BeginMenu("Audio")){
-			if (ImGui::MenuItem("Disabled", nullptr, enable_audio == APM_DISABLED)){
-				enable_audio = APM_DISABLED;
+			if (ImGui::MenuItem("Disabled", nullptr, gAudioPluginEnabled == APM_DISABLED)){
+				gAudioPluginEnabled = APM_DISABLED;
 			}
-			if (ImGui::MenuItem("Synchronous", nullptr, enable_audio == APM_ENABLED_SYNC)){
-				enable_audio = APM_ENABLED_SYNC;
+			if (ImGui::MenuItem("Synchronous", nullptr, gAudioPluginEnabled == APM_ENABLED_SYNC)){
+				gAudioPluginEnabled = APM_ENABLED_SYNC;
 			}
 			ImGui::EndMenu();
 		}
