@@ -38,6 +38,9 @@ int _newlib_heap_size_user = 128 * 1024 * 1024;
 
 }
 
+extern bool run_emu;
+extern bool restart_rom;
+
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
 	int done;
@@ -93,17 +96,26 @@ int main(int argc, char* argv[])
 {
 	Initialize();
 	
-	char *rom = nullptr;
-	do {
-		rom = DrawRomSelector();
-	} while (rom == nullptr);
+	char *rom;
 	
-	char fullpath[512];
-	sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
-	EnableMenuButtons(false);
-	System_Open(fullpath);
-	CPU_Run();
-	System_Close();
+	while (run_emu) {
+		
+		if (restart_rom) restart_rom = false;
+		else {
+			rom = nullptr;
+			do {
+				rom = DrawRomSelector();
+			} while (rom == nullptr);
+		}
+		
+		char fullpath[512];
+		sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
+		EnableMenuButtons(false);
+		System_Open(fullpath);
+		CPU_Run();
+		System_Close();
+	}
+	
 	System_Finalize();
 
 	return 0;

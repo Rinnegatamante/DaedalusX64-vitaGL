@@ -37,6 +37,8 @@ static bool has_cached_saveslots = false;
 
 bool show_menubar = true;
 bool hide_menubar = true;
+bool run_emu = true;
+bool restart_rom = false;
 
 static bool vflux_window = false;
 static bool vflux_enabled = false;
@@ -242,6 +244,14 @@ void DrawInGameMenuBar() {
 						}
 					}
 					ImGui::EndMenu();
+				}
+				ImGui::Separator();
+				if (ImGui::MenuItem("Restart Rom")){
+					restart_rom = true;
+					CPU_Halt("Resetting");
+				}
+				if (ImGui::MenuItem("Close Rom")){
+					CPU_Halt("Resetting");
 				}
 				ImGui::EndMenu();
 			}
