@@ -82,6 +82,7 @@ static void Initialize()
     ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	EnableMenuButtons(true);
 	ImGui::StyleColorsDark();
+	SetupVFlux();
 }
 
 void HandleEndOfFrame()
