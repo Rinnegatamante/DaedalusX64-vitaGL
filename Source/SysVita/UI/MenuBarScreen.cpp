@@ -9,7 +9,6 @@
 #include "Config/ConfigOptions.h"
 #include "Core/Cheats.h"
 #include "Core/CPU.h"
-#include "Core/CPU.h"
 #include "Core/Memory.h"
 #include "Core/PIF.h"
 #include "Core/RomSettings.h"
@@ -30,6 +29,11 @@
 #include "Utility/Translate.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
+
+#define MAX_SAVESLOT 9
+
+static bool cached_saveslots[MAX_SAVESLOT + 1];
+static bool has_cached_saveslots = false;
 
 bool show_menubar = true;
 bool hide_menubar = true;
@@ -189,11 +193,58 @@ void DrawMenuBar() {
 	DrawCommonWindows();
 }
 
-void DrawInGameMenuBar() {
-	ImGui_ImplVitaGL_NewFrame();
+void ExecSaveState(int slot) {
+	IO::Filename full_path;
+	sprintf(full_path, "%s%s.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.settings.GameName.c_str(), slot);
 	
+	CPU_RequestSaveState(full_path);
+	cached_saveslots[slot] = true;
+}
+
+void LoadSaveState(int slot) {
+	IO::Filename full_path;
+	sprintf(full_path, "%s%s.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.settings.GameName.c_str(), slot);
+	
+	CPU_RequestLoadState(full_path);
+}
+
+void DrawInGameMenuBar() {
+	if (!has_cached_saveslots) {
+		IO::Directory::EnsureExists(DAEDALUS_VITA_PATH("SaveStates/"));
+		for (int i = 0; i <= MAX_SAVESLOT; i++) {
+			IO::Filename save_path;
+			sprintf(save_path, "%s%s.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.settings.GameName.c_str(), i);
+			cached_saveslots[i] = IO::File::Exists(save_path);
+		}
+		has_cached_saveslots = true;
+	}
+	
+	ImGui_ImplVitaGL_NewFrame();
 	if (show_menubar) {
 		if (ImGui::BeginMainMenuBar()){
+			if (ImGui::BeginMenu("Files")){
+				if (ImGui::BeginMenu("Save Savestate")){
+					for (int i = 0; i <= MAX_SAVESLOT; i++) {
+						char tag[8];
+						sprintf(tag, "Slot %ld", i);
+						if (ImGui::MenuItem(tag, nullptr, cached_saveslots[i])){
+							ExecSaveState(i);
+						}
+					}
+					ImGui::EndMenu();
+				}
+				if (ImGui::BeginMenu("Load Savestate")){
+					for (int i = 0; i <= MAX_SAVESLOT; i++) {
+						char tag[8];
+						sprintf(tag, "Slot %ld", i);
+						if (ImGui::MenuItem(tag, nullptr, false, cached_saveslots[i])){
+							LoadSaveState(i);
+						}
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
+			}
 			DrawCommonMenuBar();
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(870);

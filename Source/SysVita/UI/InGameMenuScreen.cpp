@@ -9,7 +9,6 @@
 #include "Config/ConfigOptions.h"
 #include "Core/Cheats.h"
 #include "Core/CPU.h"
-#include "Core/CPU.h"
 #include "Core/Memory.h"
 #include "Core/PIF.h"
 #include "Core/RomSettings.h"
