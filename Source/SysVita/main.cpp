@@ -29,7 +29,7 @@
 #include "Utility/Thread.h"
 #include "Utility/Translate.h"
 #include "Utility/Timer.h"
-#include "UI/MainMenuScreen.h"
+#include "UI/Menu.h"
 
 extern "C" {
 
@@ -51,6 +51,11 @@ void log2file(const char *format, ...) {
 		fwrite(msg, 1, strlen(msg), log);
 		fclose(log);
 	}
+}
+
+static void EnableMenuButtons(bool status) {
+	ImGui_ImplVitaGL_GamepadUsage(status);
+	ImGui_ImplVitaGL_MouseStickUsage(status);
 }
 
 static void Initialize()
@@ -75,7 +80,7 @@ static void Initialize()
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
     ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
-	ImGui_ImplVitaGL_GamepadUsage(true);
+	EnableMenuButtons(true);
 	ImGui::StyleColorsDark();
 }
 
@@ -94,6 +99,7 @@ int main(int argc, char* argv[])
 	
 	char fullpath[512];
 	sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
+	EnableMenuButtons(false);
 	System_Open(fullpath);
 	CPU_Run();
 	System_Close();

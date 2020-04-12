@@ -1,1 +1,3 @@
 char *DrawRomSelector();
+
+void DrawInGameMenu();

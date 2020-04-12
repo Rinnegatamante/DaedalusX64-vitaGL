@@ -17,6 +17,7 @@
 #include "Utility/Preferences.h"
 #include "Utility/Profiler.h"
 #include "Utility/VolatileMem.h"
+#include "SysVita/UI/Menu.h"
 
 extern void HandleEndOfFrame();
 
@@ -89,7 +90,7 @@ IGraphicsContext::IGraphicsContext()
 	:	mInitialised(false)
 	,	mDumpNextScreen(false)
 {	
-	int i;
+	uint16_t i;
 	gIndexes = (uint16_t*)malloc(sizeof(uint16_t)*MAX_INDEXES);
 	for (i = 0; i < MAX_INDEXES; i++){
 		gIndexes[i] = i;
@@ -158,8 +159,8 @@ void IGraphicsContext::BeginFrame()
 
 void IGraphicsContext::EndFrame()
 {
+	DrawInGameMenu();
 	vglStopRendering();
-
 	HandleEndOfFrame();
 }
 

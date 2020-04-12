@@ -50,13 +50,13 @@ char *DrawRomSelector() {
 		}
 		ImGui::SameLine();
 		ImGui::SetCursorPosX(870);
-		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate); 
+		ImGui::Text("Daedalus X64"); 
         ImGui::EndMainMenuBar();
 	}
 		
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(960, 525), ImGuiSetCond_Always);
-	ImGui::Begin("Daedalus X64", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	ImGui::Begin("", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	std::string			full_path;
 

@@ -50,11 +50,11 @@ EFrameskipValue		gFrameskipValue = FV_DISABLED;
 namespace
 {
 	//u32					gVblCount = 0;
-	u32					gFlipCount {};
+	u32					gFlipCount = 0;
 	//float				gCurrentVblrate = 0.0f;
-	float				gCurrentFramerate {0.0f};
-	u64					gLastFramerateCalcTime {};
-	u64					gTicksPerSecond {};
+	float				gCurrentFramerate = 0.0f;
+	u64					gLastFramerateCalcTime = 0;
+	u64					gTicksPerSecond = 0;
 
 #ifdef DAEDALUS_FRAMERATE_ANALYSIS
 	u32					gTotalFrames = 0;
@@ -85,7 +85,7 @@ static void	UpdateFramerate()
 	if( gFramerateFile == nullptr )
 	{
 		gFirstFrameTime = now;
-		gFramerateFile = fopen( "framerate.csv", "w" );
+		gFramerateFile = fopen( "ux0:data/DaedalusX64/framerate.csv", "w" );
 	}
 	fprintf( gFramerateFile, "%d,%f\n", gTotalFrames, f32(now - gFirstFrameTime) / f32(gTicksPerSecond) );
 #endif
@@ -115,9 +115,11 @@ static void	UpdateFramerate()
 class CGraphicsPluginImpl : public CGraphicsPlugin
 {
 	public:
-	virtual	~CGraphicsPluginImpl();
+	CGraphicsPluginImpl();
+	~CGraphicsPluginImpl();
 
-		virtual bool		Initialise();
+		bool		Initialise();
+		
 		virtual bool		StartEmulation()		{ return true; }
 		virtual void		ViStatusChanged()		{}
 		virtual void		ViWidthChanged()		{}
@@ -126,7 +128,13 @@ class CGraphicsPluginImpl : public CGraphicsPlugin
 		virtual void		UpdateScreen();
 
 		virtual void		RomClosed();
+private:
+		u32					LastOrigin;
 };
+
+CGraphicsPluginImpl::CGraphicsPluginImpl():	LastOrigin( 0 )
+{
+}
 
 CGraphicsPluginImpl::~CGraphicsPluginImpl()
 {
@@ -172,66 +180,19 @@ extern u32 gNumRectsClipped;
 
 void CGraphicsPluginImpl::UpdateScreen()
 {
-	//gVblCount++;
-
-	static u32		last_origin {};
 	u32 current_origin = Memory_VI_GetRegister(VI_ORIGIN_REG);
-	static bool Old_FrameskipActive {false};
-	static bool Older_FrameskipActive {false};
-
-	if( current_origin != last_origin )
+	static bool Old_FrameskipActive = false;
+	static bool Older_FrameskipActive = false;
+	
+	if( current_origin != LastOrigin)
 	{
-		//printf( "Flip (%08x, %08x)\n", current_origin, last_origin );
-		if( gGlobalPreferences.DisplayFramerate )
-			UpdateFramerate();
-
 		const f32 Fsync = FramerateLimiter_GetSync();
-
-		//Calc sync rates for audio and game speed //Corn
-		const f32 inv_Fsync {1.0f / Fsync};
-		gSoundSync = {(u32)(44100.0f * inv_Fsync)};
-		gVISyncRate = {(u32)(1500.0f * inv_Fsync)};
-		if( gVISyncRate > 4000 ) gVISyncRate = 4000;
-		else if ( gVISyncRate < 1500 ) gVISyncRate = 1500;
-
-		if(!gFrameskipActive)
-		{
-			if( gGlobalPreferences.DisplayFramerate )
-			{
-				//pspDebugScreenSetTextColor( 0xffffffff );
-				//pspDebugScreenSetBackColor(0);
-				//pspDebugScreenSetXY(0, 0);
-				/*
-				switch(gGlobalPreferences.DisplayFramerate)
-				{
-					case 1:
-						pspDebugScreenPrintf( "%#.1f  ", gCurrentFramerate );
-						break;
-					case 2:
-						pspDebugScreenPrintf( "FPS[%#.1f] VB[%d/%d] Sync[%#.1f%%]   ", gCurrentFramerate, u32( Fsync * f32( FramerateLimiter_GetTvFrequencyHz() ) ), FramerateLimiter_GetTvFrequencyHz(), Fsync * 100.0f );
-						break;
-					case 3:
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-						pspDebugScreenPrintf( "Dlist[%d] Cull[%d] | Tris[%d] Cull[%d] | Rect[%d] Clip[%d] ", gNumInstructionsExecuted, gNumDListsCulled, gRenderer->GetNumTrisRendered(), gRenderer->GetNumTrisClipped(), gRenderer->GetNumRect(), gNumRectsClipped);
-#else
-						pspDebugScreenPrintf( "%#.1f  ", gCurrentFramerate );
-#endif
-						break;
-				}*/
-			}
-			if(gTakeScreenshot)
-			{
-				CGraphicsContext::Get()->DumpNextScreen();
-				gTakeScreenshot = false;
-			}
-
-			CGraphicsContext::Get()->UpdateFrame( false );
-		}
-
-		static u32 current_frame {};
+		
+		CGraphicsContext::Get()->UpdateFrame( false );
+		
+		static u32 current_frame = 0;
 		current_frame++;
-
-
+	
 		Older_FrameskipActive = Old_FrameskipActive;
 		Old_FrameskipActive = gFrameskipActive;
 
@@ -253,7 +214,7 @@ void CGraphicsPluginImpl::UpdateScreen()
 			break;
 		}
 
-		last_origin = current_origin;
+		LastOrigin = current_origin;
 	}
 }
 
