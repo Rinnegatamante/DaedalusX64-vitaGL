@@ -30,6 +30,7 @@
 #include "Utility/Translate.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
+#include "SysVita/UI/Menu.h"
 
 char selectedRom[512];
 
@@ -37,22 +38,7 @@ char *DrawRomSelector() {
 	bool selected = false;
 	
 	vglStartRendering();
-	ImGui_ImplVitaGL_NewFrame();
-	if (ImGui::BeginMainMenuBar()){
-		if (ImGui::BeginMenu("Audio")){
-			if (ImGui::MenuItem("Disabled", nullptr, gAudioPluginEnabled == APM_DISABLED)){
-				gAudioPluginEnabled = APM_DISABLED;
-			}
-			if (ImGui::MenuItem("Synchronous", nullptr, gAudioPluginEnabled == APM_ENABLED_SYNC)){
-				gAudioPluginEnabled = APM_ENABLED_SYNC;
-			}
-			ImGui::EndMenu();
-		}
-		ImGui::SameLine();
-		ImGui::SetCursorPosX(870);
-		ImGui::Text("Daedalus X64"); 
-        ImGui::EndMainMenuBar();
-	}
+	DrawMenuBar();
 		
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(960, 525), ImGuiSetCond_Always);
