@@ -82,8 +82,7 @@ static void Initialize()
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
-    ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
-	EnableMenuButtons(true);
+	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
 }
@@ -99,6 +98,7 @@ int main(int argc, char* argv[])
 	char *rom;
 	
 	while (run_emu) {
+		EnableMenuButtons(true);
 		
 		if (restart_rom) restart_rom = false;
 		else {
