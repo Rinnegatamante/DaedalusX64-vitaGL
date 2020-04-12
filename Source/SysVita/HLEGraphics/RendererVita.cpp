@@ -178,9 +178,8 @@ void RendererVita::RestoreRenderStates()
 	// No fog
 	glDisable(GL_FOG);
 	
-	// We do our own culling
-	glDisable(GL_CULL_FACE);
-	 
+	glEnable(GL_SCISSOR_TEST);
+	
 	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -191,7 +190,7 @@ void RendererVita::RestoreRenderStates()
 	glDepthFunc(GL_LEQUAL);
 	glDisable(GL_DEPTH_TEST);
 	
-//	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1, 14);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -207,15 +206,14 @@ void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disab
 	else
 	{
 		// Decal mode
-/*		if( gRDPOtherMode.zmode == 3 )
+		if( gRDPOtherMode.zmode == 3 )
 		{
-			glPolygonOffset(-1.0, -1.0);
+			glEnable(GL_POLYGON_OFFSET_FILL);
 		}
 		else
 		{
-			glPolygonOffset(0.0, 0.0);
-		}*/
-
+			glDisable(GL_POLYGON_OFFSET_FILL);
+		}
 		
 		// Enable or Disable ZBuffer test
 		if ( (mTnL.Flags.Zbuffer & gRDPOtherMode.z_cmp) | gRDPOtherMode.z_upd )
@@ -227,7 +225,6 @@ void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disab
 			glDisable(GL_DEPTH_TEST);
 		}
 
-		// GL_TRUE to disable z-writes
 		glDepthMask( gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE );
 	}
 	
@@ -249,7 +246,7 @@ void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disab
 	if( (gRDPOtherMode.alpha_compare == G_AC_THRESHOLD) && !gRDPOtherMode.alpha_cvg_sel )
 	{
 		u8 alpha_threshold = mBlendColour.GetA();
-		float alpha_val = (float)alpha_threshold / 255.0f;
+		float alpha_val = mBlendColour.GetAf();
 		glAlphaFunc( (alpha_threshold | g_ROM.ALPHA_HACK) ? GL_GEQUAL : GL_GREATER, alpha_val);
 		glEnable(GL_ALPHA_TEST);
 	}
@@ -277,7 +274,7 @@ void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disab
 		if (texture != NULL) {
 			texture->InstallTexture();
 			
-			if( (gRDPOtherMode.text_filt != G_TF_POINT) | (gGlobalPreferences.ForceLinearFilter) )
+			if( (gRDPOtherMode.text_filt != G_TF_POINT) || (gGlobalPreferences.ForceLinearFilter) )
 			{
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -295,6 +292,13 @@ void RendererVita::PrepareRenderState(const float (&mat_project)[16], bool disab
 	
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
+	
+	glColor4f(mPrimitiveColour.GetRf(), mPrimitiveColour.GetGf(), mPrimitiveColour.GetBf(), mPrimitiveColour.GetAf());
+	
+	float envcolor[4] = {mEnvColour.GetRf(), mEnvColour.GetGf(), mEnvColour.GetBf(), mEnvColour.GetAf()};
+	glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, envcolor);
+	
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bool disable_zbuffer)
@@ -321,16 +325,16 @@ void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bo
 			}
 			
 			if (mTnL.Flags.Light && mTnL.Flags.TexGen)
-			{	
+			{		
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 				/*float *vtx_tex = gTexCoordBuffer;
 				for (u32 i = 0; i < num_vertices; ++i)
 				{
-					gTexCoordBuffer[0] = (p_vertices[i].Texture.x * scale_x - mTileTopLeft[ 0 ].s * scale_x / 4.f) * scale_x;
-					gTexCoordBuffer[1] = (p_vertices[i].Texture.y * scale_y - mTileTopLeft[ 0 ].t * scale_y / 4.f) * scale_y;
+					gTexCoordBuffer[0] = (p_vertices[i].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 32.f * scale_x));
+					gTexCoordBuffer[1] = (p_vertices[i].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 32.f * scale_y));
 					gTexCoordBuffer += 2;
 				}
 				vglTexCoordPointerMapped(vtx_tex);*/
-				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			} else {
 				float *vtx_tex = gTexCoordBuffer;
 				for (u32 i = 0; i < num_vertices; ++i)
@@ -347,7 +351,7 @@ void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bo
 	glEnableClientState(GL_COLOR_ARRAY);
 	float *vtx_ptr = gVertexBuffer;
 	uint8_t *vtx_clr = (uint8_t*)gColorBuffer;
-	for (int i = 0; i < num_vertices; i++) {
+	for (uint32_t i = 0; i < num_vertices; i++) {
 		gVertexBuffer[0] = p_vertices[i].Position.x;
 		gVertexBuffer[1] = p_vertices[i].Position.y;
 		gVertexBuffer[2] = p_vertices[i].Position.z;
