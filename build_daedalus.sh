@@ -8,6 +8,7 @@ function usage() {
     echo "PSP Debug = PSP_DEBUG"
     echo "Linux Release = LINUX_RELEASE"
     echo "Mac Release = MAC_RELEASE"
+	echo "Vita Release = VITA_RELEASE"
     exit
 }
 
@@ -78,14 +79,18 @@ if [ "$1" = "PSP_RELEASE" ] || [ "$1" = "PSP_DEBUG" ]; then
     cd "$PWD/daedbuild"
 cmake -DCMAKE_TOOLCHAIN_FILE=../Tools/psptoolchain.cmake -D"$1=1" ../Source
 buildPSP
-
+elif [ "$1" = "VITA_RELEASE" ]; then
+  mkdir "$PWD/daedbuild"
+  cd "$PWD/daedbuild"
+  cmake -D"$1=1" ../Source -DCMAKE_TOOLCHAIN_FILE=../vita.toolchain.cmake -G "Unix Makefiles"
+  make
 elif [ "$1" = "LINUX_RELEASE" ] || [ "$1" = "MAC_RELEASE" ]; then
   pre_prep
   mkdir "$PWD/daedbuild"
   cd "$PWD/daedbuild"
   cmake -D"$1=1" ../Source
-make
-finalPrep
+  make
+  finalPrep
 cp daedalus ../DaedalusX64
 else
 usage

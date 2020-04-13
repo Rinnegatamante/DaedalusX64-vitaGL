@@ -209,11 +209,11 @@ if (VITA_RELEASE)
 	message("PSVita Release Build..")
 
 	set(VITA_APP_NAME "${PROJECT_NAME}")
-	set(VITA_TITLEID  "DAED00001")
+	set(VITA_TITLEID  "DEDALOX64")
 	set(VITA_VERSION  "01.00")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O2 -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -flto -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
 
 	add_definitions("-DDAEDALUS_VITA")
 
@@ -263,35 +263,18 @@ if (VITA_RELEASE)
 		SceCtrl_stub
 		SceTouch_stub
 		SceAudio_stub
-		-lc
-		-lstdc++
-		-lm
-		-lvitaGL
-		-lmathneon
-		-limgui
+		c
+		stdc++
+		m
+		vitaGL
+		mathneon
+		imgui
 	)
 
 	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf)
 	vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
 		VERSION ${VITA_VERSION}
 		NAME ${VITA_APP_NAME}
-	)
-
-	add_custom_target(launch
-		COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
-		COMMAND echo "launch ${VITA_TITLEID}" | nc $ENV{PSVITAIP} 1338
-		#COMMAND curl "ftp://${PSVITAIP}:1337/ux0:/Play/Play Data Files/logs/GSH_GXM.log"
-		DEPENDS ${PROJECT_NAME}.self
-	)
-
-	add_custom_target(send
-		COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
-		DEPENDS ${PROJECT_NAME}.self
-	)
-
-	add_custom_target(vpksend
-		COMMAND curl -T ${PROJECT_NAME}.vpk ftp://$(PSVITAIP):1337/ux0:/
-		DEPENDS ${PROJECT_NAME}.vpk
 	)
 
 endif (VITA_RELEASE)
