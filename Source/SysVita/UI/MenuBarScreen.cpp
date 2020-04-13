@@ -35,6 +35,8 @@
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
+extern bool rumblepak_screen;
+
 bool show_menubar = true;
 bool hide_menubar = true;
 bool run_emu = true;
@@ -91,6 +93,15 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
+		if (ImGui::BeginMenu("Controller Accessory")){
+			if (ImGui::MenuItem("Rumble Pak", nullptr, gGlobalPreferences.RumblePak)){
+				gGlobalPreferences.RumblePak = true;
+			}
+			if (ImGui::MenuItem("Controller Pak", nullptr, !gGlobalPreferences.RumblePak)){
+				gGlobalPreferences.RumblePak = false;
+			}
+			ImGui::EndMenu();
+		}
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Graphics")){
@@ -99,6 +110,9 @@ void DrawCommonMenuBar() {
 		}
 		if (ImGui::MenuItem("vFlux Config", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
+		}
+		if (ImGui::MenuItem("Shake Screen on Rumble", nullptr, rumblepak_screen)){
+			rumblepak_screen = !rumblepak_screen;
 		}
 		ImGui::EndMenu();
 	}
