@@ -9,6 +9,12 @@
 #include <pspvfpu.h>
 #endif
 
+#ifdef DAEDALUS_VITA
+extern "C" {
+#include <math_neon.h>
+};
+#endif
+
 // http://forums.ps2dev.org/viewtopic.php?t=5557
 // http://bradburn.net/mr.mr/vfpu.html
 
@@ -110,12 +116,20 @@ void myApplyMatrix(v4 *v_out, const Matrix4x4 *mat, const v4 *v_in)
 
 void MatrixMultiplyUnaligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matrix4x4 *mat_b)
 {
+#ifdef DAEDALUS_VITA
+	matmul4_neon((float*)mat_b, (float*)mat_a, (float*)m_out);
+#else
 	*m_out = *mat_a * *mat_b;
+#endif
 }
 
 void MatrixMultiplyAligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matrix4x4 *mat_b)
 {
+#ifdef DAEDALUS_VITA
+	matmul4_neon((float*)mat_b, (float*)mat_a, (float*)m_out);
+#else
 	*m_out = *mat_a * *mat_b;
+#endif
 }
 
 #endif // DAEDALUS_PSP_USE_VFPU
@@ -337,7 +351,7 @@ Matrix4x4 Matrix4x4::operator*( const Matrix4x4 & rhs ) const
 	Matrix4x4 r;
 
 //VFPU
-#ifdef DAEDALUS_PSP
+#if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)
 	MatrixMultiplyUnaligned( &r, this, &rhs );
 //CPU
 #else
