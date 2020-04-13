@@ -251,6 +251,7 @@ void DrawInGameMenuBar() {
 					CPU_Halt("Resetting");
 				}
 				if (ImGui::MenuItem("Close Rom")){
+					has_cached_saveslots = false;
 					CPU_Halt("Resetting");
 				}
 				ImGui::EndMenu();
