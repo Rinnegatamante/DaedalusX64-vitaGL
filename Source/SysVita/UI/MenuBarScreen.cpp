@@ -32,10 +32,12 @@
 
 #define MAX_SAVESLOT 9
 
+bool gRumblePakActive = false;
+
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
-extern bool rumblepak_screen;
+extern bool has_rumblepak[4];
 
 bool show_menubar = true;
 bool hide_menubar = true;
@@ -71,6 +73,9 @@ void SetupVFlux() {
 }
 
 void DrawCommonMenuBar() {
+	SceCtrlPortInfo pinfo;
+	sceCtrlGetControllerPortInfo(&pinfo);
+	
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::BeginMenu("Frameskip")){
 			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
@@ -93,15 +98,6 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu("Controller Accessory")){
-			if (ImGui::MenuItem("Rumble Pak", nullptr, gGlobalPreferences.RumblePak)){
-				gGlobalPreferences.RumblePak = true;
-			}
-			if (ImGui::MenuItem("Controller Pak", nullptr, !gGlobalPreferences.RumblePak)){
-				gGlobalPreferences.RumblePak = false;
-			}
-			ImGui::EndMenu();
-		}
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Graphics")){
@@ -111,9 +107,6 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("vFlux Config", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
 		}
-		if (ImGui::MenuItem("Shake Screen on Rumble", nullptr, rumblepak_screen)){
-			rumblepak_screen = !rumblepak_screen;
-		}
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Audio")){
@@ -122,6 +115,57 @@ void DrawCommonMenuBar() {
 		}
 		if (ImGui::MenuItem("Synchronous", nullptr, gAudioPluginEnabled == APM_ENABLED_SYNC)){
 			gAudioPluginEnabled = APM_ENABLED_SYNC;
+		}
+		ImGui::EndMenu();
+	}
+	if (ImGui::BeginMenu("Input")){
+		if (ImGui::BeginMenu("Controller 1", pinfo.port[0] != SCE_CTRL_TYPE_UNPAIRED)){
+			if (ImGui::BeginMenu("Accessory")){
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[0])){
+					has_rumblepak[0] = true;
+				}
+				if (ImGui::MenuItem("Controller Pak", nullptr, !gGlobalPreferences.RumblePak)){
+					has_rumblepak[0] = false;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Controller 2", pinfo.port[2] != SCE_CTRL_TYPE_UNPAIRED)){
+			if (ImGui::BeginMenu("Accessory")){
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[1])){
+					has_rumblepak[1] = true;
+				}
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[1])){
+					has_rumblepak[1] = false;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Controller 3", pinfo.port[3] != SCE_CTRL_TYPE_UNPAIRED)){
+			if (ImGui::BeginMenu("Accessory")){
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[2])){
+					has_rumblepak[2] = true;
+				}
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[2])){
+					has_rumblepak[2] = false;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Controller 4", pinfo.port[4] != SCE_CTRL_TYPE_UNPAIRED)){
+			if (ImGui::BeginMenu("Accessory")){
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[3])){
+					has_rumblepak[3] = true;
+				}
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[3])){
+					has_rumblepak[3] = false;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
 		}
 		ImGui::EndMenu();
 	}

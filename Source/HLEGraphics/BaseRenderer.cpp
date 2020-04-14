@@ -54,8 +54,6 @@ struct ScePspFMatrix4
 #include <vitaGL.h>
 extern void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx);
 #define GU_PROJECTION GL_PROJECTION
-
-bool rumblepak_screen = true;
 #endif
 
 // Vertex allocation.
@@ -330,15 +328,13 @@ void BaseRenderer::InitViewport()
 	mN64ToScreenTranslate.x  = (f32)display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
 	mN64ToScreenTranslate.y  = (f32)display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
 
-#ifdef DAEDALUS_VITA
-	if (rumblepak_screen && gRumblePakActive)
-#else
-	if( gRumblePakActive )
-#endif
+#ifndef DAEDALUS_VITA
+	if (gRumblePakActive)
 	{
-	  mN64ToScreenTranslate.x += (FastRand() & 3);
+		mN64ToScreenTranslate.x += (FastRand() & 3);
 		mN64ToScreenTranslate.y += (FastRand() & 3);
 	}
+#endif
 
 #if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 	f32 w = mScreenWidth;

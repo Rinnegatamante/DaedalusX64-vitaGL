@@ -119,8 +119,7 @@ area assignment does not change. After Tx/RxData assignment, this flag is reset 
 
 #define PIF_RAM_SIZE 64
 
-bool gRumblePakActive {false};
-
+bool has_rumblepak[4] = {false, false, false, false};
 
 //
 
@@ -150,7 +149,7 @@ class	IController : public CController
 		void			CommandReadMemPack(u32 channel, u8 *cmd);
 		void			CommandWriteMemPack(u32 channel, u8 *cmd);
 		void			CommandReadRumblePack(u8 *cmd);
-		void			CommandWriteRumblePack(u8 *cmd);
+		void			CommandWriteRumblePack(u32 channel, u8 *cmd);
 		void			CommandReadRTC(u8 *cmd);
 
 		u8				CalculateDataCrc(const u8 * pBuf) DAEDALUS_ATTRIBUTE_CONST;
@@ -298,8 +297,6 @@ bool IController::OnRomOpen()
 {
 	ESaveType save_type  = g_ROM.settings.SaveType;
 	mpPifRam = (u8 *)g_pMemoryBuffers[MEM_PIF_RAM];
-
-	//gRumblePakActive = false;
 
 	if ( mpEepromData )
 	{
@@ -519,7 +516,7 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 		#ifdef DAEDALUS_DEBUG_PIF
 		DPF_PIF("Controller: Command is READ_MEMPACK");
 		#endif
-		if(gGlobalPreferences.RumblePak)
+		if (has_rumblepak[channel])
 			CommandReadRumblePack(cmd);
 		else
 			CommandReadMemPack(channel, cmd);
@@ -529,8 +526,8 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 		#ifdef DAEDALUS_DEBUG_PIF
 		DPF_PIF("Controller #%ld: Command is WRITE_MEMPACK", channel);
 		#endif
-		if(gGlobalPreferences.RumblePak)
-			CommandWriteRumblePack(cmd);
+		if (has_rumblepak[channel])
+			CommandWriteRumblePack(channel, cmd);
 		else
 			CommandWriteMemPack(channel, cmd);
 		break;
@@ -688,12 +685,20 @@ void	IController::CommandReadRumblePack(u8 *cmd)
 //
 //
 
-void	IController::CommandWriteRumblePack(u8 *cmd)
+void	IController::CommandWriteRumblePack(u32 channel, u8 *cmd)
 {
 	u16 addr = (cmd[3] << 8) | (cmd[4] & 0xE0);
 
-	if ( addr == 0xC000 )
-		gRumblePakActive = cmd[5] ? true : false;	//0 inactive and 1 for active
+	if ( addr == 0xC000 ) {
+#ifdef DAEDALUS_VITA
+		SceCtrlActuator handle;
+		handle.small = cmd[5] ? 100 : 0;
+		handle.large = cmd[5] ? 100 : 0;
+		sceCtrlSetActuator(channel + 1, &handle);
+#else
+		gRumblePakActive = cmd[5] ? true : false;
+#endif
+	}
 
 	cmd[37] = CalculateDataCrc(&cmd[5]);
 }
