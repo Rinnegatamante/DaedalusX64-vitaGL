@@ -336,19 +336,19 @@ void IInputManager::SwapJoyStick(OSContPad *pPad, SceCtrlData *pad)
 
 			// Make a digital version of the Analogue stick that can be mapped to N64 buttons //Corn
 			pad->buttons &= ~(SCE_CTRL_UP | SCE_CTRL_DOWN | SCE_CTRL_RIGHT | SCE_CTRL_LEFT);	//Clear out original DPAD
-			if(pPad->stick_x > 40) pad->buttons |= SCE_CTRL_RIGHT;
-			else if(pPad->stick_x < -40) pad->buttons |= SCE_CTRL_LEFT;
+			if (pPad->stick_x > 40) pad->buttons |= SCE_CTRL_RIGHT;
+			else if (pPad->stick_x < -40) pad->buttons |= SCE_CTRL_LEFT;
 
-			if(pPad->stick_y > 40) pad->buttons |= SCE_CTRL_UP;
-			else if(pPad->stick_y < -40) pad->buttons |= SCE_CTRL_DOWN;
+			if (pPad->stick_y > 40) pad->buttons |= SCE_CTRL_UP;
+			else if (pPad->stick_y < -40) pad->buttons |= SCE_CTRL_DOWN;
 
 			//Set Stick
-			if( tmp & SCE_CTRL_RIGHT ) pPad->stick_x = s8(N64_ANALOGUE_STICK_RANGE);
-			else if( tmp & SCE_CTRL_LEFT ) pPad->stick_x = -s8(N64_ANALOGUE_STICK_RANGE);
+			if ( tmp & SCE_CTRL_RIGHT ) pPad->stick_x = s8(N64_ANALOGUE_STICK_RANGE);
+			else if ( tmp & SCE_CTRL_LEFT ) pPad->stick_x = -s8(N64_ANALOGUE_STICK_RANGE);
 			else pPad->stick_x = 0;
 
-			if( tmp & SCE_CTRL_UP ) pPad->stick_y = s8(N64_ANALOGUE_STICK_RANGE);
-			else if( tmp & SCE_CTRL_DOWN ) pPad->stick_y = -s8(N64_ANALOGUE_STICK_RANGE);
+			if ( tmp & SCE_CTRL_UP ) pPad->stick_y = s8(N64_ANALOGUE_STICK_RANGE);
+			else if ( tmp & SCE_CTRL_DOWN ) pPad->stick_y = -s8(N64_ANALOGUE_STICK_RANGE);
 			else pPad->stick_y = 0;
 			}
 			break;
@@ -359,31 +359,20 @@ void IInputManager::SwapJoyStick(OSContPad *pPad, SceCtrlData *pad)
 
 			// Make a digital version of the Analogue stick that can be mapped to N64 buttons //Corn
 			pad->buttons &= ~(SCE_CTRL_TRIANGLE | SCE_CTRL_CROSS | SCE_CTRL_CIRCLE | SCE_CTRL_SQUARE);	//Clear out original buttons
-			if(pPad->stick_x > 40) pad->buttons |= SCE_CTRL_CIRCLE;
-			else if(pPad->stick_x < -40) pad->buttons |= SCE_CTRL_SQUARE;
+			if (pPad->stick_x > 40) pad->buttons |= SCE_CTRL_CIRCLE;
+			else if (pPad->stick_x < -40) pad->buttons |= SCE_CTRL_SQUARE;
 
-			if(pPad->stick_y > 40) pad->buttons |= SCE_CTRL_TRIANGLE;
-			else if(pPad->stick_y < -40) pad->buttons |= SCE_CTRL_CROSS;
+			if (pPad->stick_y > 40) pad->buttons |= SCE_CTRL_TRIANGLE;
+			else if (pPad->stick_y < -40) pad->buttons |= SCE_CTRL_CROSS;
 
 			//Set Stick
-			if( tmp & SCE_CTRL_CIRCLE ) pPad->stick_x = s8(N64_ANALOGUE_STICK_RANGE);
-			else if( tmp & SCE_CTRL_SQUARE ) pPad->stick_x = -s8(N64_ANALOGUE_STICK_RANGE);
+			if ( tmp & SCE_CTRL_CIRCLE ) pPad->stick_x = s8(N64_ANALOGUE_STICK_RANGE);
+			else if ( tmp & SCE_CTRL_SQUARE ) pPad->stick_x = -s8(N64_ANALOGUE_STICK_RANGE);
 			else pPad->stick_x = 0;
 
-			if( tmp & SCE_CTRL_TRIANGLE ) pPad->stick_y = s8(N64_ANALOGUE_STICK_RANGE);
-			else if( tmp & SCE_CTRL_CROSS ) pPad->stick_y = -s8(N64_ANALOGUE_STICK_RANGE);
+			if ( tmp & SCE_CTRL_TRIANGLE ) pPad->stick_y = s8(N64_ANALOGUE_STICK_RANGE);
+			else if ( tmp & SCE_CTRL_CROSS ) pPad->stick_y = -s8(N64_ANALOGUE_STICK_RANGE);
 			else pPad->stick_y = 0;
-			}
-			break;
-
-		case 'D': //Map Vita Right stick to C buttons
-			{
-				//PS vita Right Stick
-				if(pad->rx - 128 > 40) pad->buttons |= SCE_CTRL_RIGHT;
-				if(pad->rx - 128 < -40) pad->buttons |= SCE_CTRL_LEFT;
-
-				if(pad->ry - 128 > -40) pad->buttons |= SCE_CTRL_UP;
-				if(pad->ry - 128 < 40) pad->buttons |= SCE_CTRL_DOWN;
 			}
 			break;
 
@@ -404,42 +393,53 @@ void IInputManager::GetState( OSContPad pPad[4] )
 		pPad[cont].stick_y = 0;
 	}
 
-	SceCtrlData pad;
+	for (int i = 0; i < 4; i++) {	
+		SceCtrlData pad;
+		if (sceCtrlPeekBufferPositive(i ? (i+1) : 0, &pad, 1) < 0) continue; //Get VITA button inputs
 
-	sceCtrlPeekBufferPositive(0, &pad, 1);	//Get VITA button inputs
+		//	'Normalise' from 0..255 -> -128..+127
+		//
+		s32 normalised_x( pad.lx - VITA_ANALOGUE_STICK_RANGE );
+		s32 normalised_y( pad.ly - VITA_ANALOGUE_STICK_RANGE );
 
-	//	'Normalise' from 0..255 -> -128..+127
-	//
-	s32 normalised_x( pad.lx - VITA_ANALOGUE_STICK_RANGE );
-	s32 normalised_y( pad.ly - VITA_ANALOGUE_STICK_RANGE );
+		//
+		//	Now scale from -128..+127 -> -80..+80 (y is inverted from VITA coords)
+		//
+		v2 stick( f32( normalised_x ) / VITA_ANALOGUE_STICK_RANGE, f32( normalised_y ) / VITA_ANALOGUE_STICK_RANGE );
 
-	//
-	//	Now scale from -128..+127 -> -80..+80 (y is inverted from VITA coords)
-	//
-	v2 stick( f32( normalised_x ) / VITA_ANALOGUE_STICK_RANGE, f32( normalised_y ) / VITA_ANALOGUE_STICK_RANGE );
+		stick = ApplyDeadzone( stick, gGlobalPreferences.StickMinDeadzone, gGlobalPreferences.StickMaxDeadzone );
 
-	stick = ApplyDeadzone( stick, gGlobalPreferences.StickMinDeadzone, gGlobalPreferences.StickMaxDeadzone );
+		//Smoother joystick sensitivity //Corn
+		
+		stick.x = (0.5f * stick.x) * (1 + stick.x * stick.x);
+		stick.y = (0.5f * stick.y) * (1 + stick.y * stick.y);
 
-	//Smoother joystick sensitivity //Corn
-	stick.x = 0.5f * stick.x + 0.5f * stick.x * stick.x * stick.x;
-	stick.y = 0.5f * stick.y + 0.5f * stick.y * stick.y * stick.y;
+		pPad[i].stick_x =  s8(stick.x * N64_ANALOGUE_STICK_RANGE);
+		pPad[i].stick_y = -s8(stick.y * N64_ANALOGUE_STICK_RANGE);
 
-	pPad[0].stick_x =  s8(stick.x * N64_ANALOGUE_STICK_RANGE);
-	pPad[0].stick_y = -s8(stick.y * N64_ANALOGUE_STICK_RANGE);
+		#ifdef DAEDALUS_ENABLE_ASSERTS
+		DAEDALUS_ASSERT( mpControllerConfig != NULL, "We should always have a valid controller" );
+		#endif
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( mpControllerConfig != NULL, "We should always have a valid controller" );
-	#endif
+		SwapJoyStick(&pPad[i], &pad);
+		
+		//PS vita Right Stick
+		if (pad.rx > 170) pad.buttons |= SCE_CTRL_RIGHT;
+		if (pad.rx < 85) pad.buttons |= SCE_CTRL_LEFT;
 
-	SwapJoyStick(&pPad[0], &pad);
+		if (pad.ry > 170) pad.buttons |= SCE_CTRL_UP;
+		if (pad.ry < 85) pad.buttons |= SCE_CTRL_DOWN;
 
-	pPad[0].button = mpControllerConfig->GetN64ButtonsState( pad.buttons );
-
+		pPad[i].button = mpControllerConfig->GetN64ButtonsState( pad.buttons );
+	}
+	
+#ifdef DAEDALUS_ENABLE_SYNCHRONISATION
 	// Synchronise the input - this will overwrite the real pad data when playing back input
 	for(u32 cont = 0; cont < 4; cont++)
 	{
 		SYNCH_DATA( pPad[cont] );
 	}
+#endif
 }
 
 //*****************************************************************************

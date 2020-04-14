@@ -113,6 +113,10 @@ area assignment does not change. After Tx/RxData assignment, this flag is reset 
 	#define DPF_PIF( ... )
 #endif
 
+#ifdef DAEDALUS_VITA
+#include <vitasdk.h>
+#endif
+
 #define PIF_RAM_SIZE 64
 
 bool gRumblePakActive {false};
@@ -210,7 +214,7 @@ class	IController : public CController
 
 		// Please update the memory allocated for mempack if we change this value
 		static const u32 NUM_CONTROLLERS = 4;
-
+		
 		OSContPad		mContPads[ NUM_CONTROLLERS ];
 		bool			mContPresent[ NUM_CONTROLLERS ];
 
@@ -253,13 +257,25 @@ IController::IController() :
 	mDebugFile = fopen( "controller.txt", "w" );
 #endif
 #endif
+
+#ifdef DAEDALUS_VITA
+	SceCtrlPortInfo pinfo;
+	sceCtrlGetControllerPortInfo(&pinfo);
+#endif
+
 	for (u32 i = 0; i < NUM_CONTROLLERS; i++)
 	{
+#ifdef DAEDALUS_VITA
+		mContPresent[i] = pinfo.port[i ? (i+1) : 0] != SCE_CTRL_TYPE_UNPAIRED;
+#else
 		mContPresent[i] = false;
+#endif
 	}
 
+#ifndef DAEDALUS_VITA
 	// Only one controller is enabled, this has to be revised once mltiplayer is introduced
 	mContPresent[0] = true;
+#endif
 }
 
 
@@ -360,17 +376,35 @@ void IController::Process()
 		
 		switch (cmd[0]) {
 		case CONT_TX_SIZE_FORMAT_END:
+#ifdef DAEDALUS_DEBUG_PIF
+			DPF_PIF("Command Format End on Chn %ld", channel);
+#endif
 			stop = true;
 			break;
 		case CONT_TX_SIZE_DUMMYDATA:
+#ifdef DAEDALUS_DEBUG_PIF
+			DPF_PIF("Command Dummy Data on Chn %ld", channel);
+#endif
 			count++;
 			break;
 		case CONT_TX_SIZE_CHANSKIP:
+#ifdef DAEDALUS_DEBUG_PIF
+			DPF_PIF("Command Chn Skip on Chn %ld", channel);
+#endif
+			count++;
+			channel++;
+			break;
 		case CONT_TX_SIZE_CHANRESET:
+#ifdef DAEDALUS_DEBUG_PIF
+			DPF_PIF("Command Chn Reset on Chn %ld", channel);
+#endif
 			count++;
 			channel++;
 			break;
 		default:
+#ifdef DAEDALUS_DEBUG_PIF
+			DPF_PIF("Processing Chn %ld", channel);
+#endif
 			// HACK?: some games sends bogus PIF commands while accessing controller paks
 			// Yoshi Story, Top Gear Rally 2, Indiana Jones, ...
 			// When encountering such commands, we skip this bogus byte.
@@ -450,12 +484,12 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 	if( !mContPresent[channel] )
 	{
 		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller %d is not connected",channel);
+		DPF_PIF("Controller %ld is not connected", channel);
 		#endif
-        cmd[1] |= 0x80;
-        cmd[3] = 0xFF;
-        cmd[4] = 0xFF;
-        cmd[5] = 0xFF;			// Not connected
+		cmd[1] |= 0x80;
+		cmd[3] = 0xFF;
+		cmd[4] = 0xFF;
+		cmd[5] = 0xFF;			// Not connected
 		return true;
 	}
 
@@ -464,16 +498,16 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 	case CONT_RESET:
 	case CONT_GET_STATUS:
 		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller: Command is RESET/STATUS");
+		DPF_PIF("Controller #%ld: Command is RESET/STATUS", channel);
 		#endif
 		cmd[3] = 0x05;
 		cmd[4] = 0x00;
 		cmd[5] = CONT_STATUS_PAK_PRESENT;
 		break;
 
-	case CONT_READ_CONTROLLER:		// Controller
+	case CONT_READ_CONTROLLER:
 		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller: Executing READ_CONTROLLER");
+		DPF_PIF("Controller #%ld: Executing READ_CONTROLLER", channel);
 		#endif
 		cmd[3] = (u8)(mContPads[channel].button >> 8);
 		cmd[4] = (u8)mContPads[channel].button;
@@ -482,18 +516,18 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 		break;
 
 	case CONT_READ_MEMPACK:
-		/*#ifdef DAEDALUS_DEBUG_PIF
+		#ifdef DAEDALUS_DEBUG_PIF
 		DPF_PIF("Controller: Command is READ_MEMPACK");
 		#endif
 		if(gGlobalPreferences.RumblePak)
 			CommandReadRumblePack(cmd);
 		else
 			CommandReadMemPack(channel, cmd);
-		*/break;
+		break;
 
 	case CONT_WRITE_MEMPACK:
 		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller: Command is WRITE_MEMPACK");
+		DPF_PIF("Controller #%ld: Command is WRITE_MEMPACK", channel);
 		#endif
 		if(gGlobalPreferences.RumblePak)
 			CommandWriteRumblePack(cmd);
