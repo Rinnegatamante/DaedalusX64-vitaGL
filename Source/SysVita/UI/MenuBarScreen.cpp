@@ -180,6 +180,11 @@ void DrawCommonMenuBar() {
 }
 
 void DrawCommonWindows() {
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable(GL_ALPHA_TEST);
+	
 	if (vflux_window){
 		ImGui::Begin("vFlux Configuration", &vflux_window);
 		ImGui::ColorPicker3("Filter Color", vcolors);
@@ -224,9 +229,6 @@ void DrawCommonWindows() {
 		else // Evening/Night
 			a = 0.2f;
 		colors[3] = colors[7] = colors[11] = colors[15] = a;
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_ALPHA_TEST);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
