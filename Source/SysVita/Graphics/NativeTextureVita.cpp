@@ -63,36 +63,16 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mCorrectedWidth( CorrectDimension( w ) )
 ,	mCorrectedHeight( CorrectDimension( h ) )
 ,	mTextureBlockWidth( GetTextureBlockWidth( mCorrectedWidth, texture_format ) )
-,	mpData( NULL )
-,	mpPalette( NULL )
 ,	mTextureId( 0 )
 {
 	mScale.x = 1.0f / mCorrectedWidth;
 	mScale.y = 1.0f / mCorrectedHeight;
 	
 	glGenTextures( 1, &mTextureId );
-
-	size_t data_len = GetBytesRequired();
-	mpData = malloc(data_len);
-	memset(mpData, 0, data_len);
-
-	if (texture_format == TexFmt_CI4_8888)
-	{
-		mpPalette = malloc(kPalette8BytesRequired);
-	}
-	else if (texture_format == TexFmt_CI8_8888)
-	{
-		mpPalette = malloc(kPalette4BytesRequired);
-	}
 }
 
 CNativeTexture::~CNativeTexture()
 {
-	if (mpData)
-		free(mpData);
-	if (mpPalette)
-		free(mpPalette);
-
 	glDeleteTextures( 1, &mTextureId );
 }
 
@@ -277,16 +257,6 @@ void CNativeTexture::SetData( void * data, void * palette )
 	// It's pretty gross that we don't pass this in, or better yet, provide a way for
 	// the caller to write directly to our buffers instead of setting the data.
 	size_t data_len = GetBytesRequired();
-	memcpy(mpData, data, data_len);
-
-	if (mTextureFormat == TexFmt_CI4_8888)
-	{
-		memcpy(mpPalette, palette, kPalette4BytesRequired);
-	}
-	else if (mTextureFormat == TexFmt_CI8_8888)
-	{
-		memcpy(mpPalette, palette, kPalette8BytesRequired);
-	}
 
 	if (HasData())
 	{
