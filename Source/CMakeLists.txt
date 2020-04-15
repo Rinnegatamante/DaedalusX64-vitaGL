@@ -217,10 +217,6 @@ if (VITA_RELEASE)
 
 	add_definitions("-DDAEDALUS_VITA")
 
-	# Build SysGXM Lib
-	#add_library(sysGXM STATIC ${SYSGXM_BUILD})
-	#target_link_libraries(sysGL GL GLEW -lSDL2 dl X11  )
-
 	# Build Daedalus Lib
 	add_library(daedalus STATIC
 		${BUILD}
@@ -275,6 +271,10 @@ if (VITA_RELEASE)
 	vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
 		VERSION ${VITA_VERSION}
 		NAME ${VITA_APP_NAME}
+		FILE ${PROJECT_SOURCE_DIR}/sce_sys/icon0.png sce_sys/icon0.png
+		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
+		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
+		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
 	)
 
 endif (VITA_RELEASE)
