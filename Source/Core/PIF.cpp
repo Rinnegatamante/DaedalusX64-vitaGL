@@ -115,6 +115,8 @@ area assignment does not change. After Tx/RxData assignment, this flag is reset 
 
 #ifdef DAEDALUS_VITA
 #include <vitasdk.h>
+#else
+bool gRumblePakActive = false;
 #endif
 
 #define PIF_RAM_SIZE 64

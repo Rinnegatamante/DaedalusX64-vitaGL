@@ -72,7 +72,7 @@ enum	ECPUEventType
 	CPU_EVENT_VBL = 1,
 	CPU_EVENT_COMPARE,
 	CPU_EVENT_AUDIO,
-	CPU_EVENT_SPINT,
+	CPU_EVENT_SPINT
 };
 
 // In practice there should only ever be 2

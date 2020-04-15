@@ -40,7 +40,7 @@ char *DrawRomSelector() {
 	DrawMenuBar();
 		
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(960, 525), ImGuiSetCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH, SCR_HEIGHT - 19), ImGuiSetCond_Always);
 	ImGui::Begin("", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	std::string			full_path;

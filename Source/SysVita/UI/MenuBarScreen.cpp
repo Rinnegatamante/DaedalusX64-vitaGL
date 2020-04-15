@@ -32,8 +32,6 @@
 
 #define MAX_SAVESLOT 9
 
-bool gRumblePakActive = false;
-
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
