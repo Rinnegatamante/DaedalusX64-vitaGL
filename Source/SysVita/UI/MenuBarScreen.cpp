@@ -122,7 +122,7 @@ void DrawCommonMenuBar() {
 				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[0])){
 					has_rumblepak[0] = true;
 				}
-				if (ImGui::MenuItem("Controller Pak", nullptr, !gGlobalPreferences.RumblePak)){
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[0])){
 					has_rumblepak[0] = false;
 				}
 				ImGui::EndMenu();
