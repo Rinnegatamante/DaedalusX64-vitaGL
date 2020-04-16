@@ -3,6 +3,7 @@
 *.o
 *.prx
 *.elf
+*.tmp
 *.sublime-workspace
 EBOOT.PBP
 PARAM.SFO

@@ -214,9 +214,46 @@ if (VITA_RELEASE)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -flto -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
-
+	set(VITA_MAKE_FSELF_FLAGS "${VITA_MAKE_FSELF_FLAGS} -a 0x2800000000000013")
+	
+	# Builds
+	FUNCTION(ADD_RESOURCES out_var)
+		SET(result)
+		FOREACH(ref_f ${ARGN})
+			if (IS_ABSOLUTE "${ref_f}")
+				SET(out_f "${ref_f}.o")
+				STRING(REPLACE "${CMAKE_CURRENT_BINARY_DIR}/" "" in_f "${ref_f}")
+				SET(work_dir "${CMAKE_CURRENT_BINARY_DIR}")
+			else()
+				SET(out_f "${CMAKE_CURRENT_BINARY_DIR}/${ref_f}.obj")
+				SET(in_f "${ref_f}")
+				SET(work_dir "${CMAKE_SOURCE_DIR}")
+			endif()
+			GET_FILENAME_COMPONENT(out_dir ${out_f} DIRECTORY)
+			ADD_CUSTOM_COMMAND(OUTPUT ${out_f}
+				COMMAND ${CMAKE_COMMAND} -E make_directory ${out_dir}
+				COMMAND ${CMAKE_LINKER} -r -b binary -o ${out_f} ${in_f}
+				DEPENDS ${ref_f}
+				WORKING_DIRECTORY ${work_dir}
+				COMMENT "Building resource ${out_f}"
+				VERBATIM)
+			LIST(APPEND result ${out_f})
+		ENDFOREACH()
+		SET(${out_var} "${result}" PARENT_SCOPE)
+	ENDFUNCTION()
+	
+	file(GLOB data_files RELATIVE
+		${PROJECT_SOURCE_DIR}
+		${PROJECT_SOURCE_DIR}/SysVita/DynaRec/MipsPayload/payload.bin
+		${PROJECT_SOURCE_DIR}/SysVita/DynaRec/MipsPayload/license.rif
+	)
+	
 	add_definitions("-DDAEDALUS_VITA")
-
+	
+	add_resources(mips_payload
+		${data_files}
+	)
+	
 	# Build Daedalus Lib
 	add_library(daedalus STATIC
 		${BUILD}
@@ -239,6 +276,7 @@ if (VITA_RELEASE)
 	add_executable(${PROJECT_NAME}.elf
 		${VITA_MAIN_FILES}
 		${VITA_INPUTMANAGER_FILES}
+		${mips_payload}
 	)
 
 	target_include_directories(${PROJECT_NAME}.elf PRIVATE
@@ -251,14 +289,13 @@ if (VITA_RELEASE)
 		daedalus
 		SceDisplay_stub
 		SceGxm_stub
-		ScePgf_stub
-		ScePvf_stub
 		SceSysmodule_stub
 		SceCommonDialog_stub
 		SceKernelThreadMgr_stub
 		SceCtrl_stub
 		SceTouch_stub
 		SceAudio_stub
+		SceCompat_stub
 		c
 		stdc++
 		m
@@ -267,7 +304,7 @@ if (VITA_RELEASE)
 		imgui
 	)
 
-	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf)
+	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
 	vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
 		VERSION ${VITA_VERSION}
 		NAME ${VITA_APP_NAME}

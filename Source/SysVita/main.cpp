@@ -35,11 +35,17 @@ extern "C" {
 
 int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 int _newlib_heap_size_user = 128 * 1024 * 1024;
-
+extern uint8_t _binary_SysVita_DynaRec_MipsPayload_payload_bin_start;
+extern uint8_t _binary_SysVita_DynaRec_MipsPayload_payload_bin_size;
+extern uint8_t _binary_SysVita_DynaRec_MipsPayload_license_rif_start;
+extern uint8_t _binary_SysVita_DynaRec_MipsPayload_license_rif_size;
+	
 }
 
 extern bool run_emu;
 extern bool restart_rom;
+
+SceCompatCdram cdram;
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -61,7 +67,7 @@ static void EnableMenuButtons(bool status) {
 	ImGui_ImplVitaGL_MouseStickUsage(status);
 }
 
-static void Initialize()
+static bool Initialize()
 {
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
 	strcpy(g_DaedalusConfig.mSaveDir, DAEDALUS_VITA_PATH("SaveGames/"));
@@ -71,13 +77,36 @@ static void Initialize()
 	
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
 	
-	// FIXME: This ideally should be inside GraphicsContext initializer however we need vitaGL to draw menu
+	// Initializing shared mem between MIPS and ARM processors
+	if (sceCompatAllocCdramWithHole(&cdram) < 0) return false;
+	if (sceCompatInitEx(1) < 0) return false;
+	
+	// Moving our MIPS code into shared mem
+	memcpy(cdram.uncached_cdram + 0x600000,
+		(void *)&_binary_SysVita_DynaRec_MipsPayload_payload_bin_start,
+		(int)&_binary_SysVita_DynaRec_MipsPayload_payload_bin_size);
+	
+	// Writing fake license file
+	sceIoMkdir("ux0:pspemu", 0777);
+	sceIoMkdir("ux0:pspemu/PSP", 0777);
+	sceIoMkdir("ux0:pspemu/PSP/LICENSE", 0777);
+	SceUID fd = sceIoOpen("ux0:pspemu/PSP/LICENSE/AA0000-AAAA00000_00-0000000000000000.rif", SCE_O_WRONLY | SCE_O_CREAT, 0777);
+	if (fd > 0) {
+		sceIoWrite(fd, (void *)&_binary_SysVita_DynaRec_MipsPayload_license_rif_start, (int)&_binary_SysVita_DynaRec_MipsPayload_license_rif_size);
+		sceIoClose(fd);
+	}
+	sceCompatSetRif("AA0000-AAAA00000_00-0000000000000000");
+	
+	// Starting MIPS processor
+	if (sceCompatStart() < 0) return false;
+	if (sceCompatWaitSpecialRequest(1) < 0) return false;
+	
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(GL_TRUE);
 
 	System_Init();
 	
-	// TODO: Move this something else
+	// TODO: Move this somewhere else
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();
@@ -85,6 +114,8 @@ static void Initialize()
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
+	
+	return true;
 }
 
 void HandleEndOfFrame()
@@ -93,7 +124,7 @@ void HandleEndOfFrame()
 
 int main(int argc, char* argv[])
 {
-	Initialize();
+	if (!Initialize()) return -1;
 	
 	char *rom;
 	
