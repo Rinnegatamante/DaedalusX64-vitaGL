@@ -421,8 +421,9 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 		}
 
 		// If no texture was specified, or if we couldn't load it, clear it out
-		if( !installed_texture ) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
+		if( !installed_texture )
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 
@@ -611,8 +612,8 @@ void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bo
 				
 			for (u32 i = 0; i < num_vertices; ++i)
 			{
-				gTexCoordBuffer[0] = (p_vertices[i].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 32.f * scale_x));
-				gTexCoordBuffer[1] = (p_vertices[i].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 32.f * scale_y));
+				gTexCoordBuffer[0] = (p_vertices[i].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
+				gTexCoordBuffer[1] = (p_vertices[i].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
 				gTexCoordBuffer += 2;
 			}	
 		} else {
