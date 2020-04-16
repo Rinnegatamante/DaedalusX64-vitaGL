@@ -39,7 +39,6 @@ static uint64_t tmr1;
 void DrawInGameMenu() {
 	DrawInGameMenuBar();
 	
-	glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
 	

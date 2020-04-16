@@ -150,26 +150,19 @@ void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 void IGraphicsContext::BeginFrame()
 {
 	vglStartRendering();
-	CGraphicsContext::Get()->ClearToBlack();
 	glEnableClientState(GL_VERTEX_ARRAY);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
 	gTexCoordBuffer = gTexCoordBufferPtr;
 	vglIndexPointerMapped(gIndexes);
 	
-	// Get window size (may be different than the requested size)
-	u32 width, height;
-	GetScreenSize(&width, &height);
-
-	// Special case: avoid division by zero below
-	height = height > 0 ? height : 1;
-
-	glViewport( 0, 0, width, height );
-	glScissor( 0, 0, width, height );
+	CGraphicsContext::Get()->ClearToBlack();
 }
 
 void IGraphicsContext::EndFrame()
 {
+	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	DrawInGameMenu();
 	vglStopRendering();
 	HandleEndOfFrame();
