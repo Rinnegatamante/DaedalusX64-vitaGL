@@ -1857,11 +1857,11 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	// Initialise the clamping state. When the mask is 0, it forces clamp mode.
 	//
 #ifdef DAEDALUS_PSP
-	u32 mode_u {(u32)((rdp_tile.clamp_s | (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT)};
-	u32 mode_v {(u32)((rdp_tile.clamp_t | (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT)};
+	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT)};
+	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT)};
 #elif defined(DAEDALUS_VITA)
-	u32 mode_u {(u32)((rdp_tile.clamp_s | (rdp_tile.mask_s == 0)) ? GL_CLAMP_TO_EDGE : GL_REPEAT)};
-	u32 mode_v {(u32)((rdp_tile.clamp_t | (rdp_tile.mask_t == 0)) ? GL_CLAMP_TO_EDGE : GL_REPEAT)};
+	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT)};
+	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT)};
 #endif
 	//	In CRDPStateManager::GetTextureDescriptor, we limit the maximum dimension of a
 	//	texture to that define by the mask_s/mask_t value.
@@ -1882,7 +1882,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 #ifdef DAEDALUS_PSP
 		mode_u = g_ROM.ZELDA_HACK ? GU_CLAMP : GU_REPEAT;
 #elif defined(DAEDALUS_VITA)
-		mode_u = g_ROM.ZELDA_HACK ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+		mode_u = g_ROM.ZELDA_HACK ? GL_CLAMP : (rdp_tile.mirror_s ? GL_MIRRORED_REPEAT : GL_REPEAT);
 #endif
 	}
 
@@ -1890,7 +1890,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 #ifdef DAEDALUS_PSP
 		mode_v = GU_REPEAT;
 #elif defined(DAEDALUS_VITA)
-		mode_v = GL_REPEAT;
+		mode_v = rdp_tile.mirror_t ? GL_MIRRORED_REPEAT : GL_REPEAT;
 #endif
 	mTexWrap[ index ].u = mode_u;
 	mTexWrap[ index ].v = mode_v;
@@ -1906,7 +1906,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 			(mode_u==GU_CLAMP)? "Clamp" : "Repeat", (mode_v==GU_CLAMP)? "Clamp" : "Repeat",
 			ti.GetLoadAddress(), ti.GetTlutAddress(), ti.GetHashCode(), ti.GetPitch(),
 			mTileTopLeft[ index ].s / 4.f, mTileTopLeft[ index ].t / 4.f );
-			#endif
+#endif
 }
 
 
@@ -1985,7 +1985,7 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 	if (rdp_tile.mirror_s)	size_x *= 2;
 	if (rdp_tile.mirror_t)	size_y *= 2;
 
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_GL)
 	// If using shift, we need to take it into account here.
 	offset.s = ApplyShift(offset.s, rdp_tile.shift_s);
 	offset.t = ApplyShift(offset.t, rdp_tile.shift_t);
