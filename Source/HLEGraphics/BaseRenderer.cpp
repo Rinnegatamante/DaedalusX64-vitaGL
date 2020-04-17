@@ -1671,7 +1671,7 @@ void BaseRenderer::ModifyVertexInfo(u32 whered, u32 vert, u32 val)
 
 inline void BaseRenderer::SetVtxColor( u32 vert, u32 color )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
+#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( vert < kMaxN64Vertices, "Vertex index is out of bounds (%d)", vert );
 #endif
 	u32 r {(color>>24)&0xFF};
@@ -1696,9 +1696,9 @@ inline void BaseRenderer::SetVtxZ( u32 vert, float z )
 
 inline void BaseRenderer::SetVtxXY( u32 vert, float x, float y )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
+#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( vert < kMaxN64Vertices, "Vertex index is out of bounds (%d)", vert );
-	#endif
+#endif
 	mVtxProjected[vert].TransformedPos.x = x;
 	mVtxProjected[vert].TransformedPos.y = y;
 }
@@ -1816,7 +1816,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 #ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( tile_idx < 8, "Invalid tile index %d", tile_idx );
 	DAEDALUS_ASSERT( index < kNumBoundTextures, "Invalid texture index %d", index );
-	#endif
+#endif
 	// This hapens a lot! Even for index 0 (i.e. the main texture!)
 	// It might just be code that lazily does a texrect with Primcolour (i.e. not using either T0 or T1)?
 	// DAEDALUS_ASSERT( gRDPStateManager.IsTileInitialised( tile_idx ), "Tile %d hasn't been set up (index %d)", tile_idx, index );
@@ -1859,7 +1859,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 #ifdef DAEDALUS_PSP
 	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT)};
 	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT)};
-#elif defined(DAEDALUS_VITA)
+#else
 	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT)};
 	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT)};
 #endif
@@ -1881,7 +1881,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 		//
 #ifdef DAEDALUS_PSP
 		mode_u = g_ROM.ZELDA_HACK ? GU_CLAMP : GU_REPEAT;
-#elif defined(DAEDALUS_VITA)
+#else
 		mode_u = g_ROM.ZELDA_HACK ? GL_CLAMP : (rdp_tile.mirror_s ? GL_MIRRORED_REPEAT : GL_REPEAT);
 #endif
 	}
@@ -1889,7 +1889,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	if( tile_size.GetHeight() > ti.GetHeight() )
 #ifdef DAEDALUS_PSP
 		mode_v = GU_REPEAT;
-#elif defined(DAEDALUS_VITA)
+#else
 		mode_v = rdp_tile.mirror_t ? GL_MIRRORED_REPEAT : GL_REPEAT;
 #endif
 	mTexWrap[ index ].u = mode_u;
@@ -1938,8 +1938,8 @@ inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 	// Many texrects already have GU_CLAMP set, so avoid some work.
 #ifdef DAEDALUS_PSP
 	if (*wrap != GU_CLAMP && size > 0)
-#elif defined(DAEDALUS_VITA)
-	if (*wrap != GL_CLAMP_TO_EDGE && size > 0)
+#else
+	if (*wrap != GL_CLAMP && size > 0)
 #endif
 	{
 		// Check if the coord is negative - if so, offset to the range [0,size]
@@ -1962,8 +1962,8 @@ inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 		{
 #ifdef DAEDALUS_PSP
 			*wrap = GU_CLAMP;
-#elif defined(DAEDALUS_VITA)
-			*wrap = GL_CLAMP_TO_EDGE;
+#else
+			*wrap = GL_CLAMP;
 #endif
 		}
 	}
@@ -2093,7 +2093,7 @@ void BaseRenderer::SetProjection(const u32 address, bool bReplace)
 		mProjectionMat.m[1][0], mProjectionMat.m[1][1], mProjectionMat.m[1][2], mProjectionMat.m[1][3],
 		mProjectionMat.m[2][0], mProjectionMat.m[2][1], mProjectionMat.m[2][2], mProjectionMat.m[2][3],
 		mProjectionMat.m[3][0], mProjectionMat.m[3][1], mProjectionMat.m[3][2], mProjectionMat.m[3][3]);
-		#endif
+#endif
 }
 
 
@@ -2281,7 +2281,7 @@ void BaseRenderer::InsertMatrix(u32 w0, u32 w1)
 		mWorldProject.m[1][0], mWorldProject.m[1][1], mWorldProject.m[1][2], mWorldProject.m[1][3],
 		mWorldProject.m[2][0], mWorldProject.m[2][1], mWorldProject.m[2][2], mWorldProject.m[2][3],
 		mWorldProject.m[3][0], mWorldProject.m[3][1], mWorldProject.m[3][2], mWorldProject.m[3][3]);
-		#endif
+#endif
 }
 
 
@@ -2303,5 +2303,5 @@ void BaseRenderer::ForceMatrix(const u32 address)
 		mWorldProject.m[1][0], mWorldProject.m[1][1], mWorldProject.m[1][2], mWorldProject.m[1][3],
 		mWorldProject.m[2][0], mWorldProject.m[2][1], mWorldProject.m[2][2], mWorldProject.m[2][3],
 		mWorldProject.m[3][0], mWorldProject.m[3][1], mWorldProject.m[3][2], mWorldProject.m[3][3]);
-		#endif
+#endif
 }
