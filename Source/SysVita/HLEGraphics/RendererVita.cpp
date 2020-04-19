@@ -210,6 +210,10 @@ void RendererVita::RestoreRenderStates()
 	// No fog
 	glDisable(GL_FOG);
 	
+	u32 width, height;
+	CGraphicsContext::Get()->GetScreenSize(&width, &height);
+	glScissor(0, 0, width,height);
+	
 	glEnable(GL_SCISSOR_TEST);
 	
 	glBlendEquation(GL_FUNC_ADD);

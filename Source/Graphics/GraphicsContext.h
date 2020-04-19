@@ -29,6 +29,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SCR_WIDTH 960
 #define SCR_HEIGHT 544
 #define VERSION "1.18"
+
+#define RATIO_16_9  0
+#define RATIO_4_3   1
+#define RATIO_ORIG  2
+extern int aspect_ratio;
 #endif
 
 class c32;

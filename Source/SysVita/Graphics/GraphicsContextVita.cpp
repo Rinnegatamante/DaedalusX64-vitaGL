@@ -165,12 +165,10 @@ void IGraphicsContext::EndFrame()
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	DrawInGameMenu();
 	vglStopRendering();
-	HandleEndOfFrame();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
-	DAEDALUS_PROFILE( "IGraphicsContext::UpdateFrame" );
 }
 
 void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)
@@ -180,8 +178,7 @@ void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)
 
 void IGraphicsContext::ViewportType(u32 *d_width, u32 *d_height) const
 {
-	*d_width = SCR_WIDTH;
-	*d_height = SCR_HEIGHT;
+	GetScreenSize(d_width, d_height);
 }
 
 void IGraphicsContext::SaveScreenshot(const char* filename, s32 x, s32 y, u32 width, u32 height)
@@ -198,6 +195,19 @@ void IGraphicsContext::StoreSaveScreenData()
 
 void IGraphicsContext::GetScreenSize(u32 * p_width, u32 * p_height) const
 {
-	*p_width = SCR_WIDTH;
-	*p_height = SCR_HEIGHT;
+	// Note: Change these if you change SCR_WIDTH/SCR_HEIGHT
+	switch (aspect_ratio) {
+	case RATIO_4_3:
+		*p_width  = 725;
+		*p_height = SCR_HEIGHT;
+		break;
+	case RATIO_ORIG:
+		*p_width  = 640;
+		*p_height = 480;
+		break;
+	default:
+		*p_width  = SCR_WIDTH;
+		*p_height = SCR_HEIGHT;
+		break;
+	}
 }

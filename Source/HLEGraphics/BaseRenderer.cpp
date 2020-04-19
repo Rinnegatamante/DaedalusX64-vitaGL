@@ -301,7 +301,7 @@ void BaseRenderer::InitViewport()
 	mVpTrans = v2( 640.f*0.25f, 480.f*0.25f );
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
-	u32 display_width  {}, display_height {};
+	u32 display_width  = 0, display_height = 0;
 	CGraphicsContext::Get()->ViewportType(&display_width, &display_height);
 
 	#ifdef DAEDALUS_ENABLE_ASSERTS
@@ -313,13 +313,20 @@ void BaseRenderer::InitViewport()
 
 #ifdef DAEDALUS_PSP
 	// Centralise the viewport in the display.
-	u32 frame_width  {(u32)(gGlobalPreferences.TVEnable ? 720 : 480)};
-	u32 frame_height {(u32)(gGlobalPreferences.TVEnable ? 480 : 272)};
+	u32 frame_width  = (u32)(gGlobalPreferences.TVEnable ? 720 : 480);
+	u32 frame_height = (u32)(gGlobalPreferences.TVEnable ? 480 : 272);
 
-	s32 display_x {(s32)(frame_width  - display_width)  / 2};
-	s32 display_y {(s32)(frame_height - display_height) / 2};
+	s32 display_x = (s32)(frame_width  - display_width)  / 2;
+	s32 display_y = (s32)(frame_height - display_height) / 2;
+#elif defined(DAEDALUS_VITA)
+	// Centralise the viewport in the display.
+	u32 frame_width  = SCR_WIDTH;
+	u32 frame_height = SCR_HEIGHT;
+
+	s32 display_x = (s32)(frame_width  - display_width)  / 2;
+	s32 display_y = (s32)(frame_height - display_height) / 2;
 #else
-	s32 display_x {}, display_y {};
+	s32 display_x = 0, display_y = 0;
 #endif
 
 	mN64ToScreenScale.x = gZoomX * mScreenWidth  / fViWidth;
@@ -391,7 +398,7 @@ void BaseRenderer::UpdateViewport()
 
 	//DBGConsole_Msg(0, "[WViewport Changed (%d) (%d)]",vp_w,vp_h );
 
-#if defined(DAEDALUS_PSP)
+#ifdef DAEDALUS_PSP
 	const u32 vx {2048};
 	const u32 vy {2048};
 
@@ -478,9 +485,9 @@ bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
 	DL_PF("    Tri: %d,%d,%d (Rendered)", v0, v1, v2);
 	++mNumTrisRendered;
 #endif
-	#ifdef DAEDALUS_ENABLE_ASSERTS
+#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( mNumIndices + 3 < kMaxIndices, "Array overflow, too many Indices" );
-	#endif
+#endif
 	mIndexBuffer[ mNumIndices++ ] = (u16)v0;
 	mIndexBuffer[ mNumIndices++ ] = (u16)v1;
 	mIndexBuffer[ mNumIndices++ ] = (u16)v2;

@@ -612,7 +612,7 @@ void RendererGL::RestoreRenderStates()
 	u32 width, height;
 	CGraphicsContext::Get()->GetScreenSize(&width, &height);
 
-	glScissor(0,0, width,height);
+	glScissor(0, 0, width,height);
 	glEnable(GL_SCISSOR_TEST);
 
 	// We do our own lighting
