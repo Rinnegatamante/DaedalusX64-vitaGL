@@ -277,4 +277,20 @@ if (VITA_RELEASE)
 		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
 	)
 
+	add_custom_target(launch
+		COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
+		COMMAND echo "launch ${VITA_TITLEID}" | nc $ENV{PSVITAIP} 1338
+		DEPENDS ${PROJECT_NAME}.self
+	)
+
+	add_custom_target(send
+		COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
+		DEPENDS ${PROJECT_NAME}.self
+	)
+
+	add_custom_target(vpksend
+		COMMAND curl -T ${PROJECT_NAME}.vpk ftp://$(PSVITAIP):1337/ux0:/
+		DEPENDS ${PROJECT_NAME}.vpk
+	)
+
 endif (VITA_RELEASE)
