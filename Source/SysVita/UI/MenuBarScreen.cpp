@@ -32,6 +32,8 @@
 
 #define MAX_SAVESLOT 9
 
+int aspect_ratio = RATIO_16_9;
+
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
@@ -99,6 +101,18 @@ void DrawCommonMenuBar() {
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Graphics")){
+		if (ImGui::BeginMenu("Aspect Ratio")){
+			if (ImGui::MenuItem("16:9", nullptr, aspect_ratio == RATIO_16_9)){
+				aspect_ratio = RATIO_16_9;
+			}
+			if (ImGui::MenuItem("4:3", nullptr, aspect_ratio == RATIO_4_3)){
+				aspect_ratio = RATIO_4_3;
+			}
+			if (ImGui::MenuItem("Original", nullptr, aspect_ratio == RATIO_ORIG)){
+				aspect_ratio = RATIO_ORIG;
+			}
+			ImGui::EndMenu();
+		}
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
