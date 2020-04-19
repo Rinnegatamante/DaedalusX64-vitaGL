@@ -649,8 +649,8 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 	v2 screen0;
 	v2 screen1;
-	ConvertN64ToScreen( xy0, screen0 );
-	ConvertN64ToScreen( xy1, screen1 );
+	ScaleN64ToScreen( xy0, screen0 );
+	ScaleN64ToScreen( xy1, screen1 );
 
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
@@ -711,8 +711,8 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 
 	v2 screen0;
 	v2 screen1;
-	ConvertN64ToScreen( xy0, screen0 );
-	ConvertN64ToScreen( xy1, screen1 );
+	ScaleN64ToScreen( xy0, screen0 );
+	ScaleN64ToScreen( xy1, screen1 );
 
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
@@ -763,8 +763,8 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 {
 	v2 screen0;
 	v2 screen1;
-	ConvertN64ToScreen( xy0, screen0 );
-	ConvertN64ToScreen( xy1, screen1 );
+	ScaleN64ToScreen( xy0, screen0 );
+	ScaleN64ToScreen( xy1, screen1 );
 	
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 	
@@ -854,12 +854,6 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	
-	float sx0 = N64ToScreenX(x0);
-	float sy0 = N64ToScreenY(y0);
-
-	float sx1 = N64ToScreenX(x1);
-	float sy1 = N64ToScreenY(y1);
 
 	const f32 depth = 0.0f;
 
