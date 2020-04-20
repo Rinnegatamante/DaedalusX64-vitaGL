@@ -150,14 +150,13 @@ void DLParser_GBI2_MoveWord( MicroCodeCommand command )
 
 	case G_MW_FOG: // WIP, only works for the PSP
 		{
-#ifdef DAEDALUS_PSP
+#ifndef DAEDALUS_VITA
 			f32 mul = (f32)(s16)(command.mw2.value >> 16);	//Fog mult
 			f32 offs = (f32)(s16)(command.mw2.value & 0xFFFF);	//Fog Offset
 
 			gRenderer->SetFogMultOffs(mul, offs);
-
+#else
 			// HW fog, only works for a few games
-#if 0
 			f32 a = (f32)(command.mw2.value >> 16);
 			f32 b = (f32)(command.mw2.value & 0xFFFF);
 
@@ -168,7 +167,6 @@ void DLParser_GBI2_MoveWord( MicroCodeCommand command )
 #endif
 			//DL_PF(" G_MW_FOG. Mult = 0x%04x (%f), Off = 0x%04x (%f)", wMult, 255.0f * fMult, wOff, 255.0f * fOff );
 			//printf("1Fog %.0f | %.0f || %.0f | %.0f\n", min, max, a, b);
-#endif
 		}
 		break;
 
@@ -370,7 +368,7 @@ void DLParser_GBI2_DL_Count( MicroCodeCommand command )
 	DL_PF("    Address=0x%08x %s", address, (command.dlist.param==G_DL_NOPUSH)? "Jump" : (command.dlist.param==G_DL_PUSH)? "Push" : "?");
 	DL_PF("    \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/");
 	DL_PF("    ############################################");
-	#endif
+#endif
 }
 
 //*****************************************************************************

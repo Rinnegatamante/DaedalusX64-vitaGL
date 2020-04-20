@@ -110,7 +110,7 @@ void DLParser_GBI1_Mtx( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_GBI1_PopMtx( MicroCodeCommand command )
 {
-	#ifdef DAEDALUS_DEBUG_DISPLAYLIST
+#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    Command: (%s)",	command.inst.cmd1 ? "Projection" : "ModelView");
 #endif
 	// Do any of the other bits do anything?
@@ -244,14 +244,13 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 
 	case G_MW_FOG:	// WIP, only works for the PSP
 		{
-#ifdef DAEDALUS_PSP
+#ifndef DAEDALUS_VITA
 			f32 mul = (f32)(s16)(value >> 16);	//Fog mult
 			f32 offs = (f32)(s16)(value & 0xFFFF);	//Fog Offset
 
 			gRenderer->SetFogMultOffs(mul, offs);
-
+#else
 			// HW fog, only works for a few games
-#if 0
 			f32 a = f32(value >> 16);
 			f32 b = f32(value & 0xFFFF);
 
@@ -262,7 +261,6 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 #endif
 			//DL_PF(" G_MW_FOG. Mult = 0x%04x (%f), Off = 0x%04x (%f)", wMult, 255.0f * fMult, wOff, 255.0f * fOff );
 			//printf("1Fog %.0f | %.0f || %.0f | %.0f\n", min, max, a, b);
-#endif
 		}
 		break;
 

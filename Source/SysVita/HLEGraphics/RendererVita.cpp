@@ -209,10 +209,7 @@ void RendererVita::RestoreRenderStates()
 
 	// No fog
 	glDisable(GL_FOG);
-	
-	u32 width, height;
-	CGraphicsContext::Get()->GetScreenSize(&width, &height);
-	glScissor(0, 0, width,height);
+	glFogi(GL_FOG_MODE, GL_LINEAR);
 	
 	glEnable(GL_SCISSOR_TEST);
 	
@@ -287,18 +284,17 @@ void RendererVita::DrawPrimitives(DaedalusVtx * p_vertices, u32 num_vertices, u3
 {
 	glEnableClientState(GL_COLOR_ARRAY);
 	float *vtx_ptr = gVertexBuffer;
-	uint8_t *vtx_clr = (uint8_t*)gColorBuffer;
 	for (uint32_t i = 0; i < num_vertices; i++) {
 		gVertexBuffer[0] = p_vertices[i].Position.x;
 		gVertexBuffer[1] = p_vertices[i].Position.y;
 		gVertexBuffer[2] = p_vertices[i].Position.z;
-		gColorBuffer[0] = p_vertices[i].Colour.GetColour();
-		gColorBuffer++;
+		gColorBuffer[i] = p_vertices[i].Colour.GetColour();
 		gVertexBuffer += 3;
 	}
 	vglVertexPointerMapped(vtx_ptr);
-	vglColorPointerMapped(GL_UNSIGNED_BYTE, vtx_clr);
+	vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
 	vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
+	gColorBuffer += num_vertices;
 }
 
 void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode)
@@ -323,6 +319,16 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 	{
 		memcpy( mVtx_Save, p_vertices, num_vertices * sizeof( DaedalusVtx ) );
 	}*/
+	
+	glEnableClientState(GL_COLOR_ARRAY);
+	float *vtx_ptr = gVertexBuffer;
+	for (uint32_t i = 0; i < num_vertices; i++) {
+		gVertexBuffer[0] = p_vertices[i].Position.x;
+		gVertexBuffer[1] = p_vertices[i].Position.y;
+		gVertexBuffer[2] = p_vertices[i].Position.z;
+		gVertexBuffer += 3;
+	}
+	vglVertexPointerMapped(vtx_ptr);
 
 	for( u32 i {}; i < states->GetNumStates(); ++i )
 	{
@@ -430,8 +436,14 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 			
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
-
-		DrawPrimitives(p_vertices, num_vertices, triangle_mode, installed_texture);
+		
+		for (uint32_t i = 0; i < num_vertices; i++) {
+			gColorBuffer[i] = p_vertices[i].Colour.GetColour();
+		}
+		vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
+		gColorBuffer += num_vertices;
+		
+		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 
 		/*if ( mTnL.Flags.Fog )
 		{
@@ -567,10 +579,10 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		}
 		
-		if ( mTnL.Flags.Fog )
+		/*if ( mTnL.Flags.Fog )
 		{
 		}
-		else
+		else*/
 		{
 			details.ColourAdjuster.Process(p_vertices, num_vertices);
 			DrawPrimitives(p_vertices, num_vertices, triangle_mode, installed_texture);

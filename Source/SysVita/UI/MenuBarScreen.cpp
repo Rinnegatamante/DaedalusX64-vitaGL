@@ -113,6 +113,9 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
+		if (ImGui::MenuItem("Render Fog", nullptr, gFogEnabled)){
+			gFogEnabled = !gFogEnabled;
+		}
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}

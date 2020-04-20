@@ -206,6 +206,7 @@ enum CycleType
 	CYCLE_FILL,
 };
 
+extern void log2file(const char *format, ...);
 //*****************************************************************************
 //
 //*****************************************************************************
@@ -243,7 +244,7 @@ public:
 	inline void			SetFogColour( c32 colour )				{ mFogColour = colour; }
 #elif defined(DAEDALUS_VITA)
 	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ glFogf(GL_FOG_START, fog_near); glFogf(GL_FOG_END, fog_far); }
-	inline void			SetFogColour( c32 colour )				{ float fog_clr[4] = {mFogColour.GetRf(), mFogColour.GetBf(), mFogColour.GetGf(), mFogColour.GetAf()}; glFogfv(GL_FOG_COLOR, &fog_clr[0]); }
+	inline void			SetFogColour( c32 colour )				{ float fog_clr[4] = {mFogColour.GetRf(), mFogColour.GetGf(), mFogColour.GetBf(), mFogColour.GetAf()}; glFogfv(GL_FOG_COLOR, &fog_clr[0]); }
 #endif
 
 	// PrimDepth will replace the z value if depth_source=1 (z range 32767-0 while PSP depthbuffer range 0-65535)//Corn
