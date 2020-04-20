@@ -223,8 +223,9 @@ void RendererVita::RestoreRenderStates()
 	glDepthFunc(GL_LEQUAL);
 	glDisable(GL_DEPTH_TEST);
 	
-	glPolygonOffset(1, 14);
-	
+	// Enable this for rendering decals (glPolygonOffset).
+	glEnable(GL_POLYGON_OFFSET_FILL);
+		
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	
@@ -468,11 +469,11 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 		// Decal mode
 		if( gRDPOtherMode.zmode == 3 )
 		{
-			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(-1.0, -1.0);
 		}
 		else
 		{
-			glDisable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(0.0, 0.0);
 		}
 		
 		// Enable or Disable ZBuffer test
