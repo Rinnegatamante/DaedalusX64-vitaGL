@@ -231,8 +231,11 @@ public:
 	inline void			SetTextureEnable(bool enable)			{ mTnL.Flags.Texture = enable; }
 	inline void			SetTextureTile(u32 tile)				{ mTextureTile = tile; }
 	inline u32			GetTextureTile() const					{ return mTextureTile; }
+#ifdef DAEDALUS_VITA
+	inline void			SetCullMode(bool enable, bool mode)		{ enable ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE); mode ? glCullFace(GL_BACK) : glCullFace(GL_FRONT); }
+#else
 	inline void			SetCullMode(bool enable, bool mode)		{ mTnL.Flags.TriCull = enable; mTnL.Flags.CullBack = mode; }
-
+#endif
 	// Fog stuff
 	inline void			SetFogMultOffs(f32 Mult, f32 Offs)		{ mTnL.FogMult=Mult/255.0f; mTnL.FogOffs=Offs/255.0f;}
 #ifdef DAEDALUS_PSP
