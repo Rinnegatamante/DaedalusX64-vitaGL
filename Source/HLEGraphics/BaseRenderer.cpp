@@ -123,6 +123,8 @@ extern u32 gAuxAddr;
 
 static f32 fViWidth {320.0f};
 static f32 fViHeight {240.0f};
+static f32 oldfViWidth {320.0f};
+static f32 oldfViHeight {240.0f};
 u32 uViWidth {320};
 u32 uViHeight {240};
 
@@ -308,10 +310,13 @@ void BaseRenderer::InitViewport()
 	DAEDALUS_ASSERT( display_width && display_height, "Unhandled viewport type" );
 	#endif
 
-	if(mScreenWidth != display_width || mScreenHeight != display_height){
+	if (mScreenWidth != display_width || mScreenHeight != display_height ||
+		oldfViWidth != fViWidth || oldfViHeight != fViHeight ){
 		
 		mScreenWidth  = (f32)display_width;
 		mScreenHeight = (f32)display_height;
+		oldfViWidth = fViWidth;
+		oldfViHeight = fViHeight;
 
 #ifdef DAEDALUS_PSP
 		// Centralise the viewport in the display.
