@@ -243,7 +243,7 @@ public:
 	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ sceGuFog(fog_near, fog_far, mFogColour.GetColour()); }
 	inline void			SetFogColour( c32 colour )				{ mFogColour = colour; }
 #elif defined(DAEDALUS_VITA)
-	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ glFogf(GL_FOG_START, fog_near); glFogf(GL_FOG_END, fog_far); }
+	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ glFogf(GL_FOG_START, fog_near / 1000.0f); glFogf(GL_FOG_END, fog_far / 1000.0f); }
 	inline void			SetFogColour( c32 colour )				{ float fog_clr[4] = {colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf()}; glFogfv(GL_FOG_COLOR, &fog_clr[0]); }
 #endif
 
@@ -351,7 +351,7 @@ protected:
 	inline void			UpdateFogEnable()						{ if(gFogEnabled) mTnL.Flags.Fog ? sceGuEnable(GU_FOG) : sceGuDisable(GU_FOG); }
 	inline void			UpdateShadeModel()						{ sceGuShadeModel( mTnL.Flags.Shade ? GU_SMOOTH : GU_FLAT ); }
 #elif defined(DAEDALUS_VITA)
-	inline void			UpdateFogEnable()						{ if(gFogEnabled) mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); }
+	inline void			UpdateFogEnable()						{ mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); }
 	inline void			UpdateShadeModel() {}
 #else
 	inline void			UpdateFogEnable()						{ if(gFogEnabled) mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); }
