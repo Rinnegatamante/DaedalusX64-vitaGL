@@ -18,6 +18,12 @@
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
+// Using uninterceptable buttons as aliases for right stick
+#define SCE_CTRL_RUP    SCE_CTRL_HEADPHONE
+#define SCE_CTRL_RDOWN  SCE_CTRL_VOLUP
+#define SCE_CTRL_RLEFT  SCE_CTRL_VOLDOWN
+#define SCE_CTRL_RRIGHT SCE_CTRL_POWER
+
 v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
 namespace
@@ -424,11 +430,11 @@ void IInputManager::GetState( OSContPad pPad[4] )
 		SwapJoyStick(&pPad[i], &pad);
 		
 		//PS vita Right Stick
-		if (pad.rx > 170) pad.buttons |= SCE_CTRL_RIGHT;
-		if (pad.rx < 85) pad.buttons |= SCE_CTRL_LEFT;
+		if (pad.rx > 170) pad.buttons |= SCE_CTRL_RRIGHT;
+		if (pad.rx < 85) pad.buttons |= SCE_CTRL_RLEFT;
 
-		if (pad.ry > 170) pad.buttons |= SCE_CTRL_UP;
-		if (pad.ry < 85) pad.buttons |= SCE_CTRL_DOWN;
+		if (pad.ry > 170) pad.buttons |= SCE_CTRL_RUP;
+		if (pad.ry < 85) pad.buttons |= SCE_CTRL_RDOWN;
 
 		pPad[i].button = mpControllerConfig->GetN64ButtonsState( pad.buttons );
 	}
@@ -488,7 +494,11 @@ const SButtonNameMapping	gButtonNameMappings[] =
 	{ "VITA.Down",		SCE_CTRL_DOWN },
 	{ "VITA.Left",		SCE_CTRL_LEFT },
 	{ "VITA.Right",		SCE_CTRL_RIGHT },
-	{ "VITA.Select",	SCE_CTRL_SELECT }
+	{ "VITA.Select",	SCE_CTRL_SELECT },
+	{ "VITA.RUp",	    SCE_CTRL_RUP },
+	{ "VITA.RDown",	    SCE_CTRL_RDOWN },
+	{ "VITA.RLeft",	    SCE_CTRL_RLEFT },
+	{ "VITA.RRight",	SCE_CTRL_RRIGHT }
 };
 
 u32 GetOperatorPrecedence( char op )
@@ -815,15 +825,15 @@ CControllerConfig *	IInputManager::BuildDefaultConfig()
 	p_config->SetButtonMapping( N64Button_L, eval.Parse( "VITA.LTrigger" ) );
 	p_config->SetButtonMapping( N64Button_R, eval.Parse( "VITA.RTrigger" ) );
 
-	p_config->SetButtonMapping( N64Button_Up, eval.Parse( "VITA.Circle & VITA.Up" ) );
-	p_config->SetButtonMapping( N64Button_Down, eval.Parse( "VITA.Circle & VITA.Down" ) );
-	p_config->SetButtonMapping( N64Button_Left, eval.Parse( "VITA.Circle & VITA.Left" ) );
-	p_config->SetButtonMapping( N64Button_Right, eval.Parse( "VITA.Circle & VITA.Right" ) );
-
-	p_config->SetButtonMapping( N64Button_CUp, eval.Parse( "!VITA.Circle & VITA.Up" ) );
-	p_config->SetButtonMapping( N64Button_CDown, eval.Parse( "!VITA.Circle & VITA.Down" ) );
-	p_config->SetButtonMapping( N64Button_CLeft, eval.Parse( "!VITA.Circle & VITA.Left" ) );
-	p_config->SetButtonMapping( N64Button_CRight, eval.Parse( "!VITA.Circle & VITA.Right" ) );
+	p_config->SetButtonMapping( N64Button_Up, eval.Parse( "VITA.Up" ) );
+	p_config->SetButtonMapping( N64Button_Down, eval.Parse( "VITA.Down" ) );
+	p_config->SetButtonMapping( N64Button_Left, eval.Parse( "VITA.Left" ) );
+	p_config->SetButtonMapping( N64Button_Right, eval.Parse( "VITA.Right" ) );
+	
+	p_config->SetButtonMapping( N64Button_CUp, eval.Parse( "VITA.RUp" ) );
+	p_config->SetButtonMapping( N64Button_CDown, eval.Parse( "VITA.RDown" ) );
+	p_config->SetButtonMapping( N64Button_CLeft, eval.Parse( "VITA.RLeft" ) );
+	p_config->SetButtonMapping( N64Button_CRight, eval.Parse( "VITA.RRight" ) );
 
 	return p_config;
 }
