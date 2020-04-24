@@ -42,6 +42,7 @@ extern bool run_emu;
 extern bool restart_rom;
 
 int use_cdram = GL_TRUE;
+int use_vsync = GL_TRUE;
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -73,13 +74,13 @@ static void Initialize()
 	
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
 	
-	// FIXME: This ideally should be inside GraphicsContext initializer however we need vitaGL to draw menu
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(use_cdram);
-
+	vglWaitVblankStart(use_vsync);
+	
 	System_Init();
 	
-	// TODO: Move this something else
+	// TODO: Move this somewhere else
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();

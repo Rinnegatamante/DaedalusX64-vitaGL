@@ -120,6 +120,10 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("vFlux Config", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
 		}
+		if (ImGui::MenuItem("V-Sync", nullptr, use_vsync)){
+			use_vsync = use_vsync == GL_TRUE ? GL_FALSE : GL_TRUE;
+			vglWaitVblankStart(use_vsync);
+		}
 		if (ImGui::MenuItem("Use VRAM", nullptr, use_cdram)){
 			use_cdram = use_cdram == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglUseVram(use_cdram);
