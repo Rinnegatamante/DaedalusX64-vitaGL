@@ -29,6 +29,7 @@
 #include "Utility/Translate.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
+#include "SysVita/UI/Menu.h"
 
 #define MAX_SAVESLOT 9
 
@@ -118,6 +119,10 @@ void DrawCommonMenuBar() {
 		}
 		if (ImGui::MenuItem("vFlux Config", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
+		}
+		if (ImGui::MenuItem("Use VRAM", nullptr, use_cdram)){
+			use_cdram = use_cdram == GL_TRUE ? GL_FALSE : GL_TRUE;
+			vglUseVram(use_cdram);
 		}
 		ImGui::EndMenu();
 	}

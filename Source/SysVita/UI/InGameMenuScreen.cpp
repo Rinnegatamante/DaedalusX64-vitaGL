@@ -33,7 +33,7 @@
 
 static uint64_t tmr1;
 static uint32_t oldpad;
-static bool pause_emu = true;
+static bool pause_emu = false;
 
 void DrawInGameMenu() {
 	DrawInGameMenuBar();

@@ -41,6 +41,8 @@ int _newlib_heap_size_user = 128 * 1024 * 1024;
 extern bool run_emu;
 extern bool restart_rom;
 
+int use_cdram = GL_TRUE;
+
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
 	int done;
@@ -73,7 +75,7 @@ static void Initialize()
 	
 	// FIXME: This ideally should be inside GraphicsContext initializer however we need vitaGL to draw menu
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
-	vglUseVram(GL_TRUE);
+	vglUseVram(use_cdram);
 
 	System_Init();
 	
