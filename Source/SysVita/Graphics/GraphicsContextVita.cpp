@@ -164,7 +164,6 @@ void IGraphicsContext::EndFrame()
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	DrawInGameMenu();
-	vglStopRendering();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
