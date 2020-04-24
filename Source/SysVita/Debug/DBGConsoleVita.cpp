@@ -29,11 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Debug/DebugConsoleImpl.h"
 #include "Test/BatchTest.h"
 
-static const char * const kTerminalSaveCursor			= "\033[s";
-static const char * const kTerminalRestoreCursor		= "\033[u";
-static const char * const kTerminalEraseLine			= "\033[2K";
-
-
 class IDebugConsole : public CDebugConsole
 {
 public:
@@ -61,6 +56,11 @@ CDebugConsole::~CDebugConsole()
 
 void IDebugConsole::Msg(u32 type, const char * format, ...)
 {
+	__gnuc_va_list arg;
+	va_start(arg, format);
+	vsprintf(dbg_lines[cur_dbg_line], format, arg);
+	va_end(arg);
+	cur_dbg_line = (cur_dbg_line + 1) % MAX_DEBUG_LINES;
 }
 
 void IDebugConsole::MsgOverwriteStart()
@@ -69,6 +69,10 @@ void IDebugConsole::MsgOverwriteStart()
 
 void IDebugConsole::MsgOverwrite(u32 type, const char * format, ...)
 {
+	__gnuc_va_list arg;
+	va_start(arg, format);
+	vsprintf(dbg_lines[cur_dbg_line], format, arg);
+	va_end(arg);
 }
 
 void IDebugConsole::MsgOverwriteEnd()

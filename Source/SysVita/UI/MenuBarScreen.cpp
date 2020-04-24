@@ -48,6 +48,7 @@ bool restart_rom = false;
 static bool vflux_window = false;
 static bool vflux_enabled = false;
 static bool credits_window = false;
+static bool debug_window = false;
 
 extern EFrameskipValue			gFrameskipValue;
 
@@ -55,6 +56,9 @@ static float vcolors[3];
 
 static float *colors;
 static float *vertices;
+
+char dbg_lines[MAX_DEBUG_LINES][256];
+int cur_dbg_line = 0;
 
 void SetupVFlux() {
 	colors = (float*)malloc(sizeof(float)*4*4);
@@ -198,6 +202,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Credits", nullptr, credits_window)){
 			credits_window = !credits_window;
 		}
+		if (ImGui::MenuItem("Debugger", nullptr, debug_window)){
+			debug_window = !debug_window;
+		}
 		ImGui::EndMenu();
 	}
 }
@@ -208,14 +215,14 @@ void DrawCommonWindows() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_ALPHA_TEST);
 	
-	if (vflux_window){
+	if (vflux_window) {
 		ImGui::Begin("vFlux Configuration", &vflux_window);
 		ImGui::ColorPicker3("Filter Color", vcolors);
 		ImGui::Checkbox("Enable vFlux", &vflux_enabled);
 		ImGui::End();
 	}
 	
-	if (credits_window){
+	if (credits_window) {
 		ImGui::Begin("Credits", &credits_window);
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Daedalus X64 v.%s", VERSION);
 		ImGui::Text("Port Author: Rinnegatamante");
@@ -230,6 +237,15 @@ void DrawCommonWindows() {
 		ImGui::Text("xerpi for the initial Vita port");
 		ImGui::Text("m4xw for the help sanitizing PIF code");
 		ImGui::Text("That One Seong for the Livearea assets");
+		ImGui::End();
+	}
+	
+	if (debug_window) {
+		ImGui::Begin("Debugger", &credits_window);
+		for (int i = 0; i < MAX_DEBUG_LINES; i++) {
+			if ((i == cur_dbg_line - 1) || ((cur_dbg_line == 0) && (i == MAX_DEBUG_LINES - 1))) ImGui::TextColored({1.0f, 1.0f, 0.0f, 1.0f}, dbg_lines[i]);
+			else ImGui::Text(dbg_lines[i]);
+		}
 		ImGui::End();
 	}
 	

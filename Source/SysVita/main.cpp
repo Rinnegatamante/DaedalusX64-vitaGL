@@ -46,10 +46,9 @@ int use_vsync = GL_TRUE;
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
-	int done;
 	va_start(arg, format);
 	char msg[512];
-	done = vsprintf(msg, format, arg);
+	vsprintf(msg, format, arg);
 	va_end(arg);
 	sprintf(msg, "%s\n", msg);
 	FILE *log = fopen("ux0:/data/DaedalusX64.log", "a+");

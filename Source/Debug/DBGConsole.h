@@ -26,6 +26,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/Singleton.h"
 #include "Utility/Macros.h"
 
+#define MAX_DEBUG_LINES 16
+
+#ifdef DAEDALUS_VITA
+extern char dbg_lines[MAX_DEBUG_LINES][256];
+extern int cur_dbg_line;
+#endif
+
 #ifdef DAEDALUS_DEBUG_CONSOLE
 
 class CDebugConsole : public CSingleton< CDebugConsole >
