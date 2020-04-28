@@ -261,7 +261,6 @@ void CNativeTexture::SetData( void * data, void * palette )
 	if (HasData())
 	{
 		glBindTexture( GL_TEXTURE_2D, mTextureId );
-
 		switch (mTextureFormat)
 		{
 /*		case TexFmt_5650:
@@ -273,6 +272,7 @@ void CNativeTexture::SetData( void * data, void * palette )
 			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
 						  mCorrectedWidth, mCorrectedHeight,
 						  0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, data );
+			mpData = vglGetTexDataPointer(GL_TEXTURE_2D);
 			break;
 /*		case TexFmt_4444:
 			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
@@ -284,7 +284,7 @@ void CNativeTexture::SetData( void * data, void * palette )
 			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA,
 						  mCorrectedWidth, mCorrectedHeight,
 						  0, GL_RGBA, GL_UNSIGNED_BYTE, data );
-
+			mpData = vglGetTexDataPointer(GL_TEXTURE_2D);
 			break;
 		case TexFmt_CI4_8888:
 			{
@@ -316,6 +316,7 @@ void CNativeTexture::SetData( void * data, void * palette )
 							  0, GL_RGBA, GL_UNSIGNED_BYTE, out );
 
 				free(out);
+				mpData = vglGetTexDataPointer(GL_TEXTURE_2D);
 			}
 			break;
 		case TexFmt_CI8_8888:
@@ -347,6 +348,7 @@ void CNativeTexture::SetData( void * data, void * palette )
 							  0, GL_RGBA, GL_UNSIGNED_BYTE, out );
 
 				free(out);
+				mpData = vglGetTexDataPointer(GL_TEXTURE_2D);
 			}
 			break;
 		default:
