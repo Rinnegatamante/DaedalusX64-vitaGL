@@ -31,11 +31,6 @@
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
 
-#define ALIGN(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
-#define CODE_BUFFER_SIZE (16 * 1024 * 1024)
-void *dynarec_buffer = nullptr;
-SceUID dynarec_memblock;
-
 extern "C" {
 
 int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
@@ -78,10 +73,6 @@ static void Initialize()
 	
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
 	
-	// Initializing memblock for dynarec
-	dynarec_memblock =sceKernelAllocMemBlockForVM("code", ALIGN(ALIGN(CODE_BUFFER_SIZE, 4 * 1024), 1 * 1024 * 1024));
-	sceKernelGetMemBlockBase(dynarec_memblock, &dynarec_buffer);
-	
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(use_cdram);
 	vglWaitVblankStart(use_vsync);
@@ -96,14 +87,6 @@ static void Initialize()
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
-}
-
-void _InvalidateAndFlushCaches() {
-	sceKernelSyncVMDomain(dynarec_memblock, dynarec_buffer, CODE_BUFFER_SIZE);
-}
-
-void HandleEndOfFrame()
-{
 }
 
 int main(int argc, char* argv[])

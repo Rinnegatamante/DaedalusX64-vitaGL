@@ -212,8 +212,8 @@ if (VITA_RELEASE)
 	set(VITA_TITLEID  "DEDALOX64")
 	set(VITA_VERSION  "01.00")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -flto -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto -mfpu=neon -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
 
 	add_definitions("-DDAEDALUS_VITA")
 

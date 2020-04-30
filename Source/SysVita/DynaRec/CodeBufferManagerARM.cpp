@@ -31,10 +31,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Debug/DBGConsole.h"
 #include "CodeGeneratorARM.h"
 
-#ifdef DAEDALUS_VITA
-extern void *dynarec_buffer;
-extern SceUID dynarec_memblock;
-#endif
+#define ALIGN(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
+#define CODE_BUFFER_SIZE (16 * 1024 * 1024)
+void *dynarec_buffer = nullptr;
+SceUID dynarec_memblock;
+uint32_t unflushed_ptr = 0;
+uint32_t flushed_ptr = 0;
+
+void _InvalidateAndFlushCaches() {
+	sceKernelSyncVMDomain(dynarec_memblock, dynarec_buffer, CODE_BUFFER_SIZE);
+}
 
 class CCodeBufferManagerARM : public CCodeBufferManager
 {
@@ -85,7 +91,11 @@ CCodeBufferManager *	CCodeBufferManager::Create()
 bool	CCodeBufferManagerARM::Initialise()
 {
 	// mpSecondBuffer is currently unused
-	mpBuffer = dynarec_buffer;
+	
+	// Initializing memblock for dynarec
+	dynarec_memblock = sceKernelAllocMemBlockForVM("code", ALIGN(ALIGN(CODE_BUFFER_SIZE, 4 * 1024), 1 * 1024 * 1024));
+	sceKernelGetMemBlockBase(dynarec_memblock, &dynarec_buffer);
+	mpBuffer = (uint8_t*)dynarec_buffer;
 
 	if (mpBuffer == NULL)
 		return false;
