@@ -18,13 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include <stdio.h>
 #include "stdafx.h"
+
+#include "Math/MathUtil.h"
 #include "DynaRec/AssemblyUtils.h"
 
-#ifdef DAEDALUS_CTR
-#include "SysCTR/Utility/MemoryCTR.h"
-#else
-extern void _InvalidateAndFlushCaches();
-#endif
+extern void _DaedalusICacheInvalidate(const void * address, u32 length);
 
 namespace AssemblyUtils
 {
@@ -43,19 +41,18 @@ bool	PatchJumpLong( CJumpLocation jump, CCodeLabel target )
 	p_jump_addr[1] = (p_jump_addr[1] & ~0xFF) | ((address >> 8) & 0xFF);
 	p_jump_addr[2] = (p_jump_addr[2] & ~0xFF) | ((address >> 16) & 0xFF);
 	p_jump_addr[3] = (p_jump_addr[3] & ~0xFF) | ((address >> 24) & 0xFF);
-
-	_InvalidateAndFlushCaches();
 	
 	// All jumps are 32 bit offsets, and so always succeed.
 	return true;
 }
 
-//*****************************************************************************
-//	As above no (need to flush on intel)
-//*****************************************************************************
 bool	PatchJumpLongAndFlush( CJumpLocation jump, CCodeLabel target )
 {
-	return PatchJumpLong( jump, target );
+	PatchJumpLong( jump, target );
+	
+	_DaedalusICacheInvalidate( jump.GetTargetU8P(), 16 );
+
+	return true;
 }
 
 }

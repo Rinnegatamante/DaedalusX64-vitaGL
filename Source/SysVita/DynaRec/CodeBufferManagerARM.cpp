@@ -20,26 +20,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include <stdio.h>
 #include <malloc.h>
-
-#ifdef DAEDALUS_CTR
-#include "SysCTR/Utility/MemoryCTR.h"
-#elif defined(DAEDALUS_VITA)
 #include <vitasdk.h>
-#endif
+
+#include "Math/MathUtil.h"
 
 #include "DynaRec/CodeBufferManager.h"
 #include "Debug/DBGConsole.h"
 #include "CodeGeneratorARM.h"
 
-#define ALIGN(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
 #define CODE_BUFFER_SIZE (16 * 1024 * 1024)
-void *dynarec_buffer = nullptr;
-SceUID dynarec_memblock;
-uint32_t unflushed_ptr = 0;
-uint32_t flushed_ptr = 0;
 
-void _InvalidateAndFlushCaches() {
-	sceKernelSyncVMDomain(dynarec_memblock, dynarec_buffer, CODE_BUFFER_SIZE);
+static SceUID dynarec_memblock;
+
+void _DaedalusICacheInvalidate(const void * address, u32 length)
+{
+	#if 0
+	sceKernelSyncVMDomain(dynarec_memblock, address, length);
+	#else
+	sceKernelSyncVMDomain(dynarec_memblock, address, 64 * 1024);
+	#endif
 }
 
 class CCodeBufferManagerARM : public CCodeBufferManager
@@ -90,27 +89,21 @@ CCodeBufferManager *	CCodeBufferManager::Create()
 //*****************************************************************************
 bool	CCodeBufferManagerARM::Initialise()
 {
-	// mpSecondBuffer is currently unused
-	
 	// Initializing memblock for dynarec
-	dynarec_memblock = sceKernelAllocMemBlockForVM("code", ALIGN(ALIGN(CODE_BUFFER_SIZE, 4 * 1024), 1 * 1024 * 1024));
-	sceKernelGetMemBlockBase(dynarec_memblock, &dynarec_buffer);
-	mpBuffer = (uint8_t*)dynarec_buffer;
+	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE);
+
+	sceKernelGetMemBlockBase(dynarec_memblock, &mpBuffer);
 
 	if (mpBuffer == NULL)
 		return false;
-
-	#ifdef DAEDALUS_CTR
-	_SetMemoryPermission((unsigned int*)mpBuffer, CODE_BUFFER_SIZE, 7);
-	#elif defined(DAEDALUS_VITA)
-	sceKernelOpenVMDomain();
-	#endif
 
 	mBufferPtr = 0;
 	mBufferSize = 0;
 
 	mSecondBufferPtr = 0;
 	mSecondBufferSize = 0;
+
+	sceKernelOpenVMDomain();
 
 	return true;
 }
@@ -131,16 +124,7 @@ void	CCodeBufferManagerARM::Finalise()
 {
 	if (mpBuffer != NULL)
 	{
-		#ifdef DAEDALUS_CTR
-		_SetMemoryPermission((unsigned int*)mpBuffer, CODE_BUFFER_SIZE / 4096, 3);
-		_SetMemoryPermission((unsigned int*)mpSecondBuffer, CODE_BUFFER_SIZE / 4096, 3);
-		
-		
-		free(mpBuffer);
-		free(mpSecondBuffer);
-		#elif defined(DAEDALUS_VITA)
 		sceKernelFreeMemBlock(dynarec_memblock);
-		#endif
 		
 		mpBuffer = NULL;
 		mpSecondBuffer = NULL;
@@ -168,12 +152,17 @@ CCodeGenerator * CCodeBufferManagerARM::StartNewBlock()
 //*****************************************************************************
 u32 CCodeBufferManagerARM::FinaliseCurrentBlock()
 {
-	u32		main_block_size( mPrimaryBuffer.GetSize() );
+	const u32 main_block_size( mPrimaryBuffer.GetSize() );
+	const u8* p_base( mPrimaryBuffer.GetStartAddress().GetTargetU8P() );
 
 	mBufferPtr += main_block_size;
 
+	#if 0
 	mSecondBufferPtr += mSecondaryBuffer.GetSize();
 	mSecondBufferPtr = ((mSecondBufferPtr - 1) & 0xfffffff0) + 0x10; // align to 16-byte boundary
+	#endif
+
+	_DaedalusICacheInvalidate(p_base, main_block_size);
 
 	return main_block_size;
 }
