@@ -82,6 +82,9 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	
 	if (ImGui::BeginMenu("Emulation")){
+		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
+			gSpeedSyncEnabled = !gSpeedSyncEnabled;
+		}
 		if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled)){
 			gDynarecEnabled = !gDynarecEnabled;
 		}
