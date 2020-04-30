@@ -82,6 +82,9 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	
 	if (ImGui::BeginMenu("Emulation")){
+		if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled)){
+			gDynarecEnabled = !gDynarecEnabled;
+		}
 		if (ImGui::BeginMenu("Frameskip")){
 			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
 				gFrameskipValue = FV_DISABLED;
@@ -237,6 +240,7 @@ void DrawCommonWindows() {
 		ImGui::Text("xerpi for the initial Vita port");
 		ImGui::Text("MasterFeizz for the ARM DynaRec");
 		ImGui::Text("m4xw for the help sanitizing PIF code");
+		ImGui::Text("frangarcj for the help with some bugfixes");
 		ImGui::Text("That One Seong for the Livearea assets");
 		ImGui::End();
 	}
