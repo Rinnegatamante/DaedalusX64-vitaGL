@@ -23,11 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <cstdio>
 
-#ifdef DAEDALUS_CTR
-#include "SysCTR/Utility/MemoryCTR.h"
-#else
-extern void _InvalidateAndFlushCaches();
-#endif
 #include "Config/ConfigOptions.h"
 #include "Core/CPU.h"
 #include "Core/R4300.h"
@@ -78,8 +73,6 @@ void	CCodeGeneratorARM::Finalise( ExceptionHandlerFn p_exception_handler_fn, con
 	}
 
 	InsertLiteralPool();
-
-	_InvalidateAndFlushCaches();
 
 	SetAssemblyBuffer( NULL );
 	mpPrimary = NULL;
