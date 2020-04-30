@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ConfigOptions.h"
 
 u32		gSpeedSyncEnabled			= 0;		// Enable to limit frame rate.
-bool	gDynarecEnabled				= false;		// Use dynamic recompilation
+bool	gDynarecEnabled				= true;		// Use dynamic recompilation
 bool	gDynarecLoopOptimisation	= false;	// Enable the dynarec loop optmisation
 bool	gDynarecDoublesOptimisation	= false;	// Enable the dynarec Doubles optmisation
 bool	gOSHooksEnabled				= true;		// Apply os-hooks

@@ -95,7 +95,7 @@ set (MAC_AUDIO SysPosix/HLEAudio/AudioPluginOSX.cpp)
 # Vita
 set (VITA_MAIN_FILES SysVita/main.cpp)
 set (VITA_DEBUG_FILES SysVita/Debug/DaedalusAssertVita.cpp SysVita/Debug/DBGConsoleVita.cpp )
-set (VITA_DYNAREC_FILES SysVita/DynaRec/CodeGeneratorVita.cpp)
+set (VITA_DYNAREC_FILES SysVita/DynaRec/DynarecStubARM.S SysVita/DynaRec/CodeGeneratorARM.cpp SysVita/DynaRec/CodeBufferManagerARM.cpp SysVita/DynaRec/AssemblyWriterARM.cpp SysVita/DynaRec/AssemblyUtilsARM.cpp)
 set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphics/NativeTextureVita.cpp)
 set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererVita.cpp SysVita/HLEGraphics/ColourAdjuster.cpp SysVita/HLEGraphics/BlendModes.cpp SysVita/HLEGraphics/Combiner/BlendConstant.cpp SysVita/HLEGraphics/Combiner/CombinerExpression.cpp SysVita/HLEGraphics/Combiner/CombinerTree.cpp SysVita/HLEGraphics/Combiner/RenderSettings.cpp)
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp SysVita/HLEAudio/AudioOutput.cpp)
@@ -104,6 +104,8 @@ set (VITA_UI_FILES SysVita/UI/MainMenuScreen.cpp SysVita/UI/InGameMenuScreen.cpp
 set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp)
 set (VITA_BUILD ${VITA_DEBUG_FILES} ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES} ${VITA_HLEAUDIO_FILES} ${VITA_HLEGRAPHICS_FILES} ${VITA_INPUT_FILES} ${VITA_UI_FILES} ${VITA_UTILITY_FILES})
 
+#Handle .S files - Probably a better way to do this
+set_property(SOURCE SysVita/DynaRec/DynarecStubARM.S PROPERTY LANGUAGE C)
 
 if (PSP_RELEASE)
 	message("PSP Release Build..")
@@ -120,8 +122,6 @@ if (PSP_RELEASE)
 	target_include_directories(daedalus.elf PUBLIC /usr/local/pspdev/psp/sdk/include )
 	target_link_libraries(daedalus.elf daedalus -lstdc++ -lpsppower -lpspgu -lpspaudiolib -lpspaudio -lpsprtc -lpng -lz -lc -lg -lm -lpspfpu pspkubridge ${PSPSDK_LIBS})
 endif (PSP_RELEASE)
-
-
 
 #Only difference between PSP Release and Debug is the definitions and Config Dev File - Try and merge
 

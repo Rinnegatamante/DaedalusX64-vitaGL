@@ -10,7 +10,7 @@
 #define DAEDALUS_VITA
 #endif
 
-//#define DAEDALUS_ENABLE_DYNAREC
+#define DAEDALUS_ENABLE_DYNAREC
 
 #define DAEDALUS_ENDIAN_MODE DAEDALUS_ENDIAN_LITTLE
 
@@ -23,7 +23,7 @@
 
 //#define DAEDALUS_DYNAREC_HALT	SW(PspReg_R0, PspReg_R0, 0)
 
-#define MAKE_UNCACHED_PTR(x)	(reinterpret_cast< void * >( reinterpret_cast<u32>( (x) ) | 0x40000000 ))
+#define MAKE_UNCACHED_PTR(x)	(x)
 
 #define DAEDALUS_ATTRIBUTE_PURE   __attribute__((pure))
 #define DAEDALUS_ATTRIBUTE_CONST   __attribute__((const))

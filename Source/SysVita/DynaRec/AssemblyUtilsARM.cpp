@@ -1,0 +1,61 @@
+/*
+Copyright (C) 2020 MasterFeizz
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+#include <stdio.h>
+#include "stdafx.h"
+#include "DynaRec/AssemblyUtils.h"
+
+#ifdef DAEDALUS_CTR
+#include "SysCTR/Utility/MemoryCTR.h"
+#else
+extern void _InvalidateAndFlushCaches();
+#endif
+
+namespace AssemblyUtils
+{
+
+//*****************************************************************************
+//	Patch a long jump to target the specified location.
+//	Return true if the patching succeeded (i.e. within range), false otherwise
+//*****************************************************************************
+bool	PatchJumpLong( CJumpLocation jump, CCodeLabel target )
+{
+	u32* p_jump_addr( reinterpret_cast< u32* >( jump.GetWritableU8P() ) );
+
+	u32 address = target.GetTargetU32();
+
+	p_jump_addr[0] = (p_jump_addr[0] & ~0xFF) | (address & 0xFF);
+	p_jump_addr[1] = (p_jump_addr[1] & ~0xFF) | ((address >> 8) & 0xFF);
+	p_jump_addr[2] = (p_jump_addr[2] & ~0xFF) | ((address >> 16) & 0xFF);
+	p_jump_addr[3] = (p_jump_addr[3] & ~0xFF) | ((address >> 24) & 0xFF);
+
+	_InvalidateAndFlushCaches();
+	
+	// All jumps are 32 bit offsets, and so always succeed.
+	return true;
+}
+
+//*****************************************************************************
+//	As above no (need to flush on intel)
+//*****************************************************************************
+bool	PatchJumpLongAndFlush( CJumpLocation jump, CCodeLabel target )
+{
+	return PatchJumpLong( jump, target );
+}
+
+}
