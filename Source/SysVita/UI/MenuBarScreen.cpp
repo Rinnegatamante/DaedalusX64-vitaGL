@@ -251,7 +251,7 @@ void DrawCommonWindows() {
 	}
 	
 	if (debug_window) {
-		ImGui::Begin("Debugger", &credits_window);
+		ImGui::Begin("Debugger", &debug_window);
 		for (int i = 0; i < MAX_DEBUG_LINES; i++) {
 			if ((i == cur_dbg_line - 1) || ((cur_dbg_line == 0) && (i == MAX_DEBUG_LINES - 1))) ImGui::TextColored({1.0f, 1.0f, 0.0f, 1.0f}, dbg_lines[i]);
 			else ImGui::Text(dbg_lines[i]);
