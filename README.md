@@ -1,37 +1,22 @@
-# DaedalusX64
+# DaedalusX64-vitaGL
  
-DaedalusX64 is a Nintendo 64 emulator for Linux and PSP, with plans to port to Windows, Mac, PS Vita among other platforms. The PSP port is noteworthy for being the fastest N64 emulator ever on the platform, achieving close to or even full speed in many titles.
+Daedalus X64 is a Nintendo 64 emulator originally for Linux and PSP. This repository is the official one for the PSVITA/PSTV port using vitaGL as renderer.
  
-## Features:
+## Compatibility List
  
-- Fast emulation
-- High compatibility
-- Support for PSP TV Mode with 480p output!
-- Active support and updates
-- Lots of experimental optimizations
+A compatibility list can be found on [this GitHub repository](https://github.com/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues). Contributions are very welcome. There's also an interactive website using this data available [on this link](https://daedalusx64.rinnegatamante.it/).
  
-And more!
+## Discord Server
+
+You can head to Vita Nuova discord server to get help with DaedalusX64-vitaGL. We have a dedicated channel (#daedalus-x64) for discussing futur developments, suggesitons, help, etc.
  
-## Usage
- 
-To install Daedalus to your PSP, download the latest release from the Releases page: https://github.com/DaedalusX64/daedalus/releases
- 
-Next, plug your PSP into your computer and navigate to /PSP/GAME/. Create a folder called "daedalus" there, and place the EBOOT.PBP file inside. Place your ROM files in daedalus/Roms/ and they will automatically appear in Daedalus.
- 
-Note: If the release is a ZIP file with a folder containing an EBOOT.PBP file when extracted, simply drag and drop the extracted folder into /PSP/GAME/.
- 
-## More Info
- 
-For information about compatibility, optimal settings and more about the emulator, visit the actively maintained GitHub wiki page: https://github.com/DaedalusX64/daedalus/wiki Feel free to submit reports for how well your favourite games run if they have not already been listed!
- 
-Join our Discord server to talk to other Daedalus users and the developers!
- 
-Invite link: https://discord.gg/FrVTpBV
+Invite link: https://discord.gg/PyCaBx9
  
 ## Credits
  
-- kreationz, salvy6735, Corn, Chilly Willy: Original DaedalusX64 code
-- Wally: Optimizations, improvements and ports
-- z2442: Compilation improvements and updating, optimizations
-- mrneo240: Optimizations, compilation help
-- TheMrIron2: Optimizations, wiki maintenance
+- All the original Daedalus X64 developers
+- xerpi for the original Vita port
+- m4xw for the help sanitizing PIF code
+- MasterFeizz for the ARM DynaRec
+- frangarcj for several improvements and bugfixes
+- That One Seong for the Livearea assets
