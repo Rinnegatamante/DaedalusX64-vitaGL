@@ -68,6 +68,12 @@ static void Initialize()
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
 	strcpy(g_DaedalusConfig.mSaveDir, DAEDALUS_VITA_PATH("SaveGames/"));
 	
+	// Setting userland maximum clocks
+	scePowerSetArmClockFrequency(444);
+	scePowerSetBusClockFrequency(222);
+	scePowerSetGpuClockFrequency(222);
+	scePowerSetGpuXbarClockFrequency(166);
+	
 	// Disabling all FPU exceptions traps on main thread
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
 	
