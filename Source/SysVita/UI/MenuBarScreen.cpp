@@ -80,7 +80,6 @@ void SetupVFlux() {
 void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
-	
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
@@ -137,6 +136,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Use VRAM", nullptr, use_cdram)){
 			use_cdram = use_cdram == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglUseVram(use_cdram);
+		}
+		if (ImGui::MenuItem("Clear Depth Buffer", nullptr, gClearDepthFrameBuffer)){
+			gClearDepthFrameBuffer = !gClearDepthFrameBuffer;
 		}
 		ImGui::EndMenu();
 	}
