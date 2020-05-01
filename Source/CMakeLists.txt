@@ -259,6 +259,7 @@ if (VITA_RELEASE)
 		SceCtrl_stub
 		SceTouch_stub
 		SceAudio_stub
+		ScePower_stub
 		c
 		stdc++
 		m

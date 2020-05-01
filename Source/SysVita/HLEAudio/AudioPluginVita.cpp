@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //*****************************************************************************
 //
 //*****************************************************************************
-EAudioPluginMode gAudioPluginEnabled( APM_DISABLED );
+EAudioPluginMode gAudioPluginEnabled( APM_ENABLED_SYNC );
 //bool gAdaptFrequency( false );
 
 //*****************************************************************************
@@ -104,9 +104,9 @@ void	CAudioPluginVita::StopEmulation()
 void	CAudioPluginVita::DacrateChanged( int SystemType )
 {
 //	printf( "DacrateChanged( %s )\n", (SystemType == ST_NTSC) ? "NTSC" : "PAL" );
-	u32 type {(u32)((SystemType == ST_NTSC) ? VI_NTSC_CLOCK : VI_PAL_CLOCK)};
-	u32 dacrate {Memory_AI_GetRegister(AI_DACRATE_REG)};
-	u32	frequency {type / (dacrate + 1)};
+	u32 type = (u32)((SystemType == ST_NTSC) ? VI_NTSC_CLOCK : VI_PAL_CLOCK);
+	u32 dacrate = Memory_AI_GetRegister(AI_DACRATE_REG);
+	u32	frequency = type / (dacrate + 1);
 
 	mAudioOutput->SetFrequency( frequency );
 }
