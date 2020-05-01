@@ -429,12 +429,12 @@ void IInputManager::GetState( OSContPad pPad[4] )
 
 		SwapJoyStick(&pPad[i], &pad);
 		
-		//PS vita Right Stick
+		// PSVita Right Stick
 		if (pad.rx > 170) pad.buttons |= SCE_CTRL_RRIGHT;
 		if (pad.rx < 85) pad.buttons |= SCE_CTRL_RLEFT;
 
-		if (pad.ry > 170) pad.buttons |= SCE_CTRL_RUP;
-		if (pad.ry < 85) pad.buttons |= SCE_CTRL_RDOWN;
+		if (pad.ry > 170) pad.buttons |= SCE_CTRL_RDOWN;
+		if (pad.ry < 85) pad.buttons |= SCE_CTRL_RUP;
 
 		pPad[i].button = mpControllerConfig->GetN64ButtonsState( pad.buttons );
 	}
