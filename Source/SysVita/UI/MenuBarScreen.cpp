@@ -39,6 +39,7 @@ static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
 extern bool has_rumblepak[4];
+extern char cur_ucode[256];
 
 bool show_menubar = true;
 bool hide_menubar = true;
@@ -49,6 +50,7 @@ static bool vflux_window = false;
 static bool vflux_enabled = false;
 static bool credits_window = false;
 static bool debug_window = false;
+static bool logs_window = false;
 
 extern EFrameskipValue			gFrameskipValue;
 
@@ -207,11 +209,15 @@ void DrawCommonMenuBar() {
 			hide_menubar = !hide_menubar;
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("Credits", nullptr, credits_window)){
-			credits_window = !credits_window;
-		}
 		if (ImGui::MenuItem("Debugger", nullptr, debug_window)){
 			debug_window = !debug_window;
+		}
+		if (ImGui::MenuItem("Console Logs", nullptr, logs_window)){
+			logs_window = !logs_window;
+		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Credits", nullptr, credits_window)){
+			credits_window = !credits_window;
 		}
 		ImGui::EndMenu();
 	}
@@ -252,6 +258,12 @@ void DrawCommonWindows() {
 	
 	if (debug_window) {
 		ImGui::Begin("Debugger", &debug_window);
+		ImGui::Text("Installed RSP Microcode: %s", cur_ucode);
+		ImGui::End();
+	}
+	
+	if (logs_window) {
+		ImGui::Begin("Console Logs", &logs_window);
 		for (int i = 0; i < MAX_DEBUG_LINES; i++) {
 			if ((i == cur_dbg_line - 1) || ((cur_dbg_line == 0) && (i == MAX_DEBUG_LINES - 1))) ImGui::TextColored({1.0f, 1.0f, 0.0f, 1.0f}, dbg_lines[i]);
 			else ImGui::Text(dbg_lines[i]);

@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // In theory we should never reach this max
 #define MAX_UCODE_CACHE_ENTRIES 6
 
+char cur_ucode[256] = "";
 
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -165,8 +166,8 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	//
 	//	Try to find the version string in the microcode data. This is faster than calculating a crc of the code
 	//
-	char str[256] = "";
-	GBIMicrocode_DetectVersionString( data_base, data_size, str, 256 );
+	
+	GBIMicrocode_DetectVersionString( data_base, data_size, cur_ucode, 256 );
 
 	// It wasn't the same as the last time around, we'll hash it and check if is a custom ucode.
 	//
@@ -178,7 +179,7 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	{
 		if ( code_hash == gMicrocodeData[i].hash )
 		{
-			//DBGConsole_Msg(0, "Ucode has been Detected in Array :[M\"%s\", Ucode %d]", str, gMicrocodeData[ i ].ucode);
+			//DBGConsole_Msg(0, "Ucode has been Detected in Array :[M\"%s\", Ucode %d]", cur_ucode, gMicrocodeData[ i ].ucode);
 			ucode_version = gMicrocodeData[ i ].ucode;
 			ucode_offset = gMicrocodeData[ i ].offset;
 		}
@@ -200,7 +201,7 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 
 		for(u32 j {}; j<3;j++)
 		{
-			if( (match = strstr(str, ucodes[j])) )
+			if( (match = strstr(cur_ucode, ucodes[j])) )
 				break;
 		}
 
@@ -229,19 +230,10 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	gUcodeInfo[ i ].index = idx;
 	gUcodeInfo[ i ].ucode = ucode_version;
 	gUcodeInfo[ i ].set = true;
+
 #ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0,"Detected %s Ucode is: [M Ucode %d, 0x%08x, \"%s\", \"%s\"]",ucode_offset == u32(~0) ? "" :"Custom", ucode_version, code_hash, str, g_ROM.settings.GameName.c_str() );
-	#endif
-// This is no longer needed as we now have an auto ucode detector, I'll leave it as reference ~Salvy
-//
-/*
-	FILE * fh = fopen( "ucodes.txt", "a" );
-	if ( fh )
-	{
-		fprintf( fh,  "{ ucode=%d, 0x%08x, \"%s\", \"%s\"}, \n", ucode_version, code_hash, str, g_ROM.settings.GameName.c_str() );
-		fclose(fh);
-	}
-*/
+	DBGConsole_Msg(0,"Detected %s Ucode is: [M Ucode %d, 0x%08x, \"%s\", \"%s\"]",ucode_offset == u32(~0) ? "" :"Custom", ucode_version, code_hash, cur_ucode, g_ROM.settings.GameName.c_str() );
+#endif
 
 	return ucode_version;
 }
