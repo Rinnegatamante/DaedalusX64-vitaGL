@@ -821,8 +821,8 @@ CControllerConfig *	IInputManager::BuildDefaultConfig()
 
 	p_config->SetButtonMapping( N64Button_A, eval.Parse( "VITA.Cross" ) );
 	p_config->SetButtonMapping( N64Button_B, eval.Parse( "VITA.Square" ) );
-	p_config->SetButtonMapping( N64Button_Z, eval.Parse( "VITA.Triangle" ) );
-	p_config->SetButtonMapping( N64Button_L, eval.Parse( "VITA.LTrigger" ) );
+	p_config->SetButtonMapping( N64Button_Z, eval.Parse( "VITA.LTrigger" ) );
+	p_config->SetButtonMapping( N64Button_L, eval.Parse( "VITA.Triangle" ) );
 	p_config->SetButtonMapping( N64Button_R, eval.Parse( "VITA.RTrigger" ) );
 
 	p_config->SetButtonMapping( N64Button_Up, eval.Parse( "VITA.Up" ) );
