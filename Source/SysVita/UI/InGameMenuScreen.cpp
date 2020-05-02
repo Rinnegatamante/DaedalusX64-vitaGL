@@ -59,7 +59,7 @@ void DrawInGameMenu() {
 	sceCtrlPeekBufferPositive(0, &pad, 1);
 	if ((pad.buttons & SCE_CTRL_SELECT) && (!(oldpad & SCE_CTRL_SELECT))) pause_emu = !pause_emu;
 	oldpad = pad.buttons;
-	vglStopRendering();
+	vglStopRenderingInit();
 	if (pause_emu) {
 		CGraphicsContext::Get()->BeginFrame();
 		CGraphicsContext::Get()->EndFrame();

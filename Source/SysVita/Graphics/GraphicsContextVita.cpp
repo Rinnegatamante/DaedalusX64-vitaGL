@@ -164,10 +164,16 @@ void IGraphicsContext::EndFrame()
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	DrawInGameMenu();
+	vglStartRendering();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
+	// NOTE: We draw two scenes per frame with this mechanism
+	// This fixes flickering in several games (eg: Paper Mario)
+	// Seems useless (and wasteful on a lot more games however (eg. Super Mario 64)
+	// Perhaps we should have an hack to use this double scene rendering only when required?
+	vglStopRendering();
 }
 
 void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)
