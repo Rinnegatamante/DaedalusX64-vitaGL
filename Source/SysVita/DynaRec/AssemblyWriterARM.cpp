@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 #include "AssemblyWriterARM.h"
+#include "Debug/DBGConsole.h"
 #include <cstdio>
 
 void	CAssemblyWriterARM::CMP_IMM(EArmReg rn, u8 imm)
@@ -214,23 +215,28 @@ void	CAssemblyWriterARM::VCMP(EArmVfpReg Sd, EArmVfpReg Sm)
 	EmitDWORD(0xeef1fa10);
 }
 
-/*
+#ifdef DYNAREC_ARMV7
 void	CAssemblyWriterARM::MOVW(EArmReg reg, u16 imm)
 {
-	EmitDWORD(0xe3000000 | (reg << 12) | ((imm & 0xf000) << 4) | abs(imm & 0x0fff));
+	EmitDWORD(0xe3000000 | (reg << 12) | ((imm & 0xf000) << 4) | (imm & 0x0fff));
 }
 
 void	CAssemblyWriterARM::MOVT(EArmReg reg, u16 imm)
 {
-	EmitDWORD(0xe3400000 | (reg << 12) | ((imm & 0xf000) << 4) | abs(imm & 0x0fff));
+	EmitDWORD(0xe3400000 | (reg << 12) | ((imm & 0xf000) << 4) | (imm & 0x0fff));
 }
-*/
+#endif
 
 void	CAssemblyWriterARM::MOV32(EArmReg reg, u32 imm)
 {
-	if(imm < 256)
+	if(!(imm >> 16))
 	{
+		#ifdef DYNAREC_ARMV7
+		MOVW(reg, imm);
+		#else
 		MOV_IMM(reg, imm);
+		if(imm & 0xFF00) ADD_IMM(reg, reg, imm >> 8, 0xC);
+		#endif
 	}
 	else
 	{
@@ -243,12 +249,18 @@ void	CAssemblyWriterARM::MOV32(EArmReg reg, u32 imm)
 CJumpLocation CAssemblyWriterARM::BX_IMM( CCodeLabel target, EArmCond cond )
 {
 	u32 address( target.GetTargetU32() );
+
 	CJumpLocation jump_location( mpAssemblyBuffer->GetJumpLocation() );
 
+	#ifdef DYNAREC_ARMV7
+	MOVW(ArmReg_R4, address);
+	MOVT(ArmReg_R4, address >> 16);
+	#else
 	MOV_IMM(ArmReg_R4, address);
 	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 8, 0xC);
 	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 16, 0x8);
 	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 24, 0x4);
+	#endif
 
 	BX(ArmReg_R4, cond);
 
