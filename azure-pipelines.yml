@@ -1,0 +1,57 @@
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+container: gnuton/vitasdk-docker:latest
+
+steps:
+- script: sudo apt-get install -qq -y pkg-config
+  displayName: 'Install extra dependencies'
+
+- script: sudo apt-get install -qq -y libc6-dev-i386
+  displayName: 'Install 32 bit libraries'
+
+- script: |
+    git clone https://github.com/Rinnegatamante/math-neon
+    cd math-neon
+    make
+    sudo -E make install
+  displayName: 'Build libmathneon'
+
+- script: |
+    git clone https://github.com/Rinnegatamante/vitaGL
+    cd vitaGL
+    make HAVE_SBRK=1
+    sudo -E make HAVE_SBRK=1 install
+  displayName: 'Build vitaGL'
+
+- script: |
+    git clone https://github.com/Rinnegatamante/imgui-vita
+    cd imgui-vita
+    make
+    sudo -E make install
+  displayName: 'Build dear ImGui'
+
+- script: |
+    mkdir daedbuild
+    cd daedbuild
+    cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=../vita.toolchain.make -G "Unix Makefiles"
+    make -j$(nproc)
+  displayName: 'Build Daedalus X64'
+
+- task: GitHubRelease@0
+  inputs:
+    gitHubConnection: release
+    repositoryName: Rinnegatamante/DaedalusX64-vitaGL
+    tagSource: manual
+    tag: Nightly
+    action: edit
+    assets: |
+      eboot_safe.bin
+      eboot_unsafe.bin
+  displayName: 'Deploy artifacts'
+
