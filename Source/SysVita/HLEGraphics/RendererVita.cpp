@@ -281,7 +281,7 @@ RendererVita::SBlendStateEntry RendererVita::LookupBlendState( u64 mux, bool two
 	return entry;
 }
 
-void RendererVita::DrawPrimitives(DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode, bool has_texture)
+void RendererVita::DrawPrimitives(DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode)
 {
 	glEnableClientState(GL_COLOR_ARRAY);
 	float *vtx_ptr = gVertexBuffer;
@@ -369,17 +369,23 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 			u32	tfx = GL_MODULATE;
 			switch( out.BlendMode )
 			{
-			case PBM_MODULATE:
-				tfx = GL_MODULATE;
-				break;
 			case PBM_REPLACE:
-				tfx = GL_REPLACE;
-				break;
+				{
+					tfx = GL_REPLACE;
+					break;
+				}
 			case PBM_BLEND:
-				tfx = GL_BLEND;
-				float envcolor[4] = {out.TextureFactor.GetRf(), out.TextureFactor.GetGf(), out.TextureFactor.GetBf(), out.TextureFactor.GetAf()};
-				glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, envcolor);
-				break;
+				{
+					tfx = GL_BLEND;
+					float envcolor[4] = {out.TextureFactor.GetRf(), out.TextureFactor.GetGf(), out.TextureFactor.GetBf(), out.TextureFactor.GetAf()};
+					glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, envcolor);
+					break;
+				}
+			default:
+				{
+					tfx = GL_MODULATE;
+					break;
+				}
 			}
 			
 			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, tfx);
@@ -434,9 +440,10 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 		// If no texture was specified, or if we couldn't load it, clear it out
 		if( !installed_texture )
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-			
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
+		else {
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
+		}
 		
 		for (uint32_t i = 0; i < num_vertices; i++) {
 			gColorBuffer[i] = p_vertices[i].Colour.GetColour();
@@ -586,9 +593,10 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 		else*/
 		{
 			details.ColourAdjuster.Process(p_vertices, num_vertices);
-			DrawPrimitives(p_vertices, num_vertices, triangle_mode, installed_texture);
+			DrawPrimitives(p_vertices, num_vertices, triangle_mode);
 		}
-	}else if( blend_entry.States != nullptr )
+	}
+	else if( blend_entry.States != nullptr )
 	{
 		RenderUsingRenderSettings( blend_entry.States, p_vertices, num_vertices, triangle_mode );
 	}
@@ -599,7 +607,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 		DAEDALUS_ERROR( "Unhandled blend mode" );
 		#endif
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		DrawPrimitives(p_vertices, num_vertices, triangle_mode, false);
+		DrawPrimitives(p_vertices, num_vertices, triangle_mode);
 	}
 
 }
@@ -812,6 +820,10 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 								f32 u0, f32 v0, f32 u1, f32 v1,
 								const CNativeTexture * texture)
 {
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf((float*)mScreenToDevice.mRaw);
+	
+	texture->InstallTexture();
 	
 	glEnable(GL_BLEND);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -825,22 +837,20 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	float sx1 = N64ToScreenX(x1);
 	float sy1 = N64ToScreenY(y1);
 
-	const f32 depth = 0.0f;
-
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gVertexBuffer[0] = sx0;
 	gVertexBuffer[1] = sy0;
-	gVertexBuffer[2] = depth;
+	gVertexBuffer[2] = 0.0f;
 	gVertexBuffer[3] = sx1;
 	gVertexBuffer[4] = sy0;
-	gVertexBuffer[5] = depth;
+	gVertexBuffer[5] = 0.0f;
 	gVertexBuffer[6] = sx0;
 	gVertexBuffer[7] = sy1;
-	gVertexBuffer[8] = depth;
+	gVertexBuffer[8] = 0.0f;
 	gVertexBuffer[9] = sx1;
 	gVertexBuffer[10] = sy1;
-	gVertexBuffer[11] = depth;
+	gVertexBuffer[11] = 0.0f;
 	gTexCoordBuffer[0] = u0;
 	gTexCoordBuffer[1] = v0;
 	gTexCoordBuffer[2] = u1;
@@ -861,6 +871,8 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
 								 f32 x2, f32 y2, f32 x3, f32 y3,
 								 f32 s, f32 t)
 {
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf((float*)mScreenToDevice.mRaw);
 	
 	glEnable(GL_BLEND);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -868,22 +880,20 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	const f32 depth = 0.0f;
-
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gVertexBuffer[0] = N64ToScreenX(x0);
 	gVertexBuffer[1] = N64ToScreenY(y0);
-	gVertexBuffer[2] = depth;
+	gVertexBuffer[2] = 0.0f;
 	gVertexBuffer[3] = N64ToScreenX(x1);
 	gVertexBuffer[4] = N64ToScreenY(y1);
-	gVertexBuffer[5] = depth;
+	gVertexBuffer[5] = 0.0f;
 	gVertexBuffer[6] = N64ToScreenX(x2);
 	gVertexBuffer[7] = N64ToScreenY(y2);
-	gVertexBuffer[8] = depth;
+	gVertexBuffer[8] = 0.0f;
 	gVertexBuffer[9] = N64ToScreenX(x3);
 	gVertexBuffer[10] = N64ToScreenY(y3);
-	gVertexBuffer[11] = depth;
+	gVertexBuffer[11] = 0.0f;
 	gTexCoordBuffer[0] = 0.0f;
 	gTexCoordBuffer[1] = 0.0f;
 	gTexCoordBuffer[2] = s;

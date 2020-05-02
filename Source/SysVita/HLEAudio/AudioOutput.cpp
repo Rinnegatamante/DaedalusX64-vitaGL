@@ -46,12 +46,11 @@ static const u32	VITA_NUM_SAMPLES = 512;
 static SceUID bufferEmpty;
 static SceUID playbackSema;
 
-static volatile s32 sound_volume = 32767;
 static volatile u32 sound_status;
 
 static bool audio_open = false;
 
-static AudioOutput * ac;
+static AudioOutput *ac;
 
 CAudioBuffer *mAudioBuffer;
 
@@ -103,7 +102,7 @@ static void AudioExit()
 
 AudioOutput::AudioOutput()
 :	mAudioPlaying( false )
-,	mFrequency( 44100 )
+,	mFrequency( DESIRED_OUTPUT_FREQUENCY )
 {
 	// Allocate audio buffer with malloc_64 to avoid cached/uncached aliasing
 	void * mem = malloc( sizeof( CAudioBuffer ) );
@@ -133,33 +132,14 @@ void AudioOutput::AddBuffer( u8 *start, u32 length )
 
 	u32 num_samples = length / sizeof( Sample );
 
-	//Adapt Audio to sync% //Corn
-	//		output_freq = DESIRED_OUTPUT_FREQUENCY;
-			/*
-	u32 output_freq {};
-	if (gAudioRateMatch)
-	{
-		if (gSoundSync > 88200)			output_freq = 88200;	//limit upper rate
-		else if (gSoundSync < 44100)	output_freq = 44100;	//limit lower rate
-		else							output_freq = gSoundSync;
-	}
-	else
-	{
-
-	}
-*/
 	switch( gAudioPluginEnabled )
 	{
 	case APM_DISABLED:
 		break;
-
 	case APM_ENABLED_ASYNC:
 		break;
-
 	case APM_ENABLED_SYNC:
-		{
-			mAudioBuffer->AddSamples( reinterpret_cast< const Sample * >( start ), num_samples, mFrequency, 44100 );
-		}
+		mAudioBuffer->AddSamples( reinterpret_cast< const Sample * >( start ), num_samples, mFrequency, DESIRED_OUTPUT_FREQUENCY );
 		break;
 	}
 }
