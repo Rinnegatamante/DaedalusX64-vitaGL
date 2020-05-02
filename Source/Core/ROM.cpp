@@ -360,7 +360,6 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
 	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
-
 	case 0x464A:	// Jet Force Geminy
 	case 0x5647:	// Glover
 		g_ROM.SET_ROUND_MODE = true;
@@ -439,6 +438,8 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5543:	//Cruisn' USA
 		g_ROM.GameHacks = BODY_HARVEST;
 		break;
+	case 0x594D:    // Mortal Kombat Mythologies: Sub-Zero
+		g_ROM.PROJ_HACK = true;
 	default:
 		break;
 	}

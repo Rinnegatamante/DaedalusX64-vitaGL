@@ -465,6 +465,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
+	if (g_ROM.PROJ_HACK && mat_project == gProjection.m) glScalef(1, -1, 1);
 	
 	if ( disable_zbuffer )
 	{
