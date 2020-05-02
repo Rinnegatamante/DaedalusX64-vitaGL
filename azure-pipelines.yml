@@ -32,14 +32,14 @@ steps:
 - script: |
     git clone https://github.com/Rinnegatamante/imgui-vita
     cd imgui-vita
-    make
+    make -j$(nproc)
     sudo -E make install
   displayName: 'Build dear ImGui'
 
 - script: |
     mkdir daedbuild
     cd daedbuild
-    cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=../vita.toolchain.make -G "Unix Makefiles"
+    cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake
     make -j$(nproc)
   displayName: 'Build Daedalus X64'
 
