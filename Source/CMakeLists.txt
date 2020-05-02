@@ -266,6 +266,7 @@ if (VITA_RELEASE)
 		vitaGL
 		mathneon
 		imgui
+		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 	)
 
 	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf)
