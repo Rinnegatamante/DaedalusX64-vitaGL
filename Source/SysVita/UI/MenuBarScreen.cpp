@@ -258,6 +258,7 @@ void DrawCommonWindows() {
 	
 	if (debug_window) {
 		ImGui::Begin("Debugger", &debug_window);
+		ImGui::Text("Cartridge ID: 0x%04X", g_ROM.rh.CartID);
 		ImGui::Text("Installed RSP Microcode: %s", cur_ucode);
 		ImGui::End();
 	}
