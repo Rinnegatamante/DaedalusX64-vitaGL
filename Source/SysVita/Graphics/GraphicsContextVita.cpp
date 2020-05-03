@@ -19,7 +19,8 @@
 #include "Utility/VolatileMem.h"
 #include "SysVita/UI/Menu.h"
 
-extern void HandleEndOfFrame();
+extern bool pause_emu;
+bool wait_rendering = false;
 
 #define MAX_INDEXES 0xFFFF
 uint16_t *gIndexes;
@@ -168,12 +169,18 @@ void IGraphicsContext::EndFrame()
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	DrawInGameMenu();
+	if (wait_rendering) glFinish();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
 	vglStopRendering();
 	new_frame = true;
+	if (pause_emu) {
+		BeginFrame();
+		EndFrame();
+		UpdateFrame(false);
+	}
 }
 
 void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)

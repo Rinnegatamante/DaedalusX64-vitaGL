@@ -38,6 +38,7 @@ int aspect_ratio = RATIO_16_9;
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
+extern bool wait_rendering;
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
 
@@ -128,6 +129,7 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
+		ImGui::Separator();
 		if (ImGui::MenuItem("vFlux Config", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
 		}
@@ -135,12 +137,16 @@ void DrawCommonMenuBar() {
 			use_vsync = use_vsync == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglWaitVblankStart(use_vsync);
 		}
+		ImGui::Separator();
 		if (ImGui::MenuItem("Use VRAM", nullptr, use_cdram)){
 			use_cdram = use_cdram == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglUseVram(use_cdram);
 		}
 		if (ImGui::MenuItem("Clear Depth Buffer", nullptr, gClearDepthFrameBuffer)){
 			gClearDepthFrameBuffer = !gClearDepthFrameBuffer;
+		}
+		if (ImGui::MenuItem("Wait Rendering Done", nullptr, wait_rendering)){
+			wait_rendering = !wait_rendering;
 		}
 		ImGui::EndMenu();
 	}

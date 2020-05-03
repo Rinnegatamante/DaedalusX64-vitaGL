@@ -33,7 +33,7 @@
 
 static uint64_t tmr1;
 static uint32_t oldpad;
-static bool pause_emu = false;
+bool pause_emu = false;
 
 void DrawInGameMenu() {
 	DrawInGameMenuBar();
@@ -59,9 +59,5 @@ void DrawInGameMenu() {
 	sceCtrlPeekBufferPositive(0, &pad, 1);
 	if ((pad.buttons & SCE_CTRL_SELECT) && (!(oldpad & SCE_CTRL_SELECT))) pause_emu = !pause_emu;
 	oldpad = pad.buttons;
-	vglStopRenderingInit();
-	if (pause_emu) {
-		CGraphicsContext::Get()->BeginFrame();
-		CGraphicsContext::Get()->EndFrame();
-	}
+	if (!pause_emu) vglStopRenderingInit();
 }
