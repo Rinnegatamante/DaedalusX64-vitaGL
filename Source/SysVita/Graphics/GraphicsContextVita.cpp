@@ -156,7 +156,7 @@ void IGraphicsContext::BeginFrame()
 	gTexCoordBuffer = gTexCoordBufferPtr;
 	vglIndexPointerMapped(gIndexes);
 	
-	CGraphicsContext::Get()->ClearToBlack();
+	//CGraphicsContext::Get()->ClearToBlack();
 }
 
 void IGraphicsContext::EndFrame()
