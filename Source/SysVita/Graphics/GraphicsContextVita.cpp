@@ -29,6 +29,7 @@ float *gTexCoordBuffer;
 float *gVertexBufferPtr;
 uint32_t *gColorBufferPtr;
 float *gTexCoordBufferPtr;
+bool new_frame = true;
 
 class IGraphicsContext : public CGraphicsContext
 {
@@ -156,7 +157,10 @@ void IGraphicsContext::BeginFrame()
 	gTexCoordBuffer = gTexCoordBufferPtr;
 	vglIndexPointerMapped(gIndexes);
 	
-	//CGraphicsContext::Get()->ClearToBlack();
+	if (new_frame) {
+		CGraphicsContext::Get()->ClearToBlack();
+		new_frame = false;
+	}
 }
 
 void IGraphicsContext::EndFrame()
@@ -169,6 +173,7 @@ void IGraphicsContext::EndFrame()
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
 	vglStopRendering();
+	new_frame = true;
 }
 
 void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)
