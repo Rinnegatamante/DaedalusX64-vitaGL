@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 #include "AssemblyWriterARM.h"
-#include "Debug/DBGConsole.h"
 #include <cstdio>
 
 void	CAssemblyWriterARM::CMP_IMM(EArmReg rn, u8 imm)
@@ -40,6 +39,11 @@ void	CAssemblyWriterARM::ADD(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
 void	CAssemblyWriterARM::SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
 {
 	EmitDWORD(0x00400000 | (cond << 28) | ((rd) << 12) | ((rn) << 16) | rm);
+}
+
+void	CAssemblyWriterARM::SUB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
+{
+	EmitDWORD(0xe2400000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
 }
 
 void 	CAssemblyWriterARM::MUL(EArmReg rd, EArmReg rn, EArmReg rm)
@@ -107,44 +111,44 @@ void	CAssemblyWriterARM::POP(u16 regs)
 	EmitDWORD(0xE8BD0000 | regs);
 }
 
-void	CAssemblyWriterARM::LDR(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::LDR(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xe5900000 | ( rn << 16 ) | ( rt << 12 ) | offset);
+	EmitDWORD(0xE5100000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
 }
 
-void	CAssemblyWriterARM::LDRB(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::LDRB(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xe5d00000 | ( rn << 16 ) | ( rt << 12 ) | offset);
+	EmitDWORD(0xE5500000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
 }
 
-void	CAssemblyWriterARM::LDRSB(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::LDRSB(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xe1d000d0 | ( rn << 16 ) | ( rt << 12 ) | offset);
+	EmitDWORD(0xE15000D0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
 }
 
-void	CAssemblyWriterARM::LDRSH(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::LDRSH(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE1D000F0 | ( rn << 16 ) | ( rt << 12 ) | offset);
+	EmitDWORD(0xE15000F0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
 }
 
-void	CAssemblyWriterARM::LDRH(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::LDRH(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE1D000B0 | ( rn << 16 ) | ( rt << 12 ) | offset);
+	EmitDWORD(0xE15000B0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
 }
 
-void	CAssemblyWriterARM::STR(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::STR(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xe5800000 | ( rn << 16 ) | ( rt << 12 ) |  offset);
+	EmitDWORD(0xE5000000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
 }
 
-void	CAssemblyWriterARM::STRH(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::STRH(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xe1c000b0 | ( rn << 16 ) | ( rt << 12 ) |  offset);
+	EmitDWORD(0xE14000B0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
 }
 
-void	CAssemblyWriterARM::STRB(EArmReg rt, EArmReg rn, u16 offset)
+void	CAssemblyWriterARM::STRB(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE5C00000 | ( rn << 16 ) | ( rt << 12 ) |  offset);
+	EmitDWORD(0xE5400000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
 }
 
 void	CAssemblyWriterARM::MOV(EArmReg rd, EArmReg rm)

@@ -47,6 +47,7 @@ class CAssemblyWriterARM
 		void				ADD_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4 = 0);
 
 		void				SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond = AL);
+		void				SUB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4 = 0);
 
 		void				MUL  (EArmReg rd, EArmReg rn, EArmReg rm);
 		void				UMULL(EArmReg rdLo, EArmReg rdHi, EArmReg rn, EArmReg rm);
@@ -68,15 +69,15 @@ class CAssemblyWriterARM
 		void				PUSH(u16 regs);
 		void				POP (u16 regs);
 
-		void				LDR  (EArmReg rt, EArmReg rn, u16 offset);
-		void				LDRB (EArmReg rt, EArmReg rn, u16 offset);
-		void				LDRSB(EArmReg rt, EArmReg rn, u16 offset);
-		void				LDRH (EArmReg rt, EArmReg rn, u16 offset);
-		void				LDRSH(EArmReg rt, EArmReg rn, u16 offset);
+		void				LDR  (EArmReg rt, EArmReg rn, s16 offset);
+		void				LDRB (EArmReg rt, EArmReg rn, s16 offset);
+		void				LDRSB(EArmReg rt, EArmReg rn, s16 offset);
+		void				LDRH (EArmReg rt, EArmReg rn, s16 offset);
+		void				LDRSH(EArmReg rt, EArmReg rn, s16 offset);
 
-		void				STR (EArmReg rt, EArmReg rn, u16 offset);
-		void				STRH(EArmReg rt, EArmReg rn, u16 offset);
-		void				STRB(EArmReg rt, EArmReg rn, u16 offset);
+		void				STR (EArmReg rt, EArmReg rn, s16 offset);
+		void				STRH(EArmReg rt, EArmReg rn, s16 offset);
+		void				STRB(EArmReg rt, EArmReg rn, s16 offset);
 
 		void				MOV    (EArmReg rd, EArmReg rm);
 		void				MOV_LSL(EArmReg rd, EArmReg rm, u8 imm5);
