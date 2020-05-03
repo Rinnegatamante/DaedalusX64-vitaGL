@@ -624,24 +624,31 @@ inline void CCodeGeneratorARM::GenerateLoad( EN64Reg base, s16 offset, u8 twiddl
 
 		LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 
-		if( !(offset & ~0x3FC) )
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset >> 2, 0xF);
-		else if(offset < 0x100)
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset);
-		else
-			MOV32(ArmReg_R2, (u32)g_pu8RamBase_8000 + offset);
-		
-		ADD(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+		ADD(ArmReg_R1, ArmReg_R1, ArmReg_R10);
+
+		if(abs(offset) >> 8)
+		{
+			if(offset > 0)
+			{
+				ADD_IMM(ArmReg_R1, ArmReg_R1, abs(offset) >> 8, 0xC);
+				offset = abs(offset) & 0xFF;
+			}
+			else
+			{
+				SUB_IMM(ArmReg_R1, ArmReg_R1, abs(offset) >> 8, 0xC);
+				offset = -(abs(offset) & 0xFF);
+			}
+		}
 
 		switch(bits)
 		{
-			case 32:	LDR(ArmReg_R0, ArmReg_R1, 0); break;
+			case 32:	LDR(ArmReg_R0, ArmReg_R1, offset); break;
 
-			case 16:	if(is_signed)	{ LDRSH(ArmReg_R0, ArmReg_R1, 0); }
-						else			{ LDRH (ArmReg_R0, ArmReg_R1, 0); } break; 
+			case 16:	if(is_signed)	{ LDRSH(ArmReg_R0, ArmReg_R1, offset); }
+						else			{ LDRH (ArmReg_R0, ArmReg_R1, offset); } break; 
 
-			case 8:		if(is_signed)	{ LDRSB(ArmReg_R0, ArmReg_R1, 0); }
-						else			{ LDRB (ArmReg_R0, ArmReg_R1, 0); } break; 
+			case 8:		if(is_signed)	{ LDRSB(ArmReg_R0, ArmReg_R1, offset); }
+						else			{ LDRB (ArmReg_R0, ArmReg_R1, offset); } break; 
 		}
 
 		
@@ -750,20 +757,27 @@ inline void CCodeGeneratorARM::GenerateStore( EN64Reg base, s16 offset, u8 twidd
 
 		LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 
-		if( !(offset & ~0x3FC) )
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset >> 2, 0xF);
-		else if(offset < 0x100)
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset);
-		else
-			MOV32(ArmReg_R2, (u32)g_pu8RamBase_8000 + offset);
+		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R10);
 
-		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+		if(abs(offset) >> 8)
+		{
+			if(offset > 0)
+			{
+				ADD_IMM(ArmReg_R0, ArmReg_R0, abs(offset) >> 8, 0xC);
+				offset = abs(offset) & 0xFF;
+			}
+			else
+			{
+				SUB_IMM(ArmReg_R0, ArmReg_R0, abs(offset) >> 8, 0xC);
+				offset = -(abs(offset) & 0xFF);
+			}
+		}
 
 		switch(bits)
 		{
-			case 32:	STR (ArmReg_R1, ArmReg_R0, 0); break;
-			case 16:	STRH(ArmReg_R1, ArmReg_R0, 0); break; 
-			case 8:		STRB(ArmReg_R1, ArmReg_R0, 0); break; 
+			case 32:	STR (ArmReg_R1, ArmReg_R0, offset); break;
+			case 16:	STRH(ArmReg_R1, ArmReg_R0, offset); break; 
+			case 8:		STRB(ArmReg_R1, ArmReg_R0, offset); break; 
 		}
 	}
 	else
