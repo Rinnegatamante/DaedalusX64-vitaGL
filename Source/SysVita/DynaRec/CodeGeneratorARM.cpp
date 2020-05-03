@@ -425,7 +425,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_SW:		handled = GenerateSW(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SH:		handled = GenerateSH(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SB:		handled = GenerateSB(rt, base, s16(op_code.immediate));   exception = !handled; break;
+		case OP_SD:		handled = GenerateSD(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SWC1:	handled = GenerateSWC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
+		case OP_SDC1:	handled = GenerateSDC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
 
 		case OP_SLTIU: 	GenerateSLTI( rt, rs, s16( op_code.immediate ), true );  handled = true; break;
 		case OP_SLTI:	GenerateSLTI( rt, rs, s16( op_code.immediate ), false ); handled = true; break;
@@ -435,7 +437,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_LHU: 	handled = GenerateLHU(rt, base, s16(op_code.immediate));  exception = !handled; break;
 		case OP_LB: 	handled = GenerateLB(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_LBU:	handled = GenerateLBU(rt, base, s16(op_code.immediate));  exception = !handled; break;
+		case OP_LD:		handled = GenerateLD( rt, base, s16(op_code.immediate));  exception = !handled; break;
 		case OP_LWC1:	handled = GenerateLWC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
+		case OP_LDC1:	handled = GenerateLDC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
 
 		case OP_LUI:	GenerateLUI( rt, s16( op_code.immediate ) ); handled = true; break;
 
@@ -694,6 +698,18 @@ bool CCodeGeneratorARM::GenerateLW( EN64Reg rt, EN64Reg base, s16 offset )
 	return true;
 }
 
+//Load Double Word
+bool CCodeGeneratorARM::GenerateLD( EN64Reg rt, EN64Reg base, s16 offset )
+{
+	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	GenerateLoad( base, offset + 4, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+
+	return true;
+}
+
 //Load half word signed
 bool CCodeGeneratorARM::GenerateLH( EN64Reg rt, EN64Reg base, s16 offset )
 {
@@ -746,6 +762,17 @@ bool CCodeGeneratorARM::GenerateLWC1( u32 ft, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
 	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	return true;
+}
+
+bool CCodeGeneratorARM::GenerateLDC1( u32 ft, EN64Reg base, s16 offset )
+{
+	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+
+	GenerateLoad( base, offset + 4, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+
 	return true;
 }
 
@@ -816,6 +843,16 @@ bool CCodeGeneratorARM::GenerateSWC1( u32 ft, EN64Reg base, s16 offset )
 	return true;
 }
 
+bool CCodeGeneratorARM::GenerateSDC1( u32 ft, EN64Reg base, s16 offset )
+{
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+	GenerateStore( base, offset, 0, 32, (void*)Write32Bits );
+
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	GenerateStore( base, offset + 4, 0, 32, (void*)Write32Bits );
+	return true;
+}
+
 bool CCodeGeneratorARM::GenerateSW( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
@@ -824,6 +861,16 @@ bool CCodeGeneratorARM::GenerateSW( EN64Reg rt, EN64Reg base, s16 offset )
 	return true;
 }
 
+bool CCodeGeneratorARM::GenerateSD( EN64Reg rt, EN64Reg base, s16 offset )
+{
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	GenerateStore( base, offset, 0, 32, (void*)Write32Bits );
+
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	GenerateStore( base, offset + 4, 0, 32, (void*)Write32Bits );
+
+	return true;
+}
 
 bool CCodeGeneratorARM::GenerateSH( EN64Reg rt, EN64Reg base, s16 offset )
 {
