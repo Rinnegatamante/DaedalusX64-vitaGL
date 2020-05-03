@@ -146,6 +146,8 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				//Branch
 				void	GenerateBEQ( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
 				void	GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
+				void 	GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
+				void 	GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
 
 				// CoPro1
 				void	GenerateADD_S( u32 fd, u32 fs, u32 ft );
