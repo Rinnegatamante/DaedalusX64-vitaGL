@@ -198,14 +198,13 @@ void jpeg_decode_PS(OSTask *task)
  **************************************************************************/
 void jpeg_decode_OB(OSTask *task)
 {
-    s16 qtable[SUBBLOCK_SIZE] {};
-    u32 mb {};
+    s16 qtable[SUBBLOCK_SIZE];
 
-    s32 y_dc {}, u_dc {}, v_dc {};
+    s32 y_dc, u_dc, v_dc;
 
-	u32  address  {(u32)task->t.data_ptr};
-	const u32 macroblock_count {task->t.data_size};
-	const u32  qscale   {task->t.yield_data_size};
+	u32  address = (u32)task->t.data_ptr;
+	const u32 macroblock_count = task->t.data_size;
+	const u32 qscale = task->t.yield_data_size;
 
     if (task->t.yield_data_size != 0 )
     {
@@ -219,7 +218,7 @@ void jpeg_decode_OB(OSTask *task)
         }
     }
 
-    for (mb = 0; mb < macroblock_count; ++mb)
+    for (u32 mb = 0; mb < macroblock_count; ++mb)
     {
         s16 macroblock[6*SUBBLOCK_SIZE];
 
@@ -277,10 +276,10 @@ static u16 GetRGBA(s16 y, s16 u, s16 v)
 
 static void EmitYUVTileLine(const s16 *y, const s16 *u, u32 address)
 {
-    u32 uyvy[8] {};
+    u32 uyvy[8];
 
-    const s16 * const v  = u + SUBBLOCK_SIZE;
-    const s16 * const y2 = y + SUBBLOCK_SIZE;
+    const s16 *const v  = u + SUBBLOCK_SIZE;
+    const s16 *const y2 = y + SUBBLOCK_SIZE;
 
     uyvy[0] = GetUYVY(y[0],  y[1],  u[0], v[0]);
     uyvy[1] = GetUYVY(y[2],  y[3],  u[1], v[1]);
@@ -342,12 +341,10 @@ static void EmitRGBATileLine(const s16 *y, const s16 *u, u32 address)
 
 static void EmitTilesMode0(const tile_line_emitter_t emit_line, const s16 *macroblock, u32 address)
 {
-    u32 i;
-
     u32 y_offset = 0;
-    u32 u_offset = 2*SUBBLOCK_SIZE;
+    u32 u_offset = 2 * SUBBLOCK_SIZE;
 
-    for (i = 0; i < 8; ++i)
+    for (u32 i = 0; i < 8; ++i)
     {
         emit_line(&macroblock[y_offset], &macroblock[u_offset], address);
 
@@ -359,16 +356,15 @@ static void EmitTilesMode0(const tile_line_emitter_t emit_line, const s16 *macro
 
 static void EmitTilesMode2(const tile_line_emitter_t emit_line, const s16 *macroblock, u32 address)
 {
-
-    u32 y_offset {0};
-    u32 u_offset {4*SUBBLOCK_SIZE};
+    u32 y_offset = 0;
+    u32 u_offset = 4 * SUBBLOCK_SIZE;
 
     for (u32 i = 0; i < 8; ++i)
     {
         emit_line(&macroblock[y_offset],     &macroblock[u_offset], address);
         emit_line(&macroblock[y_offset + 8], &macroblock[u_offset], address + 32);
 
-        y_offset += (i == 3) ? SUBBLOCK_SIZE+16 : 16;
+        y_offset += (i == 3) ? SUBBLOCK_SIZE + 16 : 16;
         u_offset += 8;
         address += 64;
     }
@@ -377,39 +373,51 @@ static void EmitTilesMode2(const tile_line_emitter_t emit_line, const s16 *macro
 static void DecodeMacroblock1(s16 *macroblock, s32 *y_dc, s32 *u_dc, s32 *v_dc, const s16 *qtable)
 {
 
-    for (u32 sb = 0; sb < 6; ++sb)
-    {
-        s16 tmp_sb[SUBBLOCK_SIZE] {};
+	for (int sb = 0; sb < 6; ++sb)
+	{
+		s16 tmp_sb[SUBBLOCK_SIZE];
 
-        /* update DC */
-        s32 dc {(s32)macroblock[0]};
-        switch(sb)
-        {
-        case 0: case 1: case 2: case 3:
-                *y_dc += dc; macroblock[0] = *y_dc & 0xffff; break;
-        case 4: *u_dc += dc; macroblock[0] = *u_dc & 0xffff; break;
-        case 5: *v_dc += dc; macroblock[0] = *v_dc & 0xffff; break;
-        }
+		/* update DC */
+		s32 dc = (s32)macroblock[0];
+		switch(sb) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			*y_dc += dc;
+			macroblock[0] = *y_dc & 0xffff;
+			break;
+		case 4:
+			*u_dc += dc;
+			macroblock[0] = *u_dc & 0xffff;
+			break;
+		case 5:
+			*v_dc += dc;
+			macroblock[0] = *v_dc & 0xffff;
+			break;
+		}
 
-        ZigZagSubBlock(tmp_sb, macroblock);
-        if (qtable != nullptr) { MultSubBlocks(tmp_sb, tmp_sb, qtable, 0); }
-        TransposeSubBlock(macroblock, tmp_sb);
-        InverseDCTSubBlock(macroblock, macroblock);
+		ZigZagSubBlock(tmp_sb, macroblock);
+		if (qtable != nullptr)
+			MultSubBlocks(tmp_sb, tmp_sb, qtable, 0);
+		TransposeSubBlock(macroblock, tmp_sb);
+		InverseDCTSubBlock(macroblock, macroblock);
 
-        macroblock += SUBBLOCK_SIZE;
-    }
+		macroblock += SUBBLOCK_SIZE;
+	}
 }
 
 static void DecodeMacroblock2(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE])
 {
-    u32 q {};
+    u32 q = 0;
 
     for (u32 sb = 0; sb < subblock_count; ++sb)
     {
-        s16 tmp_sb[SUBBLOCK_SIZE] {};
+        s16 tmp_sb[SUBBLOCK_SIZE];
         const int isChromaSubBlock = (subblock_count - sb <= 2);
 
-        if (isChromaSubBlock) { ++q; }
+        if (isChromaSubBlock)
+			++q;
 
         MultSubBlocks(macroblock, macroblock, qtables[q], 4);
         ZigZagSubBlock(tmp_sb, macroblock);
@@ -622,17 +630,17 @@ static void RescaleUVSubBlock(s16 *dst, const s16 *src)
 
 
 /* FIXME: assume presence of expansion pack */
-#define MEMMASK 0x7fffff
+#define MEMMASK 0x7FFFFF
 
 //ToDo: fast_memcpy_swizzle?
 static void rdram_read_many_u16(u16 *dst, u32 address, u32 count)
 {
-	const u8 *src {g_pu8RamBase + (address& MEMMASK)};
+	const u8 *src = g_pu8RamBase + (address & MEMMASK);
 
     while (count != 0)
     {
-		u32 a {*(u8*)((uintptr_t)src++ ^ U8_TWIDDLE)};
-		u32 b {*(u8*)((uintptr_t)src++ ^ U8_TWIDDLE)};
+		u32 a = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
+		u32 b = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
 
 		*(dst++) = ((a << 8) | b);
 		--count;
@@ -641,7 +649,7 @@ static void rdram_read_many_u16(u16 *dst, u32 address, u32 count)
 
 static void rdram_write_many_u16(const u16 *src, u32 address, u32 count)
 {
-	u8 *dst {g_pu8RamBase + (address& MEMMASK)};
+	u8 *dst = g_pu8RamBase + (address & MEMMASK);
     while (count != 0)
     {
        *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*src >> 8);
@@ -655,17 +663,17 @@ static u32 rdram_read_u32(u32 address)
 {
 	const u8 *src {g_pu8RamBase + (address& MEMMASK)};
 
-	u32 a {*(u8*)((uintptr_t)src++ ^ U8_TWIDDLE)};
-	u32 b {*(u8*)((uintptr_t)src++ ^ U8_TWIDDLE)};
-	u32 c {*(u8*)((uintptr_t)src++ ^ U8_TWIDDLE)};
-	u32 d {*(u8*)((uintptr_t)src++ ^ U8_TWIDDLE)};
+	u32 a = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
+	u32 b = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
+	u32 c = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
+	u32 d = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
 
     return (a << 24) | (b << 16) | (c << 8) | d;
 }
 
 static void rdram_write_many_u32(const u32 *src, u32 address, u32 count)
 {
-	u8 *dst {g_pu8RamBase + (address& MEMMASK)};
+	u8 *dst = g_pu8RamBase + (address & MEMMASK);
     while (count != 0)
     {
        *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*src >> 24);

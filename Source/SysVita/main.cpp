@@ -58,6 +58,14 @@ void log2file(const char *format, ...) {
 	}
 }
 
+void dump2file(void *ptr, uint32_t size) {
+	FILE *log = fopen("ux0:/data/DaedalusX64.dmp", "a+");
+	if (log != NULL) {
+		fwrite(ptr, 1, size, log);
+		fclose(log);
+	}
+}
+
 static void EnableMenuButtons(bool status) {
 	ImGui_ImplVitaGL_GamepadUsage(status);
 	ImGui_ImplVitaGL_MouseStickUsage(status);
