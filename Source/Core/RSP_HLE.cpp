@@ -41,6 +41,7 @@ static const bool	gGraphicsEnabled = true;
 static const bool	gAudioEnabled	 = true;
 
 extern void jpeg_decode_PS(OSTask *task);
+extern void jpeg_decode_PS0(OSTask *task);
 extern void jpeg_decode_OB(OSTask *task);
 
 #ifdef DAEDALUS_DEBUG_CONSOLE
@@ -203,17 +204,19 @@ EProcessResult RSP_HLE_Jpeg(OSTask * task)
 {
 	// most ucode_boot procedure copy 0xf80 bytes of ucode whatever the ucode_size is.
 	// For practical purpose we use a ucode_size = min(0xf80, task->ucode_size)
-	u32 sum {sum_bytes(g_pu8RamBase + (u32)task->t.ucode , Min<u32>(task->t.ucode_size, 0xf80) >> 1)};
+	u32 sum = sum_bytes(g_pu8RamBase + (u32)task->t.ucode , Min<u32>(task->t.ucode_size, 0xf80) >> 1);
 
 	//DBGConsole_Msg(0, "JPEG Task: Sum=0x%08x", sum);
 	switch(sum)
 	{
+	case 0x2c85a: // Pokemon Stadium Jap Exclusive jpg decompression
+		jpeg_decode_PS0(task);
+		break;
 	case 0x2caa6: // Zelda OOT, Pokemon Stadium {1,2} jpg decompression
 		jpeg_decode_PS(task);
 		break;
-		 // Ogre Battle & Buttom of the 9th background decompression
-		case 0x130de:
-		case 0x278b0:
+	case 0x130de: // Ogre Battle & Buttom of the 9th background decompression
+	case 0x278b0:
         jpeg_decode_OB(task);
 		break;
 	}

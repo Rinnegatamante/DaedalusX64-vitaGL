@@ -51,7 +51,7 @@ static void rdram_write_many_u32(const u32 *src, u32 address, u32 count);
 
 /* helper functions */
 static u8 clamp_u8(s16 x);
-//static s16 clamp_s12(s16 x);
+static s16 clamp_s12(s16 x);
 static s16 clamp_s16(s32 x);
 static u16 clamp_RGBA_component(s16 x);
 
@@ -65,9 +65,9 @@ static void EmitYUVTileLine(const s16 *y, const s16 *u, u32 address);
 static void EmitRGBATileLine(const s16 *y, const s16 *u, u32 address);
 
 /* macroblocks operations */
-static void DecodeMacroblock1(s16 *macroblock, s32 *y_dc, s32 *u_dc, s32 *v_dc, const s16 *qtable);
-static void DecodeMacroblock2(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE]);
-//static void DecodeMacroblock3(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE]);
+static void DecodeMacroblockOB(s16 *macroblock, s32 *y_dc, s32 *u_dc, s32 *v_dc, const s16 *qtable);
+static void DecodeMacroblockPS(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE]);
+static void DecodeMacroblockPS0(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE]);
 static void EmitTilesMode0(const tile_line_emitter_t emit_line, const s16 *macroblock, u32 address);
 static void EmitTilesMode2(const tile_line_emitter_t emit_line, const s16 *macroblock, u32 address);
 
@@ -80,8 +80,8 @@ static void ScaleSubBlock(s16 *dst, const s16 *src, s16 scale);
 static void RShiftSubBlock(s16 *dst, const s16 *src, u32 shift);
 static void InverseDCT1D(const float * const x, float *dst, u32 stride);
 static void InverseDCTSubBlock(s16 *dst, const s16 *src);
-//static void RescaleYSubBlock(s16 *dst, const s16 *src);
-//static void RescaleUVSubBlock(s16 *dst, const s16 *src);
+static void RescaleYSubBlock(s16 *dst, const s16 *src);
+static void RescaleUVSubBlock(s16 *dst, const s16 *src);
 
 /* transposed dequantization table */
 const s16 DEFAULT_QTABLE[SUBBLOCK_SIZE] =
@@ -122,6 +122,59 @@ const u32 TRANSPOSE_TABLE[SUBBLOCK_SIZE] =
     7, 15, 23, 31, 39, 47, 55, 63
 };
 
+/***************************************************************************
+ * JPEG decoding ucode found in Japanese exclusive version of Pokemon Stadium.
+ **************************************************************************/
+void jpeg_decode_PS0(OSTask *task)
+{
+    s16 qtables[3][SUBBLOCK_SIZE];
+
+    #ifdef DAEDALUS_DEBUG_CONSOLE
+    if (task->t.flags & 0x1)
+    {
+        DBGConsole_Msg(0, "jpeg_decode_PS: task yielding not implemented");
+        return;
+    }
+    #endif
+    u32       address          = rdram_read_u32((u32)task->t.data_ptr);
+    const u32 macroblock_count = rdram_read_u32((u32)task->t.data_ptr + 4);
+    const u32 mode             = rdram_read_u32((u32)task->t.data_ptr + 8);
+    const u32 qtableY_ptr      = rdram_read_u32((u32)task->t.data_ptr + 12);
+    const u32 qtableU_ptr      = rdram_read_u32((u32)task->t.data_ptr + 16);
+    const u32 qtableV_ptr      = rdram_read_u32((u32)task->t.data_ptr + 20);
+
+    #ifdef DAEDALUS_DEBUG_CONSOLE
+    if (mode != 0 && mode != 2)
+    {
+        DBGConsole_Msg(0, "jpeg_decode_PS: invalid mode %d", mode);
+        return;
+    }
+    #endif
+
+    rdram_read_many_u16((u16*)qtables[0], qtableY_ptr, SUBBLOCK_SIZE);
+    rdram_read_many_u16((u16*)qtables[1], qtableU_ptr, SUBBLOCK_SIZE);
+    rdram_read_many_u16((u16*)qtables[2], qtableV_ptr, SUBBLOCK_SIZE);
+
+	void (*EmitTilesMode)(const tile_line_emitter_t, const s16 *, u32);
+
+	if (mode == 0) EmitTilesMode =  EmitTilesMode0;
+	else EmitTilesMode =  EmitTilesMode2;
+
+	const u32 subblock_count = mode + 4;
+	const u32 macroblock_size = subblock_count * SUBBLOCK_SIZE;
+
+	/* macroblock contains at most 6 subblocks */
+   s16 macroblock[6 * SUBBLOCK_SIZE];
+
+    for (u32 mb = 0; mb < macroblock_count; ++mb)
+    {
+        rdram_read_many_u16((u16*)macroblock, address, macroblock_size);
+        DecodeMacroblockPS0(macroblock, subblock_count, (const s16 (*)[SUBBLOCK_SIZE])qtables);
+		EmitTilesMode(EmitYUVTileLine, macroblock, address);
+
+        address += 2 * macroblock_size;
+    }
+}
 
 
 /***************************************************************************
@@ -160,14 +213,8 @@ void jpeg_decode_PS(OSTask *task)
 
 	void (*EmitTilesMode)(const tile_line_emitter_t, const s16 *, u32);
 
-	if (mode == 0)
-	{
-		EmitTilesMode =  EmitTilesMode0;
-	}
-	else
-	{
-		EmitTilesMode =  EmitTilesMode2;
-	}
+	if (mode == 0) EmitTilesMode =  EmitTilesMode0;
+	else EmitTilesMode =  EmitTilesMode2;
 
 	const u32 subblock_count = mode + 4;
 	const u32 macroblock_size = subblock_count * SUBBLOCK_SIZE;
@@ -178,7 +225,7 @@ void jpeg_decode_PS(OSTask *task)
     for (u32 mb = 0; mb < macroblock_count; ++mb)
     {
         rdram_read_many_u16((u16*)macroblock, address, macroblock_size);
-        DecodeMacroblock2(macroblock, subblock_count, (const s16 (*)[SUBBLOCK_SIZE])qtables);
+        DecodeMacroblockPS(macroblock, subblock_count, (const s16 (*)[SUBBLOCK_SIZE])qtables);
 		EmitTilesMode(EmitRGBATileLine, macroblock, address);
 
         address += 2 * macroblock_size;
@@ -214,7 +261,7 @@ void jpeg_decode_OB(OSTask *task)
     {
         s16 macroblock[6 * SUBBLOCK_SIZE];
         rdram_read_many_u16((u16*)macroblock, address, 6 * SUBBLOCK_SIZE);
-        DecodeMacroblock1(macroblock, &y_dc, &u_dc, &v_dc, (qscale != 0) ? qtable : nullptr);
+        DecodeMacroblockOB(macroblock, &y_dc, &u_dc, &v_dc, (qscale != 0) ? qtable : nullptr);
         EmitTilesMode2(EmitYUVTileLine, macroblock, address);
 
         address += (2 * 6 * SUBBLOCK_SIZE);
@@ -226,11 +273,11 @@ static u8 clamp_u8(s16 x)
     return (x & (0xff00)) ? ((-x) >> 15) & 0xff : x;
 }
 
-//static s16 clamp_s12(s16 x)
-//{
-//    if (x < -0x800) { x = -0x800; } else if (x > 0x7f0) { x = 0x7f0; }
-//    return x;
-//}
+static s16 clamp_s12(s16 x)
+{
+    if (x < -0x800) { x = -0x800; } else if (x > 0x7f0) { x = 0x7f0; }
+    return x;
+}
 
 static s16 clamp_s16(s32 x)
 {
@@ -361,7 +408,7 @@ static void EmitTilesMode2(const tile_line_emitter_t emit_line, const s16 *macro
     }
 }
 
-static void DecodeMacroblock1(s16 *macroblock, s32 *y_dc, s32 *u_dc, s32 *v_dc, const s16 *qtable)
+static void DecodeMacroblockOB(s16 *macroblock, s32 *y_dc, s32 *u_dc, s32 *v_dc, const s16 *qtable)
 {
 
 	for (int sb = 0; sb < 6; ++sb)
@@ -404,7 +451,7 @@ static void DecodeMacroblock1(s16 *macroblock, s32 *y_dc, s32 *u_dc, s32 *v_dc, 
 	}
 }
 
-static void DecodeMacroblock2(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE])
+static void DecodeMacroblockPS(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE])
 {
     u32 q = 0;
 
@@ -424,8 +471,8 @@ static void DecodeMacroblock2(s16 *macroblock, u32 subblock_count, const s16 qta
     }
 
 }
-/*
-static void DecodeMacroblock3(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE])
+
+static void DecodeMacroblockPS0(s16 *macroblock, u32 subblock_count, const s16 qtables[3][SUBBLOCK_SIZE])
 {
     u32 sb;
     u32 q = 0;
@@ -453,7 +500,6 @@ static void DecodeMacroblock3(s16 *macroblock, u32 subblock_count, const s16 qta
         macroblock += SUBBLOCK_SIZE;
     }
 }
-*/
 
 static void TransposeSubBlock(s16 *dst, const s16 *src)
 {
@@ -597,33 +643,22 @@ static void InverseDCTSubBlock(s16 *dst, const s16 *src)
         }
     }
 }
-/*
+
 static void RescaleYSubBlock(s16 *dst, const s16 *src)
 {
-    u32 i;
-
-    for (i = 0; i < SUBBLOCK_SIZE; ++i)
+    for (u32 i = 0; i < SUBBLOCK_SIZE; ++i)
     {
-#if 0
         dst[i] = (((u32)(clamp_s12(src[i]) + 0x800) * 0xdb0) >> 16) + 0x10;
-#else
-        // FIXME: ! DIRTY HACK ! (compensate for too dark pictures)
-        dst[i] = (((u32)(clamp_s12(src[i]) + 0x800) * 0xdb0) >> 16) + 0x50;
-#endif
     }
 }
 
 static void RescaleUVSubBlock(s16 *dst, const s16 *src)
 {
-    u32 i;
-
-    for (i = 0; i < SUBBLOCK_SIZE; ++i)
+    for (u32 i = 0; i < SUBBLOCK_SIZE; ++i)
     {
         dst[i] = (((int)clamp_s12(src[i]) * 0xe00) >> 16) + 0x80;
     }
 }
-*/
-
 
 /* FIXME: assume presence of expansion pack */
 #define MEMMASK 0x7FFFFF
