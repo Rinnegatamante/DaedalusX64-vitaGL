@@ -413,6 +413,7 @@ void BaseRenderer::UpdateViewport()
 	sceGuOffset(vx - (vp_w/2),vy - (vp_h/2));
 	sceGuViewport(vx + vp_x, vy + vp_y, vp_w, vp_h);
 #elif defined(DAEDALUS_VITA)
+	glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 	glViewport(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 #elif defined(DAEDALUS_GL)
 	glViewport(vp_x, (s32)mScreenHeight - (vp_h + vp_y), vp_w, vp_h);
@@ -2022,6 +2023,7 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 
 CRefPtr<CNativeTexture> BaseRenderer::LoadTextureDirectly( const TextureInfo & ti )
 {
+	if (ti.GetFormat() == G_IM_FMT_YUV) CDebugConsole::Get()->Msg(0, "LoadTextureDirectly called with YUV format");
 	CRefPtr<CNativeTexture> texture = CTextureCache::Get()->GetOrCreateTexture( ti );
 #ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( texture, "texture is nullptr" );
