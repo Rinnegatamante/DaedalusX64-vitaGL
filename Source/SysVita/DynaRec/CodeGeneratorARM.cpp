@@ -367,6 +367,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateBranchIfNotEqual( const u32 * p_var, u3
 //	Generates instruction handler for the specified op code.
 //	Returns a jump location if an exception handler is required
 //*****************************************************************************
+
+uint32_t unhandled_op[64] = {};
+
 CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool branch_delay_slot, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump)
 {
 	u32 address = ti.Address;
@@ -437,6 +440,18 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_LUI:	GenerateLUI( rt, s16( op_code.immediate ) ); handled = true; break;
 
 		case OP_CACHE:	handled = GenerateCACHE( base, op_code.immediate, rt ); exception = !handled; break;
+
+		case OP_REGIMM:
+			switch( op_code.regimm_op )
+			{
+				// These can be handled by the same Generate function, as the 'likely' bit is handled elsewhere
+				case RegImmOp_BLTZ:
+				case RegImmOp_BLTZL: GenerateBLTZ( rs, p_branch, p_branch_jump ); handled = true; break;
+
+				case RegImmOp_BGEZ:
+				case RegImmOp_BGEZL: GenerateBGEZ( rs, p_branch, p_branch_jump ); handled = true; break;
+			}
+			break;
 
 		case OP_SPECOP:
 			switch( op_code.spec_op )
@@ -518,6 +533,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 	if (!handled)
 	{
+		unhandled_op[op_code.op]++;
+
 		CCodeLabel	no_target( NULL );
 
 		if( R4300_InstructionHandlerNeedsPC( op_code ) )
@@ -1193,6 +1210,54 @@ void CCodeGeneratorARM::GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetail
 	else
 	{
 		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), NE);
+	}
+}
+
+void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	#ifdef DAEDALUS_ENABLE_ASSERTS
+	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
+	#endif
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	MOV_IMM( ArmReg_R1, 0);
+
+	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
+	CMP(ArmReg_R0, ArmReg_R1);
+
+	if( p_branch->ConditionalBranchTaken )
+	{
+		// Flip the sign of the test -
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
+	}
+	else
+	{
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+	}
+}
+
+void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	#ifdef DAEDALUS_ENABLE_ASSERTS
+	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
+	#endif
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	MOV_IMM( ArmReg_R1, 0);
+
+	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
+	CMP(ArmReg_R0, ArmReg_R1);
+
+	if( p_branch->ConditionalBranchTaken )
+	{
+		// Flip the sign of the test -
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+	}
+	else
+	{
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
 	}
 }
 
