@@ -326,8 +326,8 @@ static inline void Draw_ObjSprite( const uObjSprite *sprite, ESpriteMode mode, c
 		x3 = mat2D.A*objX + mat2D.B*objH + mat2D.X;
 		y3 = mat2D.C*objX + mat2D.D*objH + mat2D.Y;
 #ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( (sprite->imageFlags&1) == 0, "Need to flip X" );
-		DAEDALUS_ASSERT( (sprite->imageFlags&0x10) == 0, "Need to flip Y" );
+		DAEDALUS_ASSERT((sprite->imageFlags & 1) == 0, "Need to flip X" );
+		DAEDALUS_ASSERT((sprite->imageFlags & 0x10) == 0, "Need to flip Y" );
 #endif
 		gRenderer->Draw2DTextureR(x0, y0, x1, y1, x2, y2, x3, y3, imageW, imageH);
 		break;
@@ -349,10 +349,10 @@ static inline void Draw_ObjSprite( const uObjSprite *sprite, ESpriteMode mode, c
 		y1 = objH - 1.0f;
 
 		// Used by Worms
-		if( sprite->imageFlags&1 )
+		if (sprite->imageFlags & 1)
 			Swap< f32 >( x0, x1 );
 
-		if( sprite->imageFlags&0x10 )
+		if (sprite->imageFlags & 0x10)
 			Swap< f32 >( y0, y1 );
 
 		gRenderer->Draw2DTexture(x0, y0, x1, y1, 0, 0, imageW, imageH, texture);
@@ -585,8 +585,6 @@ static u16 YUVtoRGBA(u8 y, u8 u, u8 v)
 //Ogre Battle needs to copy YUV texture to frame buffer
 void DLParser_OB_YUV(const uObjSprite *sprite)
 {
-	static uint32_t idx = 0;
-	
 	f32 imageW = sprite->imageW / 32.0f;
 	f32 imageH = sprite->imageH / 32.0f;
 	f32 scaleW = sprite->scaleW / 1024.0f;
