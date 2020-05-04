@@ -326,8 +326,8 @@ static inline void Draw_ObjSprite( const uObjSprite *sprite, ESpriteMode mode, c
 		x3 = mat2D.A*objX + mat2D.B*objH + mat2D.X;
 		y3 = mat2D.C*objX + mat2D.D*objH + mat2D.Y;
 #ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( (sprite->imageFlags&1) == 0, "Need to flip X" );
-		DAEDALUS_ASSERT( (sprite->imageFlags&0x10) == 0, "Need to flip Y" );
+		DAEDALUS_ASSERT((sprite->imageFlags & 1) == 0, "Need to flip X" );
+		DAEDALUS_ASSERT((sprite->imageFlags & 0x10) == 0, "Need to flip Y" );
 #endif
 		gRenderer->Draw2DTextureR(x0, y0, x1, y1, x2, y2, x3, y3, imageW, imageH);
 		break;
@@ -349,10 +349,10 @@ static inline void Draw_ObjSprite( const uObjSprite *sprite, ESpriteMode mode, c
 		y1 = objH - 1.0f;
 
 		// Used by Worms
-		if( sprite->imageFlags&1 )
+		if (sprite->imageFlags & 1)
 			Swap< f32 >( x0, x1 );
 
-		if( sprite->imageFlags&0x10 )
+		if (sprite->imageFlags & 0x10)
 			Swap< f32 >( y0, y1 );
 
 		gRenderer->Draw2DTexture(x0, y0, x1, y1, 0, 0, imageW, imageH, texture);
@@ -391,16 +391,10 @@ void DLParser_S2DEX_ObjRectangle( MicroCodeCommand command )
 void DLParser_S2DEX_ObjRectangleR( MicroCodeCommand command )
 {
 	uObjSprite *sprite = (uObjSprite*)(g_pu8RamBase + RDPSegAddr(command.inst.cmd1));
+	
 	if (sprite->imageFmt == G_IM_FMT_YUV)
-	{
 		DLParser_OB_YUV(sprite);
-		return;
-	}
-
-	// Would like to find a game that uses this
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR("S2DEX_ObjRectangleR: Check me");
- 	#endif
+	
 	CRefPtr<CNativeTexture> texture = Load_ObjSprite( sprite, gObjTxtr );
 	Draw_ObjSprite( sprite, PARTIAL_ROTATION, texture );
 }
@@ -479,18 +473,29 @@ void DLParser_S2DEX_ObjMoveMem( MicroCodeCommand command )
 void DLParser_S2DEX_ObjLoadTxtr( MicroCodeCommand command )
 {
 	uObjTxtr* ObjTxtr = (uObjTxtr*)(g_pu8RamBase + RDPSegAddr(command.inst.cmd1));
-	if( ObjTxtr->block.type == S2DEX_OBJLT_TLUT )
-	{
-		uObjTxtrTLUT *ObjTlut = (uObjTxtrTLUT*)ObjTxtr;
-
-		// Store TLUT pointer
-		gTlutLoadAddresses[ (ObjTxtr->tlut.phead>>2) & 0x3F ] = (u32*)(g_pu8RamBase + RDPSegAddr(ObjTlut->image));
-		gObjTxtr = NULL;
-	}
-	else // (TXTRBLOCK, TXTRTILE)
-	{
-		// Tile or block are loaded from ObjTxtr
-		gObjTxtr = (uObjTxtr*)ObjTxtr;
+	
+	g_TI.Format		= G_IM_FMT_RGBA;
+	g_TI.Size		= G_IM_SIZ_16b;
+	
+	switch (ObjTxtr->block.type) {
+		case S2DEX_OBJLT_TXTRBLOCK:
+			g_TI.Width		= ObjTxtr->block.tsize + 1;
+			g_TI.Address	= RDPSegAddr(ObjTxtr->block.image);
+			gObjTxtr = (uObjTxtr*)ObjTxtr;
+			break;
+		case S2DEX_OBJLT_TXTRTILE:
+			g_TI.Width		= ObjTxtr->tile.twidth + 1;
+			g_TI.Address	= RDPSegAddr(ObjTxtr->tile.image);
+			gObjTxtr = (uObjTxtr*)ObjTxtr;
+			break;
+		case S2DEX_OBJLT_TLUT:
+			g_TI.Width		= 1;
+			g_TI.Address	= RDPSegAddr(ObjTxtr->tlut.image);
+			gTlutLoadAddresses[ (ObjTxtr->tlut.phead>>2) & 0x3F ] = (u32*)(g_pu8RamBase + RDPSegAddr(ObjTxtr->tlut.image));
+			gObjTxtr = NULL;
+			break;
+		default:
+			break;
 	}
 }
 
@@ -522,7 +527,7 @@ inline void DLParser_Yoshi_MemRect( MicroCodeCommand command )
 
 	if (y1 > scissors.bottom)
 		y1 = scissors.bottom;
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
+#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF ("    MemRect->Addr[0x%08x] (%d, %d -> %d, %d) Width[%d]", tile_addr, x0, y0, mem_rect.x1, y1, g_CI.Width);
 #endif
 #if 1	//1->Optimized, 0->Generic
@@ -567,13 +572,13 @@ static u16 YUVtoRGBA(u8 y, u8 u, u8 v)
 	b *= 0.125f;
 
 	//clipping the result
-	if (r > 32) r = 32;
-	if (g > 32) g = 32;
-	if (b > 32) b = 32;
+	if (r > 31) r = 31;
+	if (g > 31) g = 31;
+	if (b > 31) b = 31;
 	if (r < 0) r = 0;
 	if (g < 0) g = 0;
 	if (b < 0) b = 0;
-
+	
 	return (u16)(((u16)(r) << 11) |((u16)(g) << 6) |((u16)(b) << 1) | 1);
 }
 
@@ -596,7 +601,7 @@ void DLParser_OB_YUV(const uObjSprite *sprite)
 	u32 ci_width = g_CI.Width;
 	u32 ci_height = scissors.bottom;
 
-	if( (ul_x >= ci_width) || (ul_y >= ci_height) )
+	if ((ul_x >= ci_width) || (ul_y >= ci_height))
 		return;
 
 	u32 width = 16;
@@ -605,10 +610,11 @@ void DLParser_OB_YUV(const uObjSprite *sprite)
 	if (lr_x > ci_width)	width = ci_width - ul_x;
 	if (lr_y > ci_height)	height = ci_height - ul_y;
 
-	u32 * mb = (u32*)(g_pu8RamBase + g_TI.Address); //pointer to the first macro block
-	u16 * dst = (u16*)(g_pu8RamBase + g_CI.Address);
+	u32 *mb = (u32*)(g_pu8RamBase + g_TI.Address); //pointer to the first macro block
+	u16 *dst = (u16*)(g_pu8RamBase + g_CI.Address);
 	dst += ul_x + ul_y * ci_width;
-
+	
+	
 	//yuv macro block contains 16x16 texture. we need to put it in the proper place inside cimg
 	for (u16 h = 0; h < 16; h++)
 	{
@@ -617,10 +623,10 @@ void DLParser_OB_YUV(const uObjSprite *sprite)
 			u32 t = *(mb++); //each u32 contains 2 pixels
 			if ((h < height) && (w < width)) //clipping. texture image may be larger than color image
 			{
-				u8 y0 = (u8)t&0xFF;
-				u8 v  = (u8)(t>>8)&0xFF;
-				u8 y1 = (u8)(t>>16)&0xFF;
-				u8 u  = (u8)(t>>24)&0xFF;
+				u8 y0 = (u8)(t      ) & 0xFF;
+				u8 v  = (u8)(t >> 8 ) & 0xFF;
+				u8 y1 = (u8)(t >> 16) & 0xFF;
+				u8 u  = (u8)(t >> 24) & 0xFF;
 				*(dst++) = YUVtoRGBA(y0, u, v);
 				*(dst++) = YUVtoRGBA(y1, u, v);
 			}
@@ -660,7 +666,7 @@ void DLParser_S2DEX_ObjRendermode( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_S2DEX_SelectDl( MicroCodeCommand command )
 {
-				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
+	#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF( "    S2DEX_SelectDl (Ignored)" );
 	#endif
 }
@@ -670,7 +676,7 @@ void DLParser_S2DEX_SelectDl( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_S2DEX_BgCopy( MicroCodeCommand command )
 {
-				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
+#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    DLParser_S2DEX_BgCopy");
 #endif
 	uObjBg *objBg = (uObjBg*)(g_pu8RamBase + RDPSegAddr(command.inst.cmd1));

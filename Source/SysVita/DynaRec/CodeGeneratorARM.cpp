@@ -367,6 +367,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateBranchIfNotEqual( const u32 * p_var, u3
 //	Generates instruction handler for the specified op code.
 //	Returns a jump location if an exception handler is required
 //*****************************************************************************
+
+uint32_t unhandled_op[64] = {};
+
 CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool branch_delay_slot, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump)
 {
 	u32 address = ti.Address;
@@ -422,7 +425,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_SW:		handled = GenerateSW(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SH:		handled = GenerateSH(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SB:		handled = GenerateSB(rt, base, s16(op_code.immediate));   exception = !handled; break;
+		case OP_SD:		handled = GenerateSD(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SWC1:	handled = GenerateSWC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
+		case OP_SDC1:	handled = GenerateSDC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
 
 		case OP_SLTIU: 	GenerateSLTI( rt, rs, s16( op_code.immediate ), true );  handled = true; break;
 		case OP_SLTI:	GenerateSLTI( rt, rs, s16( op_code.immediate ), false ); handled = true; break;
@@ -432,11 +437,25 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_LHU: 	handled = GenerateLHU(rt, base, s16(op_code.immediate));  exception = !handled; break;
 		case OP_LB: 	handled = GenerateLB(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_LBU:	handled = GenerateLBU(rt, base, s16(op_code.immediate));  exception = !handled; break;
+		case OP_LD:		handled = GenerateLD( rt, base, s16(op_code.immediate));  exception = !handled; break;
 		case OP_LWC1:	handled = GenerateLWC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
+		case OP_LDC1:	handled = GenerateLDC1(ft, base, s16(op_code.immediate)); exception = !handled; break;
 
 		case OP_LUI:	GenerateLUI( rt, s16( op_code.immediate ) ); handled = true; break;
 
 		case OP_CACHE:	handled = GenerateCACHE( base, op_code.immediate, rt ); exception = !handled; break;
+
+		case OP_REGIMM:
+			switch( op_code.regimm_op )
+			{
+				// These can be handled by the same Generate function, as the 'likely' bit is handled elsewhere
+				case RegImmOp_BLTZ:
+				case RegImmOp_BLTZL: GenerateBLTZ( rs, p_branch, p_branch_jump ); handled = true; break;
+
+				case RegImmOp_BGEZ:
+				case RegImmOp_BGEZL: GenerateBGEZ( rs, p_branch, p_branch_jump ); handled = true; break;
+			}
+			break;
 
 		case OP_SPECOP:
 			switch( op_code.spec_op )
@@ -518,6 +537,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 	if (!handled)
 	{
+		unhandled_op[op_code.op]++;
+
 		CCodeLabel	no_target( NULL );
 
 		if( R4300_InstructionHandlerNeedsPC( op_code ) )
@@ -624,24 +645,31 @@ inline void CCodeGeneratorARM::GenerateLoad( EN64Reg base, s16 offset, u8 twiddl
 
 		LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 
-		if( !(offset & ~0x3FC) )
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset >> 2, 0xF);
-		else if(offset < 0x100)
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset);
-		else
-			MOV32(ArmReg_R2, (u32)g_pu8RamBase_8000 + offset);
-		
-		ADD(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+		ADD(ArmReg_R1, ArmReg_R1, ArmReg_R10);
+
+		if(abs(offset) >> 8)
+		{
+			if(offset > 0)
+			{
+				ADD_IMM(ArmReg_R1, ArmReg_R1, abs(offset) >> 8, 0xC);
+				offset = abs(offset) & 0xFF;
+			}
+			else
+			{
+				SUB_IMM(ArmReg_R1, ArmReg_R1, abs(offset) >> 8, 0xC);
+				offset = -(abs(offset) & 0xFF);
+			}
+		}
 
 		switch(bits)
 		{
-			case 32:	LDR(ArmReg_R0, ArmReg_R1, 0); break;
+			case 32:	LDR(ArmReg_R0, ArmReg_R1, offset); break;
 
-			case 16:	if(is_signed)	{ LDRSH(ArmReg_R0, ArmReg_R1, 0); }
-						else			{ LDRH (ArmReg_R0, ArmReg_R1, 0); } break; 
+			case 16:	if(is_signed)	{ LDRSH(ArmReg_R0, ArmReg_R1, offset); }
+						else			{ LDRH (ArmReg_R0, ArmReg_R1, offset); } break; 
 
-			case 8:		if(is_signed)	{ LDRSB(ArmReg_R0, ArmReg_R1, 0); }
-						else			{ LDRB (ArmReg_R0, ArmReg_R1, 0); } break; 
+			case 8:		if(is_signed)	{ LDRSB(ArmReg_R0, ArmReg_R1, offset); }
+						else			{ LDRB (ArmReg_R0, ArmReg_R1, offset); } break; 
 		}
 
 		
@@ -666,6 +694,18 @@ bool CCodeGeneratorARM::GenerateLW( EN64Reg rt, EN64Reg base, s16 offset )
 		
 	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	return true;
+}
+
+//Load Double Word
+bool CCodeGeneratorARM::GenerateLD( EN64Reg rt, EN64Reg base, s16 offset )
+{
+	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	GenerateLoad( base, offset + 4, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
 	return true;
 }
@@ -725,6 +765,17 @@ bool CCodeGeneratorARM::GenerateLWC1( u32 ft, EN64Reg base, s16 offset )
 	return true;
 }
 
+bool CCodeGeneratorARM::GenerateLDC1( u32 ft, EN64Reg base, s16 offset )
+{
+	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+
+	GenerateLoad( base, offset + 4, 0, 32, false, (void*)Read32Bits );
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+
+	return true;
+}
+
 //Load Upper Immediate
 void CCodeGeneratorARM::GenerateLUI( EN64Reg rt, s16 immediate )
 {
@@ -750,20 +801,27 @@ inline void CCodeGeneratorARM::GenerateStore( EN64Reg base, s16 offset, u8 twidd
 
 		LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 
-		if( !(offset & ~0x3FC) )
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset >> 2, 0xF);
-		else if(offset < 0x100)
-			ADD_IMM(ArmReg_R2, ArmReg_R10, offset);
-		else
-			MOV32(ArmReg_R2, (u32)g_pu8RamBase_8000 + offset);
+		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R10);
 
-		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+		if(abs(offset) >> 8)
+		{
+			if(offset > 0)
+			{
+				ADD_IMM(ArmReg_R0, ArmReg_R0, abs(offset) >> 8, 0xC);
+				offset = abs(offset) & 0xFF;
+			}
+			else
+			{
+				SUB_IMM(ArmReg_R0, ArmReg_R0, abs(offset) >> 8, 0xC);
+				offset = -(abs(offset) & 0xFF);
+			}
+		}
 
 		switch(bits)
 		{
-			case 32:	STR (ArmReg_R1, ArmReg_R0, 0); break;
-			case 16:	STRH(ArmReg_R1, ArmReg_R0, 0); break; 
-			case 8:		STRB(ArmReg_R1, ArmReg_R0, 0); break; 
+			case 32:	STR (ArmReg_R1, ArmReg_R0, offset); break;
+			case 16:	STRH(ArmReg_R1, ArmReg_R0, offset); break; 
+			case 8:		STRB(ArmReg_R1, ArmReg_R0, offset); break; 
 		}
 	}
 	else
@@ -785,6 +843,16 @@ bool CCodeGeneratorARM::GenerateSWC1( u32 ft, EN64Reg base, s16 offset )
 	return true;
 }
 
+bool CCodeGeneratorARM::GenerateSDC1( u32 ft, EN64Reg base, s16 offset )
+{
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+	GenerateStore( base, offset, 0, 32, (void*)Write32Bits );
+
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	GenerateStore( base, offset + 4, 0, 32, (void*)Write32Bits );
+	return true;
+}
+
 bool CCodeGeneratorARM::GenerateSW( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
@@ -793,6 +861,16 @@ bool CCodeGeneratorARM::GenerateSW( EN64Reg rt, EN64Reg base, s16 offset )
 	return true;
 }
 
+bool CCodeGeneratorARM::GenerateSD( EN64Reg rt, EN64Reg base, s16 offset )
+{
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	GenerateStore( base, offset, 0, 32, (void*)Write32Bits );
+
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	GenerateStore( base, offset + 4, 0, 32, (void*)Write32Bits );
+
+	return true;
+}
 
 bool CCodeGeneratorARM::GenerateSH( EN64Reg rt, EN64Reg base, s16 offset )
 {
@@ -1179,6 +1257,54 @@ void CCodeGeneratorARM::GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetail
 	else
 	{
 		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), NE);
+	}
+}
+
+void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	#ifdef DAEDALUS_ENABLE_ASSERTS
+	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
+	#endif
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	MOV_IMM( ArmReg_R1, 0);
+
+	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
+	CMP(ArmReg_R0, ArmReg_R1);
+
+	if( p_branch->ConditionalBranchTaken )
+	{
+		// Flip the sign of the test -
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
+	}
+	else
+	{
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+	}
+}
+
+void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	#ifdef DAEDALUS_ENABLE_ASSERTS
+	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
+	#endif
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	MOV_IMM( ArmReg_R1, 0);
+
+	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
+	CMP(ArmReg_R0, ArmReg_R1);
+
+	if( p_branch->ConditionalBranchTaken )
+	{
+		// Flip the sign of the test -
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+	}
+	else
+	{
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
 	}
 }
 

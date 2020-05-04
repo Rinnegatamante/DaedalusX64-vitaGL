@@ -92,16 +92,20 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				void	GenerateStore( EN64Reg base, s16 offset, u8 twiddle, u8 bits, void* p_write_memory );
 				bool	GenerateSW(EN64Reg rt, EN64Reg base, s16 offset );
 				bool	GenerateSWC1( u32 ft, EN64Reg base, s16 offset );
+				bool	GenerateSDC1( u32 ft, EN64Reg base, s16 offset );
 				bool	GenerateSH( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateSD( EN64Reg rt, EN64Reg base, s16 offset );
 				bool	GenerateSB( EN64Reg rt, EN64Reg base, s16 offset );
 
 				void	GenerateLoad( EN64Reg base, s16 offset, u8 twiddle, u8 bits, bool is_signed, void* p_read_memory );
-				bool	GenerateLW(EN64Reg rt, EN64Reg base, s16 offset );
-				bool	GenerateLB(EN64Reg rt, EN64Reg base, s16 offset );
-				bool	GenerateLBU(EN64Reg rt, EN64Reg base, s16 offset );
-				bool	GenerateLH(EN64Reg rt, EN64Reg base, s16 offset );
-				bool	GenerateLHU(EN64Reg rt, EN64Reg base, s16 offset );
-				bool	GenerateLWC1(u32 ft, EN64Reg base, s16 offset );
+				bool	GenerateLW( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateLD( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateLB( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateLBU( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateLH( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateLHU( EN64Reg rt, EN64Reg base, s16 offset );
+				bool	GenerateLWC1( u32 ft, EN64Reg base, s16 offset );
+				bool	GenerateLDC1( u32 ft, EN64Reg base, s16 offset );
 				void	GenerateLUI( EN64Reg rt, s16 immediate );
 
 				void	GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate );
@@ -146,6 +150,8 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				//Branch
 				void	GenerateBEQ( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
 				void	GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
+				void 	GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
+				void 	GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump );
 
 				// CoPro1
 				void	GenerateADD_S( u32 fd, u32 fs, u32 ft );

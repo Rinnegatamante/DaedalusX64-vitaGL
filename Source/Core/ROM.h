@@ -146,7 +146,7 @@ struct RomInfo
 			u32			DISABLE_LBU_OPT:1;		//Disable memory optimation for
 			u32			DISABLE_SIM_CVT_D_S:1;	//Hack to disable sim-CVT_D_S
 			u32			SET_ROUND_MODE:1;		//Hack to set rounding mode for the PSP
-			u32			PROJ_HACK:1;	        //Hack to vertical flip orjection matrix
+			u32			PROJ_HACK:1;	        //Hack to vertical flip projection matrix
 			u32			Pad9:1;	//free
 			u32			PadA:1;	//free
 			u32			PadB:1;	//free

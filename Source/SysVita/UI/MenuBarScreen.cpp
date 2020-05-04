@@ -38,6 +38,7 @@ int aspect_ratio = RATIO_16_9;
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
+extern bool wait_rendering;
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
 
@@ -79,6 +80,11 @@ void SetupVFlux() {
 	vertices[11]=   0.0f;
 }
 
+void SetDescription(const char *text) {
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip(text);
+}
+
 void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
@@ -86,9 +92,11 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
 		}
+		SetDescription("Limits framerate to the one running game is supposed to have.");
 		if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled)){
 			gDynarecEnabled = !gDynarecEnabled;
 		}
+		SetDescription("Enables dynamic recompilation for better performances.");
 		if (ImGui::BeginMenu("Frameskip")){
 			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
 				gFrameskipValue = FV_DISABLED;
@@ -128,20 +136,30 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
-		if (ImGui::MenuItem("vFlux Config", nullptr, vflux_window)){
+		SetDescription("Forces bilinear filtering on every texture.");
+		ImGui::Separator();
+		if (ImGui::MenuItem("vFlux", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
 		}
+		SetDescription("Blends a color filter on screen depending on daytime.");
 		if (ImGui::MenuItem("V-Sync", nullptr, use_vsync)){
 			use_vsync = use_vsync == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglWaitVblankStart(use_vsync);
 		}
+		ImGui::Separator();
 		if (ImGui::MenuItem("Use VRAM", nullptr, use_cdram)){
 			use_cdram = use_cdram == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglUseVram(use_cdram);
 		}
+		SetDescription("Enables VRAM usage for textures storing.");
 		if (ImGui::MenuItem("Clear Depth Buffer", nullptr, gClearDepthFrameBuffer)){
 			gClearDepthFrameBuffer = !gClearDepthFrameBuffer;
 		}
+		SetDescription("Enables depth buffer clear at every frame. May solve some glitches.");
+		if (ImGui::MenuItem("Wait Rendering Done", nullptr, wait_rendering)){
+			wait_rendering = !wait_rendering;
+		}
+		SetDescription("Makes CPU wait GPU rendering end before elaborating the next frame.\nReduces artifacting at the cost of performances.");
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Audio")){
