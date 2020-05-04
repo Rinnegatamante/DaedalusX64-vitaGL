@@ -51,11 +51,16 @@ struct ScePspFMatrix4
 	float m[16];
 };
 
+extern float *gVertexBuffer;
+extern uint32_t *gColorBuffer;
+extern float *gTexCoordBuffer;
+
 #include <vitaGL.h>
 extern void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx);
 #define GU_PROJECTION GL_PROJECTION
 #endif
 
+#ifndef DAEDALUS_VITA
 // Vertex allocation.
 // AllocVerts/FreeVerts:
 //   Allocate vertices whose lifetime must extend beyond the current scope.
@@ -71,7 +76,7 @@ struct TempVerts
 
 	~TempVerts()
 	{
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_GL)
 		free(Verts);
 #endif
 	}
@@ -82,7 +87,7 @@ struct TempVerts
 #ifdef DAEDALUS_PSP
 		Verts = static_cast<DaedalusVtx*>(sceGuGetMemory(bytes));
 #endif
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_GL)
 		Verts = static_cast<DaedalusVtx*>(malloc(bytes));
 #endif
 
@@ -93,9 +98,7 @@ struct TempVerts
 	DaedalusVtx *	Verts;
 	u32				Count {};
 };
-
-
-
+#endif
 
 extern "C"
 {
@@ -525,8 +528,14 @@ void BaseRenderer::FlushTris()
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( mNumIndices, "Call to FlushTris() with nothing to render" );
 	#endif
+	#ifdef DAEDALUS_VITA
+	float *vtx;
+	float *tex;
+	uint32_t *clr;
+	uint32_t count = 0;
+	#else
 	TempVerts temp_verts;
-
+	#endif
 	// If any bit is set here it means we have to clip the trianlges since PSP HW clipping sux!
 #ifdef DAEDALUS_PSP
 	if(mVtxClipFlagsUnion != 0)
@@ -536,11 +545,19 @@ void BaseRenderer::FlushTris()
 	else
 #endif
 	{
+		#ifdef DAEDALUS_VITA
+		count = PrepareTrisUnclipped( &vtx, &tex, &clr );
+		#else
 		PrepareTrisUnclipped( &temp_verts );
+		#endif
 	}
 
 	// No vertices to render? //Corn
+#ifdef DAEDALUS_VITA
+	if( count == 0 )
+#else
 	if( temp_verts.Count == 0 )
+#endif
 	{
 		mNumIndices = 0;
 		mVtxClipFlagsUnion = 0;
@@ -575,8 +592,11 @@ void BaseRenderer::FlushTris()
 	#endif
 	//
 	//	Render out our vertices
+#ifdef DAEDALUS_VITA
+	RenderTriangles( vtx, tex, clr, count, gRDPOtherMode.depth_source ? true : false );
+#else
 	RenderTriangles( temp_verts.Verts, temp_verts.Count, gRDPOtherMode.depth_source ? true : false );
-
+#endif
 	mNumIndices = 0;
 	mVtxClipFlagsUnion = 0;
 }
@@ -723,7 +743,7 @@ namespace
 
 
 //
-
+#ifndef DAEDALUS_VITA
 void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 {
 	DAEDALUS_PROFILE( "BaseRenderer::PrepareTrisClipped" );
@@ -852,19 +872,23 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 		memcpy( p_vertices, clip_vtx, num_vertices * sizeof(DaedalusVtx) );	//std memcpy() is as fast as VFPU here!
 	}
 }
-
+#endif
 
 //
-
+#ifdef DAEDALUS_VITA
+uint32_t BaseRenderer::PrepareTrisUnclipped( float **vtx, float **tex, uint32_t **clr ) const
+#else
 void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
+#endif
 {
 	DAEDALUS_PROFILE( "BaseRenderer::PrepareTrisUnclipped" );
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( mNumIndices > 0, "The number of indices should have been checked" );
 	#endif
 	const u32		num_vertices = mNumIndices;
+#ifndef DAEDALUS_VITA
 	DaedalusVtx *	p_vertices   = temp_verts->Alloc(num_vertices);
-
+#endif
 	//
 	//	Previously this code set up an index buffer to avoid processing the
 	//	same vertices more than once - we avoid this now as there is apparently
@@ -880,7 +904,27 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 	//
 	//	Now we just shuffle all the data across directly (potentially duplicating verts)
 	//
-	for( u32 i {}; i < num_vertices; ++i )
+#ifdef DAEDALUS_VITA
+	*vtx = gVertexBuffer;
+	*tex = gTexCoordBuffer;
+	*clr = gColorBuffer;
+	for( u32 i = 0; i < num_vertices; ++i )
+	{
+		u32 index = mIndexBuffer[ i ];
+		
+		gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
+		gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
+		gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.x;
+		gTexCoordBuffer[0] = mVtxProjected[ index ].Texture.x;
+		gTexCoordBuffer[1] = mVtxProjected[ index ].Texture.y;
+		gColorBuffer[0] = c32(mVtxProjected[ index ].Colour).GetColour();
+		gVertexBuffer += 3;
+		gColorBuffer++;
+		gTexCoordBuffer += 2;
+	}
+	return num_vertices;
+#else
+	for( u32 i = 0; i < num_vertices; ++i )
 	{
 		u32 index = mIndexBuffer[ i ];
 
@@ -890,7 +934,8 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 		p_vertices[ i ].Position.y = mVtxProjected[ index ].TransformedPos.y;
 		p_vertices[ i ].Position.z = mVtxProjected[ index ].TransformedPos.z;
 	}
- #endif
+#endif
+#endif
 }
 
 

@@ -37,7 +37,7 @@ void	CColourAdjuster::Reset()
 //*****************************************************************************
 //
 //*****************************************************************************
-void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
+void CColourAdjuster::Process( uint32_t * p_vertices, u32 num_verts ) const
 {
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( (mSetMask & mModulateMask & mSubtractMask) == 0, "Setting and modulating the same component" );
@@ -49,9 +49,9 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 
 		case COL32_MASK_RGBA:
 			{
-				for(u32 v {} ; v < num_verts; v++)
+				for(u32 v = 0 ; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = mSetColour;
+					p_vertices[v] = mSetColour.GetColour();
 				}
 			}
 		break;
@@ -61,9 +61,9 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 				u32		clear_bits {~mSetMask};
 				u32		set_bits {mSetColour.GetColour() & mSetMask};
 
-				for(u32 v {}; v < num_verts; v++)
+				for(u32 v = 0; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = c32( (p_vertices[v].Colour.GetColour() & clear_bits) | set_bits );
+					p_vertices[v] = (p_vertices[v] & clear_bits) | set_bits;
 				}
 			}
 		break;
@@ -75,7 +75,7 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 			{
 				for(u32 v {}; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = p_vertices[v].Colour.SubRGB( mSubtractColour );
+					p_vertices[v] = c32(p_vertices[v]).SubRGB( mSubtractColour ).GetColour();
 				}
 			}
 		break;
@@ -84,7 +84,7 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 			{
 				for(u32 v {}; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = p_vertices[v].Colour.SubA( mSubtractColour );
+					p_vertices[v] = c32(p_vertices[v]).SubA( mSubtractColour ).GetColour();
 				}
 			}
 		break;
@@ -93,7 +93,7 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 			{
 				for(u32 v = 0; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = p_vertices[v].Colour.Sub( mSubtractColour );
+					p_vertices[v] = c32(p_vertices[v]).Sub( mSubtractColour ).GetColour();
 				}
 			}
 		break;
@@ -105,7 +105,7 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 			{
 				for(u32 v = 0; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = p_vertices[v].Colour.ModulateRGB( mModulateColour );
+					p_vertices[v] = c32(p_vertices[v]).ModulateRGB( mModulateColour ).GetColour();
 				}
 			}
 		break;
@@ -114,7 +114,7 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 			{
 				for(u32 v {}; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = p_vertices[v].Colour.ModulateA( mModulateColour );
+					p_vertices[v] = c32(p_vertices[v]).ModulateA( mModulateColour ).GetColour();
 				}
 			}
 		break;
@@ -123,7 +123,7 @@ void CColourAdjuster::Process( DaedalusVtx * p_vertices, u32 num_verts ) const
 			{
 				for(u32 v {}; v < num_verts; v++)
 				{
-					p_vertices[v].Colour = p_vertices[v].Colour.Modulate( mModulateColour );
+					p_vertices[v] = c32(p_vertices[v]).Modulate( mModulateColour ).GetColour();
 				}
 			}
 		break;

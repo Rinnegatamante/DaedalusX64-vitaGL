@@ -281,24 +281,7 @@ RendererVita::SBlendStateEntry RendererVita::LookupBlendState( u64 mux, bool two
 	return entry;
 }
 
-void RendererVita::DrawPrimitives(DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode)
-{
-	glEnableClientState(GL_COLOR_ARRAY);
-	float *vtx_ptr = gVertexBuffer;
-	for (uint32_t i = 0; i < num_vertices; i++) {
-		gVertexBuffer[0] = p_vertices[i].Position.x;
-		gVertexBuffer[1] = p_vertices[i].Position.y;
-		gVertexBuffer[2] = p_vertices[i].Position.z;
-		gColorBuffer[i] = p_vertices[i].Colour.GetColour();
-		gVertexBuffer += 3;
-	}
-	vglVertexPointerMapped(vtx_ptr);
-	vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
-	vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
-	gColorBuffer += num_vertices;
-}
-
-void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode)
+void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode)
 {
 	const CAlphaRenderSettings *	alpha_settings( states->GetAlphaSettings() );
 
@@ -322,14 +305,6 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 	}*/
 	
 	glEnableClientState(GL_COLOR_ARRAY);
-	float *vtx_ptr = gVertexBuffer;
-	for (uint32_t i = 0; i < num_vertices; i++) {
-		gVertexBuffer[0] = p_vertices[i].Position.x;
-		gVertexBuffer[1] = p_vertices[i].Position.y;
-		gVertexBuffer[2] = p_vertices[i].Position.z;
-		gVertexBuffer += 3;
-	}
-	vglVertexPointerMapped(vtx_ptr);
 
 	for( u32 i {}; i < states->GetNumStates(); ++i )
 	{
@@ -445,10 +420,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 		}
 		
-		for (uint32_t i = 0; i < num_vertices; i++) {
-			gColorBuffer[i] = p_vertices[i].Colour.GetColour();
-		}
-		vglColorPointerMapped(GL_UNSIGNED_BYTE, gColorBuffer);
+		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
 		gColorBuffer += num_vertices;
 		
 		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
@@ -461,7 +433,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, Daeda
 }
 
 
-void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer )
+void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer )
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
@@ -594,7 +566,8 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 		else*/
 		{
 			details.ColourAdjuster.Process(p_vertices, num_vertices);
-			DrawPrimitives(p_vertices, num_vertices, triangle_mode);
+			vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
+			vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 		}
 	}
 	else if( blend_entry.States != nullptr )
@@ -608,20 +581,21 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], D
 		DAEDALUS_ERROR( "Unhandled blend mode" );
 		#endif
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		DrawPrimitives(p_vertices, num_vertices, triangle_mode);
+		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
+		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 	}
 
 }
 
-void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bool disable_zbuffer)
+void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
 {
 	if (mTnL.Flags.Texture)
 	{
+		vglTexCoordPointerMapped(texcoord);
+		
 		UpdateTileSnapshots( mTextureTile );
 		
 		CNativeTexture *texture = mBoundTexture[0];
-		
-		float *vtx_tex = gTexCoordBuffer;
 		
 		if( texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) )
 		{
@@ -635,26 +609,18 @@ void RendererVita::RenderTriangles(DaedalusVtx *p_vertices, u32 num_vertices, bo
 				scale_x *= 0.5f;
 				scale_y *= 0.5f;
 			}
-				
-			for (u32 i = 0; i < num_vertices; ++i)
-			{
-				gTexCoordBuffer[0] = (p_vertices[i].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
-				gTexCoordBuffer[1] = (p_vertices[i].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
-				gTexCoordBuffer += 2;
-			}	
-		} else {
-			for (u32 i = 0; i < num_vertices; ++i)
-			{
-				gTexCoordBuffer[0] = p_vertices[i].Texture.x;
-				gTexCoordBuffer[1] = p_vertices[i].Texture.y;
-				gTexCoordBuffer += 2;
-			}
-		}
 			
-		vglTexCoordPointerMapped(vtx_tex);
+			float *vtx_tex = texcoord;	
+			for (u32 i = 0; i < num_vertices; ++i)
+			{
+				vtx_tex[0] = (vtx_tex[0] * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
+				vtx_tex[1] = (vtx_tex[1] * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
+				vtx_tex += 2;
+			}	
+		}
 	}
-	
-	RenderUsingCurrentBlendMode(gProjection.m, p_vertices, num_vertices, GL_TRIANGLES, disable_zbuffer);
+	vglVertexPointerMapped(vertices);
+	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer);
 }
 
 void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
@@ -692,30 +658,26 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gTexCoordBuffer += 8;
 	
-	DaedalusVtx * p_vertices = static_cast<DaedalusVtx *>(malloc(4 * sizeof(DaedalusVtx)));
+	gVertexBuffer[0] = screen0.x;
+	gVertexBuffer[1] = screen0.y;
+	gVertexBuffer[2] = depth;
+	gVertexBuffer[3] = screen1.x;
+	gVertexBuffer[4] = screen0.y;
+	gVertexBuffer[5] = depth;
+	gVertexBuffer[6] = screen0.x;
+	gVertexBuffer[7] = screen1.y;
+	gVertexBuffer[8] = depth;
+	gVertexBuffer[9] = screen1.x;
+	gVertexBuffer[10] = screen1.y;
+	gVertexBuffer[11] = depth;
+	vglVertexPointerMapped(gVertexBuffer);
+	gVertexBuffer += 12;
 	
-	p_vertices[0].Position.x = screen0.x;
-	p_vertices[0].Position.y = screen0.y;
-	p_vertices[0].Position.z = depth;
-	p_vertices[0].Colour = c32(0xffffffff);
-
-	p_vertices[1].Position.x = screen1.x;
-	p_vertices[1].Position.y = screen0.y;
-	p_vertices[1].Position.z = depth;
-	p_vertices[1].Colour = c32(0xffffffff);
-
-	p_vertices[2].Position.x = screen0.x;
-	p_vertices[2].Position.y = screen1.y;
-	p_vertices[2].Position.z = depth;
-	p_vertices[2].Colour = c32(0xffffffff);
-
-	p_vertices[3].Position.x = screen1.x;
-	p_vertices[3].Position.y = screen1.y;
-	p_vertices[3].Position.z = depth;
-	p_vertices[3].Colour = c32(0xffffffff);
+	uint32_t *p_vertices = gColorBuffer;
+	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
+	gColorBuffer += 4;
 
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true);
-	free(p_vertices);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
@@ -736,8 +698,6 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
 
-	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
-
 	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x {texture->GetScaleX()};
 	float scale_y {texture->GetScaleY()};
@@ -754,30 +714,26 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gTexCoordBuffer += 8;
 	
-	DaedalusVtx * p_vertices = static_cast<DaedalusVtx *>(malloc(4 * sizeof(DaedalusVtx)));
-
-	p_vertices[0].Position.x = screen0.x;
-	p_vertices[0].Position.y = screen0.y;
-	p_vertices[0].Position.z = 0.0f;
-	p_vertices[0].Colour = c32(0xffffffff);
-
-	p_vertices[1].Position.x = screen1.x;
-	p_vertices[1].Position.y = screen0.y;
-	p_vertices[1].Position.z = 0.0f;
-	p_vertices[1].Colour = c32(0xffffffff);;
-
-	p_vertices[2].Position.x = screen0.x;
-	p_vertices[2].Position.y = screen1.y;
-	p_vertices[2].Position.z = 0.0f;
-	p_vertices[2].Colour = c32(0xffffffff);
-
-	p_vertices[3].Position.x = screen1.x;
-	p_vertices[3].Position.y = screen1.y;
-	p_vertices[3].Position.z = 0.0f;
-	p_vertices[3].Colour = c32(0xffffffff);
+	gVertexBuffer[0] = screen0.x;
+	gVertexBuffer[1] = screen0.y;
+	gVertexBuffer[2] = 0.0f;
+	gVertexBuffer[3] = screen1.x;
+	gVertexBuffer[4] = screen0.y;
+	gVertexBuffer[5] = 0.0f;
+	gVertexBuffer[6] = screen0.x;
+	gVertexBuffer[7] = screen1.y;
+	gVertexBuffer[8] = 0.0f;
+	gVertexBuffer[9] = screen1.x;
+	gVertexBuffer[10] = screen1.y;
+	gVertexBuffer[11] = 0.0f;
+	vglVertexPointerMapped(gVertexBuffer);
+	gVertexBuffer += 12;
+	
+	uint32_t *p_vertices = gColorBuffer;
+	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
+	gColorBuffer += 4;
 
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true);
-	free(p_vertices);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
@@ -788,33 +744,27 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
 	
-	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
+	gVertexBuffer[0] = screen0.x;
+	gVertexBuffer[1] = screen0.y;
+	gVertexBuffer[2] = 0.0f;
+	gVertexBuffer[3] = screen1.x;
+	gVertexBuffer[4] = screen0.y;
+	gVertexBuffer[5] = 0.0f;
+	gVertexBuffer[6] = screen0.x;
+	gVertexBuffer[7] = screen1.y;
+	gVertexBuffer[8] = 0.0f;
+	gVertexBuffer[9] = screen1.x;
+	gVertexBuffer[10] = screen1.y;
+	gVertexBuffer[11] = 0.0f;
+	vglVertexPointerMapped(gVertexBuffer);
+	gVertexBuffer += 12;
 	
-	DaedalusVtx * p_vertices = static_cast<DaedalusVtx *>(malloc(4 * sizeof(DaedalusVtx)));
-	
-	p_vertices[0].Position.x = screen0.x;
-	p_vertices[0].Position.y = screen0.y;
-	p_vertices[0].Position.z = 0.0f;
-	p_vertices[0].Colour = c32(color);
-
-	p_vertices[1].Position.x = screen1.x;
-	p_vertices[1].Position.y = screen0.y;
-	p_vertices[1].Position.z = 0.0f;
-	p_vertices[1].Colour = c32(color);
-
-	p_vertices[2].Position.x = screen0.x;
-	p_vertices[2].Position.y = screen1.y;
-	p_vertices[2].Position.z = 0.0f;
-	p_vertices[2].Colour = c32(color);
-
-	p_vertices[3].Position.x = screen1.x;
-	p_vertices[3].Position.y = screen1.y;
-	p_vertices[3].Position.z = 0.0f;
-	p_vertices[3].Colour = c32(color);
+	uint32_t *p_vertices = gColorBuffer;
+	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = color;
+	gColorBuffer += 4;
 	
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true);
-	free(p_vertices);
 }
 
 void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,

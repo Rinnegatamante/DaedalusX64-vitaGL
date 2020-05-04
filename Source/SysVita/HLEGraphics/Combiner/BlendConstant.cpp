@@ -84,7 +84,9 @@ void CBlendConstantExpressionValue::ApplyExpressionRGB( const SRenderState & sta
 		c32		new_colour( EvaluateConstant( state.PrimitiveColour, state.EnvironmentColour ) );
 		for( u32 i = 0; i < state.NumVertices; ++i )
 		{
-			state.Vertices[ i ].Colour.SetBits( new_colour, c32::MASK_RGB );
+			c32 tmp = c32(state.Vertices[ i ]);
+			tmp.SetBits( new_colour, c32::MASK_RGB );
+			state.Vertices[ i ] = tmp.GetColour();
 		}
 	}
 }
@@ -97,7 +99,9 @@ void CBlendConstantExpressionValue::ApplyExpressionAlpha( const SRenderState & s
 		c32		new_colour( EvaluateConstant( state.PrimitiveColour, state.EnvironmentColour ) );
 		for( u32 i = 0; i < state.NumVertices; ++i )
 		{
-			state.Vertices[ i ].Colour.SetBits( new_colour, c32::MASK_A );
+			c32 tmp = c32(state.Vertices[ i ]);
+			tmp.SetBits( new_colour, c32::MASK_A );
+			state.Vertices[ i ] = tmp.GetColour();
 		}
 	}
 }
@@ -162,7 +166,9 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionRGB( const SRenderState & 
 		c32	col( ColOp::Process( a, b ) );
 		for( u32 i = 0; i < state.NumVertices; ++i )
 		{
-			state.Vertices[ i ].Colour.SetBits( col, c32::MASK_RGB );
+			c32 tmp = c32(state.Vertices[ i ]);
+			tmp.SetBits( col, c32::MASK_RGB );
+			state.Vertices[ i ] = tmp.GetColour();
 		}
 	}
 	else if( have_a )
@@ -171,18 +177,22 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionRGB( const SRenderState & 
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				c32	col( ColOp::Process( a, state.Vertices[ i ].Colour ) );
+				c32 tmp = c32(state.Vertices[ i ]);
+				c32	col( ColOp::Process( a, tmp ) );
 
-				state.Vertices[ i ].Colour.SetBits( col, c32::MASK_RGB );
+				tmp.SetBits( col, c32::MASK_RGB );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 		else
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				b = mB->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
+				c32 tmp = c32(state.Vertices[ i ]);
+				b = mB->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
 
-				state.Vertices[ i ].Colour.SetBits( ColOp::Process( a, b ), c32::MASK_RGB );
+				tmp.SetBits( ColOp::Process( a, b ), c32::MASK_RGB );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 	}
@@ -192,18 +202,22 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionRGB( const SRenderState & 
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				c32	col( ColOp::Process( state.Vertices[ i ].Colour, b ) );
+				c32 tmp = c32(state.Vertices[ i ]);
+				c32	col( ColOp::Process( tmp, b ) );
 
-				state.Vertices[ i ].Colour.SetBits( col, c32::MASK_RGB );
+				tmp.SetBits( col, c32::MASK_RGB );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 		else
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				a = mA->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
+				c32 tmp = c32(state.Vertices[ i ]);
+				a = mA->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
 
-				state.Vertices[ i ].Colour.SetBits( ColOp::Process( a, b ), c32::MASK_RGB );
+				tmp.SetBits( ColOp::Process( a, b ), c32::MASK_RGB );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 	}
@@ -211,10 +225,12 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionRGB( const SRenderState & 
 	{
 		for( u32 i = 0; i < state.NumVertices; ++i )
 		{
-			a = mA->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
-			b = mB->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
+			c32 tmp = c32(state.Vertices[ i ]);
+			a = mA->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
+			b = mB->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
 
-			state.Vertices[ i ].Colour.SetBits( ColOp::Process( a, b ), c32::MASK_RGB );
+			tmp.SetBits( ColOp::Process( a, b ), c32::MASK_RGB );
+			state.Vertices[ i ] = tmp.GetColour();
 		}
 	}
 }
@@ -229,7 +245,9 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionAlpha( const SRenderState 
 		c32	col( ColOp::Process( a, b ) );
 		for( u32 i = 0; i < state.NumVertices; ++i )
 		{
-			state.Vertices[ i ].Colour.SetBits( col, c32::MASK_A );
+			c32 tmp = c32(state.Vertices[ i ]);
+			tmp.SetBits( col, c32::MASK_A );
+			state.Vertices[ i ] = tmp.GetColour();
 		}
 	}
 	else if( have_a )
@@ -238,18 +256,22 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionAlpha( const SRenderState 
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				c32	col( ColOp::Process( a, state.Vertices[ i ].Colour ) );
+				c32 tmp = c32(state.Vertices[ i ]);
+				c32	col( ColOp::Process( a, tmp ) );
 
-				state.Vertices[ i ].Colour.SetBits( col, c32::MASK_A );
+				tmp.SetBits( col, c32::MASK_A );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 		else
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				b = mB->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
+				c32 tmp = c32(state.Vertices[ i ]);
+				b = mB->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
 
-				state.Vertices[ i ].Colour.SetBits( ColOp::Process( a, b ), c32::MASK_A );
+				tmp.SetBits( ColOp::Process( a, b ), c32::MASK_A );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 	}
@@ -259,18 +281,24 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionAlpha( const SRenderState 
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				c32	col( ColOp::Process( state.Vertices[ i ].Colour, b ) );
+				c32 tmp = c32(state.Vertices[ i ]);
+				
+				c32	col( ColOp::Process( tmp, b ) );
 
-				state.Vertices[ i ].Colour.SetBits( col, c32::MASK_A );
+				tmp.SetBits( col, c32::MASK_A );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 		else
 		{
 			for( u32 i = 0; i < state.NumVertices; ++i )
 			{
-				a = mA->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
+				c32 tmp = c32(state.Vertices[ i ]);
+				
+				a = mA->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
 
-				state.Vertices[ i ].Colour.SetBits( ColOp::Process( a, b ), c32::MASK_A );
+				tmp.SetBits( ColOp::Process( a, b ), c32::MASK_A );
+				state.Vertices[ i ] = tmp.GetColour();
 			}
 		}
 	}
@@ -278,10 +306,13 @@ void CBlendConstantExpression2<ColOp>::ApplyExpressionAlpha( const SRenderState 
 	{
 		for( u32 i = 0; i < state.NumVertices; ++i )
 		{
-			a = mA->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
-			b = mB->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour );
-
-			state.Vertices[ i ].Colour.SetBits( ColOp::Process( a, b ), c32::MASK_A );
+			c32 tmp = c32(state.Vertices[ i ]);
+			
+			a = mA->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
+			b = mB->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour );
+			
+			tmp.SetBits( ColOp::Process( a, b ), c32::MASK_A );
+			state.Vertices[ i ] = tmp.GetColour();
 		}
 	}
 }
@@ -330,11 +361,14 @@ void CBlendConstantExpressionBlend::ApplyExpressionRGB( const SRenderState & sta
 {
 	for( u32 i = 0; i < state.NumVertices; ++i )
 	{
-		c32		a( mA->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour ) );
-		c32		b( mB->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour ) );
-		c32		f( mF->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour ) );
-
-		state.Vertices[ i ].Colour.SetBits( a.Interpolate( b, f ), c32::MASK_RGB );
+		c32 tmp = c32(state.Vertices[ i ]);
+		
+		c32		a( mA->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour ) );
+		c32		b( mB->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour ) );
+		c32		f( mF->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour ) );
+		
+		tmp.SetBits( a.Interpolate( b, f ), c32::MASK_RGB );
+		state.Vertices[ i ] = tmp.GetColour();
 	}
 }
 
@@ -342,11 +376,14 @@ void CBlendConstantExpressionBlend::ApplyExpressionAlpha( const SRenderState & s
 {
 	for( u32 i = 0; i < state.NumVertices; ++i )
 	{
-		c32		a( mA->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour ) );
-		c32		b( mB->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour ) );
-		c32		f( mF->Evaluate( state.Vertices[ i ].Colour, state.PrimitiveColour, state.EnvironmentColour ) );
+		c32 tmp = c32(state.Vertices[ i ]);
+		
+		c32		a( mA->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour ) );
+		c32		b( mB->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour ) );
+		c32		f( mF->Evaluate( tmp, state.PrimitiveColour, state.EnvironmentColour ) );
 
-		state.Vertices[ i ].Colour.SetBits( a.Interpolate( b, f ), c32::MASK_A );
+		tmp.SetBits( a.Interpolate( b, f ), c32::MASK_A );
+		state.Vertices[ i ] = tmp.GetColour();
 	}
 }
 
