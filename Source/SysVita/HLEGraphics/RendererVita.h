@@ -59,7 +59,7 @@ private:
 	void				RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode );
 	
 	// Temporary vertex storage
-	DaedalusVtx			mVtx_Save[320];
+	u32			mVtx_Save[320];
 	
 	// BlendMode support
 	//

@@ -292,17 +292,10 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 	state.PrimitiveColour = mPrimitiveColour;
 	state.EnvironmentColour = mEnvColour;
 
-	//Avoid copying vertices twice if we already save a copy to render fog //Corn
-	/*DaedalusVtx * p_FogVtx( mVtx_Save );
-	if( mTnL.Flags.Fog )
+	if( states->GetNumStates() > 1 )
 	{
-		p_FogVtx = static_cast<DaedalusVtx *>(malloc(num_vertices * sizeof(DaedalusVtx)));
-		memcpy( p_FogVtx, p_vertices, num_vertices * sizeof( DaedalusVtx ) );
+		memcpy( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
 	}
-	else if( states->GetNumStates() > 1 )
-	{
-		memcpy( mVtx_Save, p_vertices, num_vertices * sizeof( DaedalusVtx ) );
-	}*/
 	
 	glEnableClientState(GL_COLOR_ARRAY);
 
@@ -320,11 +313,12 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 		settings->Apply( install_texture0 || install_texture1, state, out );
 		alpha_settings->Apply( install_texture0 || install_texture1, state, out );
 
-		// TODO: this nobbles the existing diffuse colour on each pass. Need to use a second buffer...
-		/*if( i > 0 )
+		if( i > 0 )
 		{
-			memcpy( p_vertices, p_FogVtx, num_vertices * sizeof( DaedalusVtx ) );
-		}*/
+			memcpy( gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
+			p_vertices = gColorBuffer;
+			gColorBuffer += num_vertices;
+		}
 
 		if(out.VertexExpressionRGB != nullptr)
 		{
@@ -371,7 +365,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 				texture_idx = install_texture1;
 
 				// NOTE: Rinnegatamante 15/04/20
-				// Technically we calculate this on DrawTriangles, is it enough?
+				// Technically we calculate this on DrawTriangles, is it enough? Can tex1 and tex0 be of different sizes?
 				
 				/*const CNativeTexture * texture1 = mBoundTexture[ 1 ];
 
@@ -420,15 +414,8 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 		}
 		
-		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
-		gColorBuffer += num_vertices;
-		
+		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);	
 		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
-
-		/*if ( mTnL.Flags.Fog )
-		{
-			RenderFog( p_FogVtx, num_vertices, triangle_mode, render_flags );
-		}*/
 	}
 }
 
@@ -592,7 +579,6 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 	if (mTnL.Flags.Texture)
 	{
 		vglTexCoordPointerMapped(texcoord);
-		
 		UpdateTileSnapshots( mTextureTile );
 		
 		CNativeTexture *texture = mBoundTexture[0];

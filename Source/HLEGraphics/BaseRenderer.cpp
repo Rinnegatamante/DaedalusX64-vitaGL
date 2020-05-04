@@ -914,14 +914,14 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 		
 		gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
 		gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
-		gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.x;
+		gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
 		gTexCoordBuffer[0] = mVtxProjected[ index ].Texture.x;
 		gTexCoordBuffer[1] = mVtxProjected[ index ].Texture.y;
-		gColorBuffer[0] = c32(mVtxProjected[ index ].Colour).GetColour();
+		gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
 		gVertexBuffer += 3;
-		gColorBuffer++;
 		gTexCoordBuffer += 2;
 	}
+	gColorBuffer += num_vertices;
 	return num_vertices;
 #else
 	for( u32 i = 0; i < num_vertices; ++i )
