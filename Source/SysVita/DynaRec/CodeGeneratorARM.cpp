@@ -1316,47 +1316,42 @@ void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branc
 
 void CCodeGeneratorARM::GenerateADD_S( u32 fd, u32 fs, u32 ft )
 {
-	MOV32(ArmReg_R0, (u32)&gCPUState.FPU[0]._u32);
-	VLDR(F0, ArmReg_R0, 4 * fs);
-	VLDR(F2, ArmReg_R0, 4 * ft);
+	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VADD(F4, F0, F2);
-	VSTR(F4, ArmReg_R0, 4 * fd);
+	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSUB_S( u32 fd, u32 fs, u32 ft )
 {
-	MOV32(ArmReg_R0, (u32)&gCPUState.FPU[0]._u32);
-	VLDR(F0, ArmReg_R0, 4 * fs);
-	VLDR(F2, ArmReg_R0, 4 * ft);
+	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VSUB(F4, F0, F2);
-	VSTR(F4, ArmReg_R0, 4 * fd);
+	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateMUL_S( u32 fd, u32 fs, u32 ft )
 {
-	MOV32(ArmReg_R0, (u32)&gCPUState.FPU[0]._u32);
-	VLDR(F0, ArmReg_R0, 4 * fs);
-	VLDR(F2, ArmReg_R0, 4 * ft);
+	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VMUL(F4, F0, F2);
-	VSTR(F4, ArmReg_R0, 4 * fd);
+	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateDIV_S( u32 fd, u32 fs, u32 ft )
 {
-	MOV32(ArmReg_R0, (u32)&gCPUState.FPU[0]._u32);
-	VLDR(F0, ArmReg_R0, 4 * fs);
-	VLDR(F2, ArmReg_R0, 4 * ft);
+	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VDIV(F4, F0, F2);
-	VSTR(F4, ArmReg_R0, 4 * fd);
+	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSQRT_S( u32 fd, u32 fs )
 {
-	MOV32(ArmReg_R0, (u32)&gCPUState.FPU[0]._u32);
-	VLDR(F0, ArmReg_R0, 4 * fs);
+	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
 
 	VSQRT(F4, F0);
-	VSTR(F4, ArmReg_R0, 4 * fd);
+	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateCMP_S( u32 fs, u32 ft, EArmCond cond )
@@ -1372,10 +1367,8 @@ void CCodeGeneratorARM::GenerateCMP_S( u32 fs, u32 ft, EArmCond cond )
 	}
 	else
 	{
-		MOV32(ArmReg_R0, (u32)&gCPUState.FPU[0]._u32);
-
-		VLDR(F0, ArmReg_R0, 4 * fs);
-		VLDR(F2, ArmReg_R0, 4 * ft);
+		VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+		VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 
 		MOV32(ArmReg_R2, ~FPCSR_C);
 		LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPUControl[31]._u32));
