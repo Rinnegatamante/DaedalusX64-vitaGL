@@ -36,7 +36,7 @@ public:
 
 	virtual void		RestoreRenderStates();
 
-	virtual void		RenderTriangles(DaedalusVtx * p_vertices, u32 num_vertices, bool disable_zbuffer);
+	virtual void		RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer);
 
 	virtual void		TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1);
 	virtual void		TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1);
@@ -55,12 +55,11 @@ public:
 	SBlendStateEntry	LookupBlendState( u64 mux, bool two_cycles );
 
 private:
-	void				RenderUsingCurrentBlendMode(const float (&mat_project)[16], DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer );
-	void				RenderUsingRenderSettings( const CBlendStates * states, DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode );
-	void                DrawPrimitives(DaedalusVtx * p_vertices, u32 num_vertices, u32 triangle_mode);
+	void				RenderUsingCurrentBlendMode(const float (&mat_project)[16], u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer );
+	void				RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode );
 	
 	// Temporary vertex storage
-	DaedalusVtx			mVtx_Save[320];
+	u32			mVtx_Save[320];
 	
 	// BlendMode support
 	//

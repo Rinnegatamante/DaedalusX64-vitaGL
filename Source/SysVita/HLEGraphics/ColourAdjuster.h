@@ -44,7 +44,7 @@ public:
 
 	void		Reset();
 
-	void		Process( DaedalusVtx * p_vertices, u32 num_verts ) const;
+	void		Process( u32 * p_vertices, u32 num_verts ) const;
 
 private:
 	void		Set( u32 mask, c32 colour );
