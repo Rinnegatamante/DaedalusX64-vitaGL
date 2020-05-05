@@ -685,8 +685,8 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	ScaleN64ToScreen( xy1, screen1 );
 
 	CNativeTexture *texture = mBoundTexture[0];
-	float scale_x {texture->GetScaleX()};
-	float scale_y {texture->GetScaleY()};
+	float scale_x = texture->GetScaleX();
+	float scale_y = texture->GetScaleY();
 	
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gTexCoordBuffer[0] = uv0.x * scale_x;
@@ -768,12 +768,15 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
+	float scale_x = texture->GetScaleX();
+	float scale_y = texture->GetScaleY();
+	
 	float sx0 = N64ToScreenX(x0);
 	float sy0 = N64ToScreenY(y0);
 
 	float sx1 = N64ToScreenX(x1);
 	float sy1 = N64ToScreenY(y1);
-
+	
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gVertexBuffer[0] = sx0;
@@ -788,14 +791,14 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	gVertexBuffer[9] = sx1;
 	gVertexBuffer[10] = sy1;
 	gVertexBuffer[11] = 0.0f;
-	gTexCoordBuffer[0] = u0;
-	gTexCoordBuffer[1] = v0;
-	gTexCoordBuffer[2] = u1;
-	gTexCoordBuffer[3] = v0;
-	gTexCoordBuffer[4] = u0;
-	gTexCoordBuffer[5] = v1;
-	gTexCoordBuffer[6] = u1;
-	gTexCoordBuffer[7] = v1;
+	gTexCoordBuffer[0] = u0 * scale_x;
+	gTexCoordBuffer[1] = v0 * scale_y;
+	gTexCoordBuffer[2] = u1 * scale_x;
+	gTexCoordBuffer[3] = v0 * scale_y;
+	gTexCoordBuffer[4] = u0 * scale_x;
+	gTexCoordBuffer[5] = v1 * scale_y;
+	gTexCoordBuffer[6] = u1 * scale_x;
+	gTexCoordBuffer[7] = v1 * scale_y;
 	vglVertexPointerMapped(gVertexBuffer);
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
@@ -816,6 +819,10 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
+	CNativeTexture *texture = mBoundTexture[0];
+	float scale_x = texture->GetScaleX();
+	float scale_y = texture->GetScaleY();
 
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -833,12 +840,12 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
 	gVertexBuffer[11] = 0.0f;
 	gTexCoordBuffer[0] = 0.0f;
 	gTexCoordBuffer[1] = 0.0f;
-	gTexCoordBuffer[2] = s;
+	gTexCoordBuffer[2] = s * scale_x;
 	gTexCoordBuffer[3] = 0.0f;
-	gTexCoordBuffer[4] = s;
-	gTexCoordBuffer[5] = t;
+	gTexCoordBuffer[4] = s * scale_x;
+	gTexCoordBuffer[5] = t * scale_y;
 	gTexCoordBuffer[6] = 0.0f;
-	gTexCoordBuffer[7] = t;
+	gTexCoordBuffer[7] = t * scale_y;
 	vglVertexPointerMapped(gVertexBuffer);
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
