@@ -42,11 +42,7 @@ static const u32	BUFFER_SIZE  = 1024 * 2;
 
 static const u32	VITA_NUM_SAMPLES = 512;
 
-// Global variables
-static SceUID bufferEmpty;
-static SceUID playbackSema;
-
-static volatile u32 sound_status;
+volatile u32 sound_status;
 
 static bool audio_open = false;
 
@@ -66,7 +62,7 @@ static int audioOutput(unsigned int args, void *argp)
 	int vol_stereo[] = {32767, 32767};
 	sceAudioOutSetVolume(sound_channel, (SceAudioOutChannelFlag)(SCE_AUDIO_VOLUME_FLAG_L_CH | SCE_AUDIO_VOLUME_FLAG_R_CH), vol_stereo);
 
-	while(sound_status != 0xDEADBEEF)
+	while (sound_status != 0xDEADBEEF)
 	{
 		mAudioBuffer->Drain( reinterpret_cast< Sample * >( playbuf ), VITA_NUM_SAMPLES );
 		sceAudioOutOutput(sound_channel, playbuf);
@@ -80,10 +76,10 @@ static void AudioInit()
 {
 	sound_status = 0; // threads running
 
-	// create audio playback thread to provide timing
+	// create audio playback thread
 	SceUID audioThid = sceKernelCreateThread("audioOutput", &audioOutput, 0x10000100, 0x10000, 0, 0, NULL);
 	sceKernelStartThread(audioThid, 0, NULL);
-
+	
 	// Everything OK
 	audio_open = true;
 }
@@ -104,7 +100,6 @@ AudioOutput::AudioOutput()
 :	mAudioPlaying( false )
 ,	mFrequency( DESIRED_OUTPUT_FREQUENCY )
 {
-	// Allocate audio buffer with malloc_64 to avoid cached/uncached aliasing
 	void * mem = malloc( sizeof( CAudioBuffer ) );
 	mAudioBuffer = new( mem ) CAudioBuffer( BUFFER_SIZE );
 }
@@ -137,6 +132,7 @@ void AudioOutput::AddBuffer( u8 *start, u32 length )
 	case APM_DISABLED:
 		break;
 	case APM_ENABLED_ASYNC:
+		mAudioBuffer->AddSamples( reinterpret_cast< const Sample * >( start ), num_samples, mFrequency, DESIRED_OUTPUT_FREQUENCY );		
 		break;
 	case APM_ENABLED_SYNC:
 		mAudioBuffer->AddSamples( reinterpret_cast< const Sample * >( start ), num_samples, mFrequency, DESIRED_OUTPUT_FREQUENCY );

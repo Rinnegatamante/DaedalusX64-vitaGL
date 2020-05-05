@@ -43,6 +43,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define DEFAULT_FREQUENCY 44100	// Taken from Mupen64 : )
 
+extern volatile u32 sound_status;
+
+static bool async_boot = true;
+
+static SceUID audio_mutex;
+
+static int audioProcess(unsigned int args, void *argp)
+{
+	while (sound_status != 0xDEADBEEF)
+	{
+		sceKernelWaitSema(audio_mutex, 1, NULL);
+		Audio_Ucode();
+	}
+	sceKernelExitDeleteThread(0);
+	return 0;
+}
+
 //*****************************************************************************
 //
 //*****************************************************************************
@@ -148,13 +165,25 @@ EProcessResult	CAudioPluginVita::ProcessAList()
 	Memory_SP_SetRegisterBits(SP_STATUS_REG, SP_STATUS_HALT);
 
 	EProcessResult	result( PR_NOT_STARTED );
-
+	
+	// FIXME: We would want this to be on constructor but it somehow breaks everything
+	if (async_boot) {
+		// create audio processing thread
+		SceUID audioThid = sceKernelCreateThread("audioProcess", &audioProcess, 0x10000100, 0x10000, 0, 0, NULL);
+		sceKernelStartThread(audioThid, 0, NULL);
+	
+		audio_mutex = sceKernelCreateSema("Audio Mutex", 0, 0, 1, NULL);
+		async_boot = false;
+	}
+		
 	switch( gAudioPluginEnabled )
 	{
 		case APM_DISABLED:
 			result = PR_COMPLETED;
 			break;
 		case APM_ENABLED_ASYNC:
+			sceKernelSignalSema(audio_mutex, 1);
+			result = PR_COMPLETED;
 			break;
 		case APM_ENABLED_SYNC:
 			Audio_Ucode();

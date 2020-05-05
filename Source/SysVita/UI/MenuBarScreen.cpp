@@ -169,6 +169,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Synchronous", nullptr, gAudioPluginEnabled == APM_ENABLED_SYNC)){
 			gAudioPluginEnabled = APM_ENABLED_SYNC;
 		}
+		if (ImGui::MenuItem("Asynchronous", nullptr, gAudioPluginEnabled == APM_ENABLED_ASYNC)){
+			gAudioPluginEnabled = APM_ENABLED_ASYNC;
+		}
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Input")){
