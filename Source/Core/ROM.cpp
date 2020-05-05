@@ -380,7 +380,7 @@ void SpecificGameHacks( const ROMHeader & id )
 		g_ROM.DISABLE_SIM_CVT_D_S = true;
 		break;
 	case 0x4A54:	//Tom and Jerry
-	case 0x4d4a:	//Earthworm Jim
+	case 0x4D4A:	//Earthworm Jim
 	case 0x5150:	//PowerPuff Girls
 		g_ROM.DISABLE_SIM_CVT_D_S = true;
 		g_ROM.LOAD_T1_HACK = true;
@@ -440,6 +440,7 @@ void SpecificGameHacks( const ROMHeader & id )
 		break;
 	case 0x594D:    // Mortal Kombat Mythologies: Sub-Zero
 		g_ROM.PROJ_HACK = true;
+		break;
 	default:
 		break;
 	}

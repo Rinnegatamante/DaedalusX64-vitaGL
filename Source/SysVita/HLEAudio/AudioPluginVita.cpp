@@ -168,11 +168,12 @@ EProcessResult	CAudioPluginVita::ProcessAList()
 	
 	// FIXME: We would want this to be on constructor but it somehow breaks everything
 	if (async_boot) {
+		audio_mutex = sceKernelCreateSema("Audio Mutex", 0, 0, 1, NULL);
+
 		// create audio processing thread
 		SceUID audioThid = sceKernelCreateThread("audioProcess", &audioProcess, 0x10000100, 0x10000, 0, 0, NULL);
 		sceKernelStartThread(audioThid, 0, NULL);
-	
-		audio_mutex = sceKernelCreateSema("Audio Mutex", 0, 0, 1, NULL);
+
 		async_boot = false;
 	}
 		

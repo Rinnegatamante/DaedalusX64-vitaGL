@@ -53,7 +53,6 @@ CAudioBuffer *mAudioBuffer;
 static int audioOutput(unsigned int args, void *argp)
 {
 	uint16_t *playbuf = (uint16_t*)malloc(BUFFER_SIZE);
-	int pcmflip = 0;
 	
 	// reserve audio channel
 	SceUID sound_channel = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, VITA_NUM_SAMPLES, DESIRED_OUTPUT_FREQUENCY, SCE_AUDIO_OUT_MODE_STEREO);
@@ -67,6 +66,7 @@ static int audioOutput(unsigned int args, void *argp)
 		mAudioBuffer->Drain( reinterpret_cast< Sample * >( playbuf ), VITA_NUM_SAMPLES );
 		sceAudioOutOutput(sound_channel, playbuf);
 	}
+	free(playbuf);
 	sceAudioOutReleasePort(sound_channel);
 	sceKernelExitDeleteThread(0);
 	return 0;
