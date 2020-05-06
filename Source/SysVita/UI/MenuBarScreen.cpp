@@ -53,7 +53,8 @@ static bool credits_window = false;
 static bool debug_window = false;
 static bool logs_window = false;
 
-extern EFrameskipValue			gFrameskipValue;
+extern EFrameskipValue gFrameskipValue;
+extern bool kUpdateTexturesEveryFrame;
 
 static float vcolors[3];
 
@@ -133,6 +134,12 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Texture Caching", nullptr, !kUpdateTexturesEveryFrame)){
+			kUpdateTexturesEveryFrame = !kUpdateTexturesEveryFrame;
+		}
+		SetDescription("Enables texture caching.(Speedup - May break graphics!)");
+		ImGui::Separator();
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}

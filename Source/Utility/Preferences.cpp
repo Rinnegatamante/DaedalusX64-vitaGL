@@ -43,7 +43,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 // Audio is disabled on the PSP by default, but enabled on other platforms.
-#if defined(DAEDALUS_PSP) || defined(VITA)
+#if defined(DAEDALUS_PSP)
 static const EAudioPluginMode      kDefaultAudioPluginMode      = APM_DISABLED;
 static const ETextureHashFrequency kDefaultTextureHashFrequency = THF_DISABLED;
 #else
