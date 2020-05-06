@@ -135,11 +135,10 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("Texture Caching", nullptr, !kUpdateTexturesEveryFrame)){
+		if (ImGui::MenuItem("Textures Caching", nullptr, !kUpdateTexturesEveryFrame)){
 			kUpdateTexturesEveryFrame = !kUpdateTexturesEveryFrame;
 		}
-		SetDescription("Enables texture caching.(Speedup - May break graphics!)");
-		ImGui::Separator();
+		SetDescription("Enables caching for stored textures.\nIncreases performances but may cause graphical glitches.");
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
