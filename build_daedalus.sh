@@ -8,7 +8,7 @@ function usage() {
     echo "PSP Debug = PSP_DEBUG"
     echo "Linux Release = LINUX_RELEASE"
     echo "Mac Release = MAC_RELEASE"
-	echo "Vita Release = VITA_RELEASE"
+    echo "Vita Release = VITA_RELEASE"
     exit
 }
 
@@ -16,10 +16,10 @@ function pre_prep(){
 
     if [ -d $PWD/daedbuild ]; then
         echo "Removing previous build attempt"
-        rm -r "$PWD/daedbuild"
-        mkdir "$PWD/daedbuild"
+        rm -Rf "$PWD/daedbuild"
     fi
 
+if [ "$1" = "PSP_RELEASE" ] || [ "$1" = "PSP_DEBUG" ]; then
     if [ -d $PWD/DaedalusX64 ]; then
         rm -r $PWD/DaedalusX64/EBOOT.PBP
     else
@@ -28,6 +28,7 @@ function pre_prep(){
         mkdir ../DaedalusX64/SaveGames
         mkdir ../DaedalusX64/Roms
     fi
+fi
 
 }
 
@@ -75,15 +76,16 @@ fi
 
 if [ "$1" = "PSP_RELEASE" ] || [ "$1" = "PSP_DEBUG" ]; then
   pre_prep
-    mkdir "$PWD/daedbuild"
-    cd "$PWD/daedbuild"
-cmake -DCMAKE_TOOLCHAIN_FILE=../Tools/psptoolchain.cmake -D"$1=1" ../Source
-buildPSP
+  mkdir "$PWD/daedbuild"
+  cd "$PWD/daedbuild"
+  cmake -DCMAKE_TOOLCHAIN_FILE=../Tools/psptoolchain.cmake -D"$1=1" ../Source
+  buildPSP
 elif [ "$1" = "VITA_RELEASE" ]; then
+  pre_prep
   mkdir "$PWD/daedbuild"
   cd "$PWD/daedbuild"
   cmake -D"$1=1" ../Source -DCMAKE_TOOLCHAIN_FILE=../vita.toolchain.cmake -G "Unix Makefiles"
-  make
+  make -j$(nproc)
 elif [ "$1" = "LINUX_RELEASE" ] || [ "$1" = "MAC_RELEASE" ]; then
   pre_prep
   mkdir "$PWD/daedbuild"
