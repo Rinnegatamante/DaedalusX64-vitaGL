@@ -414,6 +414,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 		}
 		
+		glEnableClientState(GL_COLOR_ARRAY);
 		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);	
 		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 	}
@@ -553,6 +554,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		else*/
 		{
 			details.ColourAdjuster.Process(p_vertices, num_vertices);
+			glEnableClientState(GL_COLOR_ARRAY);
 			vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
 			vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 		}
@@ -568,6 +570,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		DAEDALUS_ERROR( "Unhandled blend mode" );
 		#endif
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		glEnableClientState(GL_COLOR_ARRAY);
 		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
 		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 	}
