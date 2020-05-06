@@ -90,14 +90,15 @@ void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu("Emulation")){
-		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
-			gSpeedSyncEnabled = !gSpeedSyncEnabled;
-		}
-		SetDescription("Limits framerate to the one running game is supposed to have.");
 		if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled)){
 			gDynarecEnabled = !gDynarecEnabled;
 		}
 		SetDescription("Enables dynamic recompilation for better performances.");
+		ImGui::Separator();
+		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
+			gSpeedSyncEnabled = !gSpeedSyncEnabled;
+		}
+		SetDescription("Limits framerate to the one running game is supposed to have.");
 		if (ImGui::BeginMenu("Frameskip")){
 			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
 				gFrameskipValue = FV_DISABLED;
@@ -135,8 +136,8 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("Textures Caching", nullptr, !kUpdateTexturesEveryFrame)){
-			kUpdateTexturesEveryFrame = !kUpdateTexturesEveryFrame;
+		if (ImGui::MenuItem("Textures Caching", nullptr, !gCheckTextureHashFrequency)){
+			gCheckTextureHashFrequency = gCheckTextureHashFrequency ? 0 : 1;
 		}
 		SetDescription("Enables caching for stored textures.\nIncreases performances but may cause graphical glitches.");
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
