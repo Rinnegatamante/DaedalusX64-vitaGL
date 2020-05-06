@@ -273,6 +273,9 @@ void DrawCommonWindows() {
 		ImGui::Text("drd7of14");
 		ImGui::Text("polytoad");
 		ImGui::Text("The Vita3K project");
+		ImGui::Text("UnrootedTiara");
+		ImGui::Text("psymu");
+		ImGui::Text("@Sarkies_Proxy");
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Special thanks to:");
 		ImGui::Text("xerpi for the initial Vita port");

@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef DAEDALUS_VITA
 #define SCR_WIDTH 960
 #define SCR_HEIGHT 544
-#define VERSION "0.1"
+#define VERSION "0.2"
 
 #define RATIO_16_9  0
 #define RATIO_4_3   1
