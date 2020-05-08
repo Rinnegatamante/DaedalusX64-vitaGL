@@ -484,7 +484,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 				case SpecOp_SLT:	GenerateSLT( rd, rs, rt, false );	handled = true; break;
 				case SpecOp_SLTU:	GenerateSLT( rd, rs, rt, true );	handled = true; break;
-				case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump );	handled = true; exception = true; break;
+
+				//case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump );	handled = true; exception = true; break; //Not Working
 
 				default: break;
 			}
