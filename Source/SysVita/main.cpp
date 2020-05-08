@@ -130,7 +130,10 @@ static void startDownload(const char *filename, const char *url){
 	fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
 	total_bytes = 0xFFFFFFFF;
 	downloaded_bytes = 0;
+	int resumes_count = 0;
 	while (downloaded_bytes < total_bytes) {
+		if (resumes_count > 5) break;
+		resumes_count++;
 		resumeDownload(url);
 	}
 	fclose(fh);
