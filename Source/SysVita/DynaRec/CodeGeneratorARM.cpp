@@ -460,8 +460,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 			switch( op_code.spec_op )
 			{
 				case SpecOp_SLL: 	GenerateSLL( rd, rt, sa ); handled = true; break;
-				case SpecOp_SRL: 	GenerateSRL( rd, rt, sa ); handled = true; break;
 				case SpecOp_SRA: 	GenerateSRA( rd, rt, sa ); handled = true; break;
+				//Causes Rayman 2's menu to stop working
+				//case SpecOp_SRL: 	GenerateSRL( rd, rt, sa ); handled = true; break;
 
 				case SpecOp_OR:		GenerateOR( rd, rs, rt ); handled = true; break;
 				case SpecOp_AND:	GenerateAND( rd, rs, rt ); handled = true; break;
