@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // ARM register codes.
 enum EArmReg
 {
-	ArmReg_R0=0,   ArmReg_R1,  ArmReg_R2,  ArmReg_R3,
+	ArmReg_R0 = 0, ArmReg_R1,  ArmReg_R2,  ArmReg_R3,
 	ArmReg_R4,     ArmReg_R5,  ArmReg_R6,  ArmReg_R7,
 	ArmReg_R8,     ArmReg_R9,  ArmReg_R10, ArmReg_R11,
 	ArmReg_R12,    ArmReg_R13, ArmReg_R14, ArmReg_R15,
@@ -36,7 +36,16 @@ enum EArmReg
 
 enum EArmVfpReg
 {
-	F0 = 0, F1, F2, F3, F4,
+	ArmVfpReg_S0 = 0, ArmVfpReg_S1,  ArmVfpReg_S2,  ArmVfpReg_S3,
+	ArmVfpReg_S4,     ArmVfpReg_S5,  ArmVfpReg_S6,  ArmVfpReg_S7,
+	ArmVfpReg_S8,     ArmVfpReg_S9,  ArmVfpReg_S10, ArmVfpReg_S11,
+	ArmVfpReg_S12,    ArmVfpReg_S13, ArmVfpReg_S14, ArmVfpReg_S15,
+	ArmVfpReg_S16,    ArmVfpReg_S17, ArmVfpReg_S18, ArmVfpReg_S19,
+	ArmVfpReg_S20,    ArmVfpReg_S21, ArmVfpReg_S22, ArmVfpReg_S23,
+	ArmVfpReg_S24,    ArmVfpReg_S25, ArmVfpReg_S26, ArmVfpReg_S27,
+	ArmVfpReg_S28,    ArmVfpReg_S29, ArmVfpReg_S30, ArmVfpReg_S31,
+
+	NUM_VFP_REGISTERS = 32,
 
 	//Aliases
 };

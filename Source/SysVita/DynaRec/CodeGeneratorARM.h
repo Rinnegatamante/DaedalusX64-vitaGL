@@ -159,5 +159,11 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				void	GenerateMUL_S( u32 fd, u32 fs, u32 ft );
 				void	GenerateDIV_S( u32 fd, u32 fs, u32 ft );
 				void	GenerateSQRT_S( u32 fd, u32 fs );
+				void	GenerateTRUNC_W( u32 fd, u32 fs );
 				void	GenerateCMP_S( u32 fs, u32 ft, EArmCond cond );
+
+				void	GenerateADD_D( u32 fd, u32 fs, u32 ft );
+				void	GenerateSUB_D( u32 fd, u32 fs, u32 ft );
+				void	GenerateMUL_D( u32 fd, u32 fs, u32 ft );
+				void	GenerateDIV_D( u32 fd, u32 fs, u32 ft );
 };

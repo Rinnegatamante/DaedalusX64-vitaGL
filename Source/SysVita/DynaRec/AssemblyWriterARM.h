@@ -97,6 +97,18 @@ class CAssemblyWriterARM
 		void				VDIV (EArmVfpReg Sd, EArmVfpReg Sn, EArmVfpReg Sm);
 		void				VSQRT(EArmVfpReg Sd, EArmVfpReg Sm);
 		void				VCMP (EArmVfpReg Sd, EArmVfpReg Sm);
+		void				VCVT_S32_F32(EArmVfpReg Sd, EArmVfpReg Sm);
+
+		void				VMOV (EArmVfpReg dm, EArmReg rt, EArmReg rt2);
+		void				VMOV (EArmReg rt, EArmReg rt2, EArmVfpReg dm);
+
+		void				VADD_D (EArmVfpReg Dd, EArmVfpReg Dn, EArmVfpReg Dm);
+		void				VSUB_D (EArmVfpReg Dd, EArmVfpReg Dn, EArmVfpReg Dm);
+		void				VMUL_D (EArmVfpReg Dd, EArmVfpReg Dn, EArmVfpReg Dm);
+		void				VDIV_D (EArmVfpReg Dd, EArmVfpReg Dn, EArmVfpReg Dm);
+
+		void				VLDR_D (EArmVfpReg dd, EArmReg rn, s16 offset12);
+		void				VSTR_D (EArmVfpReg dd, EArmReg rn, s16 offset12);
 
 		/* Pseudo instructions for convinience */
 		void				MOV32(EArmReg reg, u32 imm);
