@@ -37,16 +37,28 @@
 
 char selectedRom[512];
 
+struct CompatibilityList {
+	char name[128];
+	bool playable;
+	bool ingame_plus;
+	bool ingame_low;
+	bool crash;
+	bool slow;
+	CompatibilityList *next;
+};
+
 struct RomSelection {
 	char name[128];
 	RomSettings settings;
 	RomID id;
 	u32 size;
 	ECicType cic;
+	CompatibilityList *status;
 	RomSelection *next;
 };
 
 static RomSelection *list = nullptr;
+static CompatibilityList *comp = nullptr;
 static RomSelection *old_hovered = nullptr;
 static bool has_preview_icon = false;
 CRefPtr<CNativeTexture> mpPreviewTexture;
@@ -71,6 +83,96 @@ bool LoadPreview(RomSelection *rom) {
 	return false;
 }
 
+// TODO: Use a proper json lib for better performances and safety
+void AppendCompatibilityDatabase(const char *file) {
+	FILE *f = fopen(file, "rb");
+	if (f) {
+		fseek(f, 0, SEEK_END);
+		uint64_t len = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		char *buffer = (char*)malloc(len + 1);
+		fread(buffer, 1, len, f);
+		buffer[len] = 0;
+		char *ptr = buffer;
+		char *end;
+		do {
+			ptr = strstr(ptr, "\"title\":");
+			if (ptr) {
+				CompatibilityList *node = (CompatibilityList*)malloc(sizeof(CompatibilityList));
+				
+				// Extracting title
+				ptr += 10;
+				end = strstr(ptr, "\"");
+				memcpy(node->name, ptr, end - ptr);
+				node->name[end - ptr] = 0;
+				
+				// Extracting tags
+				bool perform_slow_check = true;
+				ptr += 1000; // Let's skip some data to improve performances
+				ptr = strstr(ptr, "\"labels\":");
+				ptr = strstr(ptr + 150, "\"name\":");
+				ptr += 9;
+				if (ptr[0] == 'P') {
+					node->playable = true;
+					node->ingame_low = false;
+					node->ingame_plus = false;
+					node->crash = false;
+				} else if (ptr[0] == 'C') {
+					node->playable = false;
+					node->ingame_low = false;
+					node->ingame_plus = false;
+					node->slow = false;
+					node->crash = true;
+					perform_slow_check = false;
+				} else {
+					node->playable = false;
+					node->crash = false;
+					end = strstr(ptr, "\"");
+					if ((end - ptr) == 13) {
+						node->ingame_plus = true;
+						node->ingame_low = false;
+					}else {
+						node->ingame_low = true;
+						node->ingame_plus = false;
+					}
+				}
+				ptr += 120; // Let's skip some data to improve performances
+				if (perform_slow_check) {
+					end = ptr;
+					ptr = strstr(ptr, "]");
+					if ((ptr - end) > 200) node->slow = true;
+					else node->slow = false;
+				}
+				
+				ptr += 350; // Let's skip some data to improve performances
+				node->next = comp;
+				comp = node;
+			}
+		} while (ptr);
+		fclose(f);
+		free(buffer);
+	}
+}
+
+CompatibilityList *SearchForCompatibilityData(const char *name) {
+	CompatibilityList *node = comp;
+	char tmp[128], *p;
+	if (p = strstr(name, " (")) {
+		memcpy(tmp, name, p - name);
+		tmp[p - name] = 0;
+	} else sprintf(tmp, name);
+	while (node) {
+		if (strcasecmp(node->name, tmp) == 0) return node;
+		node = node->next;
+	}
+	return nullptr;
+}
+
+void SetTagDescription(const char *text) {
+	ImGui::SameLine();
+	ImGui::Text(": %s", text);
+}
+
 char *DrawRomSelector() {
 	bool selected = false;
 	
@@ -78,6 +180,10 @@ char *DrawRomSelector() {
 	DrawMenuBar();
 		
 	if (!list) {
+		if (!comp) {
+			AppendCompatibilityDatabase("ux0:data/DaedalusX64/db1.json");
+			AppendCompatibilityDatabase("ux0:data/DaedalusX64/db2.json");
+		}
 		std::string			full_path;
 
 		IO::FindHandleT		find_handle;
@@ -105,6 +211,7 @@ char *DrawRomSelector() {
 							node->settings.GameName = game_name.c_str();
 							CRomSettingsDB::Get()->SetSettings(node->id, node->settings);
 						}
+						node->status = SearchForCompatibilityData(node->settings.GameName.c_str());
 					} else node->settings.GameName = "Unknown";
 					node->next = list;
 					list = node;
@@ -147,6 +254,30 @@ char *DrawRomSelector() {
 		ImGui::Text("ROM Size: %lu MBs", hovered->size);
 		ImGui::Text("Save Type: %s", ROM_GetSaveTypeName(hovered->settings.SaveType));
 		ImGui::Text("Expansion Pak: %s", ROM_GetExpansionPakUsageName(hovered->settings.ExpansionPakUsage));
+		if (hovered->status) {
+			ImGui::Text(" ");
+			ImGui::Text("Tags:");
+			if (hovered->status->playable) {
+				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "Playable");
+				SetTagDescription("Games that can be played from start to\nfinish with playable performance.");
+			}
+			if (hovered->status->ingame_plus) {
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "Ingame +");
+				SetTagDescription("Games that go far ingame but have glitches\nor have non-playable performance.");
+			}
+			if (hovered->status->ingame_low) {
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "Ingame -");
+				SetTagDescription("Games that go ingame but have major issues\nthat prevents it from going further early on.");
+			}
+			if (hovered->status->crash) {
+				ImGui::TextColored(ImVec4(1.0f, 0, 0, 1.0f), "Crash");
+				SetTagDescription("Games that crash before reaching ingame.");
+			}
+			if (hovered->status->slow) {
+				ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "Slow");
+				SetTagDescription("Game is playable but still not fullspeed.");
+			}
+		}
 	}
 	
 	ImGui::End();
@@ -157,13 +288,14 @@ char *DrawRomSelector() {
 	vglStopRendering();
 	
 	if (selected) {
-		p = list;
+		// NOTE: Uncomment this to make rom list to be re-built every time
+		/*p = list;
 		while (p) {
 			RomSelection *old = p;
 			p = p->next;
 			free(old);
 		}
-		list = nullptr;
+		list = nullptr;*/
 		return selectedRom;
 	}
 	return nullptr;
