@@ -14,7 +14,10 @@ steps:
 
 - script: sudo apt-get install -qq -y libc6-dev-i386
   displayName: 'Install 32 bit libraries'
-
+  
+- script: sudo apt-get install -qq -y zip
+  displayName: 'Install zip'
+  
 - script: |
     git clone https://github.com/Rinnegatamante/math-neon
     cd math-neon
@@ -41,8 +44,10 @@ steps:
     cd daedbuild
     cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake
     make -j$(nproc)
+    cd ../Data
+    zip -r DaedalusX64.zip DaedalusX64
   displayName: 'Build Daedalus X64'
-
+    
 - task: GitHubRelease@0
   inputs:
     gitHubConnection: release
@@ -52,5 +57,5 @@ steps:
     action: edit
     assets: |
       daedbuild/DaedalusX64.vpk
+      Data/DaedalusX64.zip
   displayName: 'Deploy artifacts'
-
