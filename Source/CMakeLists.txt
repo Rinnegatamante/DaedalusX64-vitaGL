@@ -260,12 +260,17 @@ if (VITA_RELEASE)
 		SceTouch_stub
 		SceAudio_stub
 		ScePower_stub
+		SceNet_stub
+		SceNetCtl_stub
 		c
 		stdc++
 		m
 		vitaGL
 		mathneon
 		imgui
+		curl
+		ssl
+		crypto
 		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 	)
 
