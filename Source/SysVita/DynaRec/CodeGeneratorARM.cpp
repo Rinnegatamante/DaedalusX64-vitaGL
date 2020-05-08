@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 using namespace AssemblyUtils;
 
 static const u32		NUM_MIPS_REGISTERS( 32 );
+static const EArmReg	gMemoryBaseReg = ArmReg_R10;
 
 // XX this optimisation works very well on the PSP, option to disable it was removed
 static const bool		gDynarecStackOptimisation = true;
@@ -368,8 +369,6 @@ CJumpLocation	CCodeGeneratorARM::GenerateBranchIfNotEqual( const u32 * p_var, u3
 //	Returns a jump location if an exception handler is required
 //*****************************************************************************
 
-uint32_t unhandled_op[64] = {};
-
 CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool branch_delay_slot, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump)
 {
 	u32 address = ti.Address;
@@ -484,7 +483,7 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 				case SpecOp_SLT:	GenerateSLT( rd, rs, rt, false );	handled = true; break;
 				case SpecOp_SLTU:	GenerateSLT( rd, rs, rt, true );	handled = true; break;
-				//case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump );	handled = true; break; Not Working
+				case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump );	handled = true; exception = true; break;
 
 				default: break;
 			}
@@ -499,7 +498,15 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case Cop1Op_CFC1:	GenerateCFC1( rt, op_code.fs ); handled = true; break;
 				case Cop1Op_CTC1:	GenerateCTC1( op_code.fs, rt ); handled = true; break;
 
-				case Cop1Op_DInstr: GenerateGenericR4300( op_code, R4300_GetDInstructionHandler( op_code ) ); handled = true; break;	// Need branch delay?
+				case Cop1Op_DInstr:
+					switch( op_code.cop1_funct )
+					{
+						case Cop1OpFunc_ADD:	GenerateADD_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_SUB:	GenerateSUB_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_MUL:	GenerateMUL_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_DIV:	GenerateDIV_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+					}
+					break;
 
 				case Cop1Op_SInstr:
 					switch( op_code.cop1_funct )
@@ -509,6 +516,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 						case Cop1OpFunc_MUL:	GenerateMUL_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
 						case Cop1OpFunc_DIV:	GenerateDIV_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
 						case Cop1OpFunc_SQRT:	GenerateSQRT_S( op_code.fd, op_code.fs ); handled = true; break;
+
+						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W( op_code.fd, op_code.fs ); handled = true; break;
 
 						case Cop1OpFunc_CMP_F:		GenerateCMP_S( op_code.fs, op_code.ft, NV ); handled = true; break;
 						case Cop1OpFunc_CMP_UN:		GenerateCMP_S( op_code.fs, op_code.ft, VS ); handled = true; break;
@@ -537,8 +546,6 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 	if (!handled)
 	{
-		unhandled_op[op_code.op]++;
-
 		CCodeLabel	no_target( NULL );
 
 		if( R4300_InstructionHandlerNeedsPC( op_code ) )
@@ -593,6 +600,18 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 			}
 		}
 	}
+	else
+	{
+		if(exception)
+		{
+			exception_handler = GenerateBranchIfSet( const_cast< u32 * >( &gCPUState.StuffToDo ), CCodeLabel(NULL) );
+		}
+
+		if( p_branch && branch_delay_slot )
+		{
+			SetVar( &gCPUState.Delay, NO_DELAY );
+		}
+	}
 
 	//Insure literal pool will be within range
 	if(GetLiteralPoolDistance() > 3900)
@@ -645,7 +664,7 @@ inline void CCodeGeneratorARM::GenerateLoad( EN64Reg base, s16 offset, u8 twiddl
 
 		LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 
-		ADD(ArmReg_R1, ArmReg_R1, ArmReg_R10);
+		ADD(ArmReg_R1, ArmReg_R1, gMemoryBaseReg);
 
 		if(abs(offset) >> 8)
 		{
@@ -801,7 +820,7 @@ inline void CCodeGeneratorARM::GenerateStore( EN64Reg base, s16 offset, u8 twidd
 
 		LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 
-		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R10);
+		ADD(ArmReg_R0, ArmReg_R0, gMemoryBaseReg);
 
 		if(abs(offset) >> 8)
 		{
@@ -901,7 +920,7 @@ bool CCodeGeneratorARM::GenerateCACHE( EN64Reg base, s16 offset, u32 cache_op )
 	{
 		LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[base]._u32_0));
 		MOV32(ArmReg_R1, offset);
-		ADD_IMM(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 		MOV_IMM(ArmReg_R1, 0x20);
 		CALL(CCodeLabel( (void*)CPU_InvalidateICacheRange ));
 
@@ -1186,14 +1205,8 @@ void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is
 	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
 }
 
-/*	Not working
 void CCodeGeneratorARM::GenerateJR( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	//u32	new_pc( gGPR[ op_code.rs ]._u32_0 );
-	//CPU_TakeBranch( new_pc, CPU_BRANCH_INDIRECT );
-
-	// Necessary? Could just directly compare reg_lo and constant p_branch->TargetAddress??
-
 	//SetVar( &gCPUState.Delay, DO_DELAY );
 
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
@@ -1204,7 +1217,6 @@ void CCodeGeneratorARM::GenerateJR( EN64Reg rs, const SBranchDetails * p_branch,
 
 	*p_branch_jump = BX_IMM(CCodeLabel(nullptr), NE);
 }
-*/
 
 //*****************************************************************************
 //
@@ -1316,42 +1328,50 @@ void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branc
 
 void CCodeGeneratorARM::GenerateADD_S( u32 fd, u32 fs, u32 ft )
 {
-	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VADD(F4, F0, F2);
-	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	VADD(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSUB_S( u32 fd, u32 fs, u32 ft )
 {
-	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VSUB(F4, F0, F2);
-	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	VSUB(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateMUL_S( u32 fd, u32 fs, u32 ft )
 {
-	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VMUL(F4, F0, F2);
-	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	VMUL(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateDIV_S( u32 fd, u32 fs, u32 ft )
 {
-	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VDIV(F4, F0, F2);
-	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	VDIV(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSQRT_S( u32 fd, u32 fs )
 {
-	VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
 
-	VSQRT(F4, F0);
-	VSTR(F4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VSQRT(ArmVfpReg_S4, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateTRUNC_W( u32 fd, u32 fs )
+{
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._f32));
+
+	VCVT_S32_F32(ArmVfpReg_S4, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._s32));
 }
 
 void CCodeGeneratorARM::GenerateCMP_S( u32 fs, u32 ft, EArmCond cond )
@@ -1367,20 +1387,92 @@ void CCodeGeneratorARM::GenerateCMP_S( u32 fs, u32 ft, EArmCond cond )
 	}
 	else
 	{
-		VLDR(F0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-		VLDR(F2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+		VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+		VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 
 		MOV32(ArmReg_R2, ~FPCSR_C);
 		LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPUControl[31]._u32));
 		AND(ArmReg_R0, ArmReg_R1, ArmReg_R2);
 
-		VCMP(F0, F2);
+		VCMP(ArmVfpReg_S0, ArmVfpReg_S2);
 
 		MOV_IMM(ArmReg_R2, 0x02, 0x5);
 		ADD(ArmReg_R0, ArmReg_R0, ArmReg_R2, cond);
 
 		STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPUControl[31]._u32));
 	}
+}
+
+void CCodeGeneratorARM::GenerateADD_D( u32 fd, u32 fs, u32 ft )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
+	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
+
+	VADD_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+
+	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
+
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+}
+
+void CCodeGeneratorARM::GenerateSUB_D( u32 fd, u32 fs, u32 ft )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
+	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
+
+	VSUB_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+
+	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
+
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+}
+
+void CCodeGeneratorARM::GenerateDIV_D( u32 fd, u32 fs, u32 ft )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
+	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
+
+	VDIV_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+
+	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
+
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+}
+
+void CCodeGeneratorARM::GenerateMUL_D( u32 fd, u32 fs, u32 ft )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
+	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
+	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
+
+	VMUL_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+
+	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
+
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
 }
 
 void CCodeGeneratorARM::GenerateMFC1( EN64Reg rt, u32 fs )
