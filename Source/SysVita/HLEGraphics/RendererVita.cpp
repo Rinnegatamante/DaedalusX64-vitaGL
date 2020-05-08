@@ -8,6 +8,7 @@
 #include "Combiner/RenderSettings.h"
 #include "Core/ROM.h"
 #include "Debug/Dump.h"
+#include "Debug/DBGConsole.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/NativeTexture.h"
 #include "HLEGraphics/CachedTexture.h"
@@ -581,6 +582,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 {
 	if (mTnL.Flags.Texture)
 	{
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		vglTexCoordPointerMapped(texcoord);
 		UpdateTileSnapshots( mTextureTile );
 		
@@ -588,7 +590,6 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 		
 		if( texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) )
 		{
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			float scale_x = texture->GetScaleX();
 			float scale_y = texture->GetScaleY();
 				
@@ -616,9 +617,6 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 {
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
-
-	// NB: we have to do this after UpdateTileSnapshot, as it set up mTileTopLeft etc.
-	// We have to do it before PrepareRenderState, because those values are applied to the graphics state.
 	PrepareTexRectUVs(&st0, &st1);
 	
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
@@ -674,9 +672,6 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 {
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
-
-	// NB: we have to do this after UpdateTileSnapshot, as it set up mTileTopLeft etc.
-	// We have to do it before PrepareRenderState, because those values are applied to the graphics state.
 	PrepareTexRectUVs(&st0, &st1);
 
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
