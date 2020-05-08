@@ -31,6 +31,10 @@
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"
 
+// FIXME: PNG loading function in CNativeTexture is wrong, using stb is just a workaround
+#define STB_IMAGE_IMPLEMENTATION
+#include "SysVita/UI/stb_image.h"
+
 char selectedRom[512];
 
 struct RomSelection {
@@ -52,11 +56,15 @@ bool LoadPreview(RomSelection *rom) {
 	if (old_hovered == rom) return has_preview_icon;
 	old_hovered = rom;
 	
+	int w, h;
 	IO::Filename preview_filename;
 	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Resources/Preview/"), rom->settings.Preview.c_str() );
-	mpPreviewTexture = CNativeTexture::CreateFromPng( preview_filename, TexFmt_8888 );
-	if (mpPreviewTexture) {
-		preview_icon = mpPreviewTexture->GetID();
+	uint8_t *icon_data = stbi_load(preview_filename, &w, &h, NULL, 4);
+	if (icon_data) {
+		if (!preview_icon) glGenTextures(1, &preview_icon);
+		glBindTexture(GL_TEXTURE_2D, preview_icon);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, icon_data);
+		free(icon_data);
 		return true;
 	}
 	
@@ -131,9 +139,8 @@ char *DrawRomSelector() {
 	
 	if (hovered) {
 		if (has_preview_icon = LoadPreview(hovered)) {
-			ImGui::Image((void*)preview_icon, ImVec2(485, 335));
+			ImGui::Image((void*)preview_icon, ImVec2(387, 268));
 		}
-		ImGui::SetCursorPosY(200);
 		ImGui::Text("Game Name: %s", hovered->settings.GameName.c_str());
 		if (hovered->cic == CIC_UNKNOWN) ImGui::Text("Cic Type: Unknown");
 		else ImGui::Text("Cic Type: %ld", (s32)hovered->cic + 6101);
