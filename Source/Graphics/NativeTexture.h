@@ -65,6 +65,9 @@ class CNativeTexture : public CRefCounted
 		inline void *					GetData()						{ return mpData; }
 
 #if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)
+#ifndef DAEDALUS_PSP
+		inline uint32_t					GetID() const					{ return mTextureId; }
+#endif
 		inline f32						GetScaleX() const				{ return mScale.x; }
 		inline f32						GetScaleY() const				{ return mScale.y; }
 #endif
