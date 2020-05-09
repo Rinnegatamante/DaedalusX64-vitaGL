@@ -33,6 +33,14 @@
 
 #define MAX_SAVESLOT 9
 
+enum {
+	DARK_THEME,
+	LIGHT_THEME,
+	CLASSIC_THEME
+};
+
+static uint8_t imgui_theme = DARK_THEME;
+
 int aspect_ratio = RATIO_16_9;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
@@ -233,6 +241,21 @@ void DrawCommonMenuBar() {
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Extra")){
+		if (ImGui::BeginMenu("UI Theme")){
+			if (ImGui::MenuItem("Dark", nullptr, imgui_theme == DARK_THEME)){
+				ImGui::StyleColorsDark();
+				imgui_theme = DARK_THEME;
+			}
+			if (ImGui::MenuItem("Light", nullptr, imgui_theme == LIGHT_THEME)){
+				ImGui::StyleColorsLight();
+				imgui_theme = LIGHT_THEME;
+			}
+			if (ImGui::MenuItem("classic", nullptr, imgui_theme == CLASSIC_THEME)){
+				ImGui::StyleColorsClassic();
+				imgui_theme = CLASSIC_THEME;
+			}
+			ImGui::EndMenu();
+		}
 		if (ImGui::MenuItem("Hide Menubar", nullptr, hide_menubar)){
 			hide_menubar = !hide_menubar;
 		}
