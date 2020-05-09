@@ -250,7 +250,7 @@ void DrawCommonMenuBar() {
 				ImGui::StyleColorsLight();
 				imgui_theme = LIGHT_THEME;
 			}
-			if (ImGui::MenuItem("classic", nullptr, imgui_theme == CLASSIC_THEME)){
+			if (ImGui::MenuItem("Classic", nullptr, imgui_theme == CLASSIC_THEME)){
 				ImGui::StyleColorsClassic();
 				imgui_theme = CLASSIC_THEME;
 			}
@@ -306,7 +306,8 @@ void DrawCommonWindows() {
 		ImGui::Text("MasterFeizz for the ARM DynaRec");
 		ImGui::Text("m4xw for the help sanitizing PIF code");
 		ImGui::Text("frangarcj for the help with some bugfixes");
-		ImGui::Text("That One Seong for the Livearea assets");
+		ImGui::Text("That One Seong & TheIronUniverse for the Livearea assets");
+		ImGui::Text("withLogic for the high-res preview assets");
 		ImGui::End();
 	}
 	
