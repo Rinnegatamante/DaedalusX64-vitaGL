@@ -181,8 +181,11 @@ char *DrawRomSelector() {
 		
 	if (!list) {
 		if (!comp) {
-			AppendCompatibilityDatabase("ux0:data/DaedalusX64/db1.json");
-			AppendCompatibilityDatabase("ux0:data/DaedalusX64/db2.json");
+			for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+				char dbname[64];
+				sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
+				AppendCompatibilityDatabase(dbname);
+			}
 		}
 		std::string			full_path;
 
