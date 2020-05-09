@@ -332,7 +332,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 
 		bool installed_texture {false};
 
-		u32 texture_idx {};
+		u32 texture_idx;
 
 		if(install_texture0 || install_texture1)
 		{
@@ -584,7 +584,11 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 	{
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		vglTexCoordPointerMapped(texcoord);
-		UpdateTileSnapshots( mTextureTile );
+		
+		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
+		else UpdateTileSnapshots( mTextureTile );
+		
+		//CDebugConsole::Get()->Msg(1, "L: 0x%08X", gRDPOtherMode.L);
 		
 		CNativeTexture *texture = mBoundTexture[0];
 		
@@ -594,7 +598,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 			float scale_y = texture->GetScaleY();
 				
 			// Hack to fix the sun in Zelda OOT/MM
-			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0c184241) )
+			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
 			{
 				scale_x *= 0.5f;
 				scale_y *= 0.5f;
