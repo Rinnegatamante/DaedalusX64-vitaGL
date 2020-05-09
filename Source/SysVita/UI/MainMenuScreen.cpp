@@ -249,6 +249,7 @@ char *DrawRomSelector() {
 			ImGui::Image((void*)preview_icon, ImVec2(387, 268));
 		}
 		ImGui::Text("Game Name: %s", hovered->settings.GameName.c_str());
+		ImGui::Text("Region: %s", ROM_GetCountryNameFromID(hovered->id.CountryID));
 		if (hovered->cic == CIC_UNKNOWN) ImGui::Text("Cic Type: Unknown");
 		else ImGui::Text("Cic Type: %ld", (s32)hovered->cic + 6101);
 		ImGui::Text("ROM Size: %lu MBs", hovered->size);
