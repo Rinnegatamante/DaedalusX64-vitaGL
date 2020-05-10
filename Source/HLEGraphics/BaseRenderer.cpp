@@ -206,22 +206,22 @@ BaseRenderer::~BaseRenderer() {}
 
 void BaseRenderer::SetVIScales()
 {
-	u32 width {Memory_VI_GetRegister( VI_WIDTH_REG )};
+	u32 width = Memory_VI_GetRegister( VI_WIDTH_REG );
 
-	u32 ScaleX {Memory_VI_GetRegister( VI_X_SCALE_REG ) & 0xFFF};
-	u32 ScaleY {Memory_VI_GetRegister( VI_Y_SCALE_REG ) & 0xFFF};
+	u32 ScaleX = Memory_VI_GetRegister( VI_X_SCALE_REG ) & 0xFFF;
+	u32 ScaleY = Memory_VI_GetRegister( VI_Y_SCALE_REG ) & 0xFFF;
 
-	f32 fScaleX {(f32)ScaleX / 1024.0f};
-	f32 fScaleY {(f32)ScaleY / 2048.0f};
+	f32 fScaleX = (f32)ScaleX / 1024.0f;
+	f32 fScaleY = (f32)ScaleY / 2048.0f;
 
-	u32 HStartReg {Memory_VI_GetRegister( VI_H_START_REG )};
-	u32 VStartReg {Memory_VI_GetRegister( VI_V_START_REG )};
+	u32 HStartReg = Memory_VI_GetRegister( VI_H_START_REG );
+	u32 VStartReg = Memory_VI_GetRegister( VI_V_START_REG );
 
-	u32	hstart {HStartReg >> 16};
-	u32	hend {HStartReg & 0xffff};
+	u32	hstart = HStartReg >> 16;
+	u32	hend = HStartReg & 0xffff;
 
-	u32	vstart {VStartReg >> 16};
-	u32	vend {VStartReg & 0xffff};
+	u32	vstart = VStartReg >> 16;
+	u32	vend = VStartReg & 0xffff;
 
 	// Sometimes HStartReg can be zero.. ex PD, Lode Runner, Cyber Tiger
 	if (hend == hstart)
@@ -1789,7 +1789,8 @@ void BaseRenderer::UpdateTileSnapshots( u32 tile_idx )
 	UpdateTileSnapshot( 0, tile_idx );
 
 #if defined(DAEDALUS_PSP)
-	if ( g_ROM.LOAD_T1_HACK & !gRDPOtherMode.text_lod )
+
+	if ( g_ROM.LOAD_T1_HACK && !gRDPOtherMode.text_lod )
 	{
 		// LOD is disabled - use two textures
 		UpdateTileSnapshot( 1, tile_idx + 1 );
@@ -1884,9 +1885,9 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	// It might just be code that lazily does a texrect with Primcolour (i.e. not using either T0 or T1)?
 	// DAEDALUS_ASSERT( gRDPStateManager.IsTileInitialised( tile_idx ), "Tile %d hasn't been set up (index %d)", tile_idx, index );
 
-	const TextureInfo &  ti        {gRDPStateManager.GetUpdatedTextureDescriptor( tile_idx )};
-	const RDP_Tile &     rdp_tile  {gRDPStateManager.GetTile( tile_idx )};
-	const RDP_TileSize & tile_size {gRDPStateManager.GetTileSize( tile_idx )};
+	const TextureInfo &  ti        = gRDPStateManager.GetUpdatedTextureDescriptor( tile_idx );
+	const RDP_Tile &     rdp_tile  = gRDPStateManager.GetTile( tile_idx );
+	const RDP_TileSize & tile_size = gRDPStateManager.GetTileSize( tile_idx );
 
 	// Avoid texture update, if texture is the same as last time around.
 	if( mBoundTexture[ index ] == nullptr || mBoundTextureInfo[ index ] != ti )
@@ -1899,7 +1900,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 		// else
 		// {
 			CRefPtr<CNativeTexture> texture = CTextureCache::Get()->GetOrCreateTexture( ti );
-
+		
 			if( texture != nullptr && texture != mBoundTexture[ index ] )
 			{
 				mBoundTextureInfo[index] = ti;
@@ -1920,11 +1921,11 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	// Initialise the clamping state. When the mask is 0, it forces clamp mode.
 	//
 #ifdef DAEDALUS_PSP
-	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT)};
-	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT)};
+	u32 mode_u = (u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT);
+	u32 mode_v = (u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT);
 #else
-	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT)};
-	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT)};
+	u32 mode_u = (u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT);
+	u32 mode_v = (u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT);
 #endif
 	//	In CRDPStateManager::GetTextureDescriptor, we limit the maximum dimension of a
 	//	texture to that define by the mask_s/mask_t value.
@@ -2013,7 +2014,7 @@ inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 			// Figure out by how much to translate so that the lowest of c0/c1 lies in the range [0,size]
 			// If we do lowest%size, we run the risk of implementation dependent behaviour for modulo of negative values.
 			// lowest + (size<<16) just adds a large multiple of size, which guarantees the result is positive.
-			s32 trans {((lowest + (size<<16)) % size) - lowest};
+			s32 trans = ((lowest + (size<<16)) % size) - lowest;
 
 			// NB! we have to apply the same offset to both coords, to preserve direction of mapping (i.e., don't clamp each independently)
 			c0 += trans;
@@ -2040,9 +2041,9 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 {
 	const RDP_Tile & rdp_tile {gRDPStateManager.GetTile( mActiveTile[0] )};
 
-	TexCoord	offset {mTileTopLeft[0]};
-	u32 		size_x {mBoundTextureInfo[0].GetWidth()  << 5};
-	u32 		size_y {mBoundTextureInfo[0].GetHeight() << 5};
+	TexCoord	offset = mTileTopLeft[0];
+	u32 		size_x = mBoundTextureInfo[0].GetWidth()  << 5;
+	u32 		size_y = mBoundTextureInfo[0].GetHeight() << 5;
 
 	// If mirroring, we need to scroll twice as far to line up.
 	if (rdp_tile.mirror_s)	size_x *= 2;

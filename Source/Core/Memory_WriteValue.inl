@@ -242,19 +242,19 @@ static void WriteValue_8440_844F( u32 address, u32 value )
 		{
 			RenderFrameBuffer(value & 0x7FFFFF);
 		}
+#ifndef DAEDALUS_GL
 		else
 		{
 			// Builtin video plugin already calls UpdateScreen in DLParser_Process
-#ifndef DAEDALUS_GL
 			gGraphicsPlugin->UpdateScreen();
-#endif
 		}
+#endif
 		break;
 
 	case 0x8:	// VI_WIDTH_REG
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 		DPF( DEBUG_VI, "VI_WIDTH_REG set to %d pixels", value );
-		#endif
+#endif
 		if (gGraphicsPlugin != NULL)
 		{
 			gGraphicsPlugin->ViWidthChanged();

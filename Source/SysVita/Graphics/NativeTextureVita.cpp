@@ -65,8 +65,8 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mTextureBlockWidth( GetTextureBlockWidth( mCorrectedWidth, texture_format ) )
 ,	mTextureId( 0 )
 {
-	mScale.x = 1.0f / mCorrectedWidth;
-	mScale.y = 1.0f / mCorrectedHeight;
+	mScale.x = 1.0f / (float)mCorrectedWidth;
+	mScale.y = 1.0f / (float)mCorrectedHeight;
 	
 	glGenTextures( 1, &mTextureId );
 }

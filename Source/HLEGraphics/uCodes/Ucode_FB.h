@@ -53,45 +53,13 @@ static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
 	ti.SetFormat			(0);
 	ti.SetSize				(2);
 
-	ti.SetLoadAddress		(origin - width*2);
+	ti.SetLoadAddress		(origin - width * 2);
 	ti.SetWidth				(FB_WIDTH);
 	ti.SetHeight			(FB_HEIGHT);
-	ti.SetPitch				(width << 2 >> 1);
+	ti.SetPitch				((width << 2) >> 1);
 
 	return gRenderer->LoadTextureDirectly(ti);
 }
-
-//Borrowed from StrmnNrmn's N64js
-static inline void DrawFrameBuffer(u32 origin, const CNativeTexture * texture)
-{
-
-	u16 * pixels = (u16*)malloc(FB_WIDTH*FB_HEIGHT * sizeof(u16));	// TODO: should cache this, but at some point we'll need to deal with variable framebuffer size, so do this later.
-	u32 src_offset = 0;
-
-	for (u32 y = 0; y < FB_HEIGHT; ++y)
-	{
-		u32 dst_row_offset = y * FB_WIDTH;
-		u32 dst_offset     = dst_row_offset;
-
-		for (u32 x = 0; x < FB_WIDTH; ++x)
-		{
-			pixels[dst_offset] = (g_pu8RamBase[(origin + src_offset)^U8_TWIDDLE]<<8) | g_pu8RamBase[(origin + src_offset+  1)^U8_TWIDDLE] | 1;  // NB: or 1 to ensure we have alpha
-			dst_offset += 1;
-			src_offset += 2;
-		}
-	}
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, FB_WIDTH, FB_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-
-	//ToDO: Implement me PSP
-	//Doesn't work
-	//sceGuTexMode( GU_PSM_5551, 0, 0, 1 );		// maxmips/a2/swizzle = 0
-	//sceGuTexImage(0, texture->GetCorrectedWidth(), texture->GetCorrectedHeight(), texture->GetBlockWidth(), pixels);
-
-	gRenderer->Draw2DTexture(0, 0, FB_WIDTH, FB_HEIGHT, 0, 0, FB_WIDTH, FB_HEIGHT, texture);
-
-	free(pixels);
-}
-
 
 void RenderFrameBuffer(u32 origin)
 {
@@ -100,8 +68,8 @@ void RenderFrameBuffer(u32 origin)
 
 	CRefPtr<CNativeTexture> texture = LoadFrameBuffer(origin);
 	if(texture != NULL)
-		DrawFrameBuffer(origin, texture);
-
+		gRenderer->Draw2DTexture(0, 0, FB_WIDTH, FB_HEIGHT, 0, 0, FB_WIDTH, FB_HEIGHT, texture);
+	
 	gRenderer->EndScene();
 	gGraphicsPlugin->UpdateScreen();
 }
