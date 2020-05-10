@@ -33,6 +33,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Utility/Profiler.h"
 
+extern "C" {
+	extern void musyx_v1_task(OSTask *hle);
+};
+
+static bool isMusyx = false;
+
 // Audio UCode lists
 // Dummy UCode Handler
 //
@@ -64,16 +70,6 @@ extern AudioHLEInstruction ABI2[0x20];
 //				 All RARE games except Golden Eye 007
 //
 extern AudioHLEInstruction ABI3[0x20];
-//---------------------------------------------------------------------------------------------
-//
-//     ABI 5 : Factor 5 - MoSys/MusyX
-//				 Rogue Squadron, Tarzan, Hydro Thunder, and TWINE
-//				 Indiana Jones and Battle for Naboo (?)
-//---------------------------------------------------------------------------------------------
-//
-// Below functions were updated
-//
-
 
 AudioHLEInstruction *ABI = ABIUnknown;
 bool bAudioChanged = false;
@@ -88,7 +84,10 @@ void Audio_Reset()
 	bAudioChanged = false;
 	isMKABI		  = false;
 	isZeldaABI	  = false;
+	isMusyx 	  = false;
 }
+
+extern void log2file(const char*,...);
 
 //*****************************************************************************
 //
@@ -96,10 +95,11 @@ void Audio_Reset()
 inline void Audio_Ucode_Detect(OSTask * pTask)
 {
 	u8* p_base = g_pu8RamBase + (u32)pTask->t.ucode_data;
+	//log2file("p_base: 0x%08X", p_base);
 	if (*(u32*)(p_base) != 0x01)
 	{
 		if (*(u32*)(p_base + 0x10) == 0x00000001)
-			ABI = ABIUnknown;
+			isMusyx = true;
 		else
 			ABI = ABI3;
 	}
@@ -117,7 +117,7 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 //*****************************************************************************
 void Audio_Ucode()
 {
-	#ifdef DAEDALUS_PROFILE
+#ifdef DAEDALUS_PROFILE
 	DAEDALUS_PROFILE( "HLEMain::Audio_Ucode" );
 #endif
 	OSTask * pTask = (OSTask *)(g_pu8SpMemBase + 0x0FC0);
@@ -130,21 +130,24 @@ void Audio_Ucode()
 	}
 
 	gAudioHLEState.LoopVal = 0;
-	//memset( gAudioHLEState.Segments, 0, sizeof( gAudioHLEState.Segments ) );
+	
+	//log2file("musyx: %s", isMusyx ? "yes" : "no");
+	
+	if (isMusyx) {
+		musyx_v1_task(pTask);
+	} else {
+		u32 * p_alist = (u32 *)(g_pu8RamBase + (u32)pTask->t.data_ptr);
+		u32 ucode_size = (pTask->t.data_size >> 3);
 
-	u32 * p_alist = (u32 *)(g_pu8RamBase + (u32)pTask->t.data_ptr);
-	u32 ucode_size = (pTask->t.data_size >> 3);	//ABI5 can return 0 here!!!
+		while( ucode_size )
+		{
+			AudioHLECommand command;
+			command.cmd0 = *p_alist++;
+			command.cmd1 = *p_alist++;
 
-	while( ucode_size )
-	{
-		AudioHLECommand command;
-		command.cmd0 = *p_alist++;
-		command.cmd1 = *p_alist++;
+			ABI[command.cmd](command);
 
-		ABI[command.cmd](command);
-
-		--ucode_size;
-
-		//printf("%08X %08X\n",command.cmd0,command.cmd1);
+			--ucode_size;
+		}
 	}
 }
