@@ -263,11 +263,11 @@ char *DrawRomSelector() {
 			ImGui::Text("Tags:");
 			if (hovered->status->playable) {
 				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "Playable");
-				SetTagDescription("Games that can be played from start to\nfinish with playable performance.");
+				SetTagDescription("Games that can be played from start to\nend with playable performances.");
 			}
 			if (hovered->status->ingame_plus) {
 				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "Ingame +");
-				SetTagDescription("Games that go far ingame but have glitches\nor have non-playable performance.");
+				SetTagDescription("Games that go far ingame but have glitches\nor have non-playable performances.");
 			}
 			if (hovered->status->ingame_low) {
 				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "Ingame -");

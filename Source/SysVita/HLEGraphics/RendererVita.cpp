@@ -580,6 +580,8 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 
 void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
 {
+	//CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+	
 	if (mTnL.Flags.Texture)
 	{
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -587,8 +589,6 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 		
 		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
 		else UpdateTileSnapshots( mTextureTile );
-		
-		//CDebugConsole::Get()->Msg(1, "L: 0x%08X", gRDPOtherMode.L);
 		
 		CNativeTexture *texture = mBoundTexture[0];
 		
@@ -626,6 +626,8 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
 	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
 
+	//CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+
 	v2 screen0;
 	v2 screen1;
 	ScaleN64ToScreen( xy0, screen0 );
@@ -634,8 +636,8 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
-	float scale_x {texture->GetScaleX()};
-	float scale_y {texture->GetScaleY()};
+	float scale_x = texture->GetScaleX();
+	float scale_y = texture->GetScaleY();
 
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gTexCoordBuffer[0] = uv0.x * scale_x;
@@ -674,6 +676,8 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
+	//CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X", gRDPOtherMode.L);
+	
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
 	PrepareTexRectUVs(&st0, &st1);
