@@ -43,15 +43,22 @@ class CAssemblyWriterARM
 
 		inline void NOP()	{	EmitDWORD(0xe1a00000);	}
 
-		void				ADD    (EArmReg rd, EArmReg rn, EArmReg rm, EArmCond = AL);
+		void				ADD    (EArmReg rd, EArmReg rn, EArmReg rm, EArmCond = AL, u8 S = 0);
 		void				ADD_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4 = 0);
 
-		void				SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond = AL);
+		void				ADC    (EArmReg rd, EArmReg rn, EArmReg rm);
+		void				ADC_IMM(EArmReg rd, EArmReg rn, u16 imm);
+
+		void				SBC(EArmReg rd, EArmReg rn, EArmReg rm);
+
+		void				SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond = AL, u8 S = 0);
 		void				SUB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4 = 0);
 
 		void				MUL  (EArmReg rd, EArmReg rn, EArmReg rm);
 		void				UMULL(EArmReg rdLo, EArmReg rdHi, EArmReg rn, EArmReg rm);
 		void				SMULL(EArmReg rdLo, EArmReg rdHi, EArmReg rn, EArmReg rm);
+
+		void				NEG(EArmReg rd, EArmReg rm);
 
 		void				AND    (EArmReg rd, EArmReg rn, EArmReg rm, EArmCond = AL);
 		void				AND_IMM(EArmReg rd, EArmReg rn, u8 imm);
@@ -82,9 +89,12 @@ class CAssemblyWriterARM
 		void				STRD(EArmReg rt, EArmReg rn, s16 offset);
 
 		void				MOV    (EArmReg rd, EArmReg rm);
-		void				MOV_LSL(EArmReg rd, EArmReg rm, u8 imm5);
-		void				MOV_LSR(EArmReg rd, EArmReg rm, u8 imm5);
-		void				MOV_ASR(EArmReg rd, EArmReg rm, u8 imm5);
+		void				MOV_LSL(EArmReg rd, EArmReg rn, EArmReg rm);
+		void				MOV_LSR(EArmReg rd, EArmReg rn, EArmReg rm);
+		void				MOV_ASR(EArmReg rd, EArmReg rn, EArmReg rm);
+		void				MOV_LSL_IMM(EArmReg rd, EArmReg rm, u8 imm5);
+		void				MOV_LSR_IMM(EArmReg rd, EArmReg rm, u8 imm5);
+		void				MOV_ASR_IMM(EArmReg rd, EArmReg rm, u8 imm5);
 		void				MOV_IMM(EArmReg rd, u8 imm, u8 ror4 = 0, EArmCond = AL);
 
 		void				MOVW(EArmReg reg, u16 imm);
