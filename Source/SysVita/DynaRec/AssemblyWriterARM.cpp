@@ -188,17 +188,17 @@ void	CAssemblyWriterARM::MOV(EArmReg rd, EArmReg rm)
 
 void	CAssemblyWriterARM::MOV_LSL(EArmReg rd, EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0xe1a00010 | (rd << 12) | (rn << 8) | rm);
+	EmitDWORD(0xe1a00010 | (rd << 12) | rn | (rm << 8));
 }
 
 void	CAssemblyWriterARM::MOV_LSR(EArmReg rd, EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0xe1a00030 | (rd << 12) | (rn << 8) | rm);
+	EmitDWORD(0xe1a00030 | (rd << 12) | rn | (rm << 8));
 }
 
 void	CAssemblyWriterARM::MOV_ASR(EArmReg rd, EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0xe1a00050 | (rd << 12) | (rn << 8) | rm);
+	EmitDWORD(0xe1a00050 | (rd << 12) | rn | (rm << 8));
 }
 
 void	CAssemblyWriterARM::MOV_LSL_IMM(EArmReg rd, EArmReg rm, u8 imm5)

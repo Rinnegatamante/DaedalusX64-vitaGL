@@ -1113,8 +1113,9 @@ void CCodeGeneratorARM::GenerateSRA( EN64Reg rd, EN64Reg rt, u32 sa )
 //Shift left logical variable
 void CCodeGeneratorARM::GenerateSLLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 
 	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
@@ -1125,8 +1126,9 @@ void CCodeGeneratorARM::GenerateSLLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 //Shift right logical variable
 void CCodeGeneratorARM::GenerateSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 
 	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
@@ -1137,8 +1139,9 @@ void CCodeGeneratorARM::GenerateSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 //Shift right arithmetic variable
 void CCodeGeneratorARM::GenerateSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 
 	MOV_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
