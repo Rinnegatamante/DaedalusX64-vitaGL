@@ -107,7 +107,9 @@ void DrawCommonMenuBar() {
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
 		}
 		SetDescription("Limits framerate to the one running game is supposed to have.");
-		if (ImGui::BeginMenu("Frameskip")){
+		/* NOTE: Due to multiple gxm scenes usage, this affects renderer causing major glitches.
+		   Also, in every single game this lowers performances. Not worth to have it as an option. */
+		/*if (ImGui::BeginMenu("Frameskip")){
 			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
 				gFrameskipValue = FV_DISABLED;
 			}
@@ -127,7 +129,7 @@ void DrawCommonMenuBar() {
 				gFrameskipValue = FV_3;
 			}
 			ImGui::EndMenu();
-		}
+		}*/
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Graphics")){
