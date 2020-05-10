@@ -49,6 +49,7 @@ static bool has_cached_saveslots = false;
 extern bool wait_rendering;
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
+extern char cur_audio_ucode[32];
 
 bool show_menubar = true;
 bool hide_menubar = true;
@@ -316,7 +317,8 @@ void DrawCommonWindows() {
 	if (debug_window) {
 		ImGui::Begin("Debugger", &debug_window);
 		ImGui::Text("Cartridge ID: 0x%04X", g_ROM.rh.CartID);
-		ImGui::Text("Installed RSP Microcode: %s", cur_ucode);
+		ImGui::Text("Installed GFX Microcode: %s", cur_ucode);
+		ImGui::Text("Installed Audio Microcode: %s", cur_audio_ucode);
 		ImGui::End();
 	}
 	

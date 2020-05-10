@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //
 
+#include <stdio.h>
 #include "stdafx.h"
 #include "audiohle.h"
 #include "AudioHLEProcessor.h"
@@ -38,6 +39,8 @@ extern "C" {
 };
 
 static bool isMusyx = false;
+
+char cur_audio_ucode[32];
 
 // Audio UCode lists
 // Dummy UCode Handler
@@ -81,6 +84,7 @@ extern bool isZeldaABI;
 //*****************************************************************************
 void Audio_Reset()
 {
+	sprintf(cur_audio_ucode, "None");
 	bAudioChanged = false;
 	isMKABI		  = false;
 	isZeldaABI	  = false;
@@ -95,20 +99,26 @@ extern void log2file(const char*,...);
 inline void Audio_Ucode_Detect(OSTask * pTask)
 {
 	u8* p_base = g_pu8RamBase + (u32)pTask->t.ucode_data;
-	//log2file("p_base: 0x%08X", p_base);
+
 	if (*(u32*)(p_base) != 0x01)
 	{
-		if (*(u32*)(p_base + 0x10) == 0x00000001)
+		if (*(u32*)(p_base + 0x10) == 0x00000001) {
 			isMusyx = true;
-		else
+			sprintf(cur_audio_ucode, "Musyx v1");
+		} else {
 			ABI = ABI3;
+			sprintf(cur_audio_ucode, "ABI3");
+		}
 	}
 	else
 	{
-		if (*(u32*)(p_base + 0x30) == 0xF0000F00)
+		if (*(u32*)(p_base + 0x30) == 0xF0000F00) {
 			ABI = ABI1;
-		else
+			sprintf(cur_audio_ucode, "ABI1");
+		} else {
 			ABI = ABI2;
+			sprintf(cur_audio_ucode, "ABI2");
+		}
 	}
 }
 
@@ -130,8 +140,6 @@ void Audio_Ucode()
 	}
 
 	gAudioHLEState.LoopVal = 0;
-	
-	//log2file("musyx: %s", isMusyx ? "yes" : "no");
 	
 	if (isMusyx) {
 		musyx_v1_task(pTask);
