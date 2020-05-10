@@ -245,7 +245,7 @@ u32			gNumInstructionsExecuted = 0;
 //*****************************************************************************
 //
 //*****************************************************************************
-u32 gRDPFrame {}, gAuxAddr {};
+u32 gRDPFrame = 0, gAuxAddr = 0;
 
 extern u32 uViWidth, uViHeight;
 
@@ -326,6 +326,9 @@ void DLParser_DumpVtxInfo(u32 address, u32 v0_idx, u32 num_verts)
 bool DLParser_Initialise()
 {
 	gFirstCall = true;
+	
+	// Resetting number of executed frames
+	gRDPFrame = 0;
 
 	// Reset scissor to default
 	scissors.top = 0;
