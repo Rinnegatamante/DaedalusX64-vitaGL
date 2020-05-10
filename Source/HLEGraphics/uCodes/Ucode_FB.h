@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef HLEGRAPHICS_UCODES_UCODE_FB_H_
 #define HLEGRAPHICS_UCODES_UCODE_FB_H_
 
-#if !defined(DAEDALUS_PSP) && !defined(DAEDALUS_VITA)
+#if !defined(DAEDALUS_PSP)
 static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
 {
 	u32 width  = Memory_VI_GetRegister( VI_WIDTH_REG );
@@ -43,7 +43,7 @@ static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
 	DAEDALUS_ASSERT(g_CI.Size == G_IM_SIZ_16b,"32b frame buffer is not supported");
 	//DAEDALUS_ASSERT((uViWidth+1) == FB_WIDTH,"Variable width is not handled");
 	//DAEDALUS_ASSERT((uViHeight+1) == FB_HEIGHT,"Variable height is not handled");
-	#endif
+#endif
 	TextureInfo ti;
 
 	ti.SetSwapped			(0);
@@ -106,5 +106,5 @@ void RenderFrameBuffer(u32 origin)
 	gGraphicsPlugin->UpdateScreen();
 }
 
-#endif // !DAEDALUS_PSP && !DAEDALUS_VITA
+#endif // !DAEDALUS_PSP
 #endif // HLEGRAPHICS_UCODES_UCODE_FB_H_

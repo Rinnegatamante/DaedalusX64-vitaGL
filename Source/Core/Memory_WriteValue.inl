@@ -198,7 +198,7 @@ static void WriteValue_8430_843F( u32 address, u32 value )
 }
 
 // 0x0440 0000 to 0x044F FFFF Video Interface (VI) Registers
-#if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)	// This is out of spec but only writes to VI_CURRENT_REG do something.. /Salvy
+#if defined(DAEDALUS_PSP)	// This is out of spec but only writes to VI_CURRENT_REG do something.. /Salvy
 static void WriteValue_8440_844F( u32 address, u32 value )
 {
 	u32 offset {address & 0xFF};
