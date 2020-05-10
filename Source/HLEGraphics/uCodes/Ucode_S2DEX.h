@@ -700,7 +700,7 @@ void DLParser_S2DEX_BgCopy( MicroCodeCommand command )
 	ti.SetLoadAddress      (RDPSegAddr(objBg->imagePtr));
 	ti.SetWidth            (imageW);
 	ti.SetHeight           (imageH);
-	ti.SetPitch			   (((imageW << objBg->imageSiz >> 1)>>3)<<3); //force 8-bit alignment
+	ti.SetPitch			   ((((imageW << objBg->imageSiz) >> 1)>>3)<<3); //force 8-bit alignment
 
 	ti.SetSwapped          (0);
 
@@ -747,7 +747,7 @@ void DLParser_S2DEX_Bg1cyc( MicroCodeCommand command )
 	ti.SetLoadAddress      (RDPSegAddr(objBg->imagePtr));
 	ti.SetWidth            (objBg->imageW/4);
 	ti.SetHeight           (objBg->imageH/4);
-	ti.SetPitch			   (((objBg->imageW/4 << ti.GetSize() >> 1)>>3)<<3); //force 8-bit alignment, this what sets our correct viewport.
+	ti.SetPitch			   ((((objBg->imageW/4 << ti.GetSize()) >> 1)>>3)<<3); //force 8-bit alignment, this what sets our correct viewport.
 
 	ti.SetSwapped          (0);
 

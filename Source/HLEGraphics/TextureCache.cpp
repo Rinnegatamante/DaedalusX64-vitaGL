@@ -177,7 +177,7 @@ CachedTexture * CTextureCache::GetOrCreateCachedTexture(const TextureInfo & ti)
 	//
 	// Retrieve the texture from the cache (if it already exists)
 	//
-	u32	ixa {MakeHashIdxA( ti )};
+	u32	ixa = MakeHashIdxA( ti );
 	if( mpCacheHashTable[ixa] && mpCacheHashTable[ixa]->GetTextureInfo() == ti )
 	{
 		RECORD_CACHE_HIT( 1, 0 );
