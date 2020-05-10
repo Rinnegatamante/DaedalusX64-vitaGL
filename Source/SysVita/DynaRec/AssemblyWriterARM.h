@@ -74,10 +74,12 @@ class CAssemblyWriterARM
 		void				LDRSB(EArmReg rt, EArmReg rn, s16 offset);
 		void				LDRH (EArmReg rt, EArmReg rn, s16 offset);
 		void				LDRSH(EArmReg rt, EArmReg rn, s16 offset);
+		void				LDRD (EArmReg rt, EArmReg rn, s16 offset);
 
 		void				STR (EArmReg rt, EArmReg rn, s16 offset);
 		void				STRH(EArmReg rt, EArmReg rn, s16 offset);
 		void				STRB(EArmReg rt, EArmReg rn, s16 offset);
+		void				STRD(EArmReg rt, EArmReg rn, s16 offset);
 
 		void				MOV    (EArmReg rd, EArmReg rm);
 		void				MOV_LSL(EArmReg rd, EArmReg rm, u8 imm5);
