@@ -711,9 +711,7 @@ bool CCodeGeneratorARM::GenerateLW( EN64Reg rt, EN64Reg base, s16 offset )
 	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
 
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-		
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -735,9 +733,8 @@ bool CCodeGeneratorARM::GenerateLH( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U16_TWIDDLE, 16, true, (void*)Read16Bits_Signed );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -747,9 +744,8 @@ bool CCodeGeneratorARM::GenerateLHU( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U16_TWIDDLE, 16, false, (void*)Read16Bits );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0); //Clear Hi
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -759,9 +755,8 @@ bool CCodeGeneratorARM::GenerateLB( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U8_TWIDDLE, 8, true, (void*)Read8Bits_Signed );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -771,9 +766,8 @@ bool CCodeGeneratorARM::GenerateLBU( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U8_TWIDDLE, 8, false, (void*)Read8Bits );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0); //Clear Hi
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -800,10 +794,9 @@ bool CCodeGeneratorARM::GenerateLDC1( u32 ft, EN64Reg base, s16 offset )
 void CCodeGeneratorARM::GenerateLUI( EN64Reg rt, s16 immediate )
 {
 	MOV32(ArmReg_R0, immediate << 16);
-	
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend	
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 //*****************************************************************************
@@ -937,9 +930,8 @@ void	CCodeGeneratorARM::GenerateJAL( u32 address )
 {
 	MOV32(ArmReg_R0, address + 8);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[N64Reg_RA]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[N64Reg_RA]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[N64Reg_RA]._u64));
 }
 
 void CCodeGeneratorARM::GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
@@ -948,10 +940,9 @@ void CCodeGeneratorARM::GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
 	MOV32(ArmReg_R1, (u32)immediate);
 
 	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-	
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend	
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 void CCodeGeneratorARM::GenerateANDI( EN64Reg rt, EN64Reg rs, u16 immediate )
@@ -961,9 +952,8 @@ void CCodeGeneratorARM::GenerateANDI( EN64Reg rt, EN64Reg rs, u16 immediate )
 
 	AND(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 void CCodeGeneratorARM::GenerateORI( EN64Reg rt, EN64Reg rs, u16 immediate )
@@ -973,9 +963,8 @@ void CCodeGeneratorARM::GenerateORI( EN64Reg rt, EN64Reg rs, u16 immediate )
 
 	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 void CCodeGeneratorARM::GenerateXORI( EN64Reg rt, EN64Reg rs, u16 immediate )
@@ -985,9 +974,8 @@ void CCodeGeneratorARM::GenerateXORI( EN64Reg rt, EN64Reg rs, u16 immediate )
 
 	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 // Set on Less Than Immediate
@@ -1001,9 +989,8 @@ void CCodeGeneratorARM::GenerateSLTI( EN64Reg rt, EN64Reg rs, s16 immediate, boo
 
 	MOV_IMM(ArmReg_R0, 1, 0, is_unsigned ? CC : LT);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 //*****************************************************************************
@@ -1019,9 +1006,8 @@ void CCodeGeneratorARM::GenerateSLL( EN64Reg rd, EN64Reg rt, u32 sa )
 
 	MOV_LSL(ArmReg_R0, ArmReg_R1, sa);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 //Shift right logical
@@ -1031,9 +1017,8 @@ void CCodeGeneratorARM::GenerateSRL( EN64Reg rd, EN64Reg rt, u32 sa )
 
 	MOV_LSR(ArmReg_R0, ArmReg_R1, sa);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 //Shift right arithmetic 
 void CCodeGeneratorARM::GenerateSRA( EN64Reg rd, EN64Reg rt, u32 sa )
@@ -1042,66 +1027,41 @@ void CCodeGeneratorARM::GenerateSRA( EN64Reg rd, EN64Reg rt, u32 sa )
 
 	MOV_ASR(ArmReg_R0, ArmReg_R1, sa);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	//lo
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	ORR(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	//hi
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
-
-	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateXOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	//lo
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	XOR(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	//hi
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
-
-	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateAND( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	//lo
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	AND(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	AND(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	AND(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	//hi
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
-
-	AND(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 
@@ -1112,9 +1072,8 @@ void CCodeGeneratorARM::GenerateADDU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 	ADD(ArmReg_R0, ArmReg_R1, ArmReg_R2);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateSUBU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
@@ -1124,9 +1083,8 @@ void CCodeGeneratorARM::GenerateSUBU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 	SUB(ArmReg_R0, ArmReg_R1, ArmReg_R2);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateMULT( EN64Reg rs, EN64Reg rt, bool is_unsigned )
@@ -1202,8 +1160,7 @@ void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is
 
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateJR( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
@@ -1480,9 +1437,8 @@ void CCodeGeneratorARM::GenerateMFC1( EN64Reg rt, u32 fs )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._s32));
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_0));
 	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);// Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s64));
 }
 
 void CCodeGeneratorARM::GenerateMTC1( u32 fs, EN64Reg rt )
@@ -1497,9 +1453,8 @@ void CCodeGeneratorARM::GenerateCFC1( EN64Reg rt, u32 fs )
 	{
 		LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPUControl[fs]._s32));
 
-		STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_0));
 		MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);// Sign extend
-		STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_1));
+		STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s64));
 	}
 }
 
