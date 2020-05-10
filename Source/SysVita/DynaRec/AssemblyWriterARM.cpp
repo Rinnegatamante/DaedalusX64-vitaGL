@@ -31,19 +31,39 @@ void	CAssemblyWriterARM::CMP(EArmReg rn, EArmReg rm)
 	EmitDWORD(0xe1500000 | rn << 16 | rm);
 }
 
-void	CAssemblyWriterARM::ADD(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
+void	CAssemblyWriterARM::ADD(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond, u8 S)
 {
-	EmitDWORD(0x00800000 | (cond << 28) | ((rd) << 12) | ((rn) << 16) | rm);
+	EmitDWORD(0x00800000 | (cond << 28) | (S << 20) | ((rd) << 12) | ((rn) << 16) | rm);
 }
 
-void	CAssemblyWriterARM::SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
+void	CAssemblyWriterARM::ADD_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
 {
-	EmitDWORD(0x00400000 | (cond << 28) | ((rd) << 12) | ((rn) << 16) | rm);
+	EmitDWORD(0xe2800000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
+}
+
+void	CAssemblyWriterARM::SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond, u8 S)
+{
+	EmitDWORD(0x00400000 | (cond << 28) | (S << 20) | ((rd) << 12) | ((rn) << 16) | rm);
 }
 
 void	CAssemblyWriterARM::SUB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
 {
 	EmitDWORD(0xe2400000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
+}
+
+void	CAssemblyWriterARM::ADC(EArmReg rd, EArmReg rn, EArmReg rm)
+{
+	EmitDWORD(0xe0a00000 | (rd << 12) | (rn << 16) | rm);
+}
+
+void	CAssemblyWriterARM::ADC_IMM(EArmReg rd, EArmReg rn, u16 imm)
+{
+	EmitDWORD(0xe2a00000 | (rd << 12) | (rn << 16) | (imm & 0x0fff) );
+}
+
+void	CAssemblyWriterARM::SBC(EArmReg rd, EArmReg rn, EArmReg rm)
+{
+	EmitDWORD(0xe0c00000 | (rd << 12) | (rn << 16) | rm);
 }
 
 void 	CAssemblyWriterARM::MUL(EArmReg rd, EArmReg rn, EArmReg rm)
@@ -53,17 +73,17 @@ void 	CAssemblyWriterARM::MUL(EArmReg rd, EArmReg rn, EArmReg rm)
 
 void 	CAssemblyWriterARM::UMULL(EArmReg rdLo, EArmReg rdHi, EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0xE0800090 | (rdHi << 16) | (rdLo << 12) | (rn << 8) | rm );
+	EmitDWORD(0xe0800090 | (rdHi << 16) | (rdLo << 12) | (rn << 8) | rm );
 }
 
 void 	CAssemblyWriterARM::SMULL(EArmReg rdLo, EArmReg rdHi, EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0xE0C00090 | (rdHi << 16) | (rdLo << 12) | (rn << 8) | rm );
+	EmitDWORD(0xe0c00090 | (rdHi << 16) | (rdLo << 12) | (rn << 8) | rm );
 }
 
-void	CAssemblyWriterARM::ADD_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
+void	CAssemblyWriterARM::NEG(EArmReg rd, EArmReg rm)
 {
-	EmitDWORD(0xe2800000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
+	EmitDWORD(0xe2600000 | (rd << 12) | (rm << 16));
 }
 
 void	CAssemblyWriterARM::AND(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
@@ -88,7 +108,7 @@ void	CAssemblyWriterARM::XOR(EArmReg rd, EArmReg rn, EArmReg rm)
 
 void	CAssemblyWriterARM::B(u16 offset, EArmCond cond)
 {
-	EmitDWORD(0x0A000000 | (cond << 28) | (offset >> 2));
+	EmitDWORD(0x0a000000 | (cond << 28) | (offset >> 2));
 }
 
 void	CAssemblyWriterARM::BX(EArmReg rm, EArmCond cond)
@@ -103,62 +123,62 @@ void	CAssemblyWriterARM::BLX(EArmReg rm, EArmCond cond)
 
 void	CAssemblyWriterARM::PUSH(u16 regs)
 {
-	EmitDWORD(0xE92D0000 | regs);
+	EmitDWORD(0xe92d0000 | regs);
 }
 
 void	CAssemblyWriterARM::POP(u16 regs)
 {
-	EmitDWORD(0xE8BD0000 | regs);
+	EmitDWORD(0xe8bd0000 | regs);
 }
 
 void	CAssemblyWriterARM::LDR(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE5100000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
+	EmitDWORD(0xe5100000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xfff));
 }
 
 void	CAssemblyWriterARM::LDRB(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE5500000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
+	EmitDWORD(0xe5500000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xfff));
 }
 
 void	CAssemblyWriterARM::LDRSB(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE15000D0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
+	EmitDWORD(0xe15000d0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xf0) << 4) | (abs(offset) & 0xf));
 }
 
 void	CAssemblyWriterARM::LDRSH(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE15000F0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
+	EmitDWORD(0xe15000f0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xf0) << 4) | (abs(offset) & 0xf));
 }
 
 void	CAssemblyWriterARM::LDRH(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE15000B0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
+	EmitDWORD(0xe15000b0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xf0) << 4) | (abs(offset) & 0xf));
 }
 
 void	CAssemblyWriterARM::LDRD(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE14000D0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset & 0xF0)) << 4) | (abs(offset) & 0xF));
+	EmitDWORD(0xe14000d0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset & 0xf0)) << 4) | (abs(offset) & 0xf));
 }
 
 void	CAssemblyWriterARM::STR(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE5000000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
+	EmitDWORD(0xe5000000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xfff));
 }
 
 void	CAssemblyWriterARM::STRH(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE14000B0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
+	EmitDWORD(0xe14000b0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xf0) << 4) | (abs(offset) & 0xf));
 }
 
 void	CAssemblyWriterARM::STRB(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE5400000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xFFF));
+	EmitDWORD(0xe5400000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xfff));
 }
 
 void	CAssemblyWriterARM::STRD(EArmReg rt, EArmReg rn, s16 offset)
 {
-	EmitDWORD(0xE14000F0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xF0) << 4) | (abs(offset) & 0xF));
+	EmitDWORD(0xe14000f0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xf0) << 4) | (abs(offset) & 0xf));
 }
 
 void	CAssemblyWriterARM::MOV(EArmReg rd, EArmReg rm)
@@ -166,17 +186,32 @@ void	CAssemblyWriterARM::MOV(EArmReg rd, EArmReg rm)
 	EmitDWORD(0xe1a00000 | (rd << 12) | rm);
 }
 
-void	CAssemblyWriterARM::MOV_LSL(EArmReg rd, EArmReg rm, u8 imm5)
+void	CAssemblyWriterARM::MOV_LSL(EArmReg rd, EArmReg rn, EArmReg rm)
+{
+	EmitDWORD(0xe1a00010 | (rd << 12) | rn | (rm << 8));
+}
+
+void	CAssemblyWriterARM::MOV_LSR(EArmReg rd, EArmReg rn, EArmReg rm)
+{
+	EmitDWORD(0xe1a00030 | (rd << 12) | rn | (rm << 8));
+}
+
+void	CAssemblyWriterARM::MOV_ASR(EArmReg rd, EArmReg rn, EArmReg rm)
+{
+	EmitDWORD(0xe1a00050 | (rd << 12) | rn | (rm << 8));
+}
+
+void	CAssemblyWriterARM::MOV_LSL_IMM(EArmReg rd, EArmReg rm, u8 imm5)
 {
 	EmitDWORD(0xe1a00000 | (rd << 12) | rm | (imm5 << 7));
 }
 
-void	CAssemblyWriterARM::MOV_LSR(EArmReg rd, EArmReg rm, u8 imm5)
+void	CAssemblyWriterARM::MOV_LSR_IMM(EArmReg rd, EArmReg rm, u8 imm5)
 {
 	EmitDWORD(0xe1a00020 | (rd << 12) | rm | (imm5 << 7));
 }
 
-void	CAssemblyWriterARM::MOV_ASR(EArmReg rd, EArmReg rm, u8 imm5)
+void	CAssemblyWriterARM::MOV_ASR_IMM(EArmReg rd, EArmReg rm, u8 imm5)
 {
 	EmitDWORD(0xe1a00040 | (rd << 12) | rm | (imm5 << 7));
 }
@@ -294,7 +329,7 @@ void	CAssemblyWriterARM::MOV32(EArmReg reg, u32 imm)
 		MOVW(reg, imm);
 		#else
 		MOV_IMM(reg, imm);
-		if(imm & 0xFF00) ADD_IMM(reg, reg, imm >> 8, 0xC);
+		if(imm & 0xff00) ADD_IMM(reg, reg, imm >> 8, 0xc);
 		#endif
 	}
 	else
@@ -316,7 +351,7 @@ CJumpLocation CAssemblyWriterARM::BX_IMM( CCodeLabel target, EArmCond cond )
 	MOVT(ArmReg_R4, address >> 16);
 	#else
 	MOV_IMM(ArmReg_R4, address);
-	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 8, 0xC);
+	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 8, 0xc);
 	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 16, 0x8);
 	ADD_IMM(ArmReg_R4, ArmReg_R4, address >> 24, 0x4);
 	#endif
@@ -338,7 +373,7 @@ void CAssemblyWriterARM::CALL( CCodeLabel target )
 
 void CAssemblyWriterARM::RET()
 {
-	POP(0x8FF0);
+	POP(0x8ff0);
 	InsertLiteralPool();
 }
 
