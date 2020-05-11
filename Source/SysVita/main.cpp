@@ -38,10 +38,8 @@
 #define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
 
 extern "C" {
-
-int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
-int _newlib_heap_size_user = 128 * 1024 * 1024;
-
+	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
+	int _newlib_heap_size_user = 160 * 1024 * 1024;
 }
 
 extern bool run_emu;
