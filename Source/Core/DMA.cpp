@@ -111,7 +111,7 @@ void DMA_SP_CopyToRDRAM()
 	u32 count  = ((wrlen_reg>>12)&0x00FF)+1;
 	u32 skip   = ((wrlen_reg>>20)&0x0FFF);
 
-	for ( u32 c {}; c < count; c++ )
+	for ( u32 c = 0; c < count; c++ )
 	{
 		#ifdef DAEDALUS_DEBUG_CONSOLE
 		if ( rdram_address  > gRamSize )
@@ -146,7 +146,7 @@ void DMA_SI_CopyFromDRAM( )
 	DPF( DEBUG_MEMORY_PIF, "DRAM (0x%08x) -> PIF Transfer ", mem );
 #endif
 	// Fuse 4 reads and 4 writes to just one which is a lot faster - Corn
-	for(u32 i {}; i < 16; i++)
+	for(u32 i = 0; i < 16; i++)
 	{
 		p_dst[i] = BSWAP32(p_src[i]);
 	}

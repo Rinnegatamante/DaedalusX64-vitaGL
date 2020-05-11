@@ -191,7 +191,7 @@ static EProcessResult RSP_HLE_Audio()
 // RSP_HLE_Jpeg and RSP_HLE_CICX105 were borrowed from Mupen64plus
 static u32 sum_bytes(const u8 *bytes, u32 size)
 {
-    u32 sum {};
+    u32 sum = 0;
     const u8 * const bytes_end = bytes + size;
 
     while (bytes != bytes_end)
@@ -306,7 +306,7 @@ void RSP_HLE_ProcessTask()
 			//	RDP_DumpRSPCode("unkcode", 0xDEAFF00D, (u32*)(g_pu8RamBase + (((u32)pTask->t.ucode)&0x00FFFFFF)),      0x04001080, 0x1000 - 0x80);//pTask->t.ucode_size);
 
 			break;
-			#endif
+		#endif
 	}
 
 	// Started and completed. No need to change cores. [synchronously]

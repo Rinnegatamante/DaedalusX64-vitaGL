@@ -240,7 +240,6 @@ inline void QuickWrite32Bits( u8 *p_base, u32 value )
 extern u8 * g_pu8RamBase_8000;
 //extern u8 * g_pu8RamBase_A000;
 
-
 //#define MEMORY_CHECK_ALIGN( address, align )	DAEDALUS_ASSERT( (address & ~(align-1)) == 0, "Unaligned memory access" )
 #define MEMORY_CHECK_ALIGN( address, align )
 

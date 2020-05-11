@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Math/MathUtil.h"
 #include "Utility/FastMemcpy.h"
 #include "OSHLE/ultra_sptask.h"
+#include "Core/RDRam.h"
 
 const u16 ResampleLUT[0x200] =
 {
@@ -72,14 +73,6 @@ const u16 ResampleLUT[0x200] =
 static inline int align(int x, int n) {
 	return (((x >> n) + 1) << n);
 }
-
-extern s16 clamp_s16(s32 x);
-extern void rdram_read_many_u8(u8 *dst, u32 address, u32 count);
-extern void rdram_read_many_u16(u16 *dst, u32 address, u32 count);
-extern void rdram_write_many_u16(const u16 *src, u32 address, u32 count);
-extern u32 rdram_read_u32(u32 address);
-extern void rdram_write_many_u32(const u32 *src, u32 address, u32 count);
-extern void rdram_read_many_u32(u32 *dst, u32 address, u32 count);
 
 extern "C" {
 
