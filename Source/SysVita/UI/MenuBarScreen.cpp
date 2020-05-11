@@ -307,6 +307,7 @@ void DrawCommonWindows() {
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Special thanks to:");
 		ImGui::Text("xerpi for the initial Vita port");
 		ImGui::Text("MasterFeizz for the ARM DynaRec");
+		ImGui::Text("TheFloW for his contributions to the DynaRec code");
 		ImGui::Text("m4xw for the help sanitizing PIF code");
 		ImGui::Text("frangarcj for the help with some bugfixes");
 		ImGui::Text("That One Seong & TheIronUniverse for the Livearea assets");
