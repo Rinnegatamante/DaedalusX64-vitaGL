@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //
 //	N.B. This source code is derived from Mupen64Plus's Audio plugin
-//	and modified by Rinnegatamante to work with Daedalus Vita.
+//	and modified by Rinnegatamante to work with Daedalus X64.
 //
 
 #include <stddef.h>
