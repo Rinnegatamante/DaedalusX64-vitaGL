@@ -232,7 +232,6 @@ if (VITA_RELEASE)
 
 	target_link_libraries(daedalus
 		z
-		png
 	)
 
 	# Build and Link Executable

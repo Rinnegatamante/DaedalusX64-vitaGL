@@ -31,7 +31,6 @@
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"
 
-// FIXME: PNG loading function in CNativeTexture is wrong, using stb is just a workaround
 #define STB_IMAGE_IMPLEMENTATION
 #include "SysVita/UI/stb_image.h"
 

@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifndef GRAPHICS_PNGUTIL_H_
 #define GRAPHICS_PNGUTIL_H_
-
+#ifndef DAEDALUS_VITA
 #include <stdlib.h>
 
 #include "TextureFormat.h"
@@ -32,5 +32,5 @@ void PngSaveImage( DataSink * sink, const void * data, const void * palette, ETe
 void PngSaveImage( DataSink * sink, const CNativeTexture * texture );
 
 void FlattenTexture(const CNativeTexture * texture, void * dst, size_t len);
-
+#endif
 #endif // GRAPHICS_PNGUTIL_H_
