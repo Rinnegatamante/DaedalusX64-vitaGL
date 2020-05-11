@@ -115,8 +115,10 @@ void	_ConvertVerticesIndexed( DaedalusVtx * dest, const DaedalusVtx4 * source, u
 u32		_ClipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, const v4 * plane, u32 num_verts );
 }
 
+#ifndef GL_TRUE
 #define GL_TRUE                           1
 #define GL_FALSE                          0
+#endif
 
 #undef min
 #undef max
@@ -124,22 +126,20 @@ u32		_ClipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, const 
 extern bool gRumblePakActive;
 extern u32 gAuxAddr;
 
-static f32 fViWidth {320.0f};
-static f32 fViHeight {240.0f};
-static f32 oldfViWidth {320.0f};
-static f32 oldfViHeight {240.0f};
-u32 uViWidth {320};
-u32 uViHeight {240};
+static f32 fViWidth = 320.0f;
+static f32 fViHeight = 240.0f;
+static f32 oldfViWidth = 320.0f;
+static f32 oldfViHeight = 240.0f;
+u32 uViWidth = 320;
+u32 uViHeight = 240;
 
-f32 gZoomX{1.0};	//Default is 1.0f
+f32 gZoomX = 1.0;	//Default is 1.0f
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 // General purpose variable used for debugging
-f32 TEST_VARX {0.0f};
-f32 TEST_VARY {0.0f};
+f32 TEST_VARX = 0.0f;
+f32 TEST_VARY = 0.0f;
 #endif
-
-
 
 //
 
@@ -226,19 +226,17 @@ void BaseRenderer::SetVIScales()
 	// Sometimes HStartReg can be zero.. ex PD, Lode Runner, Cyber Tiger
 	if (hend == hstart)
 	{
-		hend = (u32)(width / fScaleX);
+		hend = (u32)((f32)width / fScaleX);
 	}
 
-	fViWidth  =  (hend-hstart) * fScaleX;
-	fViHeight =  (vend-vstart) * fScaleY * (240.f/237.f);
-
-	// XXX Need to check PAL games.
-	//if(g_ROM.TvType != OS_TV_NTSC) sRatio = 9/11.0f;
+	fViWidth  =  (f32)(hend-hstart) * fScaleX;
+	bool isPAL = (Memory_VI_GetRegister( VI_V_SYNC_REG ) & 0x3FFF) > 550;
+	fViHeight =  (f32)(vend-vstart) * fScaleY * (isPAL ? 1.0041841f : 1.0126582f);
 
 	//printf("width[%d] ViWidth[%f] ViHeight[%f]\n", width, fViWidth, fViHeight);
 
 	//This corrects height in various games ex : Megaman 64, Cyber Tiger. 40Winks need width >= ((u32)fViWidth << 1) for menus //Corn
-	if( width > 0x300 || width >= ((u32)fViWidth << 1) )
+	if( (width > 768) || (width >= ((u32)fViWidth << 1)) )
 	{
 		fViHeight += fViHeight;
 	}
@@ -289,7 +287,7 @@ void BaseRenderer::EndScene()
 
 	//
 	//	Clear this, to ensure we're force to check for updates to it on the next frame
-	for( u32 i {}; i < kNumBoundTextures; i++ )
+	for( u32 i = 0; i < kNumBoundTextures; i++ )
 	{
 		mBoundTextureInfo[ i ] = TextureInfo();
 		mBoundTexture[ i ]     = nullptr;
@@ -302,8 +300,7 @@ void BaseRenderer::EndScene()
 void BaseRenderer::InitViewport()
 {
 	// Init the N64 viewport.
-	mVpScale = v2( 640.f*0.25f, 480.f*0.25f );
-	mVpTrans = v2( 640.f*0.25f, 480.f*0.25f );
+	SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
 	u32 display_width  = 0, display_height = 0;
@@ -326,24 +323,24 @@ void BaseRenderer::InitViewport()
 		u32 frame_width  = (u32)(gGlobalPreferences.TVEnable ? 720 : 480);
 		u32 frame_height = (u32)(gGlobalPreferences.TVEnable ? 480 : 272);
 
-		s32 display_x = (s32)(frame_width  - display_width)  / 2;
-		s32 display_y = (s32)(frame_height - display_height) / 2;
+		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
+		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
 #elif defined(DAEDALUS_VITA)
 		// Centralise the viewport in the display.
 		u32 frame_width  = SCR_WIDTH;
 		u32 frame_height = SCR_HEIGHT;
 
-		s32 display_x = (s32)(frame_width  - display_width)  / 2;
-		s32 display_y = (s32)(frame_height - display_height) / 2;
+		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
+		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
 #else
-		s32 display_x = 0, display_y = 0;
+		f32 display_x = 0, display_y = 0;
 #endif
 
-		mN64ToScreenScale.x = gZoomX * mScreenWidth  / fViWidth;
-		mN64ToScreenScale.y = gZoomX * mScreenHeight / fViHeight;
+		mN64ToScreenScale.x = gZoomX * (mScreenWidth  / fViWidth);
+		mN64ToScreenScale.y = gZoomX * (mScreenHeight / fViHeight);
 
-		mN64ToScreenTranslate.x  = (f32)display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
-		mN64ToScreenTranslate.y  = (f32)display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
+		mN64ToScreenTranslate.x  = display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
+		mN64ToScreenTranslate.y  = display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
 
 #ifndef DAEDALUS_VITA
 		if (gRumblePakActive)
@@ -361,7 +358,7 @@ void BaseRenderer::InitViewport()
 			2.f / w,       0.f,     0.f,     0.f,
 				0.f,  -2.f / h,     0.f,     0.f,
 				0.f,       0.f,     1.f,     0.f,
-			-1.0f,       1.f,     0.f,     1.f
+			  -1.0f,       1.f,     0.f,     1.f
 		);
 #endif
 	}
@@ -386,7 +383,7 @@ void BaseRenderer::SetN64Viewport( const v2 & scale, const v2 & trans )
 	mVpTrans.x = trans.x;
 	mVpTrans.y = trans.y;
 
-	UpdateViewport();
+	InitViewport();
 }
 
 
@@ -397,21 +394,22 @@ void BaseRenderer::UpdateViewport()
 	v2		n64_min( mVpTrans.x - mVpScale.x, mVpTrans.y - mVpScale.y );
 	v2		n64_max( mVpTrans.x + mVpScale.x, mVpTrans.y + mVpScale.y );
 
-	v2		psp_min {};
-	v2		psp_max {};
+	v2		psp_min;
+	v2		psp_max;
+	
 	ConvertN64ToScreen( n64_min, psp_min );
 	ConvertN64ToScreen( n64_max, psp_max );
 
-	s32		vp_x {s32( psp_min.x )};
-	s32		vp_y {s32( psp_min.y )};
-	s32		vp_w {s32( psp_max.x - psp_min.x )};
-	s32		vp_h {s32( psp_max.y - psp_min.y )};
+	s32		vp_x = s32( psp_min.x );
+	s32		vp_y = s32( psp_min.y );
+	s32		vp_w = s32( psp_max.x - psp_min.x );
+	s32		vp_h = s32( psp_max.y - psp_min.y );
 
 	//DBGConsole_Msg(0, "[WViewport Changed (%d) (%d)]",vp_w,vp_h );
 
 #ifdef DAEDALUS_PSP
-	const u32 vx {2048};
-	const u32 vy {2048};
+	const u32 vx = 2048;
+	const u32 vy = 2048;
 
 	sceGuOffset(vx - (vp_w/2),vy - (vp_h/2));
 	sceGuViewport(vx + vp_x, vy + vp_y, vp_w, vp_h);
@@ -665,11 +663,11 @@ static u32 clipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, u
 
 	f32 bDotPlane = b->ProjectedPos.Dot( plane );
 
-	for( u32 i {}; i < inCount + 1; ++i)
+	for( u32 i = 0; i < inCount + 1; ++i)
 	{
 		//a = &source[i%inCount];
-		const s32 condition {i - inCount};
-		const s32 index {(( ( condition >> 31 ) & ( i ^ condition ) ) ^ condition )};
+		const u32 condition = i - inCount;
+		const u32 index = (( ( condition >> 31 ) & ( i ^ condition ) ) ^ condition );
 		a = &source[index];
 
 		f32 aDotPlane {a->ProjectedPos.Dot( plane )};
@@ -2094,16 +2092,16 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	v2 n64_tl( (f32)x0, (f32)y0 );
 	v2 n64_br( (f32)x1, (f32)y1 );
 
-	v2 screen_tl {};
-	v2 screen_br {};
+	v2 screen_tl;
+	v2 screen_br;
 	ConvertN64ToScreen( n64_tl, screen_tl );
 	ConvertN64ToScreen( n64_br, screen_br );
 
 	//Clamp TOP and LEFT values to 0 if < 0 , needed for zooming //Corn
-	s32 l {Max<s32>( s32(screen_tl.x), 0 )};
-	s32 t {Max<s32>( s32(screen_tl.y), 0 )};
-	s32 r {           s32(screen_br.x)};
-	s32 b {          s32(screen_br.y)};
+	s32 l = Max<s32>( s32(screen_tl.x), 0 );
+	s32 t = Max<s32>( s32(screen_tl.y), 0 );
+	s32 r =           s32(screen_br.x);
+	s32 b =           s32(screen_br.y);
 
 #if defined(DAEDALUS_PSP)
 	// N.B. Think the arguments are x0,y0,x1,y1, and not x,y,w,h as the docs describe
@@ -2111,13 +2109,13 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	sceGuScissor( l, t, r, b );
 #elif defined(DAEDALUS_GL)
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
-	s32 w {Max<s32>( r - l, 0 )};
-	s32 h {Max<s32>( b - t, 0 )};
+	s32 w = Max<s32>( r - l, 0 );
+	s32 h = Max<s32>( b - t, 0 );
 	glScissor( l, (s32)mScreenHeight - (t + h), w, h );
 #elif defined(DAEDALUS_VITA)
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
-	s32 w {Max<s32>( r - l, 0 )};
-	s32 h {Max<s32>( b - t, 0 )};
+	s32 w = Max<s32>( r - l, 0 );
+	s32 h = Max<s32>( b - t, 0 );
 	glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
 #else
 	DAEDALUS_ERROR("Need to implement scissor for this platform.");

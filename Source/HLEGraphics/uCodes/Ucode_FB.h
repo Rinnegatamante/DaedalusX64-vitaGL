@@ -63,7 +63,6 @@ static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
 
 void RenderFrameBuffer(u32 origin)
 {
-	gRenderer->SetVIScales();
 	gRenderer->BeginScene();
 
 	CRefPtr<CNativeTexture> texture = LoadFrameBuffer(origin);

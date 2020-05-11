@@ -580,7 +580,6 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 
 	if(!gFrameskipActive)
 	{
-		gRenderer->SetVIScales();
 		gRenderer->ResetMatrices(stack_size);
 		gRenderer->Reset();
 		gRenderer->BeginScene();
