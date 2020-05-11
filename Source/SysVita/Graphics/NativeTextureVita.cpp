@@ -64,6 +64,7 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mCorrectedHeight( CorrectDimension( h ) )
 ,	mTextureBlockWidth( GetTextureBlockWidth( mCorrectedWidth, texture_format ) )
 ,	mTextureId( 0 )
+,	hasMipmaps( false )
 {
 	mScale.x = 1.0f / (float)mCorrectedWidth;
 	mScale.y = 1.0f / (float)mCorrectedHeight;
@@ -84,6 +85,14 @@ bool CNativeTexture::HasData() const
 void CNativeTexture::InstallTexture() const
 {
 	glBindTexture( GL_TEXTURE_2D, mTextureId );
+}
+
+void CNativeTexture::GenerateMipmaps()
+{
+	if (!hasMipmaps) {
+		glGenerateMipmap(GL_TEXTURE_2D);
+		hasMipmaps = true;
+	}
 }
 
 void CNativeTexture::SetData( void * data, void * palette )

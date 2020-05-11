@@ -27,6 +27,8 @@ extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
 
+extern bool use_mipmaps;
+
 struct ScePspFMatrix4
 {
 	float m[16];
@@ -282,7 +284,7 @@ RendererVita::SBlendStateEntry RendererVita::LookupBlendState( u64 mux, bool two
 	return entry;
 }
 
-void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode)
+void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool is_3d)
 {
 	const CAlphaRenderSettings *	alpha_settings( states->GetAlphaSettings() );
 
@@ -403,6 +405,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 			if(texture != nullptr)
 			{
 				texture->InstallTexture();
+				if (is_3d && use_mipmaps) texture->GenerateMipmaps();
 				installed_texture = true;
 			}
 		}
@@ -422,11 +425,11 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 }
 
 
-void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer )
+void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer, bool is_3d)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
-	if (g_ROM.PROJ_HACK && mat_project == gProjection.m) glScalef(1, -1, 1);
+	if (g_ROM.PROJ_HACK && is_3d) glScalef(1, -1, 1);
 	
 	if ( disable_zbuffer )
 	{
@@ -537,6 +540,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 			if( mBoundTexture[ texture_idx ] )
 			{
 				mBoundTexture[ texture_idx ]->InstallTexture();
+				if (is_3d && use_mipmaps) mBoundTexture[ texture_idx ]->GenerateMipmaps();
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 				installed_texture = true;
@@ -562,7 +566,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 	}
 	else if( blend_entry.States != nullptr )
 	{
-		RenderUsingRenderSettings( blend_entry.States, p_vertices, num_vertices, triangle_mode );
+		RenderUsingRenderSettings( blend_entry.States, p_vertices, num_vertices, triangle_mode, is_3d );
 	}
 	else
 	{
@@ -614,7 +618,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 		}
 	}
 	vglVertexPointerMapped(vertices);
-	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer);
+	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer, true);
 }
 
 void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
@@ -670,7 +674,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
 
-	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true);
+	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
@@ -725,7 +729,7 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
 
-	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true);
+	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
@@ -756,7 +760,7 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	gColorBuffer += 4;
 	
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true);
+	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
 
 void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,

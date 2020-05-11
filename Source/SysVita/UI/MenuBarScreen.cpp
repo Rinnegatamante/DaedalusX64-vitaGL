@@ -55,6 +55,7 @@ bool show_menubar = true;
 bool hide_menubar = true;
 bool run_emu = true;
 bool restart_rom = false;
+bool use_mipmaps = false;
 
 static bool vflux_window = false;
 static bool vflux_enabled = false;
@@ -155,6 +156,10 @@ void DrawCommonMenuBar() {
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
 		SetDescription("Forces bilinear filtering on every texture.");
+		if (ImGui::MenuItem("Mipmaps", nullptr, use_mipmaps)){
+			use_mipmaps = !use_mipmaps;
+		}
+		SetDescription("Forces mipmaps generation for 3D rendering.");
 		ImGui::Separator();
 		if (ImGui::MenuItem("vFlux", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
@@ -430,11 +435,11 @@ void DrawInGameMenuBar() {
 				ImGui::Separator();
 				if (ImGui::MenuItem("Restart Rom")){
 					restart_rom = true;
-					CPU_Halt("Resetting");
+					CPU_Halt("Restarting Rom");
 				}
 				if (ImGui::MenuItem("Close Rom")){
 					has_cached_saveslots = false;
-					CPU_Halt("Resetting");
+					CPU_Halt("Closing Rom");
 				}
 				ImGui::EndMenu();
 			}
