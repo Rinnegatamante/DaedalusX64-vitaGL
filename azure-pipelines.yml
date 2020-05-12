@@ -29,7 +29,7 @@ steps:
     git clone https://github.com/Rinnegatamante/vitaGL
     cd vitaGL
     make HAVE_SBRK=1
-    sudo -E make HAVE_SBRK=1 install
+    sudo -E make HAVE_SBRK=1 NO_DEBUG=1 install
   displayName: 'Build vitaGL'
 
 - script: |

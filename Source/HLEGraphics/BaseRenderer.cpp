@@ -388,25 +388,14 @@ void BaseRenderer::SetN64Viewport( const v2 & scale, const v2 & trans )
 
 
 //
+s32 vp_x;
+s32 vp_y;
+s32 vp_w;
+s32 vp_h;
+bool is_negative_w = false;
+bool is_negative_h = false;
 
-void BaseRenderer::UpdateViewport()
-{
-	v2		n64_min( mVpTrans.x - mVpScale.x, mVpTrans.y - mVpScale.y );
-	v2		n64_max( mVpTrans.x + mVpScale.x, mVpTrans.y + mVpScale.y );
-
-	v2		psp_min;
-	v2		psp_max;
-	
-	ConvertN64ToScreen( n64_min, psp_min );
-	ConvertN64ToScreen( n64_max, psp_max );
-
-	s32		vp_x = s32( psp_min.x );
-	s32		vp_y = s32( psp_min.y );
-	s32		vp_w = s32( psp_max.x - psp_min.x );
-	s32		vp_h = s32( psp_max.y - psp_min.y );
-
-	//DBGConsole_Msg(0, "[WViewport Changed (%d) (%d)]",vp_w,vp_h );
-
+void inline SetInternalViewport() {
 #ifdef DAEDALUS_PSP
 	const u32 vx = 2048;
 	const u32 vy = 2048;
@@ -425,6 +414,63 @@ void BaseRenderer::UpdateViewport()
 #endif
 }
 
+void BaseRenderer::UpdateViewport()
+{
+	v2		n64_min( mVpTrans.x - mVpScale.x, mVpTrans.y - mVpScale.y );
+	v2		n64_max( mVpTrans.x + mVpScale.x, mVpTrans.y + mVpScale.y );
+
+	v2		psp_min;
+	v2		psp_max;
+	
+	ConvertN64ToScreen( n64_min, psp_min );
+	ConvertN64ToScreen( n64_max, psp_max );
+
+	vp_x = s32( psp_min.x );
+	vp_y = s32( psp_min.y );
+	vp_w = s32( psp_max.x - psp_min.x );
+	vp_h = s32( psp_max.y - psp_min.y );
+	
+	DBGConsole_Msg(0, "[WViewport Changed (%f -> %f) (%f -> %f)",psp_max.x, n64_max.x, psp_max.y, n64_max.y );
+	DBGConsole_Msg(0, "[WViewport Changed (%ld , %ld) (%ld , %ld)", vp_x, vp_y, vp_w, vp_h );
+	
+	SetInternalViewport();
+}
+
+#ifdef DAEDALUS_VITA
+void BaseRenderer::SetNegativeViewport()
+{
+	if ((vp_w < 0) || (vp_h < 0)) {
+		if (vp_w < 0) { 
+			vp_w = -vp_w;
+			vp_x = vp_x - vp_w;
+			is_negative_w = true;
+		}
+		if (vp_h < 0) {
+			vp_h = -vp_h;
+			vp_y = vp_y - vp_h;
+			is_negative_h = true;
+		}
+		SetInternalViewport();
+	}
+}
+
+void BaseRenderer::SetPositiveViewport()
+{
+	if (is_negative_w || is_negative_h) {
+		if (is_negative_w) { 
+			vp_w = -vp_w;
+			vp_x = vp_x - vp_w;
+			is_negative_w = false;
+		}
+		if (is_negative_h) {
+			vp_h = -vp_h;
+			vp_y = vp_y - vp_h;
+			is_negative_h = false;
+		}
+		SetInternalViewport();
+	}
+}
+#endif
 
 // Returns true if triangle visible and rendered, false otherwise
 
@@ -1662,8 +1708,8 @@ void BaseRenderer::ModifyVertexInfo(u32 whered, u32 vert, u32 val)
 
 		case G_MWO_POINT_ST:
 			{
-				s16 tu {s16(val >> 16)};
-				s16 tv {s16(val & 0xFFFF)};
+				s16 tu = s16(val >> 16);
+				s16 tv = s16(val & 0xFFFF);
 				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 				DL_PF( "    Setting tu/tv to %f, %f", tu/32.0f, tv/32.0f );
 				#endif
@@ -1675,8 +1721,8 @@ void BaseRenderer::ModifyVertexInfo(u32 whered, u32 vert, u32 val)
 			{
 				if( g_ROM.GameHacks == TARZAN ) return;
 
-				u32 x {(val >> 16) >> 2};
-				u32 y {(val & 0xFFFF) >> 2};
+				u32 x = (val >> 16) >> 2;
+				u32 y = (val & 0xFFFF) >> 2;
 
 				// Fixes the blocks lining up backwards in New Tetris
 				//

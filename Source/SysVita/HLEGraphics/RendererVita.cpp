@@ -429,7 +429,6 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
-	if (g_ROM.PROJ_HACK && is_3d) glScalef(1, -1, 1);
 	
 	if ( disable_zbuffer )
 	{
@@ -618,6 +617,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 		}
 	}
 	vglVertexPointerMapped(vertices);
+	SetPositiveViewport();
 	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer, true);
 }
 
@@ -673,7 +673,9 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	uint32_t *p_vertices = gColorBuffer;
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
-
+	
+	SetNegativeViewport();
+	
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
@@ -728,6 +730,8 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	uint32_t *p_vertices = gColorBuffer;
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
+
+	SetNegativeViewport();
 
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
