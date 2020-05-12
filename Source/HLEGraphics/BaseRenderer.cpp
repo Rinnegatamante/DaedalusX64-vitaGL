@@ -394,6 +394,8 @@ s32 vp_w;
 s32 vp_h;
 bool is_negative_w = false;
 bool is_negative_h = false;
+bool is_negative_x = false;
+bool is_negative_y = false;
 
 void inline SetInternalViewport() {
 #ifdef DAEDALUS_PSP
@@ -403,7 +405,8 @@ void inline SetInternalViewport() {
 	sceGuOffset(vx - (vp_w/2),vy - (vp_h/2));
 	sceGuViewport(vx + vp_x, vy + vp_y, vp_w, vp_h);
 #elif defined(DAEDALUS_VITA)
-	glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
+	// NOTE: If disabled, Tarzan in game HUD is not rendered
+	if (!(g_ROM.GameHacks == TARZAN)) glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 	glViewport(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 #elif defined(DAEDALUS_GL)
 	glViewport(vp_x, (s32)mScreenHeight - (vp_h + vp_y), vp_w, vp_h);
@@ -430,16 +433,24 @@ void BaseRenderer::UpdateViewport()
 	vp_w = s32( psp_max.x - psp_min.x );
 	vp_h = s32( psp_max.y - psp_min.y );
 	
-	DBGConsole_Msg(0, "[WViewport Changed (%f -> %f) (%f -> %f)",psp_max.x, n64_max.x, psp_max.y, n64_max.y );
-	DBGConsole_Msg(0, "[WViewport Changed (%ld , %ld) (%ld , %ld)", vp_x, vp_y, vp_w, vp_h );
-	
+	is_negative_x = is_negative_y = is_negative_w = is_negative_h = false;
 	SetInternalViewport();
 }
 
 #ifdef DAEDALUS_VITA
 void BaseRenderer::SetNegativeViewport()
 {
-	if ((vp_w < 0) || (vp_h < 0)) {
+	if ((vp_w < 0) || (vp_h < 0) || (vp_x < 0) || (vp_y < 0)) {
+		if (vp_x < 0) {
+			vp_w += vp_x;
+			vp_x -= vp_x;
+			is_negative_x = true;
+		}
+		if (vp_y < 0) {
+			vp_h += vp_y;
+			vp_y -= vp_y;
+			is_negative_y = true;
+		}
 		if (vp_w < 0) { 
 			vp_w = -vp_w;
 			vp_x = vp_x - vp_w;
@@ -456,7 +467,17 @@ void BaseRenderer::SetNegativeViewport()
 
 void BaseRenderer::SetPositiveViewport()
 {
-	if (is_negative_w || is_negative_h) {
+	if (is_negative_w || is_negative_h || is_negative_x || is_negative_y) {
+		if (is_negative_x) {
+			vp_w += vp_x;
+			vp_x -= vp_x;
+			is_negative_x = false;
+		}
+		if (is_negative_y) {
+			vp_h += vp_y;
+			vp_y -= vp_y;
+			is_negative_y = false;
+		}
 		if (is_negative_w) { 
 			vp_w = -vp_w;
 			vp_x = vp_x - vp_w;
