@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "DynaRec/Trace.h"
 #include "OSHLE/ultra_R4300.h"
 
-
 using namespace AssemblyUtils;
 
 static const u32		NUM_MIPS_REGISTERS( 32 );
@@ -469,16 +468,27 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 			{
 				case SpecOp_SLL: 	GenerateSLL( rd, rt, sa ); handled = true; break;
 				case SpecOp_SRA: 	GenerateSRA( rd, rt, sa ); handled = true; break;
-				//Causes Rayman 2's menu to stop working
-				//case SpecOp_SRL: 	GenerateSRL( rd, rt, sa ); handled = true; break;
+				case SpecOp_SRL: 	GenerateSRL( rd, rt, sa ); handled = true; break;
 				case SpecOp_SLLV:	GenerateSLLV( rd, rs, rt );	handled = true; break;
 				case SpecOp_SRLV:	GenerateSRLV( rd, rs, rt );	handled = true; break;
 				case SpecOp_SRAV:	GenerateSRAV( rd, rs, rt );	handled = true; break;
 
+				case SpecOp_DSLL32:	GenerateDSLL32( rd, rt, sa );	handled = true; break;
+				case SpecOp_DSRL32:	GenerateDSRL32( rd, rt, sa );	handled = true; break;
+				case SpecOp_DSRA32:	GenerateDSRA32( rd, rt, sa );	handled = true; break;
+
+				case SpecOp_DSLL:	GenerateDSLL( rd, rt, sa );	handled = true; break;
+				case SpecOp_DSRL:	GenerateDSRL( rd, rt, sa );	handled = true; break;
+				case SpecOp_DSRA:	GenerateDSRA( rd, rt, sa );	handled = true; break;
+
+				case SpecOp_DSLLV:	GenerateDSLLV( rd, rs, rt );	handled = true; break;
+				case SpecOp_DSRLV:	GenerateDSRLV( rd, rs, rt );	handled = true; break;
+				case SpecOp_DSRAV:	GenerateDSRAV( rd, rs, rt );	handled = true; break;
+
 				case SpecOp_OR:		GenerateOR( rd, rs, rt ); handled = true; break;
 				case SpecOp_AND:	GenerateAND( rd, rs, rt ); handled = true; break;
 				case SpecOp_XOR:	GenerateXOR( rd, rs, rt ); handled = true; break;
-				// case SpecOp_NOR:	GenerateNOR( rd, rs, rt );	handled = true; break;
+				case SpecOp_NOR:	GenerateNOR( rd, rs, rt );	handled = true; break;
 
 				case SpecOp_ADD:	GenerateADDU( rd, rs, rt );	handled = true; break;
 				case SpecOp_ADDU:	GenerateADDU( rd, rs, rt );	handled = true; break;
@@ -488,6 +498,9 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 				case SpecOp_MULTU:	GenerateMULT( rs, rt, true );	handled = true; break;
 				case SpecOp_MULT:	GenerateMULT( rs, rt, false );	handled = true; break;
+
+				case SpecOp_DMULTU:	GenerateDMULT( rs, rt );	handled = true; break;
+				case SpecOp_DMULT:	GenerateDMULT( rs, rt );	handled = true; break;
 
 				case SpecOp_MFLO:	GenerateMFLO( rd );			handled = true; break;
 				case SpecOp_MFHI:	GenerateMFHI( rd );			handled = true; break;
@@ -525,6 +538,15 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 						case Cop1OpFunc_SUB:	GenerateSUB_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
 						case Cop1OpFunc_MUL:	GenerateMUL_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
 						case Cop1OpFunc_DIV:	GenerateDIV_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_SQRT:	GenerateSQRT_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_ABS:	GenerateABS_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_MOV:	GenerateMOV_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_NEG:	GenerateNEG_D( op_code.fd, op_code.fs ); handled = true; break;
+
+						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W_D( op_code.fd, op_code.fs ); handled = true; break;
+
+						// case Cop1OpFunc_CVT_W:		GenerateCVT_W_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_CVT_S:		GenerateCVT_S_D( op_code.fd, op_code.fs ); handled = true; break;
 					}
 					break;
 
@@ -536,8 +558,14 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 						case Cop1OpFunc_MUL:	GenerateMUL_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
 						case Cop1OpFunc_DIV:	GenerateDIV_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
 						case Cop1OpFunc_SQRT:	GenerateSQRT_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_ABS:	GenerateABS_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_MOV:	GenerateMOV_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_NEG:	GenerateNEG_S( op_code.fd, op_code.fs ); handled = true; break;
 
-						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W_S( op_code.fd, op_code.fs ); handled = true; break;
+
+						// case Cop1OpFunc_CVT_W:		GenerateCVT_W_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_CVT_D:		GenerateCVT_D_S( op_code.fd, op_code.fs ); handled = true; break;
 
 						case Cop1OpFunc_CMP_F:		GenerateCMP_S( op_code.fs, op_code.ft, NV ); handled = true; break;
 						case Cop1OpFunc_CMP_UN:		GenerateCMP_S( op_code.fs, op_code.ft, VS ); handled = true; break;
@@ -981,9 +1009,9 @@ void CCodeGeneratorARM::GenerateJALR( EN64Reg rs, EN64Reg rd, u32 address, const
 void CCodeGeneratorARM::GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	MOV32(ArmReg_R1, (u32)immediate);
+	MOV32(ArmReg_R2, (s32)immediate);
 
-	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R2);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend	
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
@@ -992,11 +1020,11 @@ void CCodeGeneratorARM::GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
 void CCodeGeneratorARM::GenerateDADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	MOV32(ArmReg_R1, (u32)immediate);
+	MOV32(ArmReg_R2, (s32)immediate);
+	MOV_ASR_IMM(ArmReg_R3, ArmReg_R2, 0x1F); //Sign extend	
 
-	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R1, AL, 1);
-	MOV_IMM(ArmReg_R1, 0);
-	ADC_IMM(ArmReg_R1, ArmReg_R1, 0);
+	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R2, AL, 1);
+	ADC(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
@@ -1082,7 +1110,7 @@ void CCodeGeneratorARM::GenerateSLL( EN64Reg rd, EN64Reg rt, u32 sa )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV_LSL_IMM(ArmReg_R0, ArmReg_R0, sa);
+	MOV_LSL_IMM(ArmReg_R0, ArmReg_R0, sa & 0x1F);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
@@ -1093,7 +1121,7 @@ void CCodeGeneratorARM::GenerateSRL( EN64Reg rd, EN64Reg rt, u32 sa )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV_LSR_IMM(ArmReg_R0, ArmReg_R0, sa);
+	MOV_LSR_IMM(ArmReg_R0, ArmReg_R0, sa & 0x1F);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
@@ -1104,7 +1132,7 @@ void CCodeGeneratorARM::GenerateSRA( EN64Reg rd, EN64Reg rt, u32 sa )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV_ASR_IMM(ArmReg_R0, ArmReg_R0, sa);
+	MOV_ASR_IMM(ArmReg_R0, ArmReg_R0, sa & 0x1F);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
@@ -1115,8 +1143,8 @@ void CCodeGeneratorARM::GenerateSLLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
@@ -1128,8 +1156,8 @@ void CCodeGeneratorARM::GenerateSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
@@ -1141,11 +1169,149 @@ void CCodeGeneratorARM::GenerateSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
 	MOV_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSLL32( EN64Reg rd, EN64Reg rt, u32 sa )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MOV32(ArmReg_R2, (sa & 0x3F) + 32);
+	MOV_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+	SUB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	RSB_IMM(ArmReg_R4, ArmReg_R4, 0x20);
+	ORR_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R3);
+	ORR_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R4);
+	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSRL32( EN64Reg rd, EN64Reg rt, u32 sa )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MOV32(ArmReg_R2, (sa & 0x3F) + 32);
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20);
+	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
+	ORR_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4);
+	MOV_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSRA32( EN64Reg rd, EN64Reg rt, u32 sa )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MOV32(ArmReg_R2, (sa & 0x3F) + 32);
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20, 0, 1);
+	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
+	ORR_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4, PL);
+	MOV_ASR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSLL( EN64Reg rd, EN64Reg rt, u32 sa )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MOV32(ArmReg_R2, sa & 0x3F);
+	MOV_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+	SUB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	RSB_IMM(ArmReg_R4, ArmReg_R4, 0x20);
+	ORR_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R3);
+	ORR_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R4);
+	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSRL( EN64Reg rd, EN64Reg rt, u32 sa )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MOV32(ArmReg_R2, sa & 0x3F);
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20);
+	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
+	ORR_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4);
+	MOV_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSRA( EN64Reg rd, EN64Reg rt, u32 sa )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MOV32(ArmReg_R2, sa & 0x3F);
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20, 0, 1);
+	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
+	ORR_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4, PL);
+	MOV_ASR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSLLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+	LDR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+
+	AND_IMM(ArmReg_R2, ArmReg_R2, 0x3F);
+	MOV_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+	SUB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	RSB_IMM(ArmReg_R4, ArmReg_R4, 0x20);
+	ORR_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R3);
+	ORR_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R4);
+	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+	LDR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+
+	AND_IMM(ArmReg_R2, ArmReg_R2, 0x3F);
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20);
+	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
+	ORR_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4);
+	MOV_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+	LDR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+
+	AND_IMM(ArmReg_R2, ArmReg_R2, 0x3F);
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
+	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20, 0, 1);
+	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
+	ORR_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4, PL);
+	MOV_ASR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
@@ -1179,8 +1345,8 @@ void CCodeGeneratorARM::GenerateNOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
 	ORR(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	NEG(ArmReg_R0, ArmReg_R0);
-	NEG(ArmReg_R1, ArmReg_R1);
+	MVN(ArmReg_R0, ArmReg_R0);
+	MVN(ArmReg_R1, ArmReg_R1);
 
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
@@ -1195,7 +1361,6 @@ void CCodeGeneratorARM::GenerateAND( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
-
 
 void CCodeGeneratorARM::GenerateADDU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
@@ -1232,52 +1397,64 @@ void CCodeGeneratorARM::GenerateMULT( EN64Reg rs, EN64Reg rt, bool is_unsigned )
 	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F);
 	MOV_ASR_IMM(ArmReg_R3, ArmReg_R2, 0x1F);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultLo._u32_0));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, MultLo._u32_1));
+	MOV32(ArmReg_R4, offsetof(SCPUState, MultLo._u64));
+	STRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R4);
 
-	STR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, MultHi._u32_0));
-	STR(ArmReg_R3, ArmReg_R12, offsetof(SCPUState, MultHi._u32_1));
+	MOV32(ArmReg_R4, offsetof(SCPUState, MultHi._u64));
+	STRD_REG(ArmReg_R2, ArmReg_R12, ArmReg_R4);
+}
+
+void CCodeGeneratorARM::GenerateDMULT( EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	MUL(ArmReg_R3, ArmReg_R3, ArmReg_R0);
+	MOV(ArmReg_R4, ArmReg_R1);
+	UMULL(ArmReg_R0, ArmReg_R1, ArmReg_R0, ArmReg_R2);
+	MLA(ArmReg_R2, ArmReg_R2, ArmReg_R4, ArmReg_R3);
+	ADD(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+
+	MOV32(ArmReg_R4, offsetof(SCPUState, MultLo._u64));
+	STRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R4);
+
+	MOV_IMM(ArmReg_R0, 0);
+	MOV_IMM(ArmReg_R1, 0);
+
+	MOV32(ArmReg_R4, offsetof(SCPUState, MultHi._u64));
+	STRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R4);
 }
 
 void CCodeGeneratorARM::GenerateMFLO( EN64Reg rd )
 {
 	//gGPR[ op_code.rd ]._u64 = gCPUState.MultLo._u64;
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultLo._u32_0));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultLo._u32_1));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV32(ArmReg_R2, offsetof(SCPUState, MultLo._u64));
+	LDRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R2);
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateMFHI( EN64Reg rd )
 {
 	//gGPR[ op_code.rd ]._u64 = gCPUState.MultHi._u64;
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultHi._u32_0));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultHi._u32_1));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV32(ArmReg_R2, offsetof(SCPUState, MultHi._u64));
+	LDRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R2);
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateMTLO( EN64Reg rs )
 {
 	//gCPUState.MultLo._u64 = gGPR[ op_code.rs ]._u64;
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultLo._u32_0));
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultLo._u32_1));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	MOV32(ArmReg_R2, offsetof(SCPUState, MultLo._u64));
+	STRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R2);
 }
 
 void CCodeGeneratorARM::GenerateMTHI( EN64Reg rs )
 {
 	//gCPUState.MultHi._u64 = gGPR[ op_code.rs ]._u64;
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultHi._u32_0));
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultHi._u32_1));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	MOV32(ArmReg_R2, offsetof(SCPUState, MultHi._u64));
+	STRD_REG(ArmReg_R0, ArmReg_R12, ArmReg_R2);
 }
 
 void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is_unsigned )
@@ -1452,48 +1629,80 @@ void CCodeGeneratorARM::GenerateADD_S( u32 fd, u32 fs, u32 ft )
 {
 	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
 	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VADD(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
-	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VADD(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSUB_S( u32 fd, u32 fs, u32 ft )
 {
 	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
 	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VSUB(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
-	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VSUB(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateMUL_S( u32 fd, u32 fs, u32 ft )
 {
 	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
 	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VMUL(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
-	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VMUL(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateDIV_S( u32 fd, u32 fs, u32 ft )
 {
 	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
 	VLDR(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	VDIV(ArmVfpReg_S4, ArmVfpReg_S0, ArmVfpReg_S2);
-	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VDIV(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSQRT_S( u32 fd, u32 fs )
 {
 	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-
-	VSQRT(ArmVfpReg_S4, ArmVfpReg_S0);
-	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+	VSQRT(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
-void CCodeGeneratorARM::GenerateTRUNC_W( u32 fd, u32 fs )
+void CCodeGeneratorARM::GenerateABS_S( u32 fd, u32 fs )
+{
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VABS(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateMOV_S( u32 fd, u32 fs )
+{
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateNEG_S( u32 fd, u32 fs )
+{
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VNEG(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateTRUNC_W_S( u32 fd, u32 fs )
 {
 	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._f32));
+	VCVT_S32_F32(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._s32));
+}
 
-	VCVT_S32_F32(ArmVfpReg_S4, ArmVfpReg_S0);
-	VSTR(ArmVfpReg_S4, ArmReg_R12, offsetof(SCPUState, FPU[fd]._s32));
+void CCodeGeneratorARM::GenerateCVT_W_S( u32 fd, u32 fs )
+{
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._f32));
+	VCVT_S32_F32(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._s32));
+}
+
+void CCodeGeneratorARM::GenerateCVT_D_S( u32 fd, u32 fs )
+{
+	VLDR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._f32));
+	VCVT_F64_F32(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateCMP_S( u32 fs, u32 ft, EArmCond cond )
@@ -1527,74 +1736,82 @@ void CCodeGeneratorARM::GenerateCMP_S( u32 fs, u32 ft, EArmCond cond )
 
 void CCodeGeneratorARM::GenerateADD_D( u32 fd, u32 fs, u32 ft )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
-	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
-	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
-
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR_D(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VADD_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
-
-	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateSUB_D( u32 fd, u32 fs, u32 ft )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
-	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
-	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
-
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR_D(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VSUB_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
-
-	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateDIV_D( u32 fd, u32 fs, u32 ft )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
-	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
-	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
-
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR_D(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VDIV_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
-
-	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateMUL_D( u32 fd, u32 fs, u32 ft )
 {
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fs + 1]._u32));
-	VMOV(ArmVfpReg_S0, ArmReg_R0, ArmReg_R1);
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[ft + 1]._u32));
-	VMOV(ArmVfpReg_S2, ArmReg_R0, ArmReg_R1);
-
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VLDR_D(ArmVfpReg_S2, ArmReg_R12, offsetof(SCPUState, FPU[ft]._u32));
 	VMUL_D(ArmVfpReg_S0, ArmVfpReg_S0, ArmVfpReg_S2);
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
 
-	VMOV(ArmReg_R0, ArmReg_R1, ArmVfpReg_S0);
+void CCodeGeneratorARM::GenerateSQRT_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VSQRT_D(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, FPU[fd + 1]._u32));
+void CCodeGeneratorARM::GenerateABS_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VABS_D(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateMOV_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateNEG_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VNEG_D(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateTRUNC_W_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VCVT_S32_F64(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateCVT_W_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VCVT_F32_F64(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
+}
+
+void CCodeGeneratorARM::GenerateCVT_S_D( u32 fd, u32 fs )
+{
+	VLDR_D(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._u32));
+	VCVT_F32_F64(ArmVfpReg_S0, ArmVfpReg_S0);
+	VSTR(ArmVfpReg_S0, ArmReg_R12, offsetof(SCPUState, FPU[fd]._u32));
 }
 
 void CCodeGeneratorARM::GenerateMFC1( EN64Reg rt, u32 fs )
