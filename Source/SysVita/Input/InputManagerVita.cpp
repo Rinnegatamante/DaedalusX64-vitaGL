@@ -24,6 +24,8 @@
 #define SCE_CTRL_RLEFT  SCE_CTRL_VOLDOWN
 #define SCE_CTRL_RRIGHT SCE_CTRL_POWER
 
+u32 curr_input_config = 0;
+
 v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
 namespace
@@ -270,7 +272,7 @@ class IInputManager : public CInputManager
 		virtual ~IInputManager();
 
 		virtual bool						Initialise();
-		virtual void						Finalise()					{}
+		virtual void						Finalise();
 
 		virtual void						GetState( OSContPad pPad[4] );
 
@@ -305,11 +307,14 @@ IInputManager::IInputManager()
 //*****************************************************************************
 IInputManager::~IInputManager()
 {
-	for( u32 i = 0; i < mControllerConfigs.size(); ++i )
-	{
-		delete mControllerConfigs[ i ];
-		mControllerConfigs[ i ] = NULL;
-	}
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+void	IInputManager::Finalise()
+{
+	mControllerConfigs.clear();
 }
 
 //*****************************************************************************
@@ -317,6 +322,7 @@ IInputManager::~IInputManager()
 //*****************************************************************************
 bool	IInputManager::Initialise()
 {
+	Finalise();
 	CControllerConfig * p_default_config( BuildDefaultConfig() );
 
 	mControllerConfigs.push_back( p_default_config );
@@ -812,7 +818,7 @@ CControllerConfig *	IInputManager::BuildDefaultConfig()
 	CControllerConfig *	p_config( new CControllerConfig );
 
 	p_config->SetName( "Default" );
-	p_config->SetDescription( "The default Daedalus controller configuration. The Circle button toggles the VITA DPad between the N64 DPad and CButtons." );
+	p_config->SetDescription( "The default Daedalus controller configuration." );
 	p_config->SetJoySwap( "A" );
 
 	CButtonMappingExpressionEvaluator	eval;
@@ -960,7 +966,8 @@ void			IInputManager::SetConfiguration( u32 configuration_idx )
 	if( configuration_idx < mControllerConfigs.size() )
 	{
 		mpControllerConfig = mControllerConfigs[ configuration_idx ];
-			#ifdef DAEDALUS_DEBUG_CONSOLE
+		gControllerIndex = configuration_idx;
+		#ifdef DAEDALUS_DEBUG_CONSOLE
 		DBGConsole_Msg( 0, "Setting the controller to [c%s]", mpControllerConfig->GetName() );
 		#endif
 	}
@@ -1023,8 +1030,7 @@ v2	ProjectToUnitSquare( const v2 & in )
 //*************************************************************************************
 v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-
+#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( min_deadzone >= 0.0f && min_deadzone <= 1.0f, "Invalid min deadzone" );
 	DAEDALUS_ASSERT( max_deadzone >= 0.0f && max_deadzone <= 1.0f, "Invalid max deadzone" );
 #endif

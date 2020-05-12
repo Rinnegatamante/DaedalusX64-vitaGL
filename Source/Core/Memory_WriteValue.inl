@@ -198,7 +198,7 @@ static void WriteValue_8430_843F( u32 address, u32 value )
 }
 
 // 0x0440 0000 to 0x044F FFFF Video Interface (VI) Registers
-#if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)	// This is out of spec but only writes to VI_CURRENT_REG do something.. /Salvy
+#if defined(DAEDALUS_PSP)	// This is out of spec but only writes to VI_CURRENT_REG do something.. /Salvy
 static void WriteValue_8440_844F( u32 address, u32 value )
 {
 	u32 offset {address & 0xFF};
@@ -242,19 +242,19 @@ static void WriteValue_8440_844F( u32 address, u32 value )
 		{
 			RenderFrameBuffer(value & 0x7FFFFF);
 		}
+#ifndef DAEDALUS_GL
 		else
 		{
 			// Builtin video plugin already calls UpdateScreen in DLParser_Process
-#ifndef DAEDALUS_GL
 			gGraphicsPlugin->UpdateScreen();
-#endif
 		}
+#endif
 		break;
 
 	case 0x8:	// VI_WIDTH_REG
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 		DPF( DEBUG_VI, "VI_WIDTH_REG set to %d pixels", value );
-		#endif
+#endif
 		if (gGraphicsPlugin != NULL)
 		{
 			gGraphicsPlugin->ViWidthChanged();

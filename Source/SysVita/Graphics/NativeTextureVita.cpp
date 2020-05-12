@@ -64,9 +64,10 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mCorrectedHeight( CorrectDimension( h ) )
 ,	mTextureBlockWidth( GetTextureBlockWidth( mCorrectedWidth, texture_format ) )
 ,	mTextureId( 0 )
+,	hasMipmaps( false )
 {
-	mScale.x = 1.0f / mCorrectedWidth;
-	mScale.y = 1.0f / mCorrectedHeight;
+	mScale.x = 1.0f / (float)mCorrectedWidth;
+	mScale.y = 1.0f / (float)mCorrectedHeight;
 	
 	glGenTextures( 1, &mTextureId );
 }
@@ -86,171 +87,13 @@ void CNativeTexture::InstallTexture() const
 	glBindTexture( GL_TEXTURE_2D, mTextureId );
 }
 
-
-namespace
+void CNativeTexture::GenerateMipmaps()
 {
-	template< typename T >
-	void ReadPngData( u32 width, u32 height, u32 stride, u8 ** p_row_table, int color_type, T * p_dest )
-	{
-		u8 r=0, g=0, b=0, a=0;
-
-		for ( u32 y = 0; y < height; ++y )
-		{
-			const u8 * pRow = p_row_table[ y ];
-
-			T * p_dest_row( p_dest );
-
-			for ( u32 x = 0; x < width; ++x )
-			{
-				switch ( color_type )
-				{
-				case PNG_COLOR_TYPE_GRAY:
-					r = g = b = *pRow++;
-					if ( r == 0 && g == 0 && b == 0 )	a = 0x00;
-					else								a = 0xff;
-					break;
-				case PNG_COLOR_TYPE_GRAY_ALPHA:
-					r = g = b = *pRow++;
-					if ( r == 0 && g == 0 && b == 0 )	a = 0x00;
-					else								a = 0xff;
-					pRow++;
-					break;
-				case PNG_COLOR_TYPE_RGB:
-					b = *pRow++;
-					g = *pRow++;
-					r = *pRow++;
-					if ( r == 0 && g == 0 && b == 0 )	a = 0x00;
-					else								a = 0xff;
-					break;
-				case PNG_COLOR_TYPE_RGB_ALPHA:
-					b = *pRow++;
-					g = *pRow++;
-					r = *pRow++;
-					a = *pRow++;
-					break;
-				}
-
-				p_dest_row[ x ] = T( r, g, b, a );
-			}
-
-			p_dest = reinterpret_cast< T * >( reinterpret_cast< u8 * >( p_dest ) + stride );
-		}
-	}
-
-	//*****************************************************************************
-	//	Thanks 71M/Shazz
-	//	p_texture is either an existing texture (in case it must be of the
-	//	correct dimensions and format) else a new texture is created and returned.
-	//*****************************************************************************
-	CRefPtr<CNativeTexture>	LoadPng( const char * p_filename, ETextureFormat texture_format )
-	{
-		const size_t	SIGNATURE_SIZE = 8;
-		u8	signature[ SIGNATURE_SIZE ];
-
-		FILE * fh = fopen( p_filename,"rb" );
-		if (fh == NULL)
-		{
-			return NULL;
-		}
-
-		if (fread( signature, sizeof(u8), SIGNATURE_SIZE, fh ) != SIGNATURE_SIZE)
-		{
-			fclose(fh);
-			return NULL;
-		}
-
-		if (!png_check_sig( signature, SIGNATURE_SIZE ))
-		{
-			return NULL;
-		}
-
-		png_struct * p_png_struct = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
-		if (p_png_struct == NULL)
-		{
-			return NULL;
-		}
-
-		png_info * p_png_info = png_create_info_struct( p_png_struct );
-		if (p_png_info == NULL)
-		{
-			png_destroy_read_struct( &p_png_struct, NULL, NULL );
-			return NULL;
-		}
-
-		if (setjmp( png_jmpbuf(p_png_struct) ) != 0)
-		{
-			png_destroy_read_struct( &p_png_struct, NULL, NULL );
-			return NULL;
-		}
-
-		png_init_io( p_png_struct, fh );
-		png_set_sig_bytes( p_png_struct, SIGNATURE_SIZE );
-		png_read_png( p_png_struct, p_png_info, PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND | PNG_TRANSFORM_BGR, NULL );
-
-		png_uint_32 width  = png_get_image_width( p_png_struct, p_png_info );
-		png_uint_32 height = png_get_image_height( p_png_struct, p_png_info );
-
-		CRefPtr<CNativeTexture>	texture = CNativeTexture::Create( width, height, texture_format );
-
-		DAEDALUS_ASSERT( texture->GetWidth() >= width, "Width is unexpectedly small" );
-		DAEDALUS_ASSERT( texture->GetHeight() >= height, "Height is unexpectedly small" );
-		DAEDALUS_ASSERT( texture_format == texture->GetFormat(), "Texture format doesn't match" );
-
-		u8 * buffer = new u8[ texture->GetBytesRequired() ];
-		if( !buffer )
-		{
-			texture = NULL;
-		}
-		else
-		{
-			u32 	stride       = texture->GetStride();
-			u8 ** 	row_pointers = png_get_rows( p_png_struct, p_png_info );
-			int 	color_type   = png_get_color_type( p_png_struct, p_png_info );
-
-			switch( texture_format )
-			{
-			case TexFmt_5650:
-				ReadPngData< NativePf5650 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf5650 * >( buffer ) );
-				break;
-			case TexFmt_5551:
-				ReadPngData< NativePf5551 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf5551 * >( buffer ) );
-				break;
-			case TexFmt_4444:
-				ReadPngData< NativePf4444 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf4444 * >( buffer ) );
-				break;
-			case TexFmt_8888:
-				ReadPngData< NativePf8888 >( width, height, stride, row_pointers, color_type, reinterpret_cast< NativePf8888 * >( buffer ) );
-				break;
-
-			case TexFmt_CI4_8888:
-			case TexFmt_CI8_8888:
-				DAEDALUS_ERROR( "Can't use palettised format for png." );
-				break;
-
-			default:
-				DAEDALUS_ERROR( "Unhandled texture format" );
-				break;
-			}
-
-			texture->SetData( buffer, NULL );
-		}
-
-		//
-		// Cleanup
-		//
-		delete [] buffer;
-		png_destroy_read_struct( &p_png_struct, &p_png_info, NULL );
-		fclose(fh);
-
-		return texture;
+	if (!hasMipmaps) {
+		glGenerateMipmap(GL_TEXTURE_2D);
+		hasMipmaps = true;
 	}
 }
-
-CRefPtr<CNativeTexture>	CNativeTexture::CreateFromPng( const char * p_filename, ETextureFormat texture_format )
-{
-	return LoadPng( p_filename, texture_format );
-}
-
 
 void CNativeTexture::SetData( void * data, void * palette )
 {

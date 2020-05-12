@@ -16,7 +16,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
+#ifndef DAEDALUS_VITA
 #include "stdafx.h"
 #include "PngUtil.h"
 
@@ -221,3 +221,4 @@ void FlattenTexture(const CNativeTexture * texture, void * dst, size_t len)
 		line += width * sizeof(NativePf8888);
 	}
 }
+#endif

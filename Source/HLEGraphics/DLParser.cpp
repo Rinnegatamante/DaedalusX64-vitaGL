@@ -245,7 +245,7 @@ u32			gNumInstructionsExecuted = 0;
 //*****************************************************************************
 //
 //*****************************************************************************
-u32 gRDPFrame {}, gAuxAddr {};
+u32 gRDPFrame = 0, gAuxAddr = 0;
 
 extern u32 uViWidth, uViHeight;
 
@@ -326,6 +326,9 @@ void DLParser_DumpVtxInfo(u32 address, u32 v0_idx, u32 num_verts)
 bool DLParser_Initialise()
 {
 	gFirstCall = true;
+	
+	// Resetting number of executed frames
+	gRDPFrame = 0;
 
 	// Reset scissor to default
 	scissors.top = 0;
@@ -577,7 +580,6 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 
 	if(!gFrameskipActive)
 	{
-		gRenderer->SetVIScales();
 		gRenderer->ResetMatrices(stack_size);
 		gRenderer->Reset();
 		gRenderer->BeginScene();
@@ -885,10 +887,10 @@ void DLParser_SetTImg( MicroCodeCommand command )
 	g_TI.Size		= command.img.siz;
 	g_TI.Width		= command.img.width + 1;
 	g_TI.Address	= RDPSegAddr(command.img.addr) & (MAX_RAM_ADDRESS-1);
-	//g_TI.bpl		= g_TI.Width << g_TI.Size >> 1;
+	//g_TI.bpl		= (g_TI.Width << g_TI.Size) >> 1;
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    TImg Adr[0x%08x] Format[%s/%s] Width[%d] Pitch[%d] Bytes/line[%d]",
-		g_TI.Address, gFormatNames[g_TI.Format], gSizeNames[g_TI.Size], g_TI.Width, g_TI.GetPitch(), g_TI.Width << g_TI.Size >> 1 );
+		g_TI.Address, gFormatNames[g_TI.Format], gSizeNames[g_TI.Size], g_TI.Width, g_TI.GetPitch(), (g_TI.Width << g_TI.Size) >> 1 );
 		#endif
 }
 
@@ -1209,7 +1211,7 @@ void DLParser_SetCImg( MicroCodeCommand command )
 	g_CI.Size   = command.img.siz;
 	g_CI.Width  = command.img.width + 1;
 	g_CI.Address = RDPSegAddr(command.img.addr) & (MAX_RAM_ADDRESS-1);
-	//g_CI.Bpl		= g_CI.Width << g_CI.Size >> 1;
+	//g_CI.Bpl		= (g_CI.Width << g_CI.Size) >> 1;
 		#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    CImg Adr[0x%08x] Format[%s] Size[%s] Width[%d]", RDPSegAddr(command.inst.cmd1), gFormatNames[ g_CI.Format ], gSizeNames[ g_CI.Size ], g_CI.Width);
 	#endif

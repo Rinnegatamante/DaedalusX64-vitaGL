@@ -352,7 +352,6 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5742: g_ROM.GameHacks = SUPER_BOWLING;		break;
 	case 0x514D: g_ROM.GameHacks = PMARIO;				break;
 	case 0x5632: g_ROM.GameHacks = CHAMELEON_TWIST_2;	break;
-	case 0x4154: g_ROM.GameHacks = TARZAN;				break;
 	case 0x4643: g_ROM.GameHacks = CLAY_FIGHTER_63;		break;
 	case 0x504A: g_ROM.GameHacks = ISS64;				break;
 	case 0x5944: g_ROM.GameHacks = DKR;					break;
@@ -360,6 +359,10 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
 	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
+	case 0x4154:    // Tarzan
+		g_ROM.SCISSOR_HACK = true;
+		g_ROM.GameHacks = TARZAN;
+		break;
 	case 0x464A:	// Jet Force Geminy
 	case 0x5647:	// Glover
 		g_ROM.SET_ROUND_MODE = true;
@@ -386,10 +389,15 @@ void SpecificGameHacks( const ROMHeader & id )
 		g_ROM.LOAD_T1_HACK = true;
 		break;
 	case 0x5144:	//Donald Duck
+		g_ROM.SET_ROUND_MODE = true;
+		g_ROM.LOAD_T1_HACK = true;
+		g_ROM.T1_HACK = true;
+		break;
 	case 0x3259:	//Rayman2
 		g_ROM.SET_ROUND_MODE = true;
 		g_ROM.LOAD_T1_HACK = true;
 		g_ROM.T1_HACK = true;
+		g_ROM.T0_SKIP_HACK = true;
 		break;
 	case 0x3358:	//GEX3
 	case 0x3258:	//GEX64
@@ -438,8 +446,8 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5543:	//Cruisn' USA
 		g_ROM.GameHacks = BODY_HARVEST;
 		break;
-	case 0x594D:    // Mortal Kombat Mythologies: Sub-Zero
-		g_ROM.PROJ_HACK = true;
+	case 0x4646:    //Fighting Force 64
+		g_ROM.SCISSOR_HACK = true;
 		break;
 	default:
 		break;

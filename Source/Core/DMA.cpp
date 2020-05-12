@@ -39,15 +39,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "OSHLE/OSTask.h"
 #include "OSHLE/patch.h"
 
-bool gDMAUsed {false};
+bool gDMAUsed = false;
 //*****************************************************************************
 //
 //*****************************************************************************
 void DMA_SP_CopyFromRDRAM()
 {
-	u32 spmem_address_reg {Memory_SP_GetRegister(SP_MEM_ADDR_REG)};
-	u32 rdram_address_reg {Memory_SP_GetRegister(SP_DRAM_ADDR_REG)};
-	u32 rdlen_reg         {Memory_SP_GetRegister(SP_RD_LEN_REG)};
+	u32 spmem_address_reg = Memory_SP_GetRegister(SP_MEM_ADDR_REG);
+	u32 rdram_address_reg = Memory_SP_GetRegister(SP_DRAM_ADDR_REG);
+	u32 rdlen_reg         = Memory_SP_GetRegister(SP_RD_LEN_REG);
 
 #ifdef DAEDALUS_PSP
 	// Ignore IMEM for speed (we don't do low-level RSP anyways on the PSP)
@@ -59,12 +59,11 @@ void DMA_SP_CopyFromRDRAM()
 					&g_pu8RamBase[(rdram_address_reg & 0xFFFFFF)], (rdlen_reg & 0xFFF) + 1);
 	}
 #else
-
-	u32 rdram_address {(rdram_address_reg&0x00FFFFFF)	& ~7};	// Align to 8 byte boundary
-	u32 spmem_address {(spmem_address_reg&0x1FFF)		& ~7};	// Align to 8 byte boundary
-	u32 length {((rdlen_reg    &0x0FFF) | 7)+1};					// Round up to 8 bytes
-	u32 count  {((rdlen_reg>>12)&0x00FF)+1};
-	u32 skip   {((rdlen_reg>>20)&0x0FFF)};
+	u32 rdram_address = (rdram_address_reg&0x00FFFFFF)	& ~7;	// Align to 8 byte boundary
+	u32 spmem_address = (spmem_address_reg&0x1FFF)		& ~7;	// Align to 8 byte boundary
+	u32 length = ((rdlen_reg    &0x0FFF) | 7)+1;					// Round up to 8 bytes
+	u32 count  = ((rdlen_reg>>12)&0x00FF)+1;
+	u32 skip   = ((rdlen_reg>>20)&0x0FFF);
 
 	for (u32 c {}; c < count; c++ )
 	{
@@ -79,7 +78,6 @@ void DMA_SP_CopyFromRDRAM()
 		rdram_address += length + skip;
 		spmem_address += length;
 	}
-
 #endif
 
 	//Clear the DMA Busy
@@ -92,9 +90,9 @@ void DMA_SP_CopyFromRDRAM()
 //*****************************************************************************
 void DMA_SP_CopyToRDRAM()
 {
-	u32 spmem_address_reg {Memory_SP_GetRegister(SP_MEM_ADDR_REG)};
-	u32 rdram_address_reg {Memory_SP_GetRegister(SP_DRAM_ADDR_REG)};
-	u32 wrlen_reg         {Memory_SP_GetRegister(SP_WR_LEN_REG)};
+	u32 spmem_address_reg = Memory_SP_GetRegister(SP_MEM_ADDR_REG);
+	u32 rdram_address_reg = Memory_SP_GetRegister(SP_DRAM_ADDR_REG);
+	u32 wrlen_reg         = Memory_SP_GetRegister(SP_WR_LEN_REG);
 
 #ifdef DAEDALUS_PSP
 	// Ignore IMEM for speed (we don't do low-level RSP anyways on the PSP)
@@ -107,13 +105,13 @@ void DMA_SP_CopyToRDRAM()
 	}
 
 #else
-	u32 rdram_address {(rdram_address_reg&0x00FFFFFF)	& ~7};	// Align to 8 byte boundary
-	u32 spmem_address {(spmem_address_reg&0x1FFF)		& ~7};	// Align to 8 byte boundary
-	u32 length {((wrlen_reg    &0x0FFF) | 7)+1};				// Round up to 8 bytes
-	u32 count  {((wrlen_reg>>12)&0x00FF)+1};
-	u32 skip   {((wrlen_reg>>20)&0x0FFF)};
+	u32 rdram_address = (rdram_address_reg&0x00FFFFFF)	& ~7;	// Align to 8 byte boundary
+	u32 spmem_address = (spmem_address_reg&0x1FFF)		& ~7;	// Align to 8 byte boundary
+	u32 length = ((wrlen_reg    &0x0FFF) | 7)+1;				// Round up to 8 bytes
+	u32 count  = ((wrlen_reg>>12)&0x00FF)+1;
+	u32 skip   = ((wrlen_reg>>20)&0x0FFF);
 
-	for ( u32 c {}; c < count; c++ )
+	for ( u32 c = 0; c < count; c++ )
 	{
 		#ifdef DAEDALUS_DEBUG_CONSOLE
 		if ( rdram_address  > gRamSize )
@@ -148,7 +146,7 @@ void DMA_SI_CopyFromDRAM( )
 	DPF( DEBUG_MEMORY_PIF, "DRAM (0x%08x) -> PIF Transfer ", mem );
 #endif
 	// Fuse 4 reads and 4 writes to just one which is a lot faster - Corn
-	for(u32 i {}; i < 16; i++)
+	for(u32 i = 0; i < 16; i++)
 	{
 		p_dst[i] = BSWAP32(p_src[i]);
 	}

@@ -371,8 +371,8 @@ void CRDPStateManager::LoadBlock(const SetLoadTile & load)
 		uls, ult,
 		load.sh,
 		dxt,
-		(g_TI.Width << g_TI.Size >> 1),
-		bytes2pixels( (g_TI.Width << g_TI.Size >> 1), g_TI.Size ),
+		((g_TI.Width << g_TI.Size) >> 1),
+		bytes2pixels( ((g_TI.Width << g_TI.Size) >> 1), g_TI.Size ),
 		address);
 #endif
 
@@ -393,8 +393,8 @@ void CRDPStateManager::LoadBlock(const SetLoadTile & load)
 
 
 #ifdef DAEDALUS_ACCURATE_TMEM
-	u32 lrs    {load.sh};
-	u32 bytes  {((lrs+1) << g_TI.Size) >> 1};
+	u32 lrs    = load.sh;
+	u32 bytes  = ((lrs+1) << g_TI.Size) >> 1;
 
 	DAEDALUS_DL_ASSERT( bytes <= 4096, "Suspiciously large loadblock: %d bytes", bytes );
 	DAEDALUS_DL_ASSERT( bytes, "LoadBLock: No bytes??" );
@@ -486,13 +486,13 @@ void CRDPStateManager::LoadTile(const SetLoadTile & load)
 	info.Swapped = false;
 
 #ifdef DAEDALUS_ACCURATE_TMEM
-	u32 lrs    {load.sh};
-	u32 lrt    {load.th};
+	u32 lrs    = load.sh;
+	u32 lrt    = load.th;
 
 	u32 ram_address = address;
-	u32 h           {((lrt-ult)>>2) + 1};
-	u32 w           {((lrs-uls)>>2) + 1};
-	u32 bytes       {((h * w) << g_TI.Size) >> 1};
+	u32 h           = ((lrt-ult)>>2) + 1;
+	u32 w           = ((lrs-uls)>>2) + 1;
+	u32 bytes       = ((h * w) << g_TI.Size) >> 1;
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DAEDALUS_USE(bytes);
@@ -501,9 +501,9 @@ void CRDPStateManager::LoadTile(const SetLoadTile & load)
 		bytes, w, h, (1<<(g_TI.Size+2)) );
 #endif
 
-	u32  tmem_offset {rdp_tile.tmem << 3};
-	u32  ram_offset  {ram_address};
-	u32 bytes_per_tmem_line {rdp_tile.line << 3};
+	u32  tmem_offset = rdp_tile.tmem << 3;
+	u32  ram_offset  = ram_address;
+	u32 bytes_per_tmem_line = rdp_tile.line << 3;
 
 	void (*CopyLineMode)(void*, const void*, u32);
 

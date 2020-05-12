@@ -33,6 +33,14 @@
 
 #define MAX_SAVESLOT 9
 
+enum {
+	DARK_THEME,
+	LIGHT_THEME,
+	CLASSIC_THEME
+};
+
+static uint8_t imgui_theme = DARK_THEME;
+
 int aspect_ratio = RATIO_16_9;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
@@ -41,11 +49,13 @@ static bool has_cached_saveslots = false;
 extern bool wait_rendering;
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
+extern char cur_audio_ucode[32];
 
 bool show_menubar = true;
 bool hide_menubar = true;
 bool run_emu = true;
 bool restart_rom = false;
+bool use_mipmaps = false;
 
 static bool vflux_window = false;
 static bool vflux_enabled = false;
@@ -99,7 +109,9 @@ void DrawCommonMenuBar() {
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
 		}
 		SetDescription("Limits framerate to the one running game is supposed to have.");
-		if (ImGui::BeginMenu("Frameskip")){
+		/* NOTE: Due to multiple gxm scenes usage, this affects renderer causing major glitches.
+		   Also, in every single game this lowers performances. Not worth to have it as an option. */
+		/*if (ImGui::BeginMenu("Frameskip")){
 			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
 				gFrameskipValue = FV_DISABLED;
 			}
@@ -119,7 +131,7 @@ void DrawCommonMenuBar() {
 				gFrameskipValue = FV_3;
 			}
 			ImGui::EndMenu();
-		}
+		}*/
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Graphics")){
@@ -144,6 +156,10 @@ void DrawCommonMenuBar() {
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
 		SetDescription("Forces bilinear filtering on every texture.");
+		if (ImGui::MenuItem("Mipmaps", nullptr, use_mipmaps)){
+			use_mipmaps = !use_mipmaps;
+		}
+		SetDescription("Forces mipmaps generation for 3D rendering.");
 		ImGui::Separator();
 		if (ImGui::MenuItem("vFlux", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
@@ -182,6 +198,16 @@ void DrawCommonMenuBar() {
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Input")){
+		if (ImGui::BeginMenu("Controls Mapping")){
+			u32 num_configs = CInputManager::Get()->GetNumConfigurations();
+			for (u32 i = 0; i < num_configs; i++) {
+				if (ImGui::MenuItem(CInputManager::Get()->GetConfigurationName(i), nullptr, i == gControllerIndex)){
+					CInputManager::Get()->SetConfiguration(i);
+				}
+				SetDescription(CInputManager::Get()->GetConfigurationDescription(i));
+			}
+			ImGui::EndMenu();
+		}
 		if (ImGui::BeginMenu("Controller 1", pinfo.port[0] != SCE_CTRL_TYPE_UNPAIRED)){
 			if (ImGui::BeginMenu("Accessory")){
 				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[0])){
@@ -233,6 +259,21 @@ void DrawCommonMenuBar() {
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Extra")){
+		if (ImGui::BeginMenu("UI Theme")){
+			if (ImGui::MenuItem("Dark", nullptr, imgui_theme == DARK_THEME)){
+				ImGui::StyleColorsDark();
+				imgui_theme = DARK_THEME;
+			}
+			if (ImGui::MenuItem("Light", nullptr, imgui_theme == LIGHT_THEME)){
+				ImGui::StyleColorsLight();
+				imgui_theme = LIGHT_THEME;
+			}
+			if (ImGui::MenuItem("Classic", nullptr, imgui_theme == CLASSIC_THEME)){
+				ImGui::StyleColorsClassic();
+				imgui_theme = CLASSIC_THEME;
+			}
+			ImGui::EndMenu();
+		}
 		if (ImGui::MenuItem("Hide Menubar", nullptr, hide_menubar)){
 			hide_menubar = !hide_menubar;
 		}
@@ -281,16 +322,19 @@ void DrawCommonWindows() {
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Special thanks to:");
 		ImGui::Text("xerpi for the initial Vita port");
 		ImGui::Text("MasterFeizz for the ARM DynaRec");
+		ImGui::Text("TheFloW for his contributions to the DynaRec code");
 		ImGui::Text("m4xw for the help sanitizing PIF code");
 		ImGui::Text("frangarcj for the help with some bugfixes");
-		ImGui::Text("That One Seong for the Livearea assets");
+		ImGui::Text("That One Seong & TheIronUniverse for the Livearea assets");
+		ImGui::Text("withLogic for the high-res preview assets");
 		ImGui::End();
 	}
 	
 	if (debug_window) {
 		ImGui::Begin("Debugger", &debug_window);
 		ImGui::Text("Cartridge ID: 0x%04X", g_ROM.rh.CartID);
-		ImGui::Text("Installed RSP Microcode: %s", cur_ucode);
+		ImGui::Text("Installed GFX Microcode: %s", cur_ucode);
+		ImGui::Text("Installed Audio Microcode: %s", cur_audio_ucode);
 		ImGui::End();
 	}
 	
@@ -401,11 +445,11 @@ void DrawInGameMenuBar() {
 				ImGui::Separator();
 				if (ImGui::MenuItem("Restart Rom")){
 					restart_rom = true;
-					CPU_Halt("Resetting");
+					CPU_Halt("Restarting Rom");
 				}
 				if (ImGui::MenuItem("Close Rom")){
 					has_cached_saveslots = false;
-					CPU_Halt("Resetting");
+					CPU_Halt("Closing Rom");
 				}
 				ImGui::EndMenu();
 			}

@@ -27,6 +27,8 @@ extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
 
+extern bool use_mipmaps;
+
 struct ScePspFMatrix4
 {
 	float m[16];
@@ -282,7 +284,7 @@ RendererVita::SBlendStateEntry RendererVita::LookupBlendState( u64 mux, bool two
 	return entry;
 }
 
-void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode)
+void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool is_3d)
 {
 	const CAlphaRenderSettings *	alpha_settings( states->GetAlphaSettings() );
 
@@ -332,7 +334,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 
 		bool installed_texture {false};
 
-		u32 texture_idx {};
+		u32 texture_idx;
 
 		if(install_texture0 || install_texture1)
 		{
@@ -403,6 +405,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 			if(texture != nullptr)
 			{
 				texture->InstallTexture();
+				if (is_3d && use_mipmaps) texture->GenerateMipmaps();
 				installed_texture = true;
 			}
 		}
@@ -422,11 +425,10 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 }
 
 
-void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer )
+void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer, bool is_3d)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
-	if (g_ROM.PROJ_HACK && mat_project == gProjection.m) glScalef(1, -1, 1);
 	
 	if ( disable_zbuffer )
 	{
@@ -537,6 +539,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 			if( mBoundTexture[ texture_idx ] )
 			{
 				mBoundTexture[ texture_idx ]->InstallTexture();
+				if (is_3d && use_mipmaps) mBoundTexture[ texture_idx ]->GenerateMipmaps();
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 				installed_texture = true;
@@ -562,7 +565,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 	}
 	else if( blend_entry.States != nullptr )
 	{
-		RenderUsingRenderSettings( blend_entry.States, p_vertices, num_vertices, triangle_mode );
+		RenderUsingRenderSettings( blend_entry.States, p_vertices, num_vertices, triangle_mode, is_3d );
 	}
 	else
 	{
@@ -580,11 +583,15 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 
 void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
 {
+	//CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+	
 	if (mTnL.Flags.Texture)
 	{
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		vglTexCoordPointerMapped(texcoord);
-		UpdateTileSnapshots( mTextureTile );
+		
+		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
+		else UpdateTileSnapshots( mTextureTile );
 		
 		CNativeTexture *texture = mBoundTexture[0];
 		
@@ -594,7 +601,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 			float scale_y = texture->GetScaleY();
 				
 			// Hack to fix the sun in Zelda OOT/MM
-			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0c184241) )
+			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
 			{
 				scale_x *= 0.5f;
 				scale_y *= 0.5f;
@@ -610,7 +617,8 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 		}
 	}
 	vglVertexPointerMapped(vertices);
-	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer);
+	SetPositiveViewport();
+	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer, true);
 }
 
 void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
@@ -622,6 +630,8 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
 	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
 
+	//CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+
 	v2 screen0;
 	v2 screen1;
 	ScaleN64ToScreen( xy0, screen0 );
@@ -630,8 +640,8 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
-	float scale_x {texture->GetScaleX()};
-	float scale_y {texture->GetScaleY()};
+	float scale_x = texture->GetScaleX();
+	float scale_y = texture->GetScaleY();
 
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gTexCoordBuffer[0] = uv0.x * scale_x;
@@ -663,13 +673,17 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	uint32_t *p_vertices = gColorBuffer;
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
-
-	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true);
+	
+	SetNegativeViewport();
+	
+	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
+	//CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X", gRDPOtherMode.L);
+	
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
 	PrepareTexRectUVs(&st0, &st1);
@@ -717,7 +731,9 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
 
-	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true);
+	SetNegativeViewport();
+
+	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
@@ -748,7 +764,7 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	gColorBuffer += 4;
 	
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true);
+	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
 
 void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,

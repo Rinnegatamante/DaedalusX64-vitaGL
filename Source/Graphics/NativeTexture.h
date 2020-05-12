@@ -46,8 +46,9 @@ class CNativeTexture : public CRefCounted
 
 	public:
 		static	CRefPtr<CNativeTexture>		Create( u32 width, u32 height, ETextureFormat texture_format );
+#ifndef DAEDALUS_VITA
 		static	CRefPtr<CNativeTexture>		CreateFromPng( const char * p_filename, ETextureFormat texture_format );
-
+#endif
 		void							InstallTexture() const;
 
 		void							SetData( void * data, void * palette );
@@ -67,6 +68,7 @@ class CNativeTexture : public CRefCounted
 #if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)
 #ifndef DAEDALUS_PSP
 		inline uint32_t					GetID() const					{ return mTextureId; }
+		void							GenerateMipmaps();
 #endif
 		inline f32						GetScaleX() const				{ return mScale.x; }
 		inline f32						GetScaleY() const				{ return mScale.y; }
@@ -99,6 +101,9 @@ class CNativeTexture : public CRefCounted
 		bool				mPaletteSet;
 #endif
 #endif // DAEDALUS_PSP
+#ifdef DAEDALUS_VITA
+		bool				hasMipmaps;
+#endif
 };
 
 #endif // GRAPHICS_NATIVETEXTURE_H_

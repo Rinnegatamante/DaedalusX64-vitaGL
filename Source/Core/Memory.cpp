@@ -743,7 +743,7 @@ void MemoryUpdateDP( u32 flags )
 
 	if (unfreeze_task)
 	{
-		u32 status {Memory_SP_GetRegister( SP_STATUS_REG )};
+		u32 status = Memory_SP_GetRegister( SP_STATUS_REG );
 		if((status & SP_STATUS_HALT) == 0)
 		{
 			#ifdef DAEDALUS_ENABLE_ASSERTS

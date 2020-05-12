@@ -261,13 +261,13 @@ void CheatCodes_Delete(u32 index)
 //*****************************************************************************
 bool CheatCodes_Read(const char *rom_name, const char *file, u8 countryID)
 {
-	char			current_rom_name[128] {};
-	static char		last_rom_name[128] {};
+	char			current_rom_name[128];
+	static char		last_rom_name[128];
 
-	char			line[2048] {}, romname[256] {}/*, errormessage[400]*/;	//changed line length to 2048 previous was 256
+	char			line[2048], romname[256]/*, errormessage[400]*/;	//changed line length to 2048 previous was 256
 	bool			bfound;
-	u32				c1 {}, c2 {};
-	FILE			*stream {};
+	u32				c1, c2;
+	FILE			*stream;
 
 	// Add country ID to this ROM name, to avoid mixing cheat code of different region in the same entry
 	// Only the country id is important (first char)
@@ -372,7 +372,7 @@ bool CheatCodes_Read(const char *rom_name, const char *file, u8 countryID)
 		}
 
 		codegroupcount = 0;
-		while(codegroupcount < numberofgroups && fgets(line, 32767, stream) && strlen(line) > 8)	// 32767 makes sure the entire line is read
+		while(codegroupcount < numberofgroups && fgets(line, 2048, stream) && strlen(line) > 8)
 		{
 			// Codes for the group are in the string line[]
 			for(c1 = 0; line[c1] != '=' && line[c1] != '\0'; c1++) codegrouplist[codegroupcount].name[c1] = line[c1];

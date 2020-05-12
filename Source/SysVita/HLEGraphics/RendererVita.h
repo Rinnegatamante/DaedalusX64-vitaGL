@@ -55,8 +55,8 @@ public:
 	SBlendStateEntry	LookupBlendState( u64 mux, bool two_cycles );
 
 private:
-	void				RenderUsingCurrentBlendMode(const float (&mat_project)[16], u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer );
-	void				RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode );
+	void				RenderUsingCurrentBlendMode(const float (&mat_project)[16], u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer, bool is_3d);
+	void				RenderUsingRenderSettings(const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool is_3d);
 	
 	// Temporary vertex storage
 	u32			mVtx_Save[320];

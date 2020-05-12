@@ -38,20 +38,19 @@
 #define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
 
 extern "C" {
-
-int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
-int _newlib_heap_size_user = 128 * 1024 * 1024;
-
+	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
+	int _newlib_heap_size_user = 160 * 1024 * 1024;
 }
 
 extern bool run_emu;
 extern bool restart_rom;
 
 static CURL *curl_handle = NULL;
-static uint64_t total_bytes = 0xFFFFFFFF;
-static uint64_t downloaded_bytes = 0;
+static volatile uint64_t total_bytes = 0xFFFFFFFF;
+static volatile uint64_t downloaded_bytes = 0;
 static FILE *fh;
 char *bytes_string;
+static SceUID net_mutex;
 
 int use_cdram = GL_TRUE;
 int use_vsync = GL_TRUE;
@@ -89,16 +88,17 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
 	return fwrite(ptr, size, nmemb, fh);
 }
 
-static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
+// GitHub API does not set Content-Length field
+/*static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
 {
 	if (total_bytes == 0xFFFFFFFF) {
 		char *ptr = strcasestr(buffer, "Content-Length");
 		if (ptr != NULL) sscanf(ptr, "Content-Length: %llu", &total_bytes);
 	}
 	return nitems * size;
-}
+}*/
 
-static void resumeDownload(const char *url)
+static void startDownload(const char *url)
 {
 	curl_easy_reset(curl_handle);
 	curl_easy_setopt(curl_handle, CURLOPT_URL, url);
@@ -112,8 +112,8 @@ static void resumeDownload(const char *url)
 	curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_cb);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, bytes_string); // Dummy
-	curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_cb);
-	curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, bytes_string); // Dummy
+	/*curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_cb);
+	curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, bytes_string); // Dummy*/
 	curl_easy_setopt(curl_handle, CURLOPT_RESUME_FROM, downloaded_bytes);
 	curl_easy_setopt(curl_handle, CURLOPT_BUFFERSIZE, 524288);
 	struct curl_slist *headerchunk = NULL;
@@ -125,22 +125,34 @@ static void resumeDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static void startDownload(const char *filename, const char *url){
+static int downloadThread(unsigned int args, void* arg){
+	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
-	fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
-	total_bytes = 0xFFFFFFFF;
-	downloaded_bytes = 0;
-	int resumes_count = 0;
-	while (downloaded_bytes < total_bytes) {
-		if (resumes_count > 5) break;
-		resumes_count++;
-		resumeDownload(url);
+	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+		sceKernelWaitSema(net_mutex, 1, NULL);
+		sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
+		sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=%ld&per_page=100", i);
+		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
+		int resumes_count = 0;
+		downloaded_bytes = 0;
+		
+		// FIXME: Workaround since GitHub Api does not set Content-Length
+		SceIoStat stat;
+		sceIoGetstat(dbname, &stat);
+		total_bytes = stat.st_size;
+		
+		startDownload(url);
+
+		fclose(fh);
+		if (downloaded_bytes > 12 * 1024) {
+			sceIoRemove(dbname);
+			sceIoRename(TEMP_DOWNLOAD_NAME, dbname);
+		} else sceIoRemove(TEMP_DOWNLOAD_NAME);
+		downloaded_bytes = total_bytes;
 	}
-	fclose(fh);
-	if (downloaded_bytes > 12 * 1024) {
-		sceIoRemove(filename);
-		sceIoRename(TEMP_DOWNLOAD_NAME, filename);
-	} else sceIoRemove(TEMP_DOWNLOAD_NAME);
+	curl_easy_cleanup(curl_handle);
+	sceKernelExitDeleteThread(0);
+	return 0;
 }
 
 static void Initialize()
@@ -154,7 +166,13 @@ static void Initialize()
 	scePowerSetGpuClockFrequency(222);
 	scePowerSetGpuXbarClockFrequency(166);
 	
+	// Disabling all FPU exceptions traps on main thread
+	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
+	
+	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
+	
 	// Initializing net
+	net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 	int ret = sceNetShowNetstat();
 	void *net_memory = nullptr;
@@ -167,30 +185,16 @@ static void Initialize()
 		sceNetInit(&initparam);
 	}
 	sceNetCtlInit();
+	SceUID thd = sceKernelCreateThread("Net Downloader Thread", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
 	
-	// Downloading compatibility databases
-	startDownload("ux0:data/DaedalusX64/db1.json", "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=1&per_page=100");
-	startDownload("ux0:data/DaedalusX64/db2.json", "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=2&per_page=100");
-	
-	// Closing net
-	curl_easy_cleanup(curl_handle);
-	sceNetCtlTerm();
-	sceNetTerm();
-	sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
-	free(net_memory);
-	
-	// Disabling all FPU exceptions traps on main thread
-	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
-	
-	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
-	
+	// Initializing vitaGL
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(use_cdram);
 	vglWaitVblankStart(use_vsync);
 	
 	System_Init();
 	
-	// TODO: Move this somewhere else
+	// Initializing dear ImGui
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();
@@ -198,6 +202,25 @@ static void Initialize()
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
+	
+	// Downloading compatibility databases
+	sceKernelStartThread(thd, 0, NULL);
+	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+		sceKernelSignalSema(net_mutex, 1);
+		while (downloaded_bytes < total_bytes) {
+			DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
+		}
+		total_bytes = 0xFFFFFFFF;
+		downloaded_bytes = 0;
+	}
+	ImGui::GetIO().MouseDrawCursor = true;
+	
+	// Closing net
+	sceKernelWaitThreadEnd(thd, NULL, NULL);
+	sceNetCtlTerm();
+	sceNetTerm();
+	sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
+	free(net_memory);
 }
 
 int main(int argc, char* argv[])

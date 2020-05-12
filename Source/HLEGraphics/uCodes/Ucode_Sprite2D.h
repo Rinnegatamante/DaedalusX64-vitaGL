@@ -86,7 +86,7 @@ void DLParser_Sprite2DDraw( MicroCodeCommand command, const Sprite2DInfo &info, 
 
 	ti.SetWidth            (sprite->width);
 	ti.SetHeight           (sprite->height);
-	ti.SetPitch            (sprite->stride << sprite->size >> 1);
+	ti.SetPitch            ((sprite->stride << sprite->size) >> 1);
 
 	ti.SetSwapped          (0);
 

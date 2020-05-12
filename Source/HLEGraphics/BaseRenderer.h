@@ -284,6 +284,10 @@ public:
 	// Viewport stuff
 	void				SetN64Viewport( const v2 & scale, const v2 & trans );
 	void				SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 );
+#ifdef DAEDALUS_VITA
+	void				SetNegativeViewport();
+	void				SetPositiveViewport();
+#endif
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	void				PrintActive();

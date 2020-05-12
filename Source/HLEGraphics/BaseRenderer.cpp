@@ -115,8 +115,10 @@ void	_ConvertVerticesIndexed( DaedalusVtx * dest, const DaedalusVtx4 * source, u
 u32		_ClipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, const v4 * plane, u32 num_verts );
 }
 
+#ifndef GL_TRUE
 #define GL_TRUE                           1
 #define GL_FALSE                          0
+#endif
 
 #undef min
 #undef max
@@ -124,22 +126,20 @@ u32		_ClipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, const 
 extern bool gRumblePakActive;
 extern u32 gAuxAddr;
 
-static f32 fViWidth {320.0f};
-static f32 fViHeight {240.0f};
-static f32 oldfViWidth {320.0f};
-static f32 oldfViHeight {240.0f};
-u32 uViWidth {320};
-u32 uViHeight {240};
+static f32 fViWidth = 320.0f;
+static f32 fViHeight = 240.0f;
+static f32 oldfViWidth = 320.0f;
+static f32 oldfViHeight = 240.0f;
+u32 uViWidth = 320;
+u32 uViHeight = 240;
 
-f32 gZoomX{1.0};	//Default is 1.0f
+f32 gZoomX = 1.0;	//Default is 1.0f
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 // General purpose variable used for debugging
-f32 TEST_VARX {0.0f};
-f32 TEST_VARY {0.0f};
+f32 TEST_VARX = 0.0f;
+f32 TEST_VARY = 0.0f;
 #endif
-
-
 
 //
 
@@ -206,39 +206,37 @@ BaseRenderer::~BaseRenderer() {}
 
 void BaseRenderer::SetVIScales()
 {
-	u32 width {Memory_VI_GetRegister( VI_WIDTH_REG )};
+	u32 width = Memory_VI_GetRegister( VI_WIDTH_REG );
 
-	u32 ScaleX {Memory_VI_GetRegister( VI_X_SCALE_REG ) & 0xFFF};
-	u32 ScaleY {Memory_VI_GetRegister( VI_Y_SCALE_REG ) & 0xFFF};
+	u32 ScaleX = Memory_VI_GetRegister( VI_X_SCALE_REG ) & 0xFFF;
+	u32 ScaleY = Memory_VI_GetRegister( VI_Y_SCALE_REG ) & 0xFFF;
 
-	f32 fScaleX {(f32)ScaleX / 1024.0f};
-	f32 fScaleY {(f32)ScaleY / 2048.0f};
+	f32 fScaleX = (f32)ScaleX / 1024.0f;
+	f32 fScaleY = (f32)ScaleY / 2048.0f;
 
-	u32 HStartReg {Memory_VI_GetRegister( VI_H_START_REG )};
-	u32 VStartReg {Memory_VI_GetRegister( VI_V_START_REG )};
+	u32 HStartReg = Memory_VI_GetRegister( VI_H_START_REG );
+	u32 VStartReg = Memory_VI_GetRegister( VI_V_START_REG );
 
-	u32	hstart {HStartReg >> 16};
-	u32	hend {HStartReg & 0xffff};
+	u32	hstart = HStartReg >> 16;
+	u32	hend = HStartReg & 0xffff;
 
-	u32	vstart {VStartReg >> 16};
-	u32	vend {VStartReg & 0xffff};
+	u32	vstart = VStartReg >> 16;
+	u32	vend = VStartReg & 0xffff;
 
 	// Sometimes HStartReg can be zero.. ex PD, Lode Runner, Cyber Tiger
 	if (hend == hstart)
 	{
-		hend = (u32)(width / fScaleX);
+		hend = (u32)((f32)width / fScaleX);
 	}
 
-	fViWidth  =  (hend-hstart) * fScaleX;
-	fViHeight =  (vend-vstart) * fScaleY * (240.f/237.f);
-
-	// XXX Need to check PAL games.
-	//if(g_ROM.TvType != OS_TV_NTSC) sRatio = 9/11.0f;
+	fViWidth  =  (f32)(hend-hstart) * fScaleX;
+	bool isPAL = (Memory_VI_GetRegister( VI_V_SYNC_REG ) & 0x3FFF) > 550;
+	fViHeight =  (f32)(vend-vstart) * fScaleY * (isPAL ? 1.0041841f : 1.0126582f);
 
 	//printf("width[%d] ViWidth[%f] ViHeight[%f]\n", width, fViWidth, fViHeight);
 
 	//This corrects height in various games ex : Megaman 64, Cyber Tiger. 40Winks need width >= ((u32)fViWidth << 1) for menus //Corn
-	if( width > 0x300 || width >= ((u32)fViWidth << 1) )
+	if( (width > 768) || (width >= ((u32)fViWidth << 1)) )
 	{
 		fViHeight += fViHeight;
 	}
@@ -289,7 +287,7 @@ void BaseRenderer::EndScene()
 
 	//
 	//	Clear this, to ensure we're force to check for updates to it on the next frame
-	for( u32 i {}; i < kNumBoundTextures; i++ )
+	for( u32 i = 0; i < kNumBoundTextures; i++ )
 	{
 		mBoundTextureInfo[ i ] = TextureInfo();
 		mBoundTexture[ i ]     = nullptr;
@@ -302,8 +300,7 @@ void BaseRenderer::EndScene()
 void BaseRenderer::InitViewport()
 {
 	// Init the N64 viewport.
-	mVpScale = v2( 640.f*0.25f, 480.f*0.25f );
-	mVpTrans = v2( 640.f*0.25f, 480.f*0.25f );
+	SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
 	u32 display_width  = 0, display_height = 0;
@@ -326,24 +323,24 @@ void BaseRenderer::InitViewport()
 		u32 frame_width  = (u32)(gGlobalPreferences.TVEnable ? 720 : 480);
 		u32 frame_height = (u32)(gGlobalPreferences.TVEnable ? 480 : 272);
 
-		s32 display_x = (s32)(frame_width  - display_width)  / 2;
-		s32 display_y = (s32)(frame_height - display_height) / 2;
+		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
+		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
 #elif defined(DAEDALUS_VITA)
 		// Centralise the viewport in the display.
 		u32 frame_width  = SCR_WIDTH;
 		u32 frame_height = SCR_HEIGHT;
 
-		s32 display_x = (s32)(frame_width  - display_width)  / 2;
-		s32 display_y = (s32)(frame_height - display_height) / 2;
+		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
+		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
 #else
-		s32 display_x = 0, display_y = 0;
+		f32 display_x = 0, display_y = 0;
 #endif
 
-		mN64ToScreenScale.x = gZoomX * mScreenWidth  / fViWidth;
-		mN64ToScreenScale.y = gZoomX * mScreenHeight / fViHeight;
+		mN64ToScreenScale.x = gZoomX * (mScreenWidth  / fViWidth);
+		mN64ToScreenScale.y = gZoomX * (mScreenHeight / fViHeight);
 
-		mN64ToScreenTranslate.x  = (f32)display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
-		mN64ToScreenTranslate.y  = (f32)display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
+		mN64ToScreenTranslate.x  = display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
+		mN64ToScreenTranslate.y  = display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
 
 #ifndef DAEDALUS_VITA
 		if (gRumblePakActive)
@@ -361,7 +358,7 @@ void BaseRenderer::InitViewport()
 			2.f / w,       0.f,     0.f,     0.f,
 				0.f,  -2.f / h,     0.f,     0.f,
 				0.f,       0.f,     1.f,     0.f,
-			-1.0f,       1.f,     0.f,     1.f
+			  -1.0f,       1.f,     0.f,     1.f
 		);
 #endif
 	}
@@ -386,37 +383,30 @@ void BaseRenderer::SetN64Viewport( const v2 & scale, const v2 & trans )
 	mVpTrans.x = trans.x;
 	mVpTrans.y = trans.y;
 
-	UpdateViewport();
+	InitViewport();
 }
 
 
 //
+s32 vp_x;
+s32 vp_y;
+s32 vp_w;
+s32 vp_h;
+bool is_negative_w = false;
+bool is_negative_h = false;
+bool is_negative_x = false;
+bool is_negative_y = false;
 
-void BaseRenderer::UpdateViewport()
-{
-	v2		n64_min( mVpTrans.x - mVpScale.x, mVpTrans.y - mVpScale.y );
-	v2		n64_max( mVpTrans.x + mVpScale.x, mVpTrans.y + mVpScale.y );
-
-	v2		psp_min {};
-	v2		psp_max {};
-	ConvertN64ToScreen( n64_min, psp_min );
-	ConvertN64ToScreen( n64_max, psp_max );
-
-	s32		vp_x {s32( psp_min.x )};
-	s32		vp_y {s32( psp_min.y )};
-	s32		vp_w {s32( psp_max.x - psp_min.x )};
-	s32		vp_h {s32( psp_max.y - psp_min.y )};
-
-	//DBGConsole_Msg(0, "[WViewport Changed (%d) (%d)]",vp_w,vp_h );
-
+void inline SetInternalViewport() {
 #ifdef DAEDALUS_PSP
-	const u32 vx {2048};
-	const u32 vy {2048};
+	const u32 vx = 2048;
+	const u32 vy = 2048;
 
 	sceGuOffset(vx - (vp_w/2),vy - (vp_h/2));
 	sceGuViewport(vx + vp_x, vy + vp_y, vp_w, vp_h);
 #elif defined(DAEDALUS_VITA)
-	glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
+	// NOTE: If disabled, Tarzan in game HUD is not rendered and Fighting Force 64 floor is not rendered
+	if (!g_ROM.SCISSOR_HACK) glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 	glViewport(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 #elif defined(DAEDALUS_GL)
 	glViewport(vp_x, (s32)mScreenHeight - (vp_h + vp_y), vp_w, vp_h);
@@ -427,6 +417,81 @@ void BaseRenderer::UpdateViewport()
 #endif
 }
 
+void BaseRenderer::UpdateViewport()
+{
+	v2		n64_min( mVpTrans.x - mVpScale.x, mVpTrans.y - mVpScale.y );
+	v2		n64_max( mVpTrans.x + mVpScale.x, mVpTrans.y + mVpScale.y );
+
+	v2		psp_min;
+	v2		psp_max;
+	
+	ConvertN64ToScreen( n64_min, psp_min );
+	ConvertN64ToScreen( n64_max, psp_max );
+
+	vp_x = s32( psp_min.x );
+	vp_y = s32( psp_min.y );
+	vp_w = s32( psp_max.x - psp_min.x );
+	vp_h = s32( psp_max.y - psp_min.y );
+	
+	is_negative_x = is_negative_y = is_negative_w = is_negative_h = false;
+	SetInternalViewport();
+}
+
+#ifdef DAEDALUS_VITA
+void BaseRenderer::SetNegativeViewport()
+{
+	if ((vp_w < 0) || (vp_h < 0) || (vp_x < 0) || (vp_y < 0)) {
+		if (vp_x < 0) {
+			vp_w += vp_x;
+			vp_x -= vp_x;
+			is_negative_x = true;
+		}
+		if (vp_y < 0) {
+			vp_h += vp_y;
+			vp_y -= vp_y;
+			is_negative_y = true;
+		}
+		if (vp_w < 0) { 
+			vp_w = -vp_w;
+			vp_x = vp_x - vp_w;
+			is_negative_w = true;
+		}
+		if (vp_h < 0) {
+			vp_h = -vp_h;
+			vp_y = vp_y - vp_h;
+			is_negative_h = true;
+		}
+		SetInternalViewport();
+	}
+}
+
+void BaseRenderer::SetPositiveViewport()
+{
+	if (is_negative_w || is_negative_h || is_negative_x || is_negative_y) {
+		if (is_negative_x) {
+			vp_w += vp_x;
+			vp_x -= vp_x;
+			is_negative_x = false;
+		}
+		if (is_negative_y) {
+			vp_h += vp_y;
+			vp_y -= vp_y;
+			is_negative_y = false;
+		}
+		if (is_negative_w) { 
+			vp_w = -vp_w;
+			vp_x = vp_x - vp_w;
+			is_negative_w = false;
+		}
+		if (is_negative_h) {
+			vp_h = -vp_h;
+			vp_y = vp_y - vp_h;
+			is_negative_h = false;
+		}
+		SetInternalViewport();
+	}
+}
+#endif
 
 // Returns true if triangle visible and rendered, false otherwise
 
@@ -665,11 +730,11 @@ static u32 clipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, u
 
 	f32 bDotPlane = b->ProjectedPos.Dot( plane );
 
-	for( u32 i {}; i < inCount + 1; ++i)
+	for( u32 i = 0; i < inCount + 1; ++i)
 	{
 		//a = &source[i%inCount];
-		const s32 condition {i - inCount};
-		const s32 index {(( ( condition >> 31 ) & ( i ^ condition ) ) ^ condition )};
+		const u32 condition = i - inCount;
+		const u32 index = (( ( condition >> 31 ) & ( i ^ condition ) ) ^ condition );
 		a = &source[index];
 
 		f32 aDotPlane {a->ProjectedPos.Dot( plane )};
@@ -1664,8 +1729,8 @@ void BaseRenderer::ModifyVertexInfo(u32 whered, u32 vert, u32 val)
 
 		case G_MWO_POINT_ST:
 			{
-				s16 tu {s16(val >> 16)};
-				s16 tv {s16(val & 0xFFFF)};
+				s16 tu = s16(val >> 16);
+				s16 tv = s16(val & 0xFFFF);
 				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 				DL_PF( "    Setting tu/tv to %f, %f", tu/32.0f, tv/32.0f );
 				#endif
@@ -1677,8 +1742,8 @@ void BaseRenderer::ModifyVertexInfo(u32 whered, u32 vert, u32 val)
 			{
 				if( g_ROM.GameHacks == TARZAN ) return;
 
-				u32 x {(val >> 16) >> 2};
-				u32 y {(val & 0xFFFF) >> 2};
+				u32 x = (val >> 16) >> 2;
+				u32 y = (val & 0xFFFF) >> 2;
 
 				// Fixes the blocks lining up backwards in New Tetris
 				//
@@ -1789,7 +1854,8 @@ void BaseRenderer::UpdateTileSnapshots( u32 tile_idx )
 	UpdateTileSnapshot( 0, tile_idx );
 
 #if defined(DAEDALUS_PSP)
-	if ( g_ROM.LOAD_T1_HACK & !gRDPOtherMode.text_lod )
+
+	if ( g_ROM.LOAD_T1_HACK && !gRDPOtherMode.text_lod )
 	{
 		// LOD is disabled - use two textures
 		UpdateTileSnapshot( 1, tile_idx + 1 );
@@ -1884,9 +1950,9 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	// It might just be code that lazily does a texrect with Primcolour (i.e. not using either T0 or T1)?
 	// DAEDALUS_ASSERT( gRDPStateManager.IsTileInitialised( tile_idx ), "Tile %d hasn't been set up (index %d)", tile_idx, index );
 
-	const TextureInfo &  ti        {gRDPStateManager.GetUpdatedTextureDescriptor( tile_idx )};
-	const RDP_Tile &     rdp_tile  {gRDPStateManager.GetTile( tile_idx )};
-	const RDP_TileSize & tile_size {gRDPStateManager.GetTileSize( tile_idx )};
+	const TextureInfo &  ti        = gRDPStateManager.GetUpdatedTextureDescriptor( tile_idx );
+	const RDP_Tile &     rdp_tile  = gRDPStateManager.GetTile( tile_idx );
+	const RDP_TileSize & tile_size = gRDPStateManager.GetTileSize( tile_idx );
 
 	// Avoid texture update, if texture is the same as last time around.
 	if( mBoundTexture[ index ] == nullptr || mBoundTextureInfo[ index ] != ti )
@@ -1899,7 +1965,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 		// else
 		// {
 			CRefPtr<CNativeTexture> texture = CTextureCache::Get()->GetOrCreateTexture( ti );
-
+		
 			if( texture != nullptr && texture != mBoundTexture[ index ] )
 			{
 				mBoundTextureInfo[index] = ti;
@@ -1920,11 +1986,11 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	// Initialise the clamping state. When the mask is 0, it forces clamp mode.
 	//
 #ifdef DAEDALUS_PSP
-	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT)};
-	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT)};
+	u32 mode_u = (u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT);
+	u32 mode_v = (u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT);
 #else
-	u32 mode_u {(u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT)};
-	u32 mode_v {(u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT)};
+	u32 mode_u = (u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT);
+	u32 mode_v = (u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT);
 #endif
 	//	In CRDPStateManager::GetTextureDescriptor, we limit the maximum dimension of a
 	//	texture to that define by the mask_s/mask_t value.
@@ -2013,7 +2079,7 @@ inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 			// Figure out by how much to translate so that the lowest of c0/c1 lies in the range [0,size]
 			// If we do lowest%size, we run the risk of implementation dependent behaviour for modulo of negative values.
 			// lowest + (size<<16) just adds a large multiple of size, which guarantees the result is positive.
-			s32 trans {((lowest + (size<<16)) % size) - lowest};
+			s32 trans = ((lowest + (size<<16)) % size) - lowest;
 
 			// NB! we have to apply the same offset to both coords, to preserve direction of mapping (i.e., don't clamp each independently)
 			c0 += trans;
@@ -2040,9 +2106,9 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 {
 	const RDP_Tile & rdp_tile {gRDPStateManager.GetTile( mActiveTile[0] )};
 
-	TexCoord	offset {mTileTopLeft[0]};
-	u32 		size_x {mBoundTextureInfo[0].GetWidth()  << 5};
-	u32 		size_y {mBoundTextureInfo[0].GetHeight() << 5};
+	TexCoord	offset = mTileTopLeft[0];
+	u32 		size_x = mBoundTextureInfo[0].GetWidth()  << 5;
+	u32 		size_y = mBoundTextureInfo[0].GetHeight() << 5;
 
 	// If mirroring, we need to scroll twice as far to line up.
 	if (rdp_tile.mirror_s)	size_x *= 2;
@@ -2093,16 +2159,16 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	v2 n64_tl( (f32)x0, (f32)y0 );
 	v2 n64_br( (f32)x1, (f32)y1 );
 
-	v2 screen_tl {};
-	v2 screen_br {};
+	v2 screen_tl;
+	v2 screen_br;
 	ConvertN64ToScreen( n64_tl, screen_tl );
 	ConvertN64ToScreen( n64_br, screen_br );
 
 	//Clamp TOP and LEFT values to 0 if < 0 , needed for zooming //Corn
-	s32 l {Max<s32>( s32(screen_tl.x), 0 )};
-	s32 t {Max<s32>( s32(screen_tl.y), 0 )};
-	s32 r {           s32(screen_br.x)};
-	s32 b {          s32(screen_br.y)};
+	s32 l = Max<s32>( s32(screen_tl.x), 0 );
+	s32 t = Max<s32>( s32(screen_tl.y), 0 );
+	s32 r =           s32(screen_br.x);
+	s32 b =           s32(screen_br.y);
 
 #if defined(DAEDALUS_PSP)
 	// N.B. Think the arguments are x0,y0,x1,y1, and not x,y,w,h as the docs describe
@@ -2110,13 +2176,13 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	sceGuScissor( l, t, r, b );
 #elif defined(DAEDALUS_GL)
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
-	s32 w {Max<s32>( r - l, 0 )};
-	s32 h {Max<s32>( b - t, 0 )};
+	s32 w = Max<s32>( r - l, 0 );
+	s32 h = Max<s32>( b - t, 0 );
 	glScissor( l, (s32)mScreenHeight - (t + h), w, h );
 #elif defined(DAEDALUS_VITA)
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
-	s32 w {Max<s32>( r - l, 0 )};
-	s32 h {Max<s32>( b - t, 0 )};
+	s32 w = Max<s32>( r - l, 0 );
+	s32 h = Max<s32>( b - t, 0 );
 	glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
 #else
 	DAEDALUS_ERROR("Need to implement scissor for this platform.");

@@ -31,7 +31,6 @@
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"
 
-// FIXME: PNG loading function in CNativeTexture is wrong, using stb is just a workaround
 #define STB_IMAGE_IMPLEMENTATION
 #include "SysVita/UI/stb_image.h"
 
@@ -181,8 +180,11 @@ char *DrawRomSelector() {
 		
 	if (!list) {
 		if (!comp) {
-			AppendCompatibilityDatabase("ux0:data/DaedalusX64/db1.json");
-			AppendCompatibilityDatabase("ux0:data/DaedalusX64/db2.json");
+			for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+				char dbname[64];
+				sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
+				AppendCompatibilityDatabase(dbname);
+			}
 		}
 		std::string			full_path;
 
@@ -250,6 +252,7 @@ char *DrawRomSelector() {
 		}
 		ImGui::Text("Game Name: %s", hovered->settings.GameName.c_str());
 		ImGui::Text("Region: %s", ROM_GetCountryNameFromID(hovered->id.CountryID));
+		ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
 		if (hovered->cic == CIC_UNKNOWN) ImGui::Text("Cic Type: Unknown");
 		else ImGui::Text("Cic Type: %ld", (s32)hovered->cic + 6101);
 		ImGui::Text("ROM Size: %lu MBs", hovered->size);
@@ -260,11 +263,11 @@ char *DrawRomSelector() {
 			ImGui::Text("Tags:");
 			if (hovered->status->playable) {
 				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "Playable");
-				SetTagDescription("Games that can be played from start to\nfinish with playable performance.");
+				SetTagDescription("Games that can be played from start to\nend with playable performances.");
 			}
 			if (hovered->status->ingame_plus) {
 				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "Ingame +");
-				SetTagDescription("Games that go far ingame but have glitches\nor have non-playable performance.");
+				SetTagDescription("Games that go far ingame but have glitches\nor have non-playable performances.");
 			}
 			if (hovered->status->ingame_low) {
 				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "Ingame -");

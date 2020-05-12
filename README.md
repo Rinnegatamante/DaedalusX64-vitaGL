@@ -20,3 +20,4 @@ Invite link: https://discord.gg/PyCaBx9
 - MasterFeizz for the ARM DynaRec
 - frangarcj for several improvements and bugfixes
 - That One Seong & TheIronUniverse for the LiveArea assets
+- withLogic for the high-res preview assets

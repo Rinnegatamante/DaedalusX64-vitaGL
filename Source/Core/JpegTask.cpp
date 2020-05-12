@@ -1,11 +1,9 @@
 /**
-* Mupen64 hle rsp - jpeg.c
+* Daedalus X64 - JpegTask.cpp
+* Copyright (C) 2020 Rinnegatamante
 * Copyright (C) 2012 Bobby Smiles                                       *
 * Copyright (C) 2009 Richard Goedeken                                   *
 * Copyright (C) 2002 Hacktarux
-*
-* Mupen64 homepage: http://mupen64.emulation64.com
-* email address: hacktarux@yahoo.fr
 *
 * If you want to contribute to the project please contact
 * me first (maybe someone is already making what you are
@@ -36,24 +34,12 @@
 
 #include "Debug/DBGConsole.h"
 #include "Memory.h"
+#include "RDRam.h"
 #include "OSHLE/ultra_sptask.h"
 
 #define SUBBLOCK_SIZE 64
 
 typedef void (*tile_line_emitter_t)(const s16 *y, const s16 *u, u32 address);
-
-/* rdram operations */
-// FIXME: these functions deserve their own module
-static void rdram_read_many_u16(u16 *dst, u32 address, u32 count);
-static void rdram_write_many_u16(const u16 *src, u32 address, u32 count);
-static u32 rdram_read_u32(u32 address);
-static void rdram_write_many_u32(const u32 *src, u32 address, u32 count);
-
-/* helper functions */
-static u8 clamp_u8(s16 x);
-static s16 clamp_s12(s16 x);
-static s16 clamp_s16(s32 x);
-static u16 clamp_RGBA_component(s16 x);
 
 /* pixel conversion & foratting */
 static u32 GetUYVY(s16 y1, s16 y2, s16 u, s16 v);
@@ -268,29 +254,6 @@ void jpeg_decode_OB(OSTask *task)
     }
 }
 
-static u8 clamp_u8(s16 x)
-{
-    return (x & (0xff00)) ? ((-x) >> 15) & 0xff : x;
-}
-
-static s16 clamp_s12(s16 x)
-{
-    if (x < -0x800) { x = -0x800; } else if (x > 0x7f0) { x = 0x7f0; }
-    return x;
-}
-
-static s16 clamp_s16(s32 x)
-{
-    if (x > 32767) { x = 32767; } else if (x < -32768) { x = -32768; }
-    return x;
-}
-
-static u16 clamp_RGBA_component(s16 x)
-{
-    if (x > 0xff0) { x = 0xff0; } else if (x < 0) { x = 0; }
-    return (x & 0xf80);
-}
-
 static u32 GetUYVY(s16 y1, s16 y2, s16 u, s16 v)
 {
     return (u32)clamp_u8(u)  << 24
@@ -330,26 +293,7 @@ static void EmitYUVTileLine(const s16 *y, const s16 *u, u32 address)
 
     rdram_write_many_u32(uyvy, address, 8);
 }
-/*
-static void EmitYUVTileLine_SwapY1Y2(const s16 *y, const s16 *u, u32 address)
-{
-    u32 uyvy[8];
 
-    const s16 * const v  = u + SUBBLOCK_SIZE;
-    const s16 * const y2 = y + SUBBLOCK_SIZE;
-
-    uyvy[0] = GetUYVY(y[1],  y[0],  u[0], v[0]);
-    uyvy[1] = GetUYVY(y[3],  y[2],  u[1], v[1]);
-    uyvy[2] = GetUYVY(y[5],  y[4],  u[2], v[2]);
-    uyvy[3] = GetUYVY(y[7],  y[6],  u[3], v[3]);
-    uyvy[4] = GetUYVY(y2[1], y2[0], u[4], v[4]);
-    uyvy[5] = GetUYVY(y2[3], y2[2], u[5], v[5]);
-    uyvy[6] = GetUYVY(y2[5], y2[4], u[6], v[6]);
-    uyvy[7] = GetUYVY(y2[7], y2[6], u[7], v[7]);
-
-    rdram_write_many_u32(uyvy, address, 8);
-}
-*/
 static void EmitRGBATileLine(const s16 *y, const s16 *u, u32 address)
 {
     u16 rgba[16];
@@ -657,61 +601,5 @@ static void RescaleUVSubBlock(s16 *dst, const s16 *src)
     for (u32 i = 0; i < SUBBLOCK_SIZE; ++i)
     {
         dst[i] = (((int)clamp_s12(src[i]) * 0xe00) >> 16) + 0x80;
-    }
-}
-
-/* FIXME: assume presence of expansion pack */
-#define MEMMASK 0x7FFFFF
-
-//ToDo: fast_memcpy_swizzle?
-static void rdram_read_many_u16(u16 *dst, u32 address, u32 count)
-{
-	const u8 *src = g_pu8RamBase + (address & MEMMASK);
-
-    while (count != 0)
-    {
-		u32 a = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
-		u32 b = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
-
-		*(dst++) = ((a << 8) | b);
-		--count;
-    }
-}
-
-static void rdram_write_many_u16(const u16 *src, u32 address, u32 count)
-{
-	u8 *dst = g_pu8RamBase + (address & MEMMASK);
-    while (count != 0)
-    {
-       *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*src >> 8);
-       *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE)= (u8)(*(src++) & 0xff);
-
-        --count;
-    }
-}
-
-static u32 rdram_read_u32(u32 address)
-{
-	const u8 *src {g_pu8RamBase + (address& MEMMASK)};
-
-	u32 a = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
-	u32 b = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
-	u32 c = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
-	u32 d = *(u8*)((uintptr_t)src++ ^ U8_TWIDDLE);
-
-    return (a << 24) | (b << 16) | (c << 8) | d;
-}
-
-static void rdram_write_many_u32(const u32 *src, u32 address, u32 count)
-{
-	u8 *dst = g_pu8RamBase + (address & MEMMASK);
-    while (count != 0)
-    {
-       *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*src >> 24);
-       *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*src >> 16);
-       *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*src >> 8);
-       *(u8*)((uintptr_t)dst++ ^ U8_TWIDDLE) = (u8)(*(src++) & 0xff);
-
-        --count;
     }
 }

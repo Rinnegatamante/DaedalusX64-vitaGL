@@ -415,11 +415,19 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_BEQL:	GenerateBEQ( rs, rt, p_branch, p_branch_jump ); handled = true; break;
 		case OP_BNE:	GenerateBNE( rs, rt, p_branch, p_branch_jump );	handled = true; break;
 		case OP_BNEL:	GenerateBNE( rs, rt, p_branch, p_branch_jump );	handled = true; break;
-		case OP_ADDIU:	GenerateADDIU(rt, rs, s16(op_code.immediate)); handled = true; break;
+		case OP_BLEZ:	GenerateBLEZ( rs, p_branch, p_branch_jump ); handled = true; break;
+		case OP_BLEZL:	GenerateBLEZ( rs, p_branch, p_branch_jump ); handled = true; break;
+		case OP_BGTZ:	GenerateBGTZ( rs, p_branch, p_branch_jump ); handled = true; break;
+		case OP_BGTZL:	GenerateBGTZ( rs, p_branch, p_branch_jump ); handled = true; break;
+
 		case OP_ADDI:	GenerateADDIU(rt, rs, s16(op_code.immediate)); handled = true; break;
+		case OP_ADDIU:	GenerateADDIU(rt, rs, s16(op_code.immediate)); handled = true; break;
 		case OP_ANDI:	GenerateANDI( rt, rs, op_code.immediate ); handled = true; break;
 		case OP_ORI:	GenerateORI( rt, rs, op_code.immediate ); handled = true; break;
 		case OP_XORI:	GenerateXORI( rt, rs, op_code.immediate );handled = true; break;
+
+		case OP_DADDI:	GenerateDADDIU( rt, rs, s16( op_code.immediate ) );	handled = true; break;
+		case OP_DADDIU:	GenerateDADDIU( rt, rs, s16( op_code.immediate ) );	handled = true; break;
 
 		case OP_SW:		handled = GenerateSW(rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SH:		handled = GenerateSH(rt, base, s16(op_code.immediate));   exception = !handled; break;
@@ -463,10 +471,14 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case SpecOp_SRA: 	GenerateSRA( rd, rt, sa ); handled = true; break;
 				//Causes Rayman 2's menu to stop working
 				//case SpecOp_SRL: 	GenerateSRL( rd, rt, sa ); handled = true; break;
+				case SpecOp_SLLV:	GenerateSLLV( rd, rs, rt );	handled = true; break;
+				case SpecOp_SRLV:	GenerateSRLV( rd, rs, rt );	handled = true; break;
+				case SpecOp_SRAV:	GenerateSRAV( rd, rs, rt );	handled = true; break;
 
 				case SpecOp_OR:		GenerateOR( rd, rs, rt ); handled = true; break;
 				case SpecOp_AND:	GenerateAND( rd, rs, rt ); handled = true; break;
 				case SpecOp_XOR:	GenerateXOR( rd, rs, rt ); handled = true; break;
+				// case SpecOp_NOR:	GenerateNOR( rd, rs, rt );	handled = true; break;
 
 				case SpecOp_ADD:	GenerateADDU( rd, rs, rt );	handled = true; break;
 				case SpecOp_ADDU:	GenerateADDU( rd, rs, rt );	handled = true; break;
@@ -482,9 +494,16 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case SpecOp_MTLO:	GenerateMTLO( rd );			handled = true; break;
 				case SpecOp_MTHI:	GenerateMTHI( rd );			handled = true; break;
 
+				case SpecOp_DADD:	GenerateDADDU( rd, rs, rt );	handled = true; break;
+				case SpecOp_DADDU:	GenerateDADDU( rd, rs, rt );	handled = true; break;
+
+				case SpecOp_DSUB:	GenerateDSUBU( rd, rs, rt );	handled = true; break;
+				case SpecOp_DSUBU:	GenerateDSUBU( rd, rs, rt );	handled = true; break;
+
 				case SpecOp_SLT:	GenerateSLT( rd, rs, rt, false );	handled = true; break;
 				case SpecOp_SLTU:	GenerateSLT( rd, rs, rt, true );	handled = true; break;
 				case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump );	handled = true; exception = true; break;
+				case SpecOp_JALR:	GenerateJALR( rs, rd, address, p_branch, p_branch_jump );	handled = true; exception = true; break;
 
 				default: break;
 			}
@@ -710,10 +729,8 @@ bool CCodeGeneratorARM::GenerateLW( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, 0, 32, false, (void*)Read32Bits );
 
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-		
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -735,9 +752,8 @@ bool CCodeGeneratorARM::GenerateLH( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U16_TWIDDLE, 16, true, (void*)Read16Bits_Signed );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -747,9 +763,8 @@ bool CCodeGeneratorARM::GenerateLHU( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U16_TWIDDLE, 16, false, (void*)Read16Bits );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0); //Clear Hi
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -759,9 +774,8 @@ bool CCodeGeneratorARM::GenerateLB( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U8_TWIDDLE, 8, true, (void*)Read8Bits_Signed );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -771,9 +785,8 @@ bool CCodeGeneratorARM::GenerateLBU( EN64Reg rt, EN64Reg base, s16 offset )
 {
 	GenerateLoad( base, offset, U8_TWIDDLE, 8, false, (void*)Read8Bits );
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0); //Clear Hi
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
 	return true;
 }
@@ -800,10 +813,9 @@ bool CCodeGeneratorARM::GenerateLDC1( u32 ft, EN64Reg base, s16 offset )
 void CCodeGeneratorARM::GenerateLUI( EN64Reg rt, s16 immediate )
 {
 	MOV32(ArmReg_R0, immediate << 16);
-	
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend	
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 //*****************************************************************************
@@ -933,13 +945,37 @@ bool CCodeGeneratorARM::GenerateCACHE( EN64Reg base, s16 offset, u32 cache_op )
 
 
 
-void	CCodeGeneratorARM::GenerateJAL( u32 address )
+void CCodeGeneratorARM::GenerateJAL( u32 address )
 {
 	MOV32(ArmReg_R0, address + 8);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[N64Reg_RA]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[N64Reg_RA]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[N64Reg_RA]._u64));
+}
+
+void CCodeGeneratorARM::GenerateJR( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	SetVar( &gCPUState.Delay, DO_DELAY );
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, TargetPC));
+
+	*p_branch_jump = BX_IMM(CCodeLabel(nullptr), AL);
+}
+
+void CCodeGeneratorARM::GenerateJALR( EN64Reg rs, EN64Reg rd, u32 address, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	MOV32(ArmReg_R0, address + 8);
+
+	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+
+	SetVar( &gCPUState.Delay, DO_DELAY );
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, TargetPC));
+
+	*p_branch_jump = BX_IMM(CCodeLabel(nullptr), AL);
 }
 
 void CCodeGeneratorARM::GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
@@ -948,10 +984,43 @@ void CCodeGeneratorARM::GenerateADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
 	MOV32(ArmReg_R1, (u32)immediate);
 
 	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-	
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend	
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	MOV32(ArmReg_R1, (u32)immediate);
+
+	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R1, AL, 1);
+	MOV_IMM(ArmReg_R1, 0);
+	ADC_IMM(ArmReg_R1, ArmReg_R1, 0);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDADDU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	ADD(ArmReg_R0, ArmReg_R0, ArmReg_R2, AL, 1);
+	ADC(ArmReg_R1, ArmReg_R1, ArmReg_R3);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+void CCodeGeneratorARM::GenerateDSUBU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+
+	SUB(ArmReg_R0, ArmReg_R0, ArmReg_R2, AL, 1);
+	SBC(ArmReg_R1, ArmReg_R1, ArmReg_R3);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateANDI( EN64Reg rt, EN64Reg rs, u16 immediate )
@@ -961,9 +1030,8 @@ void CCodeGeneratorARM::GenerateANDI( EN64Reg rt, EN64Reg rs, u16 immediate )
 
 	AND(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 void CCodeGeneratorARM::GenerateORI( EN64Reg rt, EN64Reg rs, u16 immediate )
@@ -973,9 +1041,8 @@ void CCodeGeneratorARM::GenerateORI( EN64Reg rt, EN64Reg rs, u16 immediate )
 
 	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 void CCodeGeneratorARM::GenerateXORI( EN64Reg rt, EN64Reg rs, u16 immediate )
@@ -985,9 +1052,8 @@ void CCodeGeneratorARM::GenerateXORI( EN64Reg rt, EN64Reg rs, u16 immediate )
 
 	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 // Set on Less Than Immediate
@@ -1001,9 +1067,8 @@ void CCodeGeneratorARM::GenerateSLTI( EN64Reg rt, EN64Reg rs, s16 immediate, boo
 
 	MOV_IMM(ArmReg_R0, 1, 0, is_unsigned ? CC : LT);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 }
 
 //*****************************************************************************
@@ -1015,93 +1080,120 @@ void CCodeGeneratorARM::GenerateSLTI( EN64Reg rt, EN64Reg rs, s16 immediate, boo
 //Shift left logical
 void CCodeGeneratorARM::GenerateSLL( EN64Reg rd, EN64Reg rt, u32 sa )
 {
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV_LSL(ArmReg_R0, ArmReg_R1, sa);
+	MOV_LSL_IMM(ArmReg_R0, ArmReg_R0, sa);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 //Shift right logical
 void CCodeGeneratorARM::GenerateSRL( EN64Reg rd, EN64Reg rt, u32 sa )
 {
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV_LSR(ArmReg_R0, ArmReg_R1, sa);
+	MOV_LSR_IMM(ArmReg_R0, ArmReg_R0, sa);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
+
 //Shift right arithmetic 
 void CCodeGeneratorARM::GenerateSRA( EN64Reg rd, EN64Reg rt, u32 sa )
 {
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV_ASR(ArmReg_R0, ArmReg_R1, sa);
+	MOV_ASR_IMM(ArmReg_R0, ArmReg_R0, sa);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+//Shift left logical variable
+void CCodeGeneratorARM::GenerateSLLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
+
+	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+//Shift right logical variable
+void CCodeGeneratorARM::GenerateSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
+
+	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
+
+//Shift right arithmetic variable
+void CCodeGeneratorARM::GenerateSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	AND_IMM(ArmReg_R1, ArmReg_R1, 0x1F);
+
+	MOV_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	//lo
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	ORR(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	//hi
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
-
-	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateXOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	//lo
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	XOR(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
+}
 
-	//hi
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
+void CCodeGeneratorARM::GenerateNOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
+{
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	XOR(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	ORR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	ORR(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	NEG(ArmReg_R0, ArmReg_R0);
+	NEG(ArmReg_R1, ArmReg_R1);
+
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateAND( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	//lo
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
+	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u64));
+	LDRD(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
 
-	AND(ArmReg_R0, ArmReg_R0, ArmReg_R1);
+	AND(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	AND(ArmReg_R1, ArmReg_R1, ArmReg_R3);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-
-	//hi
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_1));
-	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
-
-	AND(ArmReg_R0, ArmReg_R0, ArmReg_R1);
-
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 
@@ -1112,9 +1204,8 @@ void CCodeGeneratorARM::GenerateADDU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 	ADD(ArmReg_R0, ArmReg_R1, ArmReg_R2);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F);
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateSUBU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
@@ -1124,28 +1215,28 @@ void CCodeGeneratorARM::GenerateSUBU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 	SUB(ArmReg_R0, ArmReg_R1, ArmReg_R2);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F);
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateMULT( EN64Reg rs, EN64Reg rt, bool is_unsigned )
 {
-	LDR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
 	LDR(ArmReg_R3, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
 	if(is_unsigned)
-		UMULL( ArmReg_R0, ArmReg_R1, ArmReg_R2, ArmReg_R3 );
+		UMULL( ArmReg_R0, ArmReg_R2, ArmReg_R1, ArmReg_R3 );
 	else
-		SMULL( ArmReg_R0, ArmReg_R1, ArmReg_R2, ArmReg_R3 );
+		SMULL( ArmReg_R0, ArmReg_R2, ArmReg_R1, ArmReg_R3 );
+
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F);
+	MOV_ASR_IMM(ArmReg_R3, ArmReg_R2, 0x1F);
 
 	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, MultLo._u32_0));
-	MOV_ASR(ArmReg_R2, ArmReg_R0, 0x1F);
-	STR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, MultLo._u32_1));
+	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, MultLo._u32_1));
 
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, MultHi._u32_0));
-	MOV_ASR(ArmReg_R2, ArmReg_R1, 0x1F);
-	STR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, MultHi._u32_1));
+	STR(ArmReg_R2, ArmReg_R12, offsetof(SCPUState, MultHi._u32_0));
+	STR(ArmReg_R3, ArmReg_R12, offsetof(SCPUState, MultHi._u32_1));
 }
 
 void CCodeGeneratorARM::GenerateMFLO( EN64Reg rd )
@@ -1200,23 +1291,9 @@ void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is
 
 	MOV_IMM(ArmReg_R0, 1, 0, is_unsigned ? CC : LT);
 
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0);
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0);
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_0));
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u32_1));
-}
-
-void CCodeGeneratorARM::GenerateJR( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
-{
-	//SetVar( &gCPUState.Delay, DO_DELAY );
-
-	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, TargetPC));
-
-	MOV32(ArmReg_R1, p_branch->TargetAddress);
-	CMP(ArmReg_R0, ArmReg_R1);
-
-	*p_branch_jump = BX_IMM(CCodeLabel(nullptr), NE);
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 //*****************************************************************************
@@ -1273,6 +1350,52 @@ void CCodeGeneratorARM::GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetail
 	}
 }
 
+void CCodeGeneratorARM::GenerateBLEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	#ifdef DAEDALUS_ENABLE_ASSERTS
+	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLEZ?" );
+	#endif
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+
+	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
+	CMP_IMM(ArmReg_R0, 0);
+
+	if( p_branch->ConditionalBranchTaken )
+	{
+		// Flip the sign of the test -
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GT);
+	}
+	else
+	{
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LE);
+	}
+}
+
+void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+{
+	#ifdef DAEDALUS_ENABLE_ASSERTS
+	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
+	#endif
+
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
+
+	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
+	CMP_IMM(ArmReg_R0, 0);
+
+	if( p_branch->ConditionalBranchTaken )
+	{
+		// Flip the sign of the test -
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+	}
+	else
+	{
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
+	}
+}
+
 void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
 	#ifdef DAEDALUS_ENABLE_ASSERTS
@@ -1281,10 +1404,9 @@ void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branc
 	#endif
 
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	MOV_IMM( ArmReg_R1, 0);
 
 	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-	CMP(ArmReg_R0, ArmReg_R1);
+	CMP_IMM(ArmReg_R0, 0);
 
 	if( p_branch->ConditionalBranchTaken )
 	{
@@ -1297,27 +1419,26 @@ void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branc
 	}
 }
 
-void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
+void CCodeGeneratorARM::GenerateBGTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
+	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BGTZ?" );
 	#endif
 
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rs]._u32_0));
-	MOV_IMM( ArmReg_R1, 0);
 
 	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-	CMP(ArmReg_R0, ArmReg_R1);
+	CMP_IMM(ArmReg_R0, 0);
 
 	if( p_branch->ConditionalBranchTaken )
 	{
 		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LE);
 	}
 	else
 	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
+		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GT);
 	}
 }
 
@@ -1480,9 +1601,8 @@ void CCodeGeneratorARM::GenerateMFC1( EN64Reg rt, u32 fs )
 {
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPU[fs]._s32));
 
-	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_0));
-	MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);// Sign extend
-	STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_1));
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F);// Sign extend
+	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s64));
 }
 
 void CCodeGeneratorARM::GenerateMTC1( u32 fs, EN64Reg rt )
@@ -1497,9 +1617,8 @@ void CCodeGeneratorARM::GenerateCFC1( EN64Reg rt, u32 fs )
 	{
 		LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, FPUControl[fs]._s32));
 
-		STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_0));
-		MOV_ASR(ArmReg_R1, ArmReg_R0, 0x1F);// Sign extend
-		STR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s32_1));
+		MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F);// Sign extend
+		STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._s64));
 	}
 }
 

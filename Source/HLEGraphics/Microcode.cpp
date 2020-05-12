@@ -150,7 +150,7 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	// Cheap way to cache ucodes, don't check for strings (too slow!) but check last used ucode entries which is alot faster than string comparison.
 	// This only needed for GBI1/2/SDEX ucodes that use LoadUcode, else we only check when code_base changes, which usually never happens
 	//
-	u32 i ;
+	u32 i;
 	for( i = 0; i < MAX_UCODE_CACHE_ENTRIES; i++ )
 	{
 		const UcodeInfo &used( gUcodeInfo[ i ] );
@@ -227,6 +227,7 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	//
 	// Retain used ucode info which will be cached
 	//
+	i = i == MAX_UCODE_CACHE_ENTRIES ? (i-1) : i;
 	gUcodeInfo[ i ].index = idx;
 	gUcodeInfo[ i ].ucode = ucode_version;
 	gUcodeInfo[ i ].set = true;
