@@ -198,6 +198,16 @@ void DrawCommonMenuBar() {
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Input")){
+		if (ImGui::BeginMenu("Controls Mapping")){
+			u32 num_configs = CInputManager::Get()->GetNumConfigurations();
+			for (u32 i = 0; i < num_configs; i++) {
+				if (ImGui::MenuItem(CInputManager::Get()->GetConfigurationName(i), nullptr, i == gControllerIndex)){
+					CInputManager::Get()->SetConfiguration(i);
+				}
+				SetDescription(CInputManager::Get()->GetConfigurationDescription(i));
+			}
+			ImGui::EndMenu();
+		}
 		if (ImGui::BeginMenu("Controller 1", pinfo.port[0] != SCE_CTRL_TYPE_UNPAIRED)){
 			if (ImGui::BeginMenu("Accessory")){
 				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[0])){
