@@ -24,8 +24,6 @@
 #define SCE_CTRL_RLEFT  SCE_CTRL_VOLDOWN
 #define SCE_CTRL_RRIGHT SCE_CTRL_POWER
 
-u32 curr_input_config = 0;
-
 v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
 namespace
