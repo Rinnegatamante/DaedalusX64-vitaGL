@@ -359,7 +359,7 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
 	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
-	case 0x4154:
+	case 0x4154:    // Tarzan
 		g_ROM.SCISSOR_HACK = true;
 		g_ROM.GameHacks = TARZAN;
 		break;
