@@ -405,8 +405,8 @@ void inline SetInternalViewport() {
 	sceGuOffset(vx - (vp_w/2),vy - (vp_h/2));
 	sceGuViewport(vx + vp_x, vy + vp_y, vp_w, vp_h);
 #elif defined(DAEDALUS_VITA)
-	// NOTE: If disabled, Tarzan in game HUD is not rendered
-	if (!(g_ROM.GameHacks == TARZAN)) glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
+	// NOTE: If disabled, Tarzan in game HUD is not rendered and Fighting Force 64 floor is not rendered
+	if (!g_ROM.SCISSOR_HACK) glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 	glViewport(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 #elif defined(DAEDALUS_GL)
 	glViewport(vp_x, (s32)mScreenHeight - (vp_h + vp_y), vp_w, vp_h);

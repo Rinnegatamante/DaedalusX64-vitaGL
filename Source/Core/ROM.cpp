@@ -352,7 +352,6 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5742: g_ROM.GameHacks = SUPER_BOWLING;		break;
 	case 0x514D: g_ROM.GameHacks = PMARIO;				break;
 	case 0x5632: g_ROM.GameHacks = CHAMELEON_TWIST_2;	break;
-	case 0x4154: g_ROM.GameHacks = TARZAN;				break;
 	case 0x4643: g_ROM.GameHacks = CLAY_FIGHTER_63;		break;
 	case 0x504A: g_ROM.GameHacks = ISS64;				break;
 	case 0x5944: g_ROM.GameHacks = DKR;					break;
@@ -360,6 +359,10 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
 	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
+	case 0x4154:
+		g_ROM.SCISSOR_HACK = true;
+		g_ROM.GameHacks = TARZAN;
+		break;
 	case 0x464A:	// Jet Force Geminy
 	case 0x5647:	// Glover
 		g_ROM.SET_ROUND_MODE = true;
@@ -442,6 +445,9 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x434E:	//Nightmare Creatures
 	case 0x5543:	//Cruisn' USA
 		g_ROM.GameHacks = BODY_HARVEST;
+		break;
+	case 0x4646:    //Fighting Force 64
+		g_ROM.SCISSOR_HACK = true;
 		break;
 	default:
 		break;
