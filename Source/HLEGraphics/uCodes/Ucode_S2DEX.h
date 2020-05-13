@@ -329,7 +329,7 @@ static inline void Draw_ObjSprite( const uObjSprite *sprite, ESpriteMode mode, c
 		DAEDALUS_ASSERT((sprite->imageFlags & 1) == 0, "Need to flip X" );
 		DAEDALUS_ASSERT((sprite->imageFlags & 0x10) == 0, "Need to flip Y" );
 #endif
-		gRenderer->Draw2DTextureR(x0, y0, x1, y1, x2, y2, x3, y3, imageW, imageH);
+		gRenderer->Draw2DTextureR(x0, y0, x1, y1, x2, y2, x3, y3, imageW, imageH, texture);
 		break;
 
 	case PARTIAL_ROTATION:

@@ -448,7 +448,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		}
 		
 		// Enable or Disable ZBuffer test
-		if ( (mTnL.Flags.Zbuffer & gRDPOtherMode.z_cmp) | gRDPOtherMode.z_upd )
+		if (mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp)
 		{
 			glEnable(GL_DEPTH_TEST);
 		}
@@ -457,7 +457,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 			glDisable(GL_DEPTH_TEST);
 		}
 
-		glDepthMask( gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE );
+		glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE );
 	}
 	
 	// Initiate Texture Filter
@@ -776,7 +776,17 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	
 	texture->InstallTexture();
 	
+	// Enable or Disable ZBuffer test
+	if (mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+	
+	glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -821,20 +831,31 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
-								 f32 x2, f32 y2, f32 x3, f32 y3,
-								 f32 s, f32 t)
+void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
+								 f32 y2, f32 x3, f32 y3, f32 s, f32 t,
+								 const CNativeTexture * texture)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
 	
+	texture->InstallTexture();
+	
+	// Enable or Disable ZBuffer test
+	if (mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+	
+	glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
-	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 
