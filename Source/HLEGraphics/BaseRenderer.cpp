@@ -300,7 +300,10 @@ void BaseRenderer::EndScene()
 void BaseRenderer::InitViewport()
 {
 	// Init the N64 viewport.
-	SetVIScales();
+	if (gRDPFrame == 0) {
+		mVpScale = v2( 160.0f, 120.0f );
+		mVpTrans = v2( 160.0f, 120.0f );
+	} else SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
 	u32 display_width  = 0, display_height = 0;
