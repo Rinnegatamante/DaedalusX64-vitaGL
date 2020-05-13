@@ -448,7 +448,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		}
 		
 		// Enable or Disable ZBuffer test
-		if (mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp)
+		if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
 		{
 			glEnable(GL_DEPTH_TEST);
 		}
@@ -777,7 +777,7 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	texture->InstallTexture();
 	
 	// Enable or Disable ZBuffer test
-	if (mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp)
+	if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
 		glEnable(GL_DEPTH_TEST);
 	else
 		glDisable(GL_DEPTH_TEST);
@@ -841,7 +841,7 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	texture->InstallTexture();
 	
 	// Enable or Disable ZBuffer test
-	if (mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp)
+	if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
 		glEnable(GL_DEPTH_TEST);
 	else
 		glDisable(GL_DEPTH_TEST);
