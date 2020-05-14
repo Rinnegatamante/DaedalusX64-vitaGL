@@ -376,10 +376,6 @@ void SpecificGameHacks( const ROMHeader & id )
 		g_ROM.LOAD_T1_HACK = true;
 		break;
 	case 0x5144:	//Donald Duck
-		g_ROM.SET_ROUND_MODE = true;
-		g_ROM.LOAD_T1_HACK = true;
-		g_ROM.T1_HACK = true;
-		break;
 	case 0x3259:	//Rayman2
 		g_ROM.SET_ROUND_MODE = true;
 		g_ROM.LOAD_T1_HACK = true;

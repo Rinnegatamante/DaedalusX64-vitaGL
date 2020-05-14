@@ -601,7 +601,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 			float scale_y = texture->GetScaleY();
 				
 			// Hack to fix the sun in Zelda OOT/MM
-			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
+			if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
 			{
 				scale_x *= 0.5f;
 				scale_y *= 0.5f;
@@ -637,12 +637,17 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
 
-	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
+	const f32 depth = (gRDPOtherMode.depth_source && !g_ROM.T0_SKIP_HACK)  ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
-
+	
+	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
+		scale_x *= 0.125f;
+		scale_y *= 0.125f;
+	}
+	
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gTexCoordBuffer[0] = uv0.x * scale_x;
 	gTexCoordBuffer[1] = uv0.y * scale_y;
