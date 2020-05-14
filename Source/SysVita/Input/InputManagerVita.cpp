@@ -871,7 +871,15 @@ CControllerConfig *	IInputManager::BuildControllerConfig( const char * filename 
 	}
 	if( p_default_section->FindProperty( "Description", &p_property ) )
 	{
-		p_config->SetDescription( p_property->GetValue() );
+		char tmp[256];
+		sprintf(tmp, p_property->GetValue());
+		char *newline = nullptr, *p = tmp;
+		while (newline = strstr(p, "\\n")) {
+			newline[0] = '\n';
+			sprintf(&newline[1], &newline[2]);
+			p++;
+		}
+		p_config->SetDescription( tmp );
 	}
 	if( p_default_section->FindProperty( "JoystickSwap", &p_property ) )
 	{
