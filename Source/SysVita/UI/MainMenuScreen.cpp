@@ -34,6 +34,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "SysVita/UI/stb_image.h"
 
+#define PREVIEW_PADDING 6
+#define PREVIEW_HEIGHT 268.0f
+#define PREVIEW_WIDTH 387.0f
+#define MIN(x,y) ((x) > (y) ? (y) : (x))
 char selectedRom[512];
 
 struct CompatibilityList {
@@ -60,6 +64,7 @@ static RomSelection *list = nullptr;
 static CompatibilityList *comp = nullptr;
 static RomSelection *old_hovered = nullptr;
 static bool has_preview_icon = false;
+static int preview_width, preview_height, preview_x, preview_y;
 CRefPtr<CNativeTexture> mpPreviewTexture;
 GLuint preview_icon = 0;
 
@@ -67,14 +72,18 @@ bool LoadPreview(RomSelection *rom) {
 	if (old_hovered == rom) return has_preview_icon;
 	old_hovered = rom;
 	
-	int w, h;
 	IO::Filename preview_filename;
 	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Resources/Preview/"), rom->settings.Preview.c_str() );
-	uint8_t *icon_data = stbi_load(preview_filename, &w, &h, NULL, 4);
+	uint8_t *icon_data = stbi_load(preview_filename, &preview_width, &preview_height, NULL, 4);
 	if (icon_data) {
 		if (!preview_icon) glGenTextures(1, &preview_icon);
 		glBindTexture(GL_TEXTURE_2D, preview_icon);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, icon_data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, preview_width, preview_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, icon_data);
+		f32 scale = MIN(PREVIEW_WIDTH / (f32)preview_width, PREVIEW_HEIGHT / (f32)preview_height);
+		preview_width = scale * (f32)preview_width;
+		preview_height = scale * (f32)preview_height;
+		preview_x = (PREVIEW_WIDTH - preview_width) / 2;
+		preview_y = (PREVIEW_HEIGHT - preview_height) / 2;
 		free(icon_data);
 		return true;
 	}
@@ -248,7 +257,8 @@ char *DrawRomSelector() {
 	
 	if (hovered) {
 		if (has_preview_icon = LoadPreview(hovered)) {
-			ImGui::Image((void*)preview_icon, ImVec2(387, 268));
+			ImGui::SetCursorPos(ImVec2(preview_x + PREVIEW_PADDING, preview_y + PREVIEW_PADDING));
+			ImGui::Image((void*)preview_icon, ImVec2(preview_width, preview_height));
 		}
 		ImGui::Text("Game Name: %s", hovered->settings.GameName.c_str());
 		ImGui::Text("Region: %s", ROM_GetCountryNameFromID(hovered->id.CountryID));
@@ -300,6 +310,7 @@ char *DrawRomSelector() {
 			free(old);
 		}
 		list = nullptr;*/
+		CheatCodes_Read( hovered->settings.GameName.c_str(), "Daedalus.cht", hovered->id.CountryID );
 		return selectedRom;
 	}
 	return nullptr;

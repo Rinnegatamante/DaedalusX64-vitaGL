@@ -33,6 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/AuxFunc.h"
 #include "Utility/Macros.h"
 
+#ifdef DAEDALUS_VITA
+extern "C" {
+#include <math_neon.h>
+};
+#endif
 #ifdef DAEDALUS_PSP
 #include <pspfpu.h>
 #include <limits.h>
@@ -70,7 +75,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define R4300_IsNaN(x)		isnan((x))
 #define R4300_Sqrt(x)		sqrtf((x))
 #define R4300_SqrtD(x)		sqrt((x))
+#ifdef DAEDALUS_VITA
+#define R4300_AbsS(x) 		fabsf_neon((x))
+#else
 #define R4300_AbsS(x) 		fabsf((x))
+#endif
 #define R4300_AbsD(x) 		fabs((x))
 #endif
 

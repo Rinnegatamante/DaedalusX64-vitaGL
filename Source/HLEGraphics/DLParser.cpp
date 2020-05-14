@@ -170,14 +170,13 @@ void RDP_MoveMemLight(u32 light_idx, const N64Light *light);
 // Used to keep track of when we're processing the first display list
 static bool gFirstCall = true;
 
-static u32				gSegments[16] {};
-static RDP_Scissor		scissors {};
-static RDP_GeometryMode gGeometryMode {};
-static DList			gDlistStack {};
-static s32				gDlistStackPointer {-1};
-static u32				gVertexStride	 {};
-static u32				gRDPHalf1		 {};
-static u32				gLastUcodeBase   {};
+static u32				gSegments[16];
+static RDP_Scissor		scissors;
+static RDP_GeometryMode gGeometryMode;
+static DList			gDlistStack;
+static s32				gDlistStackPointer = -1;
+static u32				gVertexStride;
+static u32				gRDPHalf1;
 
        SImageDescriptor g_TI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
 static SImageDescriptor g_CI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
@@ -428,10 +427,9 @@ static void DLParser_SetCustom( u32 ucode, u32 offset )
 //*****************************************************************************
 void DLParser_InitMicrocode( u32 code_base, u32 code_size, u32 data_base, u32 data_size )
 {
-	u32 ucode {GBIMicrocode_DetectVersion( code_base, code_size, data_base, data_size, &DLParser_SetCustom )};
+	u32 ucode = GBIMicrocode_DetectVersion( code_base, code_size, data_base, data_size, &DLParser_SetCustom );
 
 	gVertexStride  = ucode_stride[ucode];
-	gLastUcodeBase = code_base;
 	gUcodeFunc	   = IS_CUSTOM_UCODE(ucode) ? gCustomInstruction : gNormalInstruction[ucode];
 
 	// Used for fetching ucode names (Debug Only)
@@ -467,7 +465,7 @@ static u32 DLParser_ProcessDList(u32 instruction_limit)
 {
 	MicroCodeCommand command;
 
-	u32 current_instruction_count {};
+	u32 current_instruction_count = 0;
 
 	while(gDlistStackPointer >= 0)
 	{
@@ -536,17 +534,14 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 	// Update Screen only when something is drawn, otherwise several games ex Army Men will flash or shake.
 	if( g_ROM.GameHacks != CHAMELEON_TWIST_2 ) gGraphicsPlugin->UpdateScreen();
 
-	OSTask * pTask {(OSTask *)(g_pu8SpMemBase + 0x0FC0)};
-	u32 code_base {(u32)pTask->t.ucode & 0x1fffffff};
-	u32 code_size {pTask->t.ucode_size};
-	u32 data_base {(u32)pTask->t.ucode_data & 0x1fffffff};
-	u32 data_size {pTask->t.ucode_data_size};
-	u32 stack_size {pTask->t.dram_stack_size >> 6};
+	OSTask * pTask = (OSTask *)(g_pu8SpMemBase + 0x0FC0);
+	u32 code_base = (u32)pTask->t.ucode & 0x1fffffff;
+	u32 code_size = pTask->t.ucode_size;
+	u32 data_base = (u32)pTask->t.ucode_data & 0x1fffffff;
+	u32 data_size = pTask->t.ucode_data_size;
+	u32 stack_size = pTask->t.dram_stack_size >> 6;
 
-	if ( gLastUcodeBase != code_base )
-	{
-		DLParser_InitMicrocode( code_base, code_size, data_base, data_size );
-	}
+	DLParser_InitMicrocode( code_base, code_size, data_base, data_size );
 
 	//
 	// Not sure what to init this with. We should probably read it from the dmem
@@ -576,7 +571,7 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 	DL_PF("DP: Firing up RDP!");
 #endif
 
-	u32 count {};
+	u32 count;
 
 	if(!gFrameskipActive)
 	{
@@ -623,9 +618,9 @@ void MatrixFromN64FixedPoint( Matrix4x4 & mat, u32 address )
 	const f32 fRecip {1.0f / 65536.0f};
 	const N64mat *Imat {(N64mat *)( g_pu8RamBase + address )};
 
-	s16 hi {};
-	s32 tmp {};
-	for (u32 i {}; i < 4; i++)
+	s16 hi;
+	s32 tmp;
+	for (u32 i = 0; i < 4; i++)
 	{
 #if 1	// Crappy compiler.. reordering is to optimize the ASM // Corn
 		tmp = ((Imat->h[i].x << 16) | Imat->l[i].x);
@@ -659,13 +654,13 @@ void RDP_MoveMemLight(u32 light_idx, const N64Light *light)
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( light_idx < 12, "Warning: invalid light # = %d", light_idx );
 	#endif
-	u8 r {light->r};
-	u8 g {light->g};
-	u8 b {light->b};
+	u8 r = light->r;
+	u8 g = light->g;
+	u8 b = light->b;
 
-	s8 dir_x {light->dir_x};
-	s8 dir_y {light->dir_y};
-	s8 dir_z {light->dir_z};
+	s8 dir_x = light->dir_x;
+	s8 dir_y = light->dir_y;
+	s8 dir_z = light->dir_z;
 
 	bool valid = (dir_x | dir_y | dir_z) != 0;
 		#ifdef DAEDALUS_ENABLE_ASSERTS

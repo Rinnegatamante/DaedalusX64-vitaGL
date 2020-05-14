@@ -1,6 +1,12 @@
 #ifndef MATH_VECTOR3_H_
 #define MATH_VECTOR3_H_
 
+#ifdef DAEDALUS_VITA
+extern "C" {
+#include <math_neon.h>
+};
+#endif
+
 #include "Math/Math.h"	// VFPU Math
 
 class v3
@@ -67,6 +73,11 @@ public:
 	{
 		vfpu_norm_3Dvec(&x, &y, &z);
 	}
+#elif defined(DAEDALUS_VITA)
+	void Normalise()
+	{
+		normalize3_neon(f, f);
+	}
 #else
 	void Normalise()
 	{
@@ -112,7 +123,10 @@ public:
 		return (x*rhs.x) + (y*rhs.y) + (z*rhs.z);
 	}
 
-	float x, y, z;
+	union {
+		struct { float x, y, z; };
+		float f[3];
+	};
 };
 
 #endif // MATH_VECTOR3_H_

@@ -27,23 +27,8 @@ ALIGNED_TYPE(class, Matrix4x4, 16)
 
 		Matrix4x4 operator*( const Matrix4x4 & rhs ) const;
 
-		Matrix4x4 & SetIdentity();
-		Matrix4x4 & SetScaling( float scale );
-		Matrix4x4 & SetRotateX( float angle );
-		Matrix4x4 & SetRotateY( float angle );
-		Matrix4x4 & SetRotateZ( float angle );
-		Matrix4x4 & SetTranslate( const v3 & vec );
-
-		//Matrix4x4 Transpose() const;
-		//Matrix4x4 Inverse() const;
-
-		v3 TransformCoord( const v3 & vec ) const;
 		v3 TransformNormal( const v3 & vec ) const;
-
-		v3 Transform( const v3 & vec ) const;
 		v4 Transform( const v4 & vec ) const;
-
-	//	void	print() const;
 
 	public:
 		union

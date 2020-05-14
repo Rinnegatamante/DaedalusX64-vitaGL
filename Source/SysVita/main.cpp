@@ -210,8 +210,7 @@ static void Initialize()
 		while (downloaded_bytes < total_bytes) {
 			DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
 		}
-		total_bytes = 0xFFFFFFFF;
-		downloaded_bytes = 0;
+		total_bytes++;
 	}
 	ImGui::GetIO().MouseDrawCursor = true;
 	

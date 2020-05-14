@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/Memory.h"
 
 #include "Debug/DBGConsole.h"
+#include "Utility/AuxFunc.h"
 
 // Limit cache ucode entries to 6
 // In theory we should never reach this max
@@ -51,9 +52,9 @@ char cur_ucode[256] = "";
 //
 struct UcodeInfo
 {
-	u32	ucode;
-	u32	index;
-
+	u32 code_base;
+	u32 data_base;
+	u32 ucode_version;
 	bool set;
 };
 
@@ -62,15 +63,15 @@ static UcodeInfo gUcodeInfo[ MAX_UCODE_CACHE_ENTRIES ];
 static bool	GBIMicrocode_DetectVersionString( u32 data_base, u32 data_size, char * str, u32 str_len )
 {
 	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( data_base < MAX_RAM_ADDRESS + 0x1000 ,"GBIMicrocode out of bound %08X", data_base );
+	DAEDALUS_ASSERT( data_base < (MAX_RAM_ADDRESS + data_size),"Microcode data its out of bounds %08X", data_base );
 	#endif
 	const s8 * ram( g_ps8RamBase );
 
 	for ( u32 i {}; i+2 < data_size; i++ )
 	{
-		if ( ram[ (data_base + i+0) ^ 3 ] == 'R' &&
-			 ram[ (data_base + i+1) ^ 3 ] == 'S' &&
-			 ram[ (data_base + i+2) ^ 3 ] == 'P' )
+		if ( ram[ (data_base + i+0) ^ U8_TWIDDLE ] == 'R' &&
+			 ram[ (data_base + i+1) ^ U8_TWIDDLE ] == 'S' &&
+			 ram[ (data_base + i+2) ^ U8_TWIDDLE ] == 'P' )
 		{
 			char * p {str};
 			char * e {str+str_len};
@@ -125,9 +126,7 @@ struct MicrocodeData
 static const MicrocodeData gMicrocodeData[] =
 {
 	//
-	//	The only games that need defining are custom ucodes and incorrectly detected ones
-	//	If you believe a title should be here post the line for it from ucodes.txt @ http://www.daedalusx64.com
-	//	Note - Games are in alphabetical order by game title
+	//	The only games that need defining are custom ucodes
 	//
 	{ GBI_CONKER,	GBI_2,	0x60256efc	},	//"RSP Gfx ucode F3DEXBG.NoN fifo 2.08  Yoshitaka Yasumoto 1999 Nintendo.", "Conker's Bad Fur Day"},
 	{ GBI_LL,		GBI_1,	0x6d8bec3e	},	//"", "Dark Rift"},
@@ -142,11 +141,27 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_WR,		GBI_0,	0x64cc729d	},	//"RSP SW Version: 2.0D, 04-01-96", "Wave Race 64"},
 };
 
+void GBIMicrocode_Cache(u32 index, u32 code_base, u32 data_base, u32 ucode_version)
+{
+	//
+	// If the max of ucode entries is reached, spread it randomly
+	// Otherwise we'll keep overriding the last entry
+	// 
+	if (index >= MAX_UCODE_CACHE_ENTRIES)
+	{
+		DBGConsole_Msg(0, "Reached max of ucode entries, spreading entry..");
+		index = FastRand() % MAX_UCODE_CACHE_ENTRIES;
+	}
+
+	UcodeInfo& used(gUcodeInfo[index]);
+	used.ucode_version = ucode_version;
+	used.code_base = code_base;
+	used.data_base = data_base;
+	used.set = true;
+}
+
 u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32 data_size, CustomMicrocodeCallback custom_callback )
 {
-	// I think only checking code_base should be enough..
-	u32 idx {code_base + data_base};
-
 	// Cheap way to cache ucodes, don't check for strings (too slow!) but check last used ucode entries which is alot faster than string comparison.
 	// This only needed for GBI1/2/SDEX ucodes that use LoadUcode, else we only check when code_base changes, which usually never happens
 	//
@@ -159,8 +174,8 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 		if( used.set == false )
 			break;
 
-		if( used.index == idx )
-			return used.ucode;
+		if( used.data_base == data_base && used.code_base == code_base)
+			return used.ucode_version;
 	}
 
 	//
@@ -227,10 +242,7 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	//
 	// Retain used ucode info which will be cached
 	//
-	i = i == MAX_UCODE_CACHE_ENTRIES ? (i-1) : i;
-	gUcodeInfo[ i ].index = idx;
-	gUcodeInfo[ i ].ucode = ucode_version;
-	gUcodeInfo[ i ].set = true;
+	GBIMicrocode_Cache(i, code_base, data_base, ucode_version);
 
 #ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0,"Detected %s Ucode is: [M Ucode %d, 0x%08x, \"%s\", \"%s\"]",ucode_offset == u32(~0) ? "" :"Custom", ucode_version, code_hash, cur_ucode, g_ROM.settings.GameName.c_str() );
