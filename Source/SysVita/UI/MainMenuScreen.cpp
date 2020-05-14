@@ -310,6 +310,7 @@ char *DrawRomSelector() {
 			free(old);
 		}
 		list = nullptr;*/
+		CheatCodes_Read( hovered->settings.GameName.c_str(), "Daedalus.cht", hovered->id.CountryID );
 		return selectedRom;
 	}
 	return nullptr;

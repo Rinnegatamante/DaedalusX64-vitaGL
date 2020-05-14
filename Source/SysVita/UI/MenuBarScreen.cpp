@@ -96,6 +96,41 @@ void SetDescription(const char *text) {
 		ImGui::SetTooltip(text);
 }
 
+void DrawExtraMenu() {
+	if (ImGui::BeginMenu("Extra")){
+		if (ImGui::BeginMenu("UI Theme")){
+			if (ImGui::MenuItem("Dark", nullptr, imgui_theme == DARK_THEME)){
+				ImGui::StyleColorsDark();
+				imgui_theme = DARK_THEME;
+			}
+			if (ImGui::MenuItem("Light", nullptr, imgui_theme == LIGHT_THEME)){
+				ImGui::StyleColorsLight();
+				imgui_theme = LIGHT_THEME;
+			}
+			if (ImGui::MenuItem("Classic", nullptr, imgui_theme == CLASSIC_THEME)){
+				ImGui::StyleColorsClassic();
+				imgui_theme = CLASSIC_THEME;
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::MenuItem("Hide Menubar", nullptr, hide_menubar)){
+			hide_menubar = !hide_menubar;
+		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Debugger", nullptr, debug_window)){
+			debug_window = !debug_window;
+		}
+		if (ImGui::MenuItem("Console Logs", nullptr, logs_window)){
+			logs_window = !logs_window;
+		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Credits", nullptr, credits_window)){
+			credits_window = !credits_window;
+		}
+		ImGui::EndMenu();
+	}
+}
+
 void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
@@ -258,38 +293,6 @@ void DrawCommonMenuBar() {
 		}
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu("Extra")){
-		if (ImGui::BeginMenu("UI Theme")){
-			if (ImGui::MenuItem("Dark", nullptr, imgui_theme == DARK_THEME)){
-				ImGui::StyleColorsDark();
-				imgui_theme = DARK_THEME;
-			}
-			if (ImGui::MenuItem("Light", nullptr, imgui_theme == LIGHT_THEME)){
-				ImGui::StyleColorsLight();
-				imgui_theme = LIGHT_THEME;
-			}
-			if (ImGui::MenuItem("Classic", nullptr, imgui_theme == CLASSIC_THEME)){
-				ImGui::StyleColorsClassic();
-				imgui_theme = CLASSIC_THEME;
-			}
-			ImGui::EndMenu();
-		}
-		if (ImGui::MenuItem("Hide Menubar", nullptr, hide_menubar)){
-			hide_menubar = !hide_menubar;
-		}
-		ImGui::Separator();
-		if (ImGui::MenuItem("Debugger", nullptr, debug_window)){
-			debug_window = !debug_window;
-		}
-		if (ImGui::MenuItem("Console Logs", nullptr, logs_window)){
-			logs_window = !logs_window;
-		}
-		ImGui::Separator();
-		if (ImGui::MenuItem("Credits", nullptr, credits_window)){
-			credits_window = !credits_window;
-		}
-		ImGui::EndMenu();
-	}
 }
 
 void DrawCommonWindows() {
@@ -383,6 +386,7 @@ void DrawMenuBar() {
 	
 	if (ImGui::BeginMainMenuBar()){
 		DrawCommonMenuBar();
+		DrawExtraMenu();
 		ImGui::SameLine();
 		ImGui::SetCursorPosX(870);
 		ImGui::Text("Daedalus X64"); 
@@ -454,6 +458,19 @@ void DrawInGameMenuBar() {
 				ImGui::EndMenu();
 			}
 			DrawCommonMenuBar();
+			if (codegroupcount > 0) {
+				if (ImGui::BeginMenu("Cheats")){
+					for (u32 i = 0; i < codegroupcount; i++) {
+						if (ImGui::MenuItem(codegrouplist[i].name, nullptr, codegrouplist[i].enable)){
+							codegrouplist[i].enable = !codegrouplist[i].enable;
+							CheatCodes_Apply(i, IN_GAME);
+						}
+						if (strlen(codegrouplist[i].note) > 0) SetDescription(codegrouplist[i].note);
+					}
+					ImGui::EndMenu();
+				}
+			}
+			DrawExtraMenu();
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(870);
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate); 

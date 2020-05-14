@@ -41,7 +41,7 @@ bool	gAudioRateMatch				= false;	// Matches audio rate with framerate, only work
 bool	gVideoRateMatch				= false;	// Matches VI rate with framerate
 bool	gFogEnabled					= false;	// Enable fog
 bool    gMemoryAccessOptimisation   = false;    // Enable the memory access optimisation
-bool	gCheatsEnabled				= false;	// Enable cheat codes
+bool	gCheatsEnabled				= true;	// Enable cheat codes
 u32		gControllerIndex			= 0;		// Which controller config to set
 
 DaedalusConfig g_DaedalusConfig;
