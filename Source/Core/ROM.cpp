@@ -429,6 +429,7 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5543:	//Cruisn' USA
 		g_ROM.GameHacks = BODY_HARVEST;
 		break;
+	case 0x5453:    //Eiko no Saint Andrews
 	case 0x4646:    //Fighting Force 64
 		g_ROM.SCISSOR_HACK = true;
 		break;
