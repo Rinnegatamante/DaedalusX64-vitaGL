@@ -88,7 +88,7 @@ static void ROM_SimulatePIFBoot( ECicType cic_chip, u32 Country )
 		   RAMROM_GAME_OFFSET - RAMROM_BOOTSTRAP_OFFSET );
 
 	// Need to copy to SP_IMEM for CIC-6105 boot.
-	u8 * pIMemBase {(u8*)g_pMemoryBuffers[ MEM_SP_MEM ] + 0x1000};
+	u8 * pIMemBase = (u8*)g_pMemoryBuffers[ MEM_SP_MEM ] + 0x1000;
 
 	R4300_SetSR(0x34000000);
 	

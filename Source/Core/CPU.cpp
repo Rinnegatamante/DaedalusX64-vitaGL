@@ -345,7 +345,7 @@ bool CPU_RomOpen()
 	gCPUState.MultHi._u64 = 0;
 	gCPUState.MultLo._u64 = 0;
 
-	for(u32 i {}; i < 32; i++)
+	for(u32 i = 0; i < 32; i++)
 	{
 		gCPUState.CPU[i]._u64        = 0;
 		gCPUState.CPUControl[i]._u32 = 0;
@@ -354,17 +354,16 @@ bool CPU_RomOpen()
 	}
 
 	// Init TLBs:
-	for (u32 i {}; i < 32; i++)
+	for (u32 i = 0; i < 32; i++)
 	{
 		g_TLBs[i].Reset();
 	}
-
+	
 	// From R4300 manual
-	gCPUState.CPUControl[C0_RAND]._u32   = 32-1;			// TLBENTRIES-1
-	//gCPUState.CPUControl[C0_SR]._u32   = 0x70400004;	//*SR_FR |*/ SR_ERL | SR_CU2|SR_CU1|SR_CU0;
+	gCPUState.CPUControl[C0_RAND]._u32   = 0x1F;
 	R4300_SetSR(0x70400004);
-	gCPUState.CPUControl[C0_PRID]._u32   = 0x00000b10;	// Was 0xb00 - test rom reports 0xb10!!
-	gCPUState.CPUControl[C0_CONFIG]._u32 = 0x0006E463;	// 0x00066463;
+	gCPUState.CPUControl[C0_PRID]._u32   = 0x00000b00;
+	gCPUState.CPUControl[C0_CONFIG]._u32 = 0x0006E463;
 	gCPUState.CPUControl[C0_WIRED]._u32  = 0x0;
 
 	gCPUState.FPUControl[0]._u32 = 0x00000511;
