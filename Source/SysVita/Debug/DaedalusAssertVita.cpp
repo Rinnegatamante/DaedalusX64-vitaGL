@@ -21,9 +21,12 @@
 #include "stdafx.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 #include "Debug/DaedalusAssert.h"
 
 #ifdef DAEDALUS_ENABLE_ASSERTS
+
+extern void log2file(const char *format, ...);
 
 EAssertResult DaedalusAssert(const char * expression, const char * file, unsigned int line, const char * msg, ...);
 
@@ -33,7 +36,21 @@ DaedalusAssertHook gAssertHook = &DaedalusAssert;
 //
 EAssertResult DaedalusAssert(const char * expression, const char * file, unsigned int line, const char * msg, ...)
 {
-	return AR_BREAK;
+	char buffer[512];
+	__gnuc_va_list va;
+	va_start(va, msg);
+	vsnprintf( buffer, 512, msg, va );
+	buffer[1023] = 0;
+	va_end(va);
+	
+	log2file( "************************************************************\n" );
+	log2file( "Assert Failed: %s\n", expression );
+	log2file( "Location: %s(%d)\n", file, line );
+	log2file( "\n" );
+	log2file( "%s\n", buffer );
+	log2file( "\n" );
+	
+	return AR_IGNORE;
 }
 
 #endif //DAEDALUS_ENABLE_ASSERTS

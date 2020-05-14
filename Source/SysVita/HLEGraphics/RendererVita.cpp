@@ -448,7 +448,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		}
 		
 		// Enable or Disable ZBuffer test
-		if ( (mTnL.Flags.Zbuffer & gRDPOtherMode.z_cmp) | gRDPOtherMode.z_upd )
+		if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
 		{
 			glEnable(GL_DEPTH_TEST);
 		}
@@ -457,7 +457,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 			glDisable(GL_DEPTH_TEST);
 		}
 
-		glDepthMask( gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE );
+		glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE );
 	}
 	
 	// Initiate Texture Filter
@@ -601,7 +601,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 			float scale_y = texture->GetScaleY();
 				
 			// Hack to fix the sun in Zelda OOT/MM
-			if( g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
+			if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
 			{
 				scale_x *= 0.5f;
 				scale_y *= 0.5f;
@@ -637,12 +637,17 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
 
-	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
+	const f32 depth = (gRDPOtherMode.depth_source && !g_ROM.T0_SKIP_HACK)  ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
-
+	
+	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
+		scale_x *= 0.125f;
+		scale_y *= 0.125f;
+	}
+	
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gTexCoordBuffer[0] = uv0.x * scale_x;
 	gTexCoordBuffer[1] = uv0.y * scale_y;
@@ -776,7 +781,17 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	
 	texture->InstallTexture();
 	
+	// Enable or Disable ZBuffer test
+	if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+	
+	glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -821,20 +836,31 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1,
-								 f32 x2, f32 y2, f32 x3, f32 y3,
-								 f32 s, f32 t)
+void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
+								 f32 y2, f32 x3, f32 y3, f32 s, f32 t,
+								 const CNativeTexture * texture)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
 	
+	texture->InstallTexture();
+	
+	// Enable or Disable ZBuffer test
+	if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+	
+	glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
-	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 

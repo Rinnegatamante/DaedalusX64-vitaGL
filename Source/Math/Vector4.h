@@ -1,6 +1,16 @@
 #ifndef MATH_VECTOR4_H_
 #define MATH_VECTOR4_H_
 
+#ifdef DAEDALUS_VITA
+extern "C" {
+#include <math_neon.h>
+};
+#endif
+
+#include <string.h>
+
+#include "Vector3.h"
+
 #include "Math/Math.h"	// VFPU Math
 #include "Utility/Alignment.h"
 #include "Utility/DaedalusTypes.h"
@@ -10,9 +20,14 @@ ALIGNED_TYPE(class, v4, 16)
 public:
 	v4() {}
 	v4( float _x, float _y, float _z, float _w ) : x( _x ), y( _y ), z( _z ), w( _w ) {}
-
-	float Normalise()
+	v4( float n[4] ) {memcpy(f, n, sizeof(float)*4);}
+	v4( v3 v ) : w(1.0f) {memcpy(f, v.f, sizeof(float)*3);}
+	
+	void Normalise()
 	{
+#ifdef DAEDALUS_VITA
+		normalize4_neon(f, f);
+#else
 		float	len_sq( LengthSq() );
 		if(len_sq > 0.0001f)
 		{
@@ -26,7 +41,7 @@ public:
 			z *= r;
 			w *= r;
 		}
-		return len_sq;
+#endif
 	}
 
 	v4 operator+( const v4 & v ) const
@@ -57,8 +72,11 @@ public:
 	{
 		return (x*rhs.x) + (y*rhs.y) + (z*rhs.z) + (w*rhs.w);
 	}
-
-	float x, y, z, w;
+	
+	union {
+		struct { float x, y, z, w; };
+		float f[4];
+	};
 };
 
 

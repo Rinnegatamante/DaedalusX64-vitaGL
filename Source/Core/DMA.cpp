@@ -48,37 +48,34 @@ void DMA_SP_CopyFromRDRAM()
 	u32 spmem_address_reg = Memory_SP_GetRegister(SP_MEM_ADDR_REG);
 	u32 rdram_address_reg = Memory_SP_GetRegister(SP_DRAM_ADDR_REG);
 	u32 rdlen_reg         = Memory_SP_GetRegister(SP_RD_LEN_REG);
+	
+	u8 *dest, *src;
 
-#ifdef DAEDALUS_PSP
-	// Ignore IMEM for speed (we don't do low-level RSP anyways on the PSP)
-	if((spmem_address_reg & 0x1000) == 0)
-	{
-		//FIXME(strmnnrmn): shouldn't this be using _swizzle?
-		//No swizzle is okay since alignment and size constrains are met //Salvy
-		fast_memcpy(&g_pu8SpMemBase[(spmem_address_reg & 0xFFF)],
-					&g_pu8RamBase[(rdram_address_reg & 0xFFFFFF)], (rdlen_reg & 0xFFF) + 1);
+	u32 rdram_address = rdram_address_reg & 0x00FFFFFF;
+	
+	if (rdram_address > 0x7FFFFF)
+		return;
+	
+	u32 spmem_address = (spmem_address_reg & 0x0FFF) & ~7;
+	u32 length = ((rdlen_reg & 0x0FFF) | 7) + 1;
+	u32 count  = ((rdlen_reg >> 12) & 0xFF) + 1;
+	u32 skip   = (rdlen_reg >> 20) + length;
+	
+	if ((spmem_address_reg & 0x1000) != 0) {
+		dest = g_pu8SpImemBase + spmem_address;
+	} else {
+		dest = g_pu8SpDmemBase + spmem_address;
 	}
-#else
-	u32 rdram_address = (rdram_address_reg&0x00FFFFFF)	& ~7;	// Align to 8 byte boundary
-	u32 spmem_address = (spmem_address_reg&0x1FFF)		& ~7;	// Align to 8 byte boundary
-	u32 length = ((rdlen_reg    &0x0FFF) | 7)+1;					// Round up to 8 bytes
-	u32 count  = ((rdlen_reg>>12)&0x00FF)+1;
-	u32 skip   = ((rdlen_reg>>20)&0x0FFF);
-
-	for (u32 c {}; c < count; c++ )
+	
+	src = g_pu8RamBase + (rdram_address & ~7);
+	
+	for (u32 j = 0; j < count; j++ )
 	{
-		// Conker needs this
-		if ( rdram_address  > gRamSize )
+		for (u32 i = 0 ; i < length; i++)
 		{
-			//DBGConsole_Msg( 0, "(0x%08x) (0x%08x)", spmem_address, rdram_address );
-			break;
+			*(uint8_t *)(((size_t)dest + j * length + i) ^ U8_TWIDDLE) = *(uint8_t *)(((size_t)src + j * skip + i) ^ U8_TWIDDLE);
 		}
-		fast_memcpy_swizzle( &g_pu8SpMemBase[spmem_address], &g_pu8RamBase[rdram_address], length );
-
-		rdram_address += length + skip;
-		spmem_address += length;
 	}
-#endif
 
 	//Clear the DMA Busy
 	Memory_SP_SetRegister(SP_DMA_BUSY_REG, 0);
@@ -94,38 +91,32 @@ void DMA_SP_CopyToRDRAM()
 	u32 rdram_address_reg = Memory_SP_GetRegister(SP_DRAM_ADDR_REG);
 	u32 wrlen_reg         = Memory_SP_GetRegister(SP_WR_LEN_REG);
 
-#ifdef DAEDALUS_PSP
-	// Ignore IMEM for speed (we don't do low-level RSP anyways on the PSP)
-	if((spmem_address_reg & 0x1000) == 0)
-	{
-		//FIXME(strmnnrmn): shouldn't this be using _swizzle?
-		//No swizzle is okay since alignment and size constrains are met //Salvy
-		fast_memcpy(&g_pu8RamBase[(rdram_address_reg & 0xFFFFFF)],
-					&g_pu8SpMemBase[(spmem_address_reg & 0xFFF)], (wrlen_reg & 0xFFF) + 1);
-	}
+	u8 *dest, *src;
+	
+	u32 rdram_address = rdram_address_reg & 0x00FFFFFF; // Align to 8 byte boundary
+	
+	if (rdram_address > 0x7FFFFF)
+		return;
+	
+	u32 spmem_address = spmem_address_reg & 0xFFF;
+	
+	if (((wrlen_reg & 0xFFF) + 1 + spmem_address) > 0x1000)
+		return;
 
-#else
-	u32 rdram_address = (rdram_address_reg&0x00FFFFFF)	& ~7;	// Align to 8 byte boundary
-	u32 spmem_address = (spmem_address_reg&0x1FFF)		& ~7;	// Align to 8 byte boundary
-	u32 length = ((wrlen_reg    &0x0FFF) | 7)+1;				// Round up to 8 bytes
-	u32 count  = ((wrlen_reg>>12)&0x00FF)+1;
-	u32 skip   = ((wrlen_reg>>20)&0x0FFF);
-
-	for ( u32 c = 0; c < count; c++ )
+	u32 length = ((wrlen_reg & 0xFFF) | 7) + 1;
+	u32 count  = ((wrlen_reg >> 12) & 0xFF) + 1;
+	u32 skip   = (wrlen_reg >> 20) + length;
+	
+	dest = g_pu8RamBase + (rdram_address & ~7);
+	src = g_pu8SpDmemBase + ((spmem_address_reg & 0x1FFF) & ~7);
+	
+	for (u32 j = 0 ; j < count; j++)
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		if ( rdram_address  > gRamSize )
+		for (u32 i = 0 ; i < length; i++)
 		{
-			//DBGConsole_Msg( 0, "(0x%08x) (0x%08x)", spmem_address, rdram_address );
-			break;
+			*(uint8_t *)(((size_t)dest + j * skip + i) ^ U8_TWIDDLE) = *(uint8_t *)(((size_t)src + j * length + i) ^ U8_TWIDDLE);
 		}
-		#endif
-		fast_memcpy_swizzle( &g_pu8RamBase[rdram_address], &g_pu8SpMemBase[spmem_address], length );
-		rdram_address += length + skip;
-		spmem_address += length;
 	}
-
-#endif
 
 	//Clear the DMA Busy
 	Memory_SP_SetRegister(SP_DMA_BUSY_REG, 0);

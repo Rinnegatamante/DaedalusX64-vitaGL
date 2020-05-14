@@ -18,13 +18,15 @@
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
+extern "C" {
+#include <math_neon.h>
+};
+
 // Using uninterceptable buttons as aliases for right stick
 #define SCE_CTRL_RUP    SCE_CTRL_HEADPHONE
 #define SCE_CTRL_RDOWN  SCE_CTRL_VOLUP
 #define SCE_CTRL_RLEFT  SCE_CTRL_VOLDOWN
 #define SCE_CTRL_RRIGHT SCE_CTRL_POWER
-
-u32 curr_input_config = 0;
 
 v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
@@ -869,7 +871,15 @@ CControllerConfig *	IInputManager::BuildControllerConfig( const char * filename 
 	}
 	if( p_default_section->FindProperty( "Description", &p_property ) )
 	{
-		p_config->SetDescription( p_property->GetValue() );
+		char tmp[256];
+		sprintf(tmp, p_property->GetValue());
+		char *newline = nullptr, *p = tmp;
+		while (newline = strstr(p, "\\n")) {
+			newline[0] = '\n';
+			sprintf(&newline[1], &newline[2]);
+			p++;
+		}
+		p_config->SetDescription( tmp );
 	}
 	if( p_default_section->FindProperty( "JoystickSwap", &p_property ) )
 	{
@@ -1002,8 +1012,8 @@ u32		IInputManager::GetConfigurationFromName( const char * name ) const
 v2	ProjectToUnitSquare( const v2 & in )
 {
 	f32		length( in.Length() );
-	float	abs_x( fabsf( in.x ) );
-	float	abs_y( fabsf( in.y ) );
+	float	abs_x( fabsf_neon( in.x ) );
+	float	abs_y( fabsf_neon( in.y ) );
 	float	scale;
 
 	//
