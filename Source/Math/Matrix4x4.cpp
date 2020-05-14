@@ -94,9 +94,15 @@ void MatrixMultiplyAligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matr
 
 v3 Matrix4x4::TransformNormal( const v3 & vec ) const
 {
+#ifdef DAEDALUS_VITA
+	v4 r;
+	matvec4_neon((float*)this, (float*)v4(vec.x, vec.y, vec.z, 0.0f).f, r.f);
+	return v3(r.x, r.y, r.z);
+#else
 	return v3( vec.x * m11 + vec.y * m21 + vec.z * m31,
 			   vec.x * m12 + vec.y * m22 + vec.z * m32,
 			   vec.x * m13 + vec.y * m23 + vec.z * m33 );
+#endif
 }
 
 v4 Matrix4x4::Transform( const v4 & vec ) const

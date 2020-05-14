@@ -25,7 +25,7 @@ ALIGNED_TYPE(class, Matrix4x4, 16)
 		{
 		}
 
-		//Matrix4x4 operator*( const Matrix4x4 & rhs ) const;
+		Matrix4x4 operator*( const Matrix4x4 & rhs ) const;
 
 		v3 TransformNormal( const v3 & vec ) const;
 		v4 Transform( const v4 & vec ) const;
