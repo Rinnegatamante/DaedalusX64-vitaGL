@@ -583,7 +583,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 
 void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
 {
-	//CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
 	
 	if (mTnL.Flags.Texture)
 	{
@@ -625,12 +625,13 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 {
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
+	
 	PrepareTexRectUVs(&st0, &st1);
 	
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
 	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
 
-	//CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
 
 	v2 screen0;
 	v2 screen1;
@@ -674,7 +675,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	gVertexBuffer[11] = depth;
 	vglVertexPointerMapped(gVertexBuffer);
 	gVertexBuffer += 12;
-	
+
 	uint32_t *p_vertices = gColorBuffer;
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
 	gColorBuffer += 4;
@@ -687,7 +688,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
-	//CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X", gRDPOtherMode.L);
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X", gRDPOtherMode.L);
 	
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
@@ -744,6 +745,7 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 
 void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 {
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "FillRect: L: 0x%08X", gRDPOtherMode.L);
 	v2 screen0;
 	v2 screen1;
 	ScaleN64ToScreen( xy0, screen0 );
@@ -772,10 +774,55 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
 
+void RendererVita::DoGamma(float gamma)
+{
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
+	
+	gVertexBuffer[0] = 0.0f;
+	gVertexBuffer[1] = 0.0f;
+	gVertexBuffer[2] = 0.0f;
+	gVertexBuffer[3] = SCR_WIDTH;
+	gVertexBuffer[4] = 0.0f;
+	gVertexBuffer[5] = 0.0f;
+	gVertexBuffer[6] = 0.0f;
+	gVertexBuffer[7] = SCR_HEIGHT;
+	gVertexBuffer[8] = 0.0f;
+	gVertexBuffer[9] = SCR_WIDTH;
+	gVertexBuffer[10] = SCR_HEIGHT;
+	gVertexBuffer[11] = 0.0f;
+	vglVertexPointerMapped(gVertexBuffer);
+	gVertexBuffer += 12;
+	
+	// Hack to use float colors without having to use a temporary buffer
+	gVertexBuffer[0] = gVertexBuffer[1] = gVertexBuffer[2] = 1.0f;
+	gVertexBuffer[3] = gamma;
+	gVertexBuffer[4] = gVertexBuffer[5] = gVertexBuffer[6] = 1.0f;
+	gVertexBuffer[7] = gamma;
+	gVertexBuffer[8] = gVertexBuffer[9] = gVertexBuffer[10] = 1.0f;
+	gVertexBuffer[11] = gamma;
+	gVertexBuffer[12] = gVertexBuffer[13] = gVertexBuffer[14] = 1.0f;
+	gVertexBuffer[15] = gamma;
+	
+	vglColorPointerMapped(GL_FLOAT, gVertexBuffer);
+	gVertexBuffer += 16;
+	
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf((float*)mScreenToDevice.mRaw);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+}
+
 void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 								f32 u0, f32 v0, f32 u1, f32 v1,
 								const CNativeTexture * texture)
 {
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "Draw2DTexture: L: 0x%08X", gRDPOtherMode.L);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
 	
@@ -840,6 +887,7 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 								 f32 y2, f32 x3, f32 y3, f32 s, f32 t,
 								 const CNativeTexture * texture)
 {
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "Draw2DTextureR: L: 0x%08X", gRDPOtherMode.L);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
 	

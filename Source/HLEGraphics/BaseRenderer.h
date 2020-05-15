@@ -287,6 +287,8 @@ public:
 #ifdef DAEDALUS_VITA
 	void				SetNegativeViewport();
 	void				SetPositiveViewport();
+	
+	virtual void		DoGamma(float gamma) = 0;
 #endif
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
