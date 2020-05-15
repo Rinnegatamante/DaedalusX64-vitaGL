@@ -176,6 +176,9 @@ void DrawCommonMenuBar() {
 			if (ImGui::MenuItem("16:9", nullptr, aspect_ratio == RATIO_16_9)){
 				aspect_ratio = RATIO_16_9;
 			}
+			if (ImGui::MenuItem("16:9 Unstretched", nullptr, aspect_ratio == RATIO_16_9_HACK)){
+				aspect_ratio = RATIO_16_9_HACK;
+			}
 			if (ImGui::MenuItem("4:3", nullptr, aspect_ratio == RATIO_4_3)){
 				aspect_ratio = RATIO_4_3;
 			}

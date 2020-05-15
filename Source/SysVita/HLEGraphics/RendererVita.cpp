@@ -635,9 +635,15 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 	v2 screen0;
 	v2 screen1;
-	ScaleN64ToScreen( xy0, screen0 );
-	ScaleN64ToScreen( xy1, screen1 );
-
+	if (aspect_ratio == RATIO_16_9_HACK) {
+		screen0.x = roundf( roundf( HD_SCALE * xy0.x ) * mN64ToScreenScale.x + 118 );
+		screen0.y = roundf( roundf( xy0.y )            * mN64ToScreenScale.y + mN64ToScreenTranslate.y );
+		screen1.x = roundf( roundf( HD_SCALE * xy1.x ) * mN64ToScreenScale.x + 118 );
+		screen1.y = roundf( roundf( xy1.y )            * mN64ToScreenScale.y + mN64ToScreenTranslate.y );
+	} else {
+		ScaleN64ToScreen( xy0, screen0 );
+		ScaleN64ToScreen( xy1, screen1 );
+	}
 	const f32 depth = (gRDPOtherMode.depth_source && !g_ROM.T0_SKIP_HACK)  ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
