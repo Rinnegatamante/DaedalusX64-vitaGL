@@ -460,12 +460,14 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE );
 	}
 	
+	u32 cycle_mode = gRDPOtherMode.cycle_type;
+	
 	// Initiate Texture Filter
 	//
 	// G_TF_AVERAGE : 1, G_TF_BILERP : 2 (linear)
 	// G_TF_POINT   : 0 (nearest)
 	//
-	if( (gRDPOtherMode.text_filt != G_TF_POINT) || (gGlobalPreferences.ForceLinearFilter) )
+	if (((gRDPOtherMode.text_filt != G_TF_POINT) && cycle_mode != CYCLE_COPY) || (gGlobalPreferences.ForceLinearFilter))
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -475,8 +477,6 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	}
-	
-	u32 cycle_mode = gRDPOtherMode.cycle_type;
 	
 	// Initiate Blender
 	//
