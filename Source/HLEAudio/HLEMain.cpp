@@ -46,35 +46,13 @@ char cur_audio_ucode[32];
 // Dummy UCode Handler
 //
 static void SPU( AudioHLECommand command ){}
-//
-//     ABI ? : Unknown or unsupported UCode
-//
-AudioHLEInstruction ABIUnknown [0x20] = { // Unknown ABI
-	SPU, SPU, SPU, SPU, SPU, SPU, SPU, SPU,
-	SPU, SPU, SPU, SPU, SPU, SPU, SPU, SPU,
-	SPU, SPU, SPU, SPU, SPU, SPU, SPU, SPU,
-	SPU, SPU, SPU, SPU, SPU, SPU, SPU, SPU
-};
-//---------------------------------------------------------------------------------------------
-//
-//     ABI 1 : Mario64, WaveRace USA, Golden Eye 007, Quest64, SF Rush
-//				 60% of all games use this.  Distributed 3rd Party ABI
-//
-extern AudioHLEInstruction ABI1[0x20];
-//---------------------------------------------------------------------------------------------
-//
-//     ABI 2 : WaveRace JAP, MarioKart 64, Mario64 JAP RumbleEdition,
-//				 Yoshi Story, Pokemon Games, Zelda64, Zelda MoM (miyamoto)
-//				 Most NCL or NOA games (Most commands)
-extern AudioHLEInstruction ABI2[0x20];
-//---------------------------------------------------------------------------------------------
-//
-//     ABI 3 : DK64, Perfect Dark, Banjo Kazooi, Banjo Tooie
-//				 All RARE games except Golden Eye 007
-//
-extern AudioHLEInstruction ABI3[0x20];
 
-AudioHLEInstruction *ABI = ABIUnknown;
+extern AudioHLEInstruction ABI_Common[0x20];
+extern AudioHLEInstruction ABI_GE[0x20];
+extern AudioHLEInstruction NAudio[0x20];
+extern AudioHLEInstruction Nead[0x20];
+
+AudioHLEInstruction *ABI;
 bool bAudioChanged = false;
 extern bool isMKABI;
 extern bool isZeldaABI;
@@ -97,25 +75,49 @@ void Audio_Reset()
 inline void Audio_Ucode_Detect(OSTask * pTask)
 {
 	u8* p_base = g_pu8RamBase + (u32)pTask->t.ucode_data;
-
+	
+	u32 v;
+	
 	if (*(u32*)(p_base) != 0x01)
 	{
-		if (*(u32*)(p_base + 0x10) == 0x00000001) {
+		v = *(u32*)(p_base + 0x10);
+		switch (v) {
+		case 0x00000001: /* MusyX v1
+			RogueSquadron, ResidentEvil2, PolarisSnoCross,
+            TheWorldIsNotEnough, RugratsInParis, NBAShowTime,
+            HydroThunder, Tarzan, GauntletLegend, Rush2049 */
 			isMusyx = true;
-			sprintf(cur_audio_ucode, "Musyx v1");
-		} else {
-			ABI = ABI3;
-			sprintf(cur_audio_ucode, "ABI3");
+			sprintf(cur_audio_ucode, "MusyX v1");
+			break;
+		default: /* NAudio */
+			ABI = NAudio;
+			sprintf(cur_audio_ucode, "NAudio");
+			break;
 		}
 	}
 	else
 	{
 		if (*(u32*)(p_base + 0x30) == 0xF0000F00) {
-			ABI = ABI1;
-			sprintf(cur_audio_ucode, "ABI1");
+			v = *(u32*)(p_base + 0x28);
+			switch (v) {
+				case 0x1DC8138C: /* GoldenEye */
+				case 0x1E3C1390: /* BlastCorp, DiddyKongRacing */
+					ABI = ABI_GE; 
+					sprintf(cur_audio_ucode, "ABI (GE)");
+					break;
+				default: /* Audio ABI */
+					ABI = ABI_Common;
+					sprintf(cur_audio_ucode, "ABI");
+					break;
+			}
 		} else {
-			ABI = ABI2;
-			sprintf(cur_audio_ucode, "ABI2");
+			v = *(u32*)(p_base + 0x10);
+			switch (v) {
+				default: /* Nead */
+					ABI = Nead;
+					sprintf(cur_audio_ucode, "Nead");
+					break;
+			}
 		}
 	}
 }

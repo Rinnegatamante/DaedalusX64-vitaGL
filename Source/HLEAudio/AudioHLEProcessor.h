@@ -34,6 +34,7 @@ struct AudioHLEState
 	void	ClearBuffer( u16 addr, u16 count );
 
 	void	EnvMixer( u8 flags, u32 address );
+	void	EnvMixerGE( u8 flags, u32 address );
 
 	void	Resample( u8 flags, u32 pitch, u32 address );
 
