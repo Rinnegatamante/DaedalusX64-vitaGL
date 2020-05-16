@@ -87,11 +87,11 @@ enum ESaveStateOperation
 	SSO_LOAD,
 };
 
-static ESaveStateOperation		gSaveStateOperation {SSO_NONE};
+static ESaveStateOperation		gSaveStateOperation = SSO_NONE;
 
-const  u32			kInitialVIInterruptCycles {62500};
-static u32			gVerticalInterrupts {};
-static u32			VI_INTR_CYCLES {kInitialVIInterruptCycles};
+const  u32			kInitialVIInterruptCycles = 62500;
+static u32			gVerticalInterrupts;
+static u32			VI_INTR_CYCLES = kInitialVIInterruptCycles;
 
 #ifdef USE_SCRATCH_PAD
 SCPUState *gPtrCPUState {(SCPUState*)0x10000};

@@ -145,8 +145,6 @@ void	AudioHLEState::EnvMixer( u8 flags, u32 address )
 	{
 		Wet = EnvWet;
 		Dry = EnvDry;
-		ramps[0].step = VolRampLeft / 8;
-		ramps[1].step = VolRampRight / 8;
 		ramps[0].target = VolTrgLeft << 16;
 		ramps[1].target = VolTrgRight << 16;
 		ramps[0].value = VolLeft  << 16;
