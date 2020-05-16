@@ -10,7 +10,6 @@
 
 #include "Debug/DBGConsole.h"
 
-extern bool isMKABI;
 extern bool isZeldaABI;
 
 void FILTER2(AudioHLECommand command)
@@ -142,13 +141,4 @@ void FILTER2(AudioHLECommand command)
 //			memmove (rdram+(command.cmd1&0xFFFFFF), dmem+0xFB0, 0x20);
 	memmove (save, inp2-8, 0x10);
 	memmove (gAudioHLEState.Buffer+(command.cmd0&0xffff), outbuff, cnt);
-}
-
-
-void POLEF (AudioHLECommand command)
-
-{
-  #ifdef DEBUG_AUDIO
-    DBGConsole_Msg(0, "POLEF - Not implemented");
-    #endif
 }

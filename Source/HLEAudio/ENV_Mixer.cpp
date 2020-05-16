@@ -10,41 +10,67 @@
 
 #include "Debug/DBGConsole.h"
 
-extern bool isMKABI;
 extern bool isZeldaABI;
 
-static u32 gEnv_t3 {}, gEnv_s5 {}, gEnv_s6 {};
-static u16 env[8] {};
+static u32 gEnv_t3, gEnv_s5, gEnv_s6;
+static u16 env[8];
 
 inline u16 Sample_Mask( u32 x )
 {
 	return (u16)( x & 0xffff );
 }
 
+void copy_blocks(uint16_t dmemo, uint16_t dmemi, uint16_t block_size, uint8_t count)
+{
+    int block_left = count;
+
+    do
+    {
+        int bytes_left = block_size;
+
+        do
+        {
+            memcpy(gAudioHLEState.Buffer + dmemo, gAudioHLEState.Buffer + dmemi, 0x20);
+            bytes_left -= 0x20;
+
+            dmemi += 0x20;
+            dmemo += 0x20;
+
+        } while(bytes_left > 0);
+
+        --block_left;
+    } while(block_left > 0);
+}
+
+void ENVSETUP_MK(AudioHLECommand command)
+{
+  	gEnv_t3 = 0;
+  	u32 tmp	= (command.cmd0 >> 8) & 0xFF00;
+  	env[4] = Sample_Mask(tmp);
+  	env[5] = Sample_Mask(tmp + gEnv_t3);
+  	gEnv_s5 = command.cmd1 >> 16;
+  	gEnv_s6 = command.cmd1 & 0xFFFF;
+}
 
 void ENVSETUP1(AudioHLECommand command)
 {
-  //fprintf (dfile, "ENVSETUP1: cmd0 = %08X, cmd1 = %08X\n", command.cmd0, command.cmd1);
   	gEnv_t3 = command.cmd0 & 0xFFFF;
-  	u32 tmp	= (command.cmd0 >> 0x8) & 0xFF00;
+  	u32 tmp	= (command.cmd0 >> 8) & 0xFF00;
   	env[4] = Sample_Mask(tmp);
   	env[5] = Sample_Mask(tmp + gEnv_t3);
-  	gEnv_s5 = command.cmd1 >> 0x10;
+  	gEnv_s5 = command.cmd1 >> 16;
   	gEnv_s6 = command.cmd1 & 0xFFFF;
-  	//fprintf (dfile, "	gEnv_t3 = %X / gEnv_s5 = %X / gEnv_s6 = %X / env[4] = %X / env[5] = %X\n", gEnv_t3, gEnv_s5, gEnv_s6, env[4], env[5]);
 }
 
 void ENVSETUP2(AudioHLECommand command)
 {
-  //fprintf (dfile, "ENVSETUP2: cmd0 = %08X, cmd1 = %08X\n", command.cmd0, command.cmd1);
-	u32 tmp1 = (command.cmd1 >> 0x10);
+	u32 tmp1 = (command.cmd1 >> 16);
 	env[0] = Sample_Mask(tmp1);
 	env[1] = Sample_Mask(tmp1 + gEnv_s5);
 
 	u32 tmp2 = command.cmd1 & 0xffff;
 	env[2] = Sample_Mask(tmp2);
 	env[3] = Sample_Mask(tmp2 + gEnv_s6);
-	//fprintf (dfile, "	env[0] = %X / env[1] = %X / env[2] = %X / env[3] = %X\n", env[0], env[1], env[2], env[3]);
 }
 
 void ENVSETUP3(AudioHLECommand command)
@@ -72,9 +98,73 @@ void ENVMIXER_GE(AudioHLECommand command)
 }
 
 
+void ENVMIXER_MK(AudioHLECommand command)
+{
+	s16 vec9, vec10;
+
+	s16 *buffs3 = (s16 *)(gAudioHLEState.Buffer + ((command.cmd0 >> 0x0c)&0x0ff0));
+	s16 *bufft6 = (s16 *)(gAudioHLEState.Buffer + ((command.cmd1 >> 0x14)&0x0ff0));
+	s16 *bufft7 = (s16 *)(gAudioHLEState.Buffer + ((command.cmd1 >> 0x0c)&0x0ff0));
+	s16 *buffs0 = (s16 *)(gAudioHLEState.Buffer + ((command.cmd1 >> 0x04)&0x0ff0));
+	s16 *buffs1 = (s16 *)(gAudioHLEState.Buffer + ((command.cmd1 << 0x04)&0x0ff0));
+
+
+	s16 v2[8];
+	v2[0] = 0 - (s16)((command.cmd0 & 0x2) >> 1);
+	v2[1] = 0 - (s16)((command.cmd0 & 0x1));
+	v2[2] = 0 - (s16)((command.cmd0 & 0x8) >> 1);
+	v2[3] = 0 - (s16)((command.cmd0 & 0x4) >> 1);
+
+	s32 count = (command.cmd0 >> 8) & 0xff;
+
+	u32 adder = 8;
+	command.cmd0 = 0;
+	gEnv_t3 = 0;
+
+	while (count > 0)
+	{
+		int temp;
+		for (int x=0; x < 0x8; x++)
+		{
+			vec9  = (s16)(((s32)buffs3[x^1] * (u32)env[0]) >> 0x10) ^ v2[0];
+			vec10 = (s16)(((s32)buffs3[x^1] * (u32)env[2]) >> 0x10) ^ v2[1];
+			temp = bufft6[x^1] + vec9;
+			bufft6[x^1] = Saturate<s16>( temp );
+			temp = bufft7[x^1] + vec10;
+			bufft7[x^1] = Saturate<s16>( temp );
+			vec9  = (s16)(((s32)vec9  * (u32)env[4]) >> 0x10) ^ v2[2];
+			vec10 = (s16)(((s32)vec10 * (u32)env[4]) >> 0x10) ^ v2[3];
+			if (command.cmd0 & 0x10)
+			{
+				temp = buffs0[x^1] + vec10;
+				buffs0[x^1] = Saturate<s16>( temp );
+				temp = buffs1[x^1] + vec9;
+				buffs1[x^1] = Saturate<s16>( temp );
+			}
+			else
+			{
+				temp = buffs0[x^1] + vec9;
+				buffs0[x^1] = Saturate<s16>( temp );
+				temp = buffs1[x^1] + vec10;
+				buffs1[x^1] = Saturate<s16>( temp );
+			}
+		}
+
+		bufft6 += adder; bufft7 += adder;
+		buffs0 += adder; buffs1 += adder;
+		buffs3 += adder; count  -= adder;
+		env[0] = Sample_Mask(env[0] + gEnv_s5);
+		env[1] = Sample_Mask(env[1] + gEnv_s5);
+		env[2] = Sample_Mask(env[2] + gEnv_s6);
+		env[3] = Sample_Mask(env[3] + gEnv_s6);
+		env[4] = Sample_Mask(env[4] + gEnv_t3);
+		env[5] = Sample_Mask(env[5] + gEnv_t3);
+	}
+}
+	
+
 void ENVMIXER2(AudioHLECommand command)
 {
-  //fprintf (dfile, "ENVMIXER: cmd0 = %08X, cmd1 = %08X\n", command.cmd0, command.cmd1);
   	s16 vec9, vec10;
 
   	s16 *buffs3 = (s16 *)(gAudioHLEState.Buffer + ((command.cmd0 >> 0x0c)&0x0ff0));
@@ -92,18 +182,8 @@ void ENVMIXER2(AudioHLECommand command)
 
   	s32 count = (command.cmd0 >> 8) & 0xff;
 
-  	u32 adder;
-  	if (!isMKABI)
-  	{
-  		gEnv_s5 *= 2; gEnv_s6 *= 2; gEnv_t3 *= 2;
-  		adder = 0x10;
-  	}
-  	else
-  	{
-  		command.cmd0 = 0;
-  		adder = 0x8;
-  		gEnv_t3 = 0;
-  	}
+  	u32 adder = 16;
+  	gEnv_s5 *= 2; gEnv_s6 *= 2; gEnv_t3 *= 2;
 
 
   	while (count > 0)
@@ -135,7 +215,6 @@ void ENVMIXER2(AudioHLECommand command)
   			}
   		}
 
-  		if (!isMKABI)
   		for (int x=0x8; x < 0x10; x++)
   		{
   			vec9  = (s16)(((s32)buffs3[x^1] * (u32)env[1]) >> 0x10) ^ v2[0];
@@ -417,4 +496,23 @@ void NAUDIO_14(AudioHLECommand command)
 	{
 		gAudioHLEState.Iirf( flags, address, dmemv, dmemv, NAUDIO_COUNT);
 	}
+}
+
+void NEAD_16(AudioHLECommand command)
+{
+	u8  count      = (command.cmd0 >> 16);
+	u16 dmemi      = command.cmd0;
+	u16 dmemo      = (command.cmd1 >> 16);
+	u16 block_size = command.cmd1;
+
+    copy_blocks(dmemo, dmemi, block_size, count);
+}
+
+void POLEF(AudioHLECommand command)
+{
+	u8  flags = (u8)(command.cmd0 >> 16);
+	u16 gain        = (u16)command.cmd0;
+	u32 address     = (u32)(command.cmd1 & 0xffffff);
+
+	gAudioHLEState.Polef( flags, address, gAudioHLEState.OutBuffer, gAudioHLEState.InBuffer, gain, gAudioHLEState.Count);
 }

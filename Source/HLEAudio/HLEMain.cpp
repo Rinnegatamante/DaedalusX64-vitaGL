@@ -51,11 +51,11 @@ extern AudioHLEInstruction ABI_Common[0x20];
 extern AudioHLEInstruction ABI_GE[0x20];
 extern AudioHLEInstruction NAudio[0x20];
 extern AudioHLEInstruction NAudio_MP3[0x20];
-extern AudioHLEInstruction Nead[0x20];
+extern AudioHLEInstruction NEAD[0x20];
+extern AudioHLEInstruction NEAD_MK[0x20];
 
 AudioHLEInstruction *ABI;
 bool bAudioChanged = false;
-extern bool isMKABI;
 extern bool isZeldaABI;
 
 //*****************************************************************************
@@ -65,7 +65,6 @@ void Audio_Reset()
 {
 	sprintf(cur_audio_ucode, "None");
 	bAudioChanged = false;
-	isMKABI		  = false;
 	isZeldaABI	  = false;
 	isMusyx 	  = false;
 }
@@ -90,7 +89,8 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 			isMusyx = true;
 			sprintf(cur_audio_ucode, "MusyX v1");
 			break;
-		case 0x1AE8143C: /* NAudio MP3 */
+		case 0x1AE8143C: /* NAudio MP3
+			BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
 			ABI = NAudio_MP3;
 			sprintf(cur_audio_ucode, "NAudio MP3");
 			break;
@@ -118,9 +118,13 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 		} else {
 			v = *(u32*)(p_base + 0x10);
 			switch (v) {
-				default: /* Nead */
-					ABI = Nead;
-					sprintf(cur_audio_ucode, "Nead");
+				case 0x11181350: /* MarioKart, WaveRace (E) */
+					ABI = NEAD_MK;
+					sprintf(cur_audio_ucode, "NEAD (MK)");
+					break;
+				default: /* NEAD */
+					ABI = NEAD;
+					sprintf(cur_audio_ucode, "NEAD");
 					break;
 			}
 		}

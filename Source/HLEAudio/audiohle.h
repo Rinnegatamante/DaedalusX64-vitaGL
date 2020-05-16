@@ -406,19 +406,20 @@ void SEGMENT(AudioHLECommand command); void SEGMENT2(AudioHLECommand command);
 void SETBUFF(AudioHLECommand command); void SETBUFF2(AudioHLECommand command);
 void SETLOOP(AudioHLECommand command); void SETLOOP2(AudioHLECommand command); void SETLOOP3(AudioHLECommand command);
 
-
+void POLEF(AudioHLECommand command );
 void ADDMIXER(AudioHLECommand command );
 void ADPCM(AudioHLECommand command); void ADPCM2(AudioHLECommand command ); void ADPCM3(AudioHLECommand command );
-void ENVMIXER(AudioHLECommand command); void ENVMIXER2(AudioHLECommand command); void ENVMIXER3(AudioHLECommand command); void ENVMIXER_GE(AudioHLECommand command);
-void ENVSETUP1(AudioHLECommand command ); void ENVSETUP2(AudioHLECommand command );
+void ENVMIXER(AudioHLECommand command); void ENVMIXER2(AudioHLECommand command); void ENVMIXER3(AudioHLECommand command); void ENVMIXER_GE(AudioHLECommand command); void ENVMIXER_MK(AudioHLECommand command);
+void ENVSETUP1(AudioHLECommand command ); void ENVSETUP2(AudioHLECommand command ); void ENVSETUP_MK(AudioHLECommand command );
 void FILTER2(AudioHLECommand command );
 void HILOGAIN(AudioHLECommand command );
 void DEINTERLEAVE2(AudioHLECommand command );
-void INTERLEAVE(AudioHLECommand command); void INTERLEAVE2(AudioHLECommand command); void INTERLEAVE3(AudioHLECommand command);
+void INTERLEAVE(AudioHLECommand command); void INTERLEAVE2(AudioHLECommand command); void INTERLEAVE3(AudioHLECommand command); void INTERLEAVE_MK(AudioHLECommand command);
 void LOADADPCM(AudioHLECommand command); void LOADADPCM2(AudioHLECommand command); void LOADADPCM3(AudioHLECommand command );
 void MIXER(AudioHLECommand command); void MIXER2(AudioHLECommand command); void MIXER3(AudioHLECommand command );
 void MP3(AudioHLECommand command );
 void NAUDIO_02B0(AudioHLECommand command ); void NAUDIO_14(AudioHLECommand command );
+void NEAD_16(AudioHLECommand command);
 //	void MP3ADDY(AudioHLECommand command );
 // void POLEF(AudioHLECommand command );
 void RESAMPLE(AudioHLECommand command); void RESAMPLE2(AudioHLECommand command); void RESAMPLE3(AudioHLECommand command);
