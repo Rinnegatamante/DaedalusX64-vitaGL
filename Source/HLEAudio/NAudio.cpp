@@ -30,19 +30,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "audiohle.h"
 #include "AudioHLEProcessor.h"
 
-// Disables the command because it's not used?
-static void DISABLE (AudioHLECommand command) {}
-static void WHATISTHIS (AudioHLECommand command) {}
-
 static void MP3ADDY(AudioHLECommand command)
- {
- //	setaddr = (command.cmd1 & 0xffffff);
- }
+{
+}
 
 AudioHLEInstruction NAudio[0x20] =
 {
-    DISABLE   ,ADPCM3    ,CLEARBUFF3,ENVMIXER3 ,LOADBUFF3 ,RESAMPLE3 ,SAVEBUFF3 ,MP3       ,
-    MP3ADDY   ,SETVOL3   ,DMEMMOVE3 ,LOADADPCM3,MIXER3   ,INTERLEAVE3,WHATISTHIS,SETLOOP3  ,
+    SPNOOP     ,ADPCM3    ,CLEARBUFF3,ENVMIXER3 ,LOADBUFF3 ,RESAMPLE3 ,SAVEBUFF3  ,UNKNOWN    ,
+    UNKNOWN    ,SETVOL3   ,DMEMMOVE3 ,LOADADPCM3,MIXER3   ,INTERLEAVE3,NAUDIO_02B0,SETLOOP3   ,
+    SPNOOP     ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP     ,SPNOOP     ,
+    SPNOOP     ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP     ,SPNOOP
+};
+
+AudioHLEInstruction NAudio_MP3[0x20] =
+{
+    UNKNOWN   ,ADPCM3    ,CLEARBUFF3,ENVMIXER3 ,LOADBUFF3 ,RESAMPLE3 ,SAVEBUFF3 ,MP3       ,
+    MP3ADDY   ,SETVOL3   ,DMEMMOVE3 ,LOADADPCM3,MIXER3   ,INTERLEAVE3,NAUDIO_14 ,SETLOOP3  ,
     SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,
-    SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,
+    SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP
 };

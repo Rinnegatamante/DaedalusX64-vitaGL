@@ -50,6 +50,7 @@ static void SPU( AudioHLECommand command ){}
 extern AudioHLEInstruction ABI_Common[0x20];
 extern AudioHLEInstruction ABI_GE[0x20];
 extern AudioHLEInstruction NAudio[0x20];
+extern AudioHLEInstruction NAudio_MP3[0x20];
 extern AudioHLEInstruction Nead[0x20];
 
 AudioHLEInstruction *ABI;
@@ -88,6 +89,10 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
             HydroThunder, Tarzan, GauntletLegend, Rush2049 */
 			isMusyx = true;
 			sprintf(cur_audio_ucode, "MusyX v1");
+			break;
+		case 0x1AE8143C: /* NAudio MP3 */
+			ABI = NAudio_MP3;
+			sprintf(cur_audio_ucode, "NAudio MP3");
 			break;
 		default: /* NAudio */
 			ABI = NAudio;

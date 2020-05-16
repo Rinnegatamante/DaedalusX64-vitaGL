@@ -418,6 +418,7 @@ void INTERLEAVE(AudioHLECommand command); void INTERLEAVE2(AudioHLECommand comma
 void LOADADPCM(AudioHLECommand command); void LOADADPCM2(AudioHLECommand command); void LOADADPCM3(AudioHLECommand command );
 void MIXER(AudioHLECommand command); void MIXER2(AudioHLECommand command); void MIXER3(AudioHLECommand command );
 void MP3(AudioHLECommand command );
+void NAUDIO_02B0(AudioHLECommand command ); void NAUDIO_14(AudioHLECommand command );
 //	void MP3ADDY(AudioHLECommand command );
 // void POLEF(AudioHLECommand command );
 void RESAMPLE(AudioHLECommand command); void RESAMPLE2(AudioHLECommand command); void RESAMPLE3(AudioHLECommand command);
@@ -437,5 +438,15 @@ void UNKNOWN(AudioHLECommand command);
 // Use these functions to interface with the HLE Audio...
 void Audio_Ucode();
 void Audio_Reset();
+
+enum { NAUDIO_COUNT = 0x170 }; /* ie 184 samples */
+enum {
+    NAUDIO_MAIN      = 0x4f0,
+    NAUDIO_MAIN2     = 0x660,
+    NAUDIO_DRY_LEFT  = 0x9d0,
+    NAUDIO_DRY_RIGHT = 0xb40,
+    NAUDIO_WET_LEFT  = 0xcb0,
+    NAUDIO_WET_RIGHT = 0xe20
+};
 
 #endif // HLEAUDIO_AUDIOHLE_H_

@@ -175,14 +175,13 @@ void ENVMIXER2(AudioHLECommand command)
 
 void ENVMIXER3(AudioHLECommand command)
 {
-  u8 flags = (u8)((command.cmd0 >> 16) & 0xff);
+	u8 flags = (u8)((command.cmd0 >> 16) & 0xff);
   	u32 addy = (command.cmd1 & 0xFFFFFF);
-
-   	s16 *inp=(s16 *)(gAudioHLEState.Buffer+0x4F0);
-  	s16 *out=(s16 *)(gAudioHLEState.Buffer+0x9D0);
-  	s16 *aux1=(s16 *)(gAudioHLEState.Buffer+0xB40);
-  	s16 *aux2=(s16 *)(gAudioHLEState.Buffer+0xCB0);
-  	s16 *aux3=(s16 *)(gAudioHLEState.Buffer+0xE20);
+   	s16 *inp=(s16 *)(gAudioHLEState.Buffer + NAUDIO_MAIN);
+  	s16 *out=(s16 *)(gAudioHLEState.Buffer + NAUDIO_DRY_LEFT);
+  	s16 *aux1=(s16 *)(gAudioHLEState.Buffer + NAUDIO_DRY_RIGHT);
+  	s16 *aux2=(s16 *)(gAudioHLEState.Buffer + NAUDIO_WET_LEFT);
+  	s16 *aux3=(s16 *)(gAudioHLEState.Buffer + NAUDIO_WET_RIGHT);
   	s32 MainR;
   	s32 MainL;
   	s32 AuxR;
@@ -240,7 +239,7 @@ void ENVMIXER3(AudioHLECommand command)
   	//	aux2=aux3=zero;
   	//}
 
-  	for (s32 y = 0; y < (0x170/2); y++) {
+  	for (s32 y = 0; y < (NAUDIO_COUNT/2); y++) {
 
   		// Left
   		LAcc += LAdder;
@@ -373,25 +372,49 @@ void SETVOL(AudioHLECommand command)
 
 void SETVOL3(AudioHLECommand command)
 {
-  u8 Flags = (u8)(command.cmd0 >> 0x10);
-	if (Flags & 0x4)
-	{ // 288
-		if (Flags & 0x2)
-		{ // 290
-			gAudioHLEState.VolLeft  = (s16)command.cmd0; // 0x50
-			gAudioHLEState.EnvDry	= (s16)(command.cmd1 >> 16); // 0x4E
-			gAudioHLEState.EnvWet	= (s16)command.cmd1; // 0x4C
+	u8 flags = (u8)(command.cmd0 >> 16);
+	if (flags & A_VOL)
+	{
+		if (flags & A_LEFT)
+		{
+			gAudioHLEState.VolLeft  = (s16)command.cmd0;
+			gAudioHLEState.EnvDry	= (s16)(command.cmd1 >> 16);
+			gAudioHLEState.EnvWet	= (s16)command.cmd1;
 		}
 		else
 		{
-			gAudioHLEState.VolTrgRight  = (s16)command.cmd0; // 0x46
-			//gAudioHLEState.VolRampRight = (u16)(command.cmd1 >> 16) | (s32)(s16)(command.cmd1 << 0x10);
-			gAudioHLEState.VolRampRight = command.cmd1; // 0x48/0x4A
+			gAudioHLEState.VolTrgRight  = (s16)command.cmd0;
+			gAudioHLEState.VolRampRight = command.cmd1;
 		}
 	}
 	else
 	{
-		gAudioHLEState.VolTrgLeft  = (s16)command.cmd0; // 0x40
-		gAudioHLEState.VolRampLeft = command.cmd1; // 0x42/0x44
+		gAudioHLEState.VolTrgLeft  = (s16)command.cmd0;
+		gAudioHLEState.VolRampLeft = command.cmd1;
+	}
+}
+
+void NAUDIO_02B0(AudioHLECommand command)
+{
+	/* emulate code at 0x12b0 (inside SETVOL), because PC always execute in IMEM */
+	gAudioHLEState.VolRampRight &= ~0xffff;
+	gAudioHLEState.VolRampRight |= (s16)(command.cmd1 & 0xffff);
+}
+
+void NAUDIO_14(AudioHLECommand command)
+{
+	u8  flags = (u8)(command.cmd0 >> 16);
+	u16 gain        = (u16)command.cmd0;
+	u8  select_main = (u8)(command.cmd1 >> 24);
+	u32 address     = (u32)(command.cmd1 & 0xffffff);
+
+	u16 dmemv = (select_main == 0) ? NAUDIO_MAIN : NAUDIO_MAIN2;
+
+	if (gAudioHLEState.ADPCMTable[0] == 0 && gAudioHLEState.ADPCMTable[1] == 0) {
+		gAudioHLEState.Polef( flags, address, dmemv, dmemv, gain, NAUDIO_COUNT);
+	}
+	else
+	{
+		gAudioHLEState.Iirf( flags, address, dmemv, dmemv, NAUDIO_COUNT);
 	}
 }

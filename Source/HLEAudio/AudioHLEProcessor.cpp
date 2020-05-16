@@ -35,6 +35,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/FastMemcpy.h"
 #include "Core/RDRam.h"
 
+static inline int32_t vmulf(int16_t x, int16_t y)
+{
+    return (((int32_t)(x))*((int32_t)(y))+0x4000)>>15;
+}
+
+static inline int align(int x, int n) {
+	return (((x >> n) + 1) << n);
+}
 
 struct ramp_t{
     int64_t value;
@@ -44,26 +52,40 @@ struct ramp_t{
 
 static int16_t ramp_step(struct ramp_t* ramp)
 {
-    bool target_reached;
+	bool target_reached;
 
-    ramp->value += ramp->step;
+	ramp->value += ramp->step;
 
-    target_reached = (ramp->step <= 0)
-        ? (ramp->value <= ramp->target)
-        : (ramp->value >= ramp->target);
+	target_reached = (ramp->step <= 0)
+		? (ramp->value <= ramp->target)
+		: (ramp->value >= ramp->target);
 
-    if (target_reached)
-    {
-        ramp->value = ramp->target;
-        ramp->step  = 0;
-    }
+	if (target_reached)
+	{
+		ramp->value = ramp->target;
+		ramp->step  = 0;
+	}
 
-    return (int16_t)(ramp->value >> 16);
+	return (int16_t)(ramp->value >> 16);
 }
 
 static void sample_mix(int16_t* dst, int16_t src, int16_t gain)
 {
-    *dst = clamp_s16(*dst + ((src * gain) >> 15));
+	*dst = clamp_s16(*dst + ((src * gain) >> 15));
+}
+
+int32_t rdot(size_t n, const int16_t *x, const int16_t *y)
+{
+	int32_t accu = 0;
+
+	y += n;
+
+	while (n != 0) {
+		accu += *(x++) * *(--y);
+		--n;
+	}
+
+	return accu;
 }
 
 void envmix_mix(size_t n, int16_t** dst, const int16_t* gains, int16_t src)
@@ -102,12 +124,6 @@ void	AudioHLEState::ClearBuffer( u16 addr, u16 count )
 
 void	AudioHLEState::EnvMixer( u8 flags, u32 address )
 {
-	//static
-	// ********* Make sure these conditions are met... ***********
-	/*if ((InBuffer | OutBuffer | AuxA | AuxC | AuxE | Count) & 0x3) {
-	MessageBox (nullptr, "Unaligned EnvMixer... please report this to Azimer with the following information: RomTitle, Place in the rom it occurred, and any save state just before the error", "AudioHLE Error", MB_OK);
-	}*/
-	// ------------------------------------------------------------
 	s16 *in=(s16 *)(Buffer+InBuffer);
 	s16 *out=(s16 *)(Buffer+OutBuffer);
 	s16 *aux1=(s16 *)(Buffer+AuxA);
@@ -145,8 +161,6 @@ void	AudioHLEState::EnvMixer( u8 flags, u32 address )
 	}
 	else
 	{
-		// Load LVol, RVol, LAcc, and RAcc (all 32bit)
-		// Load Wet, Dry, LTrg, RTrg
 		Wet				= *(s16 *)(buff +  0); // 0-1
 		Dry				= *(s16 *)(buff +  2); // 2-3
 		ramps[0].target	= *(s32 *)(buff +  4); // 4-5
@@ -810,4 +824,99 @@ void	AudioHLEState::Deinterleave( u16 outaddr, u16 inaddr, u16 count )
 void	AudioHLEState::Mixer( u16 dmemout, u16 dmemin, s32 gain )
 {
 	Mixer( dmemout, dmemin, gain, Count );
+}
+
+void AudioHLEState::Polef( u8 flags, u32 address, u16 dmemo, u16 dmemi, u16 gain, u16 count )
+{
+	s16 *dst = (s16*)(gAudioHLEState.Buffer + dmemo);
+	const int16_t* const h1 = ADPCMTable;
+    int16_t* const h2 = ADPCMTable + 8;
+	
+	unsigned i;
+    int16_t l1, l2;
+    int16_t h2_before[8];
+	
+	count = align(count, 16);
+	
+	if (flags & A_INIT) {
+		l1 = 0; l2 = 0;
+	} else {
+		l1 = *(u16*)(g_pu8RamBase + address + 4);
+		l2 = *(u16*)(g_pu8RamBase + address + 6);
+	}
+	
+	for(i = 0; i < 8; ++i) {
+		h2_before[i] = h2[i];
+		h2[i] = (((int32_t)h2[i] * gain) >> 14);
+	}
+
+	do
+	{
+		int16_t frame[8];
+
+		for(i = 0; i < 8; ++i, dmemi += 2)
+			frame[i] = *(s16*)(gAudioHLEState.Buffer + ((dmemi ^ 2) & 0xFFF));
+
+		for(i = 0; i < 8; ++i) {
+			int32_t accu = frame[i] * gain;
+			accu += h1[i]*l1 + h2_before[i]*l2 + rdot(i, h2, frame);
+			dst[i^1] = clamp_s16(accu >> 14);
+		}
+
+		l1 = dst[6^1];
+		l2 = dst[7^1];
+
+		dst += 8;
+		count -= 16;
+	} while (count != 0);
+
+	rdram_write_many_u32((uint32_t*)(dst - 4), address, 2);
+}
+
+void AudioHLEState::Iirf( u8 flags, u32 address, u16 dmemo, u16 dmemi, u16 count )
+{
+	s16 *dst = (s16*)(gAudioHLEState.Buffer + dmemo);
+	int32_t i, prev;
+	int16_t frame[8];
+	int16_t ibuf[4];
+	uint16_t index = 7;
+	
+	count = align(count, 16);
+	
+	if (flags & A_INIT) {
+		for(i = 0; i < 8; ++i)
+			frame[i] = 0;
+		ibuf[1] = 0;
+		ibuf[2] = 0;
+	} else {
+		frame[6] = *(u16*)(g_pu8RamBase + address + 4);
+		frame[7] = *(u16*)(g_pu8RamBase + address + 6);
+		ibuf[1] = (s16)*(u16*)(g_pu8RamBase + address + 8);
+		ibuf[2] = (s16)*(u16*)(g_pu8RamBase + address + 10);
+	}
+	
+	prev = vmulf(ADPCMTable[9], frame[6]) * 2;
+
+	do
+	{
+		for(i = 0; i < 8; ++i)
+		{
+			int32_t accu;
+			ibuf[index&3] = *(s16*)(gAudioHLEState.Buffer + ((dmemi ^ 2) & 0xFFF));
+
+			accu = prev + vmulf(ADPCMTable[0], ibuf[index&3]) + vmulf(ADPCMTable[1], ibuf[(index-1)&3]) + vmulf(ADPCMTable[0], ibuf[(index-2)&3]);
+			accu += vmulf(ADPCMTable[8], frame[index]) * 2;
+			prev = vmulf(ADPCMTable[9], frame[index]) * 2;
+			dst[i^1] = frame[i] = accu;
+
+			index=(index+1)&7;
+			dmemi += 2;
+        }
+        dst += 8;
+        count -= 0x10;
+	} while (count > 0);
+	
+	rdram_write_many_u16((uint16_t*)&frame[6], address + 4, 4);
+	rdram_write_many_u16((uint16_t*)&ibuf[(index-2)&3], address+8, 2);
+	rdram_write_many_u16((uint16_t*)&ibuf[(index-1)&3], address+10, 2);
 }
