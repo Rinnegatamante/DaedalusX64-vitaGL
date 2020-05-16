@@ -64,12 +64,10 @@ void INTERLEAVE_MK( AudioHLECommand command)
 
 void INTERLEAVE( AudioHLECommand command)
 {
-	u16 inL = command.cmd1 >> 16;
-	u16 inR = command.cmd1;
-	u16 count = ((command.cmd1 >> 12) & 0xff0);
-    u16 dmemo = command.cmd1;
+	u16	inR( command.Abi2Interleave.RAddr );
+	u16	inL( command.Abi2Interleave.LAddr);
 
-	gAudioHLEState.Interleave(dmemo, inL, inR, count);
+	gAudioHLEState.Interleave(inL, inR);
 }
 
 void DEINTERLEAVE2( AudioHLECommand command)
@@ -83,23 +81,12 @@ void DEINTERLEAVE2( AudioHLECommand command)
 
 void INTERLEAVE2( AudioHLECommand command)
 {
-
-	#ifdef DEBUG_AUDIO
-		DBGConsole_Msg(0, "INTERLEAVE2");
-		#endif
-  u16	inR( command.Abi2Interleave.RAddr );
+	u16	inR( command.Abi2Interleave.RAddr );
 	u16	inL( command.Abi2Interleave.LAddr);
 	u16 out( command.Abi2Interleave.OutAddr );
 	u16 count( command.Abi2Interleave.Count );
 
-	if (count != 0)
-	{
-		gAudioHLEState.Interleave( out, inL, inR, count );
-	}
-	else
-	{
-		gAudioHLEState.Interleave( inL, inR );
-	}
+	gAudioHLEState.Interleave( out, inL, inR, count );
 }
 
 void INTERLEAVE3( AudioHLECommand command)

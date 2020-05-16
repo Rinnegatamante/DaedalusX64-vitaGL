@@ -131,10 +131,7 @@ void	AudioHLEState::EnvMixer( u8 flags, u32 address )
 	s16 *aux3=(s16 *)(Buffer+AuxE);
 	s16 Wet, Dry;
 	
-	bool aux = flags & A_AUX;
-	bool init = flags & A_INIT;
-	
-	int32_t n = aux ? 4 : 2;
+	int32_t n = (flags & A_AUX) ? 4 : 2;
 		
 	ramp_t ramps[2];
 	int32_t exp_seq[2];
@@ -144,7 +141,7 @@ void	AudioHLEState::EnvMixer( u8 flags, u32 address )
 	
 	uint32_t ptr = 0;
 	
-	if (init)
+	if (flags & A_INIT)
 	{
 		Wet = EnvWet;
 		Dry = EnvDry;
@@ -232,15 +229,12 @@ void	AudioHLEState::EnvMixerGE( u8 flags, u32 address )
 	s16 *aux3=(s16 *)(Buffer+AuxE);
 	s16 Wet, Dry;
 	
-	bool aux = flags & A_AUX;
-	bool init = flags & A_INIT;
-	
-	int32_t n = aux ? 4 : 2;
+	int32_t n = (flags & A_AUX) ? 4 : 2;
 		
 	ramp_t ramps[2];	
 	s16* buff = (s16*)(rdram+address);
 
-	if (init)
+	if (flags & A_INIT)
 	{
 		Wet = EnvWet;
 		Dry = EnvDry;
