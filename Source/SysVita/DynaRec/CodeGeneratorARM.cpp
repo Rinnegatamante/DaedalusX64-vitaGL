@@ -228,6 +228,7 @@ void CCodeGeneratorARM::GenerateEretExitCode( u32 num_instructions, CIndirectExi
 	SetVar( &gCPUState.Delay, NO_DELAY );
 
 	// No need to call CPU_SetPC(), as this is handled by CFragment when we exit
+
 	RET();
 }
 
@@ -243,7 +244,6 @@ void CCodeGeneratorARM::GenerateIndirectExitCode( u32 num_instructions, CIndirec
 	CJumpLocation	jump_to_next_fragment( GenerateBranchIfNotSet( const_cast< u32 * >( &gCPUState.StuffToDo ), no_target ) );
 
 	CCodeLabel		exit_dynarec( GetAssemblyBuffer()->GetLabel() );
-
 	// New return address is in gCPUState.TargetPC
 	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, TargetPC));
 	STR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CurrentPC));
@@ -261,7 +261,7 @@ void CCodeGeneratorARM::GenerateIndirectExitCode( u32 num_instructions, CIndirec
 	CALL( CCodeLabel( (void *)IndirectExitMap_Lookup ) );
 
 	// If the target was not found, exit
-	CMP_IMM( ArmReg_R0, 0 );
+	TST( ArmReg_R0, ArmReg_R0 );
 	BX_IMM( exit_dynarec, EQ );
 
 	BX( ArmReg_R0 );
@@ -317,7 +317,7 @@ CJumpLocation	CCodeGeneratorARM::GenerateBranchIfSet( const u32 * p_var, CCodeLa
 {
 	MOV32(ArmReg_R0, (u32)p_var);
 	LDR(ArmReg_R0, ArmReg_R0, 0);
-	CMP_IMM(ArmReg_R0, 0);
+	TST(ArmReg_R0, ArmReg_R0);
 
 	return BX_IMM(target, NE);
 }
@@ -329,7 +329,7 @@ CJumpLocation	CCodeGeneratorARM::GenerateBranchIfNotSet( const u32 * p_var, CCod
 {
 	MOV32(ArmReg_R0, (u32)p_var);
 	LDR(ArmReg_R0, ArmReg_R0, 0);
-	CMP_IMM(ArmReg_R0, 0);
+	TST(ArmReg_R0, ArmReg_R0);
 
 	return BX_IMM(target, EQ);
 }
@@ -725,7 +725,7 @@ CJumpLocation CCodeGeneratorARM::ExecuteNativeFunction( CCodeLabel speed_hack, b
 	 
 	if( check_return )
 	{
-		CMP_IMM( ArmReg_R0, 0 );
+		TST( ArmReg_R0, ArmReg_R0 );
 		return BX_IMM( CCodeLabel(NULL), EQ );
 	}
 	else
