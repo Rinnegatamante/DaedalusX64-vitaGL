@@ -55,9 +55,9 @@ u32 TextureInfo::GenerateHashValue() const
 
 	//Number of places to do fragment hash from in texture
 	//More rows will use more CPU...
-	u32 CHK_ROW {5};
-	u32 hash_value {};
-	u8 *ptr_u8 {g_pu8RamBase + GetLoadAddress()};
+	u32 CHK_ROW = 5;
+	u32 hash_value;
+	u8 *ptr_u8 = g_pu8RamBase + GetLoadAddress();
 
 	if( g_ROM.GameHacks == YOSHI )
 	{
@@ -65,7 +65,7 @@ u32 TextureInfo::GenerateHashValue() const
 		if (GetFormat() == G_IM_FMT_CI)
 		{
 			//Check palette changes too but only first 16 palette values//Corn
-			const u32* ptr_u32 {(u32*)GetTlutAddress()};
+			const u32* ptr_u32 = (u32*)(g_pu8RamBase + GetTlutAddress());
 			for (u32 z {}; z < 8; z++) hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ *ptr_u32++;
 		}
 	}
@@ -80,7 +80,7 @@ u32 TextureInfo::GenerateHashValue() const
 		}
 	}
 
-	u32 step {(u32)(Height * Pitch)};	//Get size in bytes, seems to be more accurate (alternative -> Height * Width * (1<<Size) >> 1;)
+	u32 step = (u32)(Height * Pitch);	//Get size in bytes, seems to be more accurate (alternative -> Height * Width * (1<<Size) >> 1;)
 
 	if((u32)ptr_u8 & 0x3)	//Check if aligned to 4 bytes if not then align
 	{
@@ -88,7 +88,7 @@ u32 TextureInfo::GenerateHashValue() const
 		step   -= 4 - ((u32)ptr_u8 & 0x3);
 	}
 
-	u32 *ptr_u32 {(u32*)ptr_u8};	//use 32bit access
+	u32 *ptr_u32 = (u32*)ptr_u8;	//use 32bit access
 	step = step >> 2;	//convert to 32bit access
 
 	//We want to sample the texture data as far apart as possible
@@ -111,18 +111,18 @@ u32 TextureInfo::GenerateHashValue() const
 			ptr_u32 += step;
 		}
 	}
-
+#if 0
 	//If texture has a palette then make hash of that too
 	//Might not be needed but it would catch if only the colors are changed in a palette texture
 	//It is a bit expensive CPU wise so better leave out unless really needed
 	//It assumes 4 byte alignment so we use u32 (faster than u8)
 	//Used in OOT for the sky, really minor so is not worth the CPU time to always check for it
-	/*if (GetFormat() == G_IM_FMT_CI)
+	if (GetFormat() == G_IM_FMT_CI)
 	{
 		const u32* ptr_u32 = (u32*)GetTlutAddress();
 		for (u32 z = 0; z < ((GetSize() == G_IM_SIZ_4b)? 8 : 128); z++) hash_value ^= *ptr_u32++;
-	}*/
-
+	}
+#endif
 	//printf("%08X %d S%d P%d H%d W%d B%d\n", hash_value, step, Size, Pitch, Height, Width, Height * Pitch);
 	return hash_value;
 }

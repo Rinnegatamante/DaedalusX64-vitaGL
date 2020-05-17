@@ -288,7 +288,7 @@ static inline CRefPtr<CNativeTexture> Load_ObjSprite( const uObjSprite *sprite, 
 
 		ti.SetSwapped          (0);
 		ti.SetPalette          (sprite->imagePal);
-		ti.SetTlutAddress	   (TLUT_BASE);
+		ti.SetTlutAddress	   (gTlutLoadAddresses[0]);
 		ti.SetTLutFormat       (kTT_RGBA16);
 	}
 
@@ -491,7 +491,7 @@ void DLParser_S2DEX_ObjLoadTxtr( MicroCodeCommand command )
 		case S2DEX_OBJLT_TLUT:
 			g_TI.Width		= 1;
 			g_TI.Address	= RDPSegAddr(ObjTxtr->tlut.image);
-			gTlutLoadAddresses[ (ObjTxtr->tlut.phead>>2) & 0x3F ] = (u32*)(g_pu8RamBase + RDPSegAddr(ObjTxtr->tlut.image));
+			gTlutLoadAddresses[ (ObjTxtr->tlut.phead>>2) & 0x3F ] = RDPSegAddr(ObjTxtr->tlut.image);
 			gObjTxtr = NULL;
 			break;
 		default:
@@ -533,8 +533,8 @@ inline void DLParser_Yoshi_MemRect( MicroCodeCommand command )
 #if 1	//1->Optimized, 0->Generic
 	// This assumes Yoshi always copy 16 bytes per line and dst is aligned and we force alignment on src!!! //Corn
 	u32 tex_width = rdp_tile.line << 3;
-	u32 texaddr = ((u32)g_pu8RamBase + tile_addr + tex_width * (mem_rect.s >> 5) + (mem_rect.t >> 5) + 3) & ~3;
-	u32 fbaddr = (u32)g_pu8RamBase + g_CI.Address + x0;
+	uintptr_t texaddr = ((uintptr_t)g_pu8RamBase + tile_addr + tex_width * (mem_rect.s >> 5) + (mem_rect.t >> 5) + 3) & ~3;
+	uintptr_t fbaddr = (uintptr_t)g_pu8RamBase + g_CI.Address + x0;
 
 	for (u32 y = y0; y < y1; y++)
 	{
@@ -547,6 +547,7 @@ inline void DLParser_Yoshi_MemRect( MicroCodeCommand command )
 		dst[3] = src[3];
 	}
 #else
+	u32	x1 = mem_rect.x1;
 	u32 width = x1 - x0;
 	u32 tex_width = rdp_tile.line << 3;
 	u8 * texaddr = g_pu8RamBase + tile_addr + tex_width * (mem_rect.s >> 5) + (mem_rect.t >> 5);
@@ -705,7 +706,7 @@ void DLParser_S2DEX_BgCopy( MicroCodeCommand command )
 	ti.SetSwapped          (0);
 
 	ti.SetPalette          (objBg->imagePal);
-	ti.SetTlutAddress	   (TLUT_BASE);
+	ti.SetTlutAddress	   (gTlutLoadAddresses[0]);
 	ti.SetTLutFormat       (kTT_RGBA16);
 
 	CRefPtr<CNativeTexture> texture = gRenderer->LoadTextureDirectly(ti);
@@ -752,7 +753,7 @@ void DLParser_S2DEX_Bg1cyc( MicroCodeCommand command )
 	ti.SetSwapped          (0);
 
 	ti.SetPalette		   (objBg->imagePal);
-	ti.SetTlutAddress	   (TLUT_BASE);
+	ti.SetTlutAddress	   (gTlutLoadAddresses[0]);
 	ti.SetTLutFormat       (kTT_RGBA16);
 
 	CRefPtr<CNativeTexture> texture = gRenderer->LoadTextureDirectly(ti);
