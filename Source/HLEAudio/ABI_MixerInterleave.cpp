@@ -9,7 +9,6 @@
 #include "Math/MathUtil.h"
 
 #include "Debug/DBGConsole.h"
-extern bool isMKABI;
 extern bool isZeldaABI;
 
 void ADDMIXER( AudioHLECommand command)
@@ -53,23 +52,27 @@ void HILOGAIN( AudioHLECommand command)
 	}
 }
 
+void INTERLEAVE_MK( AudioHLECommand command)
+{
+	u16 inL = command.cmd1 >> 16;
+	u16 inR = command.cmd1;
+	
+	if (gAudioHLEState.Count == 0) return;
+
+	gAudioHLEState.Interleave(inL, inR);
+}
+
 void INTERLEAVE( AudioHLECommand command)
 {
-	#ifdef DEBUG_AUDIO
-		DBGConsole_Msg(0, "INTERLEAVE");
-		#endif
-  u16 inL( command.Abi1Interleave.LAddr );
-  	u16 inR( command.Abi1Interleave.RAddr );
+	u16	inR( command.Abi2Interleave.RAddr );
+	u16	inL( command.Abi2Interleave.LAddr);
 
-  	gAudioHLEState.Interleave( inL, inR );
+	gAudioHLEState.Interleave(inL, inR);
 }
 
 void DEINTERLEAVE2( AudioHLECommand command)
 {
-	#ifdef DEBUG_AUDIO
-		DBGConsole_Msg(0, "DEINTERLEAVE2");
-		#endif
-  u16 count( command.Abi2Deinterleave.Count );
+	u16 count( command.Abi2Deinterleave.Count );
 	u16 out( command.Abi2Deinterleave.Out );
 	u16 in( command.Abi2Deinterleave.In );
 
@@ -78,23 +81,12 @@ void DEINTERLEAVE2( AudioHLECommand command)
 
 void INTERLEAVE2( AudioHLECommand command)
 {
-
-	#ifdef DEBUG_AUDIO
-		DBGConsole_Msg(0, "INTERLEAVE2");
-		#endif
-  u16	inR( command.Abi2Interleave.RAddr );
+	u16	inR( command.Abi2Interleave.RAddr );
 	u16	inL( command.Abi2Interleave.LAddr);
 	u16 out( command.Abi2Interleave.OutAddr );
 	u16 count( command.Abi2Interleave.Count );
 
-	if (count != 0)
-	{
-		gAudioHLEState.Interleave( out, inL, inR, count );
-	}
-	else
-	{
-		gAudioHLEState.Interleave( inL, inR );
-	}
+	gAudioHLEState.Interleave( out, inL, inR, count );
 }
 
 void INTERLEAVE3( AudioHLECommand command)

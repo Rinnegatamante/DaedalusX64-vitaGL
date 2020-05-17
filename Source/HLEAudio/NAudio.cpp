@@ -23,18 +23,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //	and modified by StrmnNrmn to work with Daedalus PSP. Thanks Azimer!
 //	Drop me a line if you get chance :)
 //
-
 #include "stdafx.h"
+
+#include <string.h>
 
 #include "audiohle.h"
 #include "AudioHLEProcessor.h"
 
-#include "Math/MathUtil.h"
-
-AudioHLEInstruction ABI1[0x20] =
+static void MP3ADDY(AudioHLECommand command)
 {
-    SPNOOP , ADPCM , CLEARBUFF,	ENVMIXER  , LOADBUFF, RESAMPLE  , SAVEBUFF, UNKNOWN,
-	SETBUFF, SETVOL, DMEMMOVE , LOADADPCM , MIXER   , INTERLEAVE, UNKNOWN , SETLOOP,
-    SPNOOP , SPNOOP, SPNOOP   , SPNOOP    , SPNOOP  , SPNOOP    , SPNOOP  , SPNOOP,
-    SPNOOP , SPNOOP, SPNOOP   , SPNOOP    , SPNOOP  , SPNOOP    , SPNOOP  , SPNOOP
+}
+
+AudioHLEInstruction NAudio[0x20] =
+{
+    SPNOOP     ,ADPCM3    ,CLEARBUFF3,ENVMIXER3 ,LOADBUFF3 ,RESAMPLE3 ,SAVEBUFF3  ,UNKNOWN    ,
+    UNKNOWN    ,SETVOL3   ,DMEMMOVE3 ,LOADADPCM3,MIXER3   ,INTERLEAVE3,NAUDIO_02B0,SETLOOP3   ,
+    SPNOOP     ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP     ,SPNOOP     ,
+    SPNOOP     ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP     ,SPNOOP
+};
+
+AudioHLEInstruction NAudio_MP3[0x20] =
+{
+    UNKNOWN   ,ADPCM3    ,CLEARBUFF3,ENVMIXER3 ,LOADBUFF3 ,RESAMPLE3 ,SAVEBUFF3 ,MP3       ,
+    MP3ADDY   ,SETVOL3   ,DMEMMOVE3 ,LOADADPCM3,MIXER3   ,INTERLEAVE3,NAUDIO_14 ,SETLOOP3  ,
+    SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,
+    SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP
 };

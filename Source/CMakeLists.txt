@@ -19,7 +19,7 @@ set (CORE_FILES Core/RE2Task.cpp Core/RDRam.cpp Core/Cheats.cpp Core/CPU.cpp Cor
 set (DEBUG_FILES Debug/DebugConsoleImpl.cpp Debug/DebugLog.cpp Debug/Dump.cpp)
 set (DYNAREC_FILES DynaRec/BranchType.cpp DynaRec/DynaRecProfile.cpp DynaRec/Fragment.cpp DynaRec/FragmentCache.cpp DynaRec/IndirectExitMap.cpp DynaRec/StaticAnalysis.cpp DynaRec/TraceRecorder.cpp)
 set (GRAPHICS_FILES Graphics/ColourValue.cpp Graphics/PngUtil.cpp Graphics/TextureTransform.cpp)
-set (HLEAUDIO_FILES HLEAudio/Musyx.cpp HLEAudio/AudioHLEProcessor.cpp HLEAudio/ABI1.cpp HLEAudio/ABI2.cpp HLEAudio/ABI3.cpp HLEAudio/ABI3mp3.cpp HLEAudio/AudioBuffer.cpp HLEAudio/HLEMain.cpp HLEAudio/ABI_ADPCM.cpp HLEAudio/ABI_Buffers.cpp HLEAudio/ABI_Filters.cpp HLEAudio/ABI_MixerInterleave.cpp HLEAudio/ENV_Mixer.cpp HLEAudio/ABI_Resample.cpp)
+set (HLEAUDIO_FILES HLEAudio/Musyx.cpp HLEAudio/AudioHLEProcessor.cpp HLEAudio/ABI.cpp HLEAudio/NEAD.cpp HLEAudio/NAudio.cpp HLEAudio/ABI3mp3.cpp HLEAudio/AudioBuffer.cpp HLEAudio/HLEMain.cpp HLEAudio/ABI_ADPCM.cpp HLEAudio/ABI_Buffers.cpp HLEAudio/ABI_Filters.cpp HLEAudio/ABI_MixerInterleave.cpp HLEAudio/ENV_Mixer.cpp HLEAudio/ABI_Resample.cpp)
 set (HLEGRAPHICS_FILES HLEGraphics/BaseRenderer.cpp HLEGraphics/BaseRenderer.h HLEGraphics/CachedTexture.cpp HLEGraphics/ConvertImage.cpp HLEGraphics/ConvertTile.cpp HLEGraphics/DLDebug.cpp HLEGraphics/DLParser.cpp HLEGraphics/Microcode.cpp HLEGraphics/RDPStateManager.cpp HLEGraphics/TextureCache.cpp HLEGraphics/TextureInfo.cpp HLEGraphics/uCodes/Ucode.cpp)
 set (INTERFACE_FILES Interface/RomDB.cpp)
 set (MATH_FILES Math/Matrix4x4.cpp)
@@ -100,7 +100,7 @@ set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/H
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp SysVita/HLEAudio/AudioOutput.cpp)
 set (VITA_INPUT_FILES SysVita/Input/InputManagerVita.cpp)
 set (VITA_UI_FILES SysVita/UI/MainMenuScreen.cpp SysVita/UI/InGameMenuScreen.cpp SysVita/UI/MenuBarScreen.cpp SysVita/UI/DownloaderScreen.cpp)
-set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp)
+set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp minizip/ioapi.c minizip/zip.c minizip/unzip.c)
 set (VITA_BUILD ${VITA_DEBUG_FILES} ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES} ${VITA_HLEAUDIO_FILES} ${VITA_HLEGRAPHICS_FILES} ${VITA_INPUT_FILES} ${VITA_UI_FILES} ${VITA_UTILITY_FILES})
 
 #Handle .S files - Probably a better way to do this

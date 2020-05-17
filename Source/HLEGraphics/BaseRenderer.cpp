@@ -2146,7 +2146,6 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 
 CRefPtr<CNativeTexture> BaseRenderer::LoadTextureDirectly( const TextureInfo & ti )
 {
-	if (ti.GetFormat() == G_IM_FMT_YUV) CDebugConsole::Get()->Msg(0, "LoadTextureDirectly called with YUV format");
 	CRefPtr<CNativeTexture> texture = CTextureCache::Get()->GetOrCreateTexture( ti );
 #ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( texture, "texture is nullptr" );
@@ -2219,7 +2218,11 @@ void BaseRenderer::SetProjection(const u32 address, bool bReplace)
 		//
 		if( g_ROM.ZELDA_HACK )
 			mProjectionMat.mRaw[14] += 0.4f;
+#ifdef DAEDALUS_VITA
+		if( aspect_ratio == RATIO_16_9_HACK )
+#else		
 		if( gGlobalPreferences.ViewportType == VT_FULLSCREEN_HD )
+#endif
 			mProjectionMat.mRaw[0] *= HD_SCALE;	//proper 16:9 scale
 	}
 	else
@@ -2354,7 +2357,11 @@ inline void BaseRenderer::PokeWorldProject()
 	{
 		mWPmodified = false;
 		mReloadProj = true;
+#ifdef DAEDALUS_VITA
+		if( aspect_ratio == RATIO_16_9_HACK )
+#else		
 		if( gGlobalPreferences.ViewportType == VT_FULLSCREEN_HD )
+#endif
 		{	//proper 16:9 scale
 			mWorldProject.mRaw[0] *= HD_SCALE;
 			mWorldProject.mRaw[4] *= HD_SCALE;

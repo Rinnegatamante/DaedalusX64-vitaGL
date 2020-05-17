@@ -19,6 +19,8 @@
 #include "Utility/VolatileMem.h"
 #include "SysVita/UI/Menu.h"
 
+#include "HLEGraphics/BaseRenderer.h"
+
 extern bool pause_emu;
 bool wait_rendering = false;
 
@@ -31,6 +33,8 @@ float *gVertexBufferPtr;
 uint32_t *gColorBufferPtr;
 float *gTexCoordBufferPtr;
 bool new_frame = true;
+
+extern float gamma_val;
 
 class IGraphicsContext : public CGraphicsContext
 {
@@ -168,6 +172,7 @@ void IGraphicsContext::EndFrame()
 {
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
+	if (gamma_val != 1.0f) gRenderer->DoGamma(gamma_val);
 	DrawInGameMenu();
 	if (wait_rendering) glFinish();
 }
