@@ -72,9 +72,10 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				CJumpLocation		GenerateBranchAlways( CCodeLabel target );
 				CJumpLocation		GenerateBranchIfSet( const u32 * p_var, CCodeLabel target );
 				CJumpLocation		GenerateBranchIfNotSet( const u32 * p_var, CCodeLabel target );
-				CJumpLocation		GenerateBranchIfEqual( const u32 * p_var, u32 value, CCodeLabel target );
-				CJumpLocation		GenerateBranchIfNotEqual( const u32 * p_var, u32 value, CCodeLabel target );
-				CJumpLocation		GenerateBranchIfNotEqual( EArmReg reg_a, u32 value, CCodeLabel target );
+				CJumpLocation		GenerateBranchIfEqual32( const u32 * p_var, u32 value, CCodeLabel target );
+				CJumpLocation		GenerateBranchIfEqual8( const u32 * p_var, u8 value, CCodeLabel target );
+				CJumpLocation		GenerateBranchIfNotEqual32( const u32 * p_var, u32 value, CCodeLabel target );
+				CJumpLocation		GenerateBranchIfNotEqual8( const u32 * p_var, u8 value, CCodeLabel target );
 
 				void				GenerateGenericR4300( OpCode op_code, CPU_Instruction p_instruction );
 
@@ -134,6 +135,18 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				void	GenerateSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt );
 				void	GenerateSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt );
 
+				void	GenerateDSLL32( EN64Reg rd, EN64Reg rt, u32 sa );
+				void	GenerateDSRL32( EN64Reg rd, EN64Reg rt, u32 sa );
+				void	GenerateDSRA32( EN64Reg rd, EN64Reg rt, u32 sa );
+
+				void	GenerateDSLL( EN64Reg rd, EN64Reg rt, u32 sa );
+				void	GenerateDSRL( EN64Reg rd, EN64Reg rt, u32 sa );
+				void	GenerateDSRA( EN64Reg rd, EN64Reg rt, u32 sa );
+
+				void	GenerateDSLLV( EN64Reg rd, EN64Reg rs, EN64Reg rt );
+				void	GenerateDSRLV( EN64Reg rd, EN64Reg rs, EN64Reg rt );
+				void	GenerateDSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt );
+
 				void	GenerateOR( EN64Reg rd, EN64Reg rs, EN64Reg rt );
 				void	GenerateAND( EN64Reg rd, EN64Reg rs, EN64Reg rt );
 				void	GenerateXOR( EN64Reg rd, EN64Reg rs, EN64Reg rt );
@@ -145,6 +158,8 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				void	GenerateSUBU( EN64Reg rd, EN64Reg rs, EN64Reg rt );
 
 				void	GenerateMULT( EN64Reg rs, EN64Reg rt, bool is_unsigned );
+
+				void	GenerateDMULT( EN64Reg rs, EN64Reg rt );
 
 				void	GenerateDIV( EN64Reg rs, EN64Reg rt );
 				void	GenerateDIVU( EN64Reg rs, EN64Reg rt );
@@ -170,11 +185,24 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				void	GenerateMUL_S( u32 fd, u32 fs, u32 ft );
 				void	GenerateDIV_S( u32 fd, u32 fs, u32 ft );
 				void	GenerateSQRT_S( u32 fd, u32 fs );
-				void	GenerateTRUNC_W( u32 fd, u32 fs );
-				void	GenerateCMP_S( u32 fs, u32 ft, EArmCond cond );
+				void	GenerateABS_S( u32 fd, u32 fs );
+				void	GenerateMOV_S( u32 fd, u32 fs );
+				void	GenerateNEG_S( u32 fd, u32 fs );
+				void	GenerateTRUNC_W_S( u32 fd, u32 fs );
+				void	GenerateCVT_W_S( u32 fd, u32 fs );
+				void	GenerateCVT_D_S( u32 fd, u32 fs );
+				void	GenerateCMP_S( u32 fs, u32 ft, EArmCond cond, u8 E );
 
 				void	GenerateADD_D( u32 fd, u32 fs, u32 ft );
 				void	GenerateSUB_D( u32 fd, u32 fs, u32 ft );
 				void	GenerateMUL_D( u32 fd, u32 fs, u32 ft );
 				void	GenerateDIV_D( u32 fd, u32 fs, u32 ft );
+				void	GenerateSQRT_D( u32 fd, u32 fs );
+				void	GenerateABS_D( u32 fd, u32 fs );
+				void	GenerateMOV_D( u32 fd, u32 fs );
+				void	GenerateNEG_D( u32 fd, u32 fs );
+				void	GenerateTRUNC_W_D( u32 fd, u32 fs );
+				void	GenerateCVT_W_D( u32 fd, u32 fs );
+				void	GenerateCVT_S_D( u32 fd, u32 fs );
+				void	GenerateCMP_D( u32 fs, u32 ft, EArmCond cond, u8 E );
 };
