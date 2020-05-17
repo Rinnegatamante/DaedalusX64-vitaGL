@@ -40,10 +40,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern bool gFrameskipActive;
 
-u32		gSoundSync {44100};
-u32		gVISyncRate {1500};
-bool	gTakeScreenshot {false};
-bool	gTakeScreenshotSS {false};
+u32		gSoundSync = 44100;
+u32		gVISyncRate = 1500;
+bool	gTakeScreenshot = false;
+bool	gTakeScreenshotSS = false;
 
 EFrameskipValue		gFrameskipValue = FV_DISABLED;
 
@@ -187,6 +187,13 @@ void CGraphicsPluginImpl::UpdateScreen()
 	if( current_origin != LastOrigin)
 	{
 		const f32 Fsync = FramerateLimiter_GetSync();
+		
+		//Calc sync rates for audio and game speed //Corn
+		const f32 inv_Fsync = 1.0f / Fsync;
+		gSoundSync = (u32)(44100.0f * inv_Fsync);
+		gVISyncRate = (u32)(1500.0f * inv_Fsync);
+		if( gVISyncRate > 4000 ) gVISyncRate = 4000;
+		else if ( gVISyncRate < 1500 ) gVISyncRate = 1500;
 		
 		CGraphicsContext::Get()->UpdateFrame( false );
 		

@@ -146,29 +146,14 @@ void DrawCommonMenuBar() {
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
 		}
 		SetDescription("Limits framerate to the one running game is supposed to have.");
-		/* NOTE: Due to multiple gxm scenes usage, this affects renderer causing major glitches.
-		   Also, in every single game this lowers performances. Not worth to have it as an option. */
-		/*if (ImGui::BeginMenu("Frameskip")){
-			if (ImGui::MenuItem("Disabled", nullptr, gFrameskipValue == FV_DISABLED)){
-				gFrameskipValue = FV_DISABLED;
-			}
-			if (ImGui::MenuItem("Auto 1", nullptr, gFrameskipValue == FV_AUTO1)){
-				gFrameskipValue = FV_AUTO1;
-			}
-			if (ImGui::MenuItem("Auto 2", nullptr, gFrameskipValue == FV_AUTO2)){
-				gFrameskipValue = FV_AUTO2;
-			}
-			if (ImGui::MenuItem("One Frame", nullptr, gFrameskipValue == FV_1)){
-				gFrameskipValue = FV_1;
-			}
-			if (ImGui::MenuItem("Two Frames", nullptr, gFrameskipValue == FV_2)){
-				gFrameskipValue = FV_2;
-			}
-			if (ImGui::MenuItem("Three Frames", nullptr, gFrameskipValue == FV_3)){
-				gFrameskipValue = FV_3;
-			}
-			ImGui::EndMenu();
-		}*/
+		if (ImGui::MenuItem("Sync Video Rate", nullptr, gVideoRateMatch)){
+			gVideoRateMatch = !gVideoRateMatch;
+		}
+		SetDescription("Speed up video logic to match framerate.");
+		if (ImGui::MenuItem("Sync Audio Rate", nullptr, gAudioRateMatch)){
+			gAudioRateMatch = !gAudioRateMatch;
+		}
+		SetDescription("Speed up audio logic to match framerate.");
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Graphics")){
