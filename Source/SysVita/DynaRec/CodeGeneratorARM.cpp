@@ -427,14 +427,14 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 	switch(op_code.op)
 	{
-		case OP_J:			/* nothing to do */		handled = true; break;
+		case OP_J:		/* nothing to do */ handled = true; break;
 
 		case OP_JAL: 	GenerateJAL( address ); handled = true; break;
 
 		case OP_BEQ:	GenerateBEQ( rs, rt, p_branch, p_branch_jump ); handled = true; break;
 		case OP_BEQL:	GenerateBEQ( rs, rt, p_branch, p_branch_jump ); handled = true; break;
-		case OP_BNE:	GenerateBNE( rs, rt, p_branch, p_branch_jump );	handled = true; break;
-		case OP_BNEL:	GenerateBNE( rs, rt, p_branch, p_branch_jump );	handled = true; break;
+		case OP_BNE:	GenerateBNE( rs, rt, p_branch, p_branch_jump ); handled = true; break;
+		case OP_BNEL:	GenerateBNE( rs, rt, p_branch, p_branch_jump ); handled = true; break;
 		case OP_BLEZ:	GenerateBLEZ( rs, p_branch, p_branch_jump ); handled = true; break;
 		case OP_BLEZL:	GenerateBLEZ( rs, p_branch, p_branch_jump ); handled = true; break;
 		case OP_BGTZ:	GenerateBGTZ( rs, p_branch, p_branch_jump ); handled = true; break;
@@ -443,16 +443,16 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_ADDI:	GenerateADDIU( rt, rs, s16(op_code.immediate) ); handled = true; break;
 		case OP_ADDIU:	GenerateADDIU( rt, rs, s16(op_code.immediate) ); handled = true; break;
 		case OP_ANDI:	GenerateANDI( rt, rs, op_code.immediate ); handled = true; break;
-		case OP_ORI:	GenerateORI( rt, rs, op_code.immediate ); handled = true; break;
-		case OP_XORI:	GenerateXORI( rt, rs, op_code.immediate );handled = true; break;
+		case OP_ORI:	GenerateORI( rt, rs, op_code.immediate );  handled = true; break;
+		case OP_XORI:	GenerateXORI( rt, rs, op_code.immediate ); handled = true; break;
 
-		case OP_DADDI:	GenerateDADDIU( rt, rs, s16( op_code.immediate ) );	handled = true; break;
-		case OP_DADDIU:	GenerateDADDIU( rt, rs, s16( op_code.immediate ) );	handled = true; break;
+		case OP_DADDI:	GenerateDADDIU( rt, rs, s16( op_code.immediate ) ); handled = true; break;
+		case OP_DADDIU:	GenerateDADDIU( rt, rs, s16( op_code.immediate ) ); handled = true; break;
 
-		case OP_SW:		handled = GenerateSW( rt, base, s16(op_code.immediate) );   exception = !handled; break;
-		case OP_SH:		handled = GenerateSH( rt, base, s16(op_code.immediate) );   exception = !handled; break;
-		case OP_SB:		handled = GenerateSB( rt, base, s16(op_code.immediate) );   exception = !handled; break;
-		case OP_SD:		handled = GenerateSD( rt, base, s16(op_code.immediate) );   exception = !handled; break;
+		case OP_SW:		handled = GenerateSW( rt, base, s16(op_code.immediate) ); exception = !handled; break;
+		case OP_SH:		handled = GenerateSH( rt, base, s16(op_code.immediate) ); exception = !handled; break;
+		case OP_SB:		handled = GenerateSB( rt, base, s16(op_code.immediate) ); exception = !handled; break;
+		case OP_SD:		handled = GenerateSD( rt, base, s16(op_code.immediate) ); exception = !handled; break;
 
 		case OP_SWC1:	handled = GenerateSWC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
 		case OP_SDC1:	handled = GenerateSDC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
@@ -460,11 +460,11 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_SLTIU: 	GenerateSLTI( rt, rs, s16( op_code.immediate ), true );  handled = true; break;
 		case OP_SLTI:	GenerateSLTI( rt, rs, s16( op_code.immediate ), false ); handled = true; break;
 
-		case OP_LW:		handled = GenerateLW( rt, base, s16(op_code.immediate) );   exception = !handled; break;
-		case OP_LH:		handled = GenerateLH( rt, base, s16(op_code.immediate) );   exception = !handled; break;
-		case OP_LHU: 	handled = GenerateLHU( rt, base, s16(op_code.immediate) );  exception = !handled; break;
-		case OP_LB: 	handled = GenerateLB( rt, base, s16(op_code.immediate) );   exception = !handled; break;
-		case OP_LBU:	handled = GenerateLBU( rt, base, s16(op_code.immediate) );  exception = !handled; break;
+		case OP_LW:		handled = GenerateLW( rt, base, s16(op_code.immediate) );  exception = !handled; break;
+		case OP_LH:		handled = GenerateLH( rt, base, s16(op_code.immediate) );  exception = !handled; break;
+		case OP_LHU: 	handled = GenerateLHU( rt, base, s16(op_code.immediate) ); exception = !handled; break;
+		case OP_LB: 	handled = GenerateLB( rt, base, s16(op_code.immediate) );  exception = !handled; break;
+		case OP_LBU:	handled = GenerateLBU( rt, base, s16(op_code.immediate) ); exception = !handled; break;
 		case OP_LD:		handled = GenerateLD( rt, base, s16(op_code.immediate) );  exception = !handled; break;
 
 		case OP_LWC1:	handled = GenerateLWC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
@@ -493,54 +493,54 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case SpecOp_SRL: 	GenerateSRL( rd, rt, sa ); handled = true; break;
 				case SpecOp_SRA: 	GenerateSRA( rd, rt, sa ); handled = true; break;
 
-				case SpecOp_SLLV:	GenerateSLLV( rd, rs, rt );	handled = true; break;
-				case SpecOp_SRLV:	GenerateSRLV( rd, rs, rt );	handled = true; break;
-				case SpecOp_SRAV:	GenerateSRAV( rd, rs, rt );	handled = true; break;
+				case SpecOp_SLLV:	GenerateSLLV( rd, rs, rt ); handled = true; break;
+				case SpecOp_SRLV:	GenerateSRLV( rd, rs, rt ); handled = true; break;
+				case SpecOp_SRAV:	GenerateSRAV( rd, rs, rt ); handled = true; break;
 
-				case SpecOp_DSLL32:	GenerateDSLL32( rd, rt, sa );	handled = true; break;
-				case SpecOp_DSRL32:	GenerateDSRL32( rd, rt, sa );	handled = true; break;
-				case SpecOp_DSRA32:	GenerateDSRA32( rd, rt, sa );	handled = true; break;
+				case SpecOp_DSLL32:	GenerateDSLL32( rd, rt, sa ); handled = true; break;
+				case SpecOp_DSRL32:	GenerateDSRL32( rd, rt, sa ); handled = true; break;
+				case SpecOp_DSRA32:	GenerateDSRA32( rd, rt, sa ); handled = true; break;
 
-				case SpecOp_DSLL:	GenerateDSLL( rd, rt, sa );	handled = true; break;
-				case SpecOp_DSRL:	GenerateDSRL( rd, rt, sa );	handled = true; break;
-				case SpecOp_DSRA:	GenerateDSRA( rd, rt, sa );	handled = true; break;
+				case SpecOp_DSLL:	GenerateDSLL( rd, rt, sa ); handled = true; break;
+				case SpecOp_DSRL:	GenerateDSRL( rd, rt, sa ); handled = true; break;
+				case SpecOp_DSRA:	GenerateDSRA( rd, rt, sa ); handled = true; break;
 
-				case SpecOp_DSLLV:	GenerateDSLLV( rd, rs, rt );	handled = true; break;
-				case SpecOp_DSRLV:	GenerateDSRLV( rd, rs, rt );	handled = true; break;
-				case SpecOp_DSRAV:	GenerateDSRAV( rd, rs, rt );	handled = true; break;
+				case SpecOp_DSLLV:	GenerateDSLLV( rd, rs, rt ); handled = true; break;
+				case SpecOp_DSRLV:	GenerateDSRLV( rd, rs, rt ); handled = true; break;
+				case SpecOp_DSRAV:	GenerateDSRAV( rd, rs, rt ); handled = true; break;
 
 				case SpecOp_OR:		GenerateOR( rd, rs, rt ); handled = true; break;
 				case SpecOp_AND:	GenerateAND( rd, rs, rt ); handled = true; break;
 				case SpecOp_XOR:	GenerateXOR( rd, rs, rt ); handled = true; break;
-				case SpecOp_NOR:	GenerateNOR( rd, rs, rt );	handled = true; break;
+				case SpecOp_NOR:	GenerateNOR( rd, rs, rt ); handled = true; break;
 
-				case SpecOp_ADD:	GenerateADDU( rd, rs, rt );	handled = true; break;
-				case SpecOp_ADDU:	GenerateADDU( rd, rs, rt );	handled = true; break;
+				case SpecOp_ADD:	GenerateADDU( rd, rs, rt ); handled = true; break;
+				case SpecOp_ADDU:	GenerateADDU( rd, rs, rt ); handled = true; break;
 
-				case SpecOp_SUB:	GenerateSUBU( rd, rs, rt );	handled = true; break;
-				case SpecOp_SUBU:	GenerateSUBU( rd, rs, rt );	handled = true; break;
+				case SpecOp_SUB:	GenerateSUBU( rd, rs, rt ); handled = true; break;
+				case SpecOp_SUBU:	GenerateSUBU( rd, rs, rt ); handled = true; break;
 
-				case SpecOp_MULTU:	GenerateMULT( rs, rt, true );	handled = true; break;
-				case SpecOp_MULT:	GenerateMULT( rs, rt, false );	handled = true; break;
+				case SpecOp_MULTU:	GenerateMULT( rs, rt, true ); handled = true; break;
+				case SpecOp_MULT:	GenerateMULT( rs, rt, false ); handled = true; break;
 
-				case SpecOp_DMULTU:	GenerateDMULT( rs, rt );	handled = true; break;
-				case SpecOp_DMULT:	GenerateDMULT( rs, rt );	handled = true; break;
+				case SpecOp_DMULTU:	GenerateDMULT( rs, rt ); handled = true; break;
+				case SpecOp_DMULT:	GenerateDMULT( rs, rt ); handled = true; break;
 
-				case SpecOp_MFLO:	GenerateMFLO( rd );			handled = true; break;
-				case SpecOp_MFHI:	GenerateMFHI( rd );			handled = true; break;
-				case SpecOp_MTLO:	GenerateMTLO( rd );			handled = true; break;
-				case SpecOp_MTHI:	GenerateMTHI( rd );			handled = true; break;
+				case SpecOp_MFLO:	GenerateMFLO( rd ); handled = true; break;
+				case SpecOp_MFHI:	GenerateMFHI( rd ); handled = true; break;
+				case SpecOp_MTLO:	GenerateMTLO( rd ); handled = true; break;
+				case SpecOp_MTHI:	GenerateMTHI( rd ); handled = true; break;
 
-				case SpecOp_DADD:	GenerateDADDU( rd, rs, rt );	handled = true; break;
-				case SpecOp_DADDU:	GenerateDADDU( rd, rs, rt );	handled = true; break;
+				case SpecOp_DADD:	GenerateDADDU( rd, rs, rt ); handled = true; break;
+				case SpecOp_DADDU:	GenerateDADDU( rd, rs, rt ); handled = true; break;
 
-				case SpecOp_DSUB:	GenerateDSUBU( rd, rs, rt );	handled = true; break;
-				case SpecOp_DSUBU:	GenerateDSUBU( rd, rs, rt );	handled = true; break;
+				case SpecOp_DSUB:	GenerateDSUBU( rd, rs, rt ); handled = true; break;
+				case SpecOp_DSUBU:	GenerateDSUBU( rd, rs, rt ); handled = true; break;
 
-				case SpecOp_SLT:	GenerateSLT( rd, rs, rt, false );	handled = true; break;
-				case SpecOp_SLTU:	GenerateSLT( rd, rs, rt, true );	handled = true; break;
-				case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump );	handled = true; exception = true; break;
-				case SpecOp_JALR:	GenerateJALR( rs, rd, address, p_branch, p_branch_jump );	handled = true; exception = true; break;
+				case SpecOp_SLT:	GenerateSLT( rd, rs, rt, false ); handled = true; break;
+				case SpecOp_SLTU:	GenerateSLT( rd, rs, rt, true ); handled = true; break;
+				case SpecOp_JR:		GenerateJR( rs, p_branch, p_branch_jump ); handled = true; exception = true; break;
+				case SpecOp_JALR:	GenerateJALR( rs, rd, address, p_branch, p_branch_jump ); handled = true; exception = true; break;
 
 				default: break;
 			}
@@ -558,14 +558,14 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case Cop1Op_SInstr:
 					switch( op_code.cop1_funct )
 					{
-						case Cop1OpFunc_ADD:	GenerateADD_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_SUB:	GenerateSUB_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_MUL:	GenerateMUL_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_DIV:	GenerateDIV_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_SQRT:	GenerateSQRT_S( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_ABS:	GenerateABS_S( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_MOV:	GenerateMOV_S( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_NEG:	GenerateNEG_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_ADD:		GenerateADD_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_SUB:		GenerateSUB_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_MUL:		GenerateMUL_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_DIV:		GenerateDIV_S( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_SQRT:		GenerateSQRT_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_ABS:		GenerateABS_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_MOV:		GenerateMOV_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_NEG:		GenerateNEG_S( op_code.fd, op_code.fs ); handled = true; break;
 
 						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W_S( op_code.fd, op_code.fs ); handled = true; break;
 
@@ -595,14 +595,14 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case Cop1Op_DInstr:
 					switch( op_code.cop1_funct )
 					{
-						case Cop1OpFunc_ADD:	GenerateADD_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_SUB:	GenerateSUB_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_MUL:	GenerateMUL_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_DIV:	GenerateDIV_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_SQRT:	GenerateSQRT_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_ABS:	GenerateABS_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_MOV:	GenerateMOV_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_NEG:	GenerateNEG_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_ADD:		GenerateADD_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_SUB:		GenerateSUB_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_MUL:		GenerateMUL_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_DIV:		GenerateDIV_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_SQRT:		GenerateSQRT_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_ABS:		GenerateABS_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_MOV:		GenerateMOV_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_NEG:		GenerateNEG_D( op_code.fd, op_code.fs ); handled = true; break;
 
 						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W_D( op_code.fd, op_code.fs ); handled = true; break;
 
