@@ -21,14 +21,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "AssemblyWriterARM.h"
 #include <cstdio>
 
-void	CAssemblyWriterARM::CMP_IMM(EArmReg rn, u8 imm)
+void	CAssemblyWriterARM::TST(EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0xe3500000 | rn << 12 | imm);
+	EmitDWORD(0xe1100000 | rn << 16 | rm);
 }
 
 void	CAssemblyWriterARM::CMP(EArmReg rn, EArmReg rm)
 {
 	EmitDWORD(0xe1500000 | rn << 16 | rm);
+}
+
+void	CAssemblyWriterARM::CMP_IMM(EArmReg rn, u8 imm)
+{
+	EmitDWORD(0xe3500000 | rn << 12 | imm);
 }
 
 void	CAssemblyWriterARM::ADD(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond, u8 S)
