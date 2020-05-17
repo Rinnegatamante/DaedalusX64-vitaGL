@@ -46,9 +46,14 @@ void	CAssemblyWriterARM::SUB(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond, 
 	EmitDWORD(0x00400000 | (cond << 28) | (S << 20) | ((rd) << 12) | ((rn) << 16) | rm);
 }
 
-void	CAssemblyWriterARM::SUB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
+void	CAssemblyWriterARM::SUB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4, u8 S)
 {
-	EmitDWORD(0xe2400000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
+	EmitDWORD(0xe2400000 | (S << 20) | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
+}
+
+void	CAssemblyWriterARM::RSB_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
+{
+	EmitDWORD(0xe2600000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
 }
 
 void	CAssemblyWriterARM::ADC(EArmReg rd, EArmReg rn, EArmReg rm)
@@ -68,7 +73,12 @@ void	CAssemblyWriterARM::SBC(EArmReg rd, EArmReg rn, EArmReg rm)
 
 void 	CAssemblyWriterARM::MUL(EArmReg rd, EArmReg rn, EArmReg rm)
 {
-	EmitDWORD(0x00800000 | (rm << 12) | (rd << 16) | rn);
+	EmitDWORD(0xe0000090 | (rm << 12) | (rd << 16) | rn);
+}
+
+void 	CAssemblyWriterARM::MLA(EArmReg rd, EArmReg rn, EArmReg rm, EArmReg ra)
+{
+	EmitDWORD(0xe0200090 | (rd << 16) | rn | (rm << 8) | (ra << 12));
 }
 
 void 	CAssemblyWriterARM::UMULL(EArmReg rdLo, EArmReg rdHi, EArmReg rn, EArmReg rm)
@@ -86,6 +96,11 @@ void	CAssemblyWriterARM::NEG(EArmReg rd, EArmReg rm)
 	EmitDWORD(0xe2600000 | (rd << 12) | (rm << 16));
 }
 
+void	CAssemblyWriterARM::BIC_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4)
+{
+	EmitDWORD(0xe3c00000 | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm);
+}
+
 void	CAssemblyWriterARM::AND(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
 {
 	EmitDWORD(0x00000000 | (cond << 28) | ((rd) << 12) | ((rn) << 16) | rm);
@@ -96,9 +111,29 @@ void	CAssemblyWriterARM::AND_IMM(EArmReg rd, EArmReg rn, u8 imm)
 	EmitDWORD(0xe2000000 | (rd << 12) | (rn << 16) | imm );
 }
 
-void	CAssemblyWriterARM::ORR(EArmReg rd, EArmReg rn, EArmReg rm)
+void	CAssemblyWriterARM::ORR(EArmReg rd, EArmReg rn, EArmReg rm, EArmCond cond)
 {
-	EmitDWORD(0xe1800000 | (rd << 12) | (rn << 16) | rm);
+	EmitDWORD(0x01800000 | (cond << 28) | (rd << 12) | (rn << 16) | rm);
+}
+
+void	CAssemblyWriterARM::ORR_IMM(EArmReg rd, EArmReg rn, u8 imm, u8 ror4, EArmCond cond)
+{
+	EmitDWORD(0x03800000 | (cond << 28) | (rd << 12) | (rn << 16) | ((ror4 & 0xf) << 8) | imm );
+}
+
+void	CAssemblyWriterARM::ORR_LSL(EArmReg rd, EArmReg rn, EArmReg rm, EArmReg rs)
+{
+	EmitDWORD(0xe1800010 | (rd << 12) | (rn << 16) | rm | (rs << 8));
+}
+
+void	CAssemblyWriterARM::ORR_LSR(EArmReg rd, EArmReg rn, EArmReg rm, EArmReg rs)
+{
+	EmitDWORD(0xe1800030 | (rd << 12) | (rn << 16) | rm | (rs << 8));
+}
+
+void	CAssemblyWriterARM::ORR_ASR(EArmReg rd, EArmReg rn, EArmReg rm, EArmReg rs, EArmCond cond)
+{
+	EmitDWORD(0x01800030 | (cond << 28) | (rd << 12) | (rn << 16) | rm | (rs << 8));
 }
 
 void	CAssemblyWriterARM::XOR(EArmReg rd, EArmReg rn, EArmReg rm)
@@ -161,6 +196,16 @@ void	CAssemblyWriterARM::LDRD(EArmReg rt, EArmReg rn, s16 offset)
 	EmitDWORD(0xe14000d0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset & 0xf0)) << 4) | (abs(offset) & 0xf));
 }
 
+void	CAssemblyWriterARM::LDRD_REG(EArmReg rt, EArmReg rn, EArmReg rm, u8 U)
+{
+	EmitDWORD(0xe10000d0 | (U << 23) | ( rn << 16 ) | ( rt << 12 ) | rm);
+}
+
+void	CAssemblyWriterARM::LDMIA(EArmReg rn, u16 regs)
+{
+	EmitDWORD(0xe8900000 | ( rn << 16 ) | regs);
+}
+
 void	CAssemblyWriterARM::STR(EArmReg rt, EArmReg rn, s16 offset)
 {
 	EmitDWORD(0xe5000000 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | (offset & 0xfff));
@@ -181,9 +226,24 @@ void	CAssemblyWriterARM::STRD(EArmReg rt, EArmReg rn, s16 offset)
 	EmitDWORD(0xe14000f0 | ((offset >= 0) << 23) | ( rn << 16 ) | ( rt << 12 ) | ((abs(offset) & 0xf0) << 4) | (abs(offset) & 0xf));
 }
 
+void	CAssemblyWriterARM::STRD_REG(EArmReg rt, EArmReg rn, EArmReg rm, u8 U)
+{
+	EmitDWORD(0xe10000f0 | (U << 23) | ( rn << 16 ) | ( rt << 12 ) | rm);
+}
+
+void	CAssemblyWriterARM::MVN(EArmReg rd, EArmReg rm)
+{
+	EmitDWORD(0xe1e00000 | (rd << 12) | rm);
+}
+
 void	CAssemblyWriterARM::MOV(EArmReg rd, EArmReg rm)
 {
 	EmitDWORD(0xe1a00000 | (rd << 12) | rm);
+}
+
+void	CAssemblyWriterARM::MOV_IMM(EArmReg rd, u8 imm, u8 ror4, EArmCond cond)
+{
+	EmitDWORD(0x03a00000 | (cond << 28) | (rd << 12) | ((ror4 & 0xf) << 8) | imm);
 }
 
 void	CAssemblyWriterARM::MOV_LSL(EArmReg rd, EArmReg rn, EArmReg rm)
@@ -214,11 +274,6 @@ void	CAssemblyWriterARM::MOV_LSR_IMM(EArmReg rd, EArmReg rm, u8 imm5)
 void	CAssemblyWriterARM::MOV_ASR_IMM(EArmReg rd, EArmReg rm, u8 imm5)
 {
 	EmitDWORD(0xe1a00040 | (rd << 12) | rm | (imm5 << 7));
-}
-
-void	CAssemblyWriterARM::MOV_IMM(EArmReg rd, u8 imm, u8 ror4, EArmCond cond)
-{
-	EmitDWORD(0x03a00000 | (cond << 28) | (rd << 12) | ((ror4 & 0xf) << 8) | imm);
 }
 
 void	CAssemblyWriterARM::VLDR(EArmVfpReg fd, EArmReg rn, s16 offset12)
@@ -256,9 +311,19 @@ void	CAssemblyWriterARM::VSQRT(EArmVfpReg Sd, EArmVfpReg Sm)
 	EmitDWORD(0xeeb10ac0 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15));
 }
 
-void	CAssemblyWriterARM::VCMP(EArmVfpReg Sd, EArmVfpReg Sm)
+void	CAssemblyWriterARM::VABS(EArmVfpReg Sd, EArmVfpReg Sm)
 {
-	EmitDWORD(0xeeb40a40 | ((Sd & 1) << 22) |  (((Sd >> 1) & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15));
+	EmitDWORD(0xeeb00ac0 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15));
+}
+
+void	CAssemblyWriterARM::VNEG(EArmVfpReg Sd, EArmVfpReg Sm)
+{
+	EmitDWORD(0xeeb10a40 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15));
+}
+
+void	CAssemblyWriterARM::VCMP(EArmVfpReg Sd, EArmVfpReg Sm, u8 E)
+{
+	EmitDWORD(0xeeb40a40 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15) | (E << 7));
 	
 	//vmrs    APSR_nzcv, FPSCR    @ Get the flags into APSR.
 	EmitDWORD(0xeef1fa10);
@@ -266,7 +331,12 @@ void	CAssemblyWriterARM::VCMP(EArmVfpReg Sd, EArmVfpReg Sm)
 
 void	CAssemblyWriterARM::VCVT_S32_F32(EArmVfpReg Sd, EArmVfpReg Sm)
 {
-	EmitDWORD(0xeebd0ac0 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | ((Sm & 1)<<5) | ((Sm >> 1) & 15));
+	EmitDWORD(0xeebd0ac0 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15));
+}
+
+void	CAssemblyWriterARM::VCVT_F64_F32(EArmVfpReg Dd, EArmVfpReg Sm)
+{
+	EmitDWORD(0xeeb70ac0 | (((Dd >> 4) & 1) << 22) | ((Dd & 15) << 12) | ((Sm & 1) << 5) | ((Sm >> 1) & 15));
 }
 
 void	CAssemblyWriterARM::VADD_D(EArmVfpReg Dd, EArmVfpReg Dn, EArmVfpReg Dm)
@@ -289,6 +359,21 @@ void	CAssemblyWriterARM::VDIV_D(EArmVfpReg Dd, EArmVfpReg Dn, EArmVfpReg Dm)
 	EmitDWORD(0xee800b00 | (((Dd >> 4) & 1) << 22) | ((Dn & 15) << 16) | ((Dd & 15) << 12) | (((Dn >> 4) & 1) << 7) | (((Dm >> 4) & 1) << 5) | (Dm & 15));
 }
 
+void	CAssemblyWriterARM::VSQRT_D(EArmVfpReg Dd, EArmVfpReg Dm)
+{
+	EmitDWORD(0xeeb10bc0 | (((Dd >> 4) & 1) << 22) | ((Dd & 15) << 12) | (((Dm >> 4) & 1) << 5) | (Dm & 15));
+}
+
+void	CAssemblyWriterARM::VABS_D(EArmVfpReg Dd, EArmVfpReg Dm)
+{
+	EmitDWORD(0xeeb00bc0 | (((Dd >> 4) & 1) << 22) | ((Dd & 15) << 12) | (((Dm >> 4) & 1) << 5) | (Dm & 15));
+}
+
+void	CAssemblyWriterARM::VNEG_D(EArmVfpReg Dd, EArmVfpReg Dm)
+{
+	EmitDWORD(0xeeb10b40 | (((Dd >> 4) & 1) << 22) | ((Dd & 15) << 12) | (((Dm >> 4) & 1) << 5) | (Dm & 15));
+}
+
 void	CAssemblyWriterARM::VMOV(EArmVfpReg Dm, EArmReg Rt, EArmReg Rt2)
 {
 	EmitDWORD(0xec400b10 | (Rt2 << 16) | (Rt << 12) | (Dm & 0b1111) | (((Dm >> 4) & 1) << 5));
@@ -309,6 +394,24 @@ void	CAssemblyWriterARM::VSTR_D(EArmVfpReg Dd, EArmReg Rn, s16 offset12)
 	EmitDWORD(0xed000b00 | ((offset12 < 0) ? 0 : 1) << 23 | (((Dd >> 4) & 1) << 22) | (Rn << 16) | ((Dd & 15) << 12) | ((abs(offset12) >> 2) & 255));
 }
 
+void	CAssemblyWriterARM::VCMP_D(EArmVfpReg Dd, EArmVfpReg Dm, u8 E)
+{
+	EmitDWORD(0xeeb40b40 | (((Dd >> 4) & 1) << 22) | ((Dd & 15) << 12) | (((Dm >> 4) & 1) << 5) | (Dm & 15) | (E << 7));
+	
+	//vmrs    APSR_nzcv, FPSCR    @ Get the flags into APSR.
+	EmitDWORD(0xeef1fa10);
+}
+
+void	CAssemblyWriterARM::VCVT_S32_F64(EArmVfpReg Sd, EArmVfpReg Dm)
+{
+	EmitDWORD(0xeebd0bc0 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | (((Dm >> 4) & 1) << 5) | (Dm & 15));
+}
+
+void	CAssemblyWriterARM::VCVT_F32_F64(EArmVfpReg Sd, EArmVfpReg Dm)
+{
+	EmitDWORD(0xeeb70bc0 | ((Sd & 1) << 22) | (((Sd >> 1) & 15) << 12) | (((Dm >> 4) & 1) << 5) | (Dm & 15));
+}
+
 #ifdef DYNAREC_ARMV7
 void	CAssemblyWriterARM::MOVW(EArmReg reg, u16 imm)
 {
@@ -323,21 +426,17 @@ void	CAssemblyWriterARM::MOVT(EArmReg reg, u16 imm)
 
 void	CAssemblyWriterARM::MOV32(EArmReg reg, u32 imm)
 {
-	if(!(imm >> 16))
+	#ifdef DYNAREC_ARMV7
+	MOVW(reg, imm);
+	if (imm >> 16)
 	{
-		#ifdef DYNAREC_ARMV7
-		MOVW(reg, imm);
-		#else
-		MOV_IMM(reg, imm);
-		if(imm & 0xff00) ADD_IMM(reg, reg, imm >> 8, 0xc);
-		#endif
+		MOVT(reg, imm >> 16);
 	}
-	else
-	{
-		literals.push_back( Literal { mpAssemblyBuffer->GetLabel(), imm } );
-		//This will be patched later to reflect the location of the literal pool
-		LDR(reg, ArmReg_R15, 0x00);
-	}
+	#else
+	LDMIA(ArmReg_R15, 1 << reg); // LDMIA PC, {reg}
+	B(1);
+	EmitDWORD(imm);
+	#endif
 }
 
 CJumpLocation CAssemblyWriterARM::BX_IMM( CCodeLabel target, EArmCond cond )
@@ -373,33 +472,5 @@ void CAssemblyWriterARM::CALL( CCodeLabel target )
 
 void CAssemblyWriterARM::RET()
 {
-	POP(0x8ff0);
-	InsertLiteralPool();
-}
-
-void CAssemblyWriterARM::InsertLiteralPool()
-{
-	if( literals.empty() ) return;
-
-	B( (literals.size() - 1) * 4 );
-
-	for (int i = 0; i < literals.size(); i++)
-	{
-		uint32_t *op =  (uint32_t*)literals[i].Target.GetTarget();
-		uint32_t offset = mpAssemblyBuffer->GetLabel().GetTargetU32() - (uint32_t)op;
-
-		*op = *op | (offset - 8);
-
-		EmitDWORD(literals[i].Value);
-	}
-
-	literals.clear();
-}
-
-uint32_t CAssemblyWriterARM::GetLiteralPoolDistance()
-{
-	if(literals.empty())
-		return 0;
-
-	return mpAssemblyBuffer->GetLabel().GetTargetU32() - literals[0].Target.GetTargetU32();
+	POP(0x8ff0); //POP {R4-R11, PC}
 }
