@@ -20,6 +20,8 @@
 #include "Utility/IO.h"
 #include "Utility/Profiler.h"
 
+#define NORMALIZE_C1842XX(x) ((x) > 16.5f ? ((x) / ((x) / 16.0f)) : (x))
+
 BaseRenderer *gRenderer    = nullptr;
 RendererVita  *gRendererVita = nullptr;
 
@@ -631,7 +633,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
 	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
 
-	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X", gRDPOtherMode.L);
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRect: L: 0x%08X, U: %f, V: %f, U2: %f, V2: %f", gRDPOtherMode.L, uv0.x, uv0.y, uv1.x, uv1.y);
 
 	v2 screen0;
 	v2 screen1;
@@ -644,6 +646,11 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 		ScaleN64ToScreen( xy0, screen0 );
 		ScaleN64ToScreen( xy1, screen1 );
 	}
+	
+	/*
+     FIXME: Disabling this for 0x0C184244 mode makes some enemies being rendered through walls and characters on RayMan as well as some lums.
+	 However disabling this makes icons and RayMan lifebar properly render. Keeping it enabled for now since the trade off is not worth
+	*/
 	const f32 depth = (gRDPOtherMode.depth_source && !(g_ROM.T0_SKIP_HACK && gRDPOtherMode.L == 0x0C184244))  ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
@@ -656,14 +663,25 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	}
 	
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	gTexCoordBuffer[0] = uv0.x * scale_x;
-	gTexCoordBuffer[1] = uv0.y * scale_y;
-	gTexCoordBuffer[2] = uv1.x * scale_x;
-	gTexCoordBuffer[3] = uv0.y * scale_y;
-	gTexCoordBuffer[4] = uv0.x * scale_x;
-	gTexCoordBuffer[5] = uv1.y * scale_y;
-	gTexCoordBuffer[6] = uv1.x * scale_x;
-	gTexCoordBuffer[7] = uv1.y * scale_y;
+	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
+		gTexCoordBuffer[0] = NORMALIZE_C1842XX(uv0.x) * scale_x;
+		gTexCoordBuffer[1] = NORMALIZE_C1842XX(uv0.y) * scale_y;
+		gTexCoordBuffer[2] = NORMALIZE_C1842XX(uv1.x) * scale_x;
+		gTexCoordBuffer[3] = NORMALIZE_C1842XX(uv0.y) * scale_y;
+		gTexCoordBuffer[4] = NORMALIZE_C1842XX(uv0.x) * scale_x;
+		gTexCoordBuffer[5] = NORMALIZE_C1842XX(uv1.y) * scale_y;
+		gTexCoordBuffer[6] = NORMALIZE_C1842XX(uv1.x) * scale_x;
+		gTexCoordBuffer[7] = NORMALIZE_C1842XX(uv1.y) * scale_y;	
+	} else {
+		gTexCoordBuffer[0] = uv0.x * scale_x;
+		gTexCoordBuffer[1] = uv0.y * scale_y;
+		gTexCoordBuffer[2] = uv1.x * scale_x;
+		gTexCoordBuffer[3] = uv0.y * scale_y;
+		gTexCoordBuffer[4] = uv0.x * scale_x;
+		gTexCoordBuffer[5] = uv1.y * scale_y;
+		gTexCoordBuffer[6] = uv1.x * scale_x;
+		gTexCoordBuffer[7] = uv1.y * scale_y;
+	}
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gTexCoordBuffer += 8;
 	
@@ -694,7 +712,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
-	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X", gRDPOtherMode.L);
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X, U: %f, V: %f, U2: %f, V2: %f", gRDPOtherMode.L, uv0.x, uv0.y, uv1.x, uv1.y);
 	
 	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
