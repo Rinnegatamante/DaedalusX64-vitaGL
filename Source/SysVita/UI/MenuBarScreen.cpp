@@ -137,10 +137,24 @@ void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu("Emulation")){
-		if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled)){
-			gDynarecEnabled = !gDynarecEnabled;
+		if (ImGui::BeginMenu("CPU")){
+			if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled && !gUseCachedInterpreter)){
+				gDynarecEnabled = true;
+				gUseCachedInterpreter = false;
+			}
+			SetDescription("Enables dynamic recompilation for better performances.");
+			if (ImGui::MenuItem("Cached Interpreter", nullptr, gUseCachedInterpreter)){
+				gUseCachedInterpreter = true;
+				gDynarecEnabled = true;
+			}
+			SetDescription("Enables cached interpreter for decent performances and better compatibility.");
+			if (ImGui::MenuItem("Interpreter", nullptr, !(gUseCachedInterpreter || gDynarecEnabled))){
+				gUseCachedInterpreter = false;
+				gDynarecEnabled = false;
+			}
+			SetDescription("Enables interpreter for best compatibility.");
+			ImGui::EndMenu();
 		}
-		SetDescription("Enables dynamic recompilation for better performances.");
 		ImGui::Separator();
 		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;

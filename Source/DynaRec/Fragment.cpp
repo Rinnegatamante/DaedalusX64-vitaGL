@@ -45,6 +45,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/Profiler.h"
 #include "Utility/Synchroniser.h"
 
+#include "Config/ConfigOptions.h"
+
 #include "OSHLE/ultra_R4300.h"
 #include "OSHLE/patch.h"
 
@@ -708,9 +710,12 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 		CJumpLocation	branch_jump( nullptr );
  //PSP, We handle exceptions directly with _ReturnFromDynaRecIfStuffToDo
 #ifdef DAEDALUS_PSP
-		p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
+		if (gUseCachedInterpreter) p_generator->GenerateInterpOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
+		else p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
 #else
-		CJumpLocation	exception_handler_jump( p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump) );
+		CJumpLocation	exception_handler_jump;
+		if (gUseCachedInterpreter) exception_handler_jump = p_generator->GenerateInterpOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
+		else exception_handler_jump = p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
 
 		if( exception_handler_jump.IsSet() )
 		{
@@ -781,10 +786,13 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 			*/
  //PSP, We handle exceptions directly with _ReturnFromDynaRecIfStuffToDo
 #ifdef DAEDALUS_PSP
-			p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
+			if (gUseCachedInterpreter) p_generator->GenerateInterpOpCode( ti, true, nullptr, nullptr);
+			else p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
 #else
-			CJumpLocation	exception_handler_jump( p_generator->GenerateOpCode( ti, true, nullptr, nullptr) );
-
+			CJumpLocation	exception_handler_jump;
+			if (gUseCachedInterpreter) exception_handler_jump = p_generator->GenerateInterpOpCode( ti, true, nullptr, nullptr);
+			else exception_handler_jump = p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
+			
 			if( exception_handler_jump.IsSet() )
 			{
 				exception_handler_jumps.push_back( exception_handler_jump );

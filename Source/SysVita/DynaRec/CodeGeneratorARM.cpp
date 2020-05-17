@@ -389,6 +389,121 @@ CJumpLocation	CCodeGeneratorARM::GenerateBranchIfNotEqual8( const u32 * p_var, u
 }
 
 //*****************************************************************************
+//	Cached Interpreter GenerateOpCode variant
+//*****************************************************************************
+CJumpLocation	CCodeGeneratorARM::GenerateInterpOpCode( const STraceEntry& ti, bool branch_delay_slot, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump)
+{
+	u32 address = ti.Address;
+	bool exception = false;
+	OpCode op_code = ti.OpCode;
+
+	if (op_code._u32 == 0)
+	{
+		if( branch_delay_slot )
+		{
+			SetVar( &gCPUState.Delay, NO_DELAY );
+		}
+		return CJumpLocation( NULL);
+	}
+
+	if( branch_delay_slot )
+	{
+		SetVar( &gCPUState.Delay, EXEC_DELAY );
+	}
+
+	const EN64Reg	rs = EN64Reg( op_code.rs );
+	const EN64Reg	rt = EN64Reg( op_code.rt );
+	const EN64Reg	rd = EN64Reg( op_code.rd );
+	const u32		sa = op_code.sa;
+	const EN64Reg	base = EN64Reg( op_code.base );
+	//const u32		jump_target( (address&0xF0000000) | (op_code.target<<2) );
+	//const u32		branch_target( address + ( ((s32)(s16)op_code.immediate)<<2 ) + 4);
+	const u32		ft = op_code.ft;
+
+
+	bool handled = false;
+
+	switch(op_code.op)
+	{
+		case OP_J:		/* nothing to do */ handled = true; break;
+		default: break;
+	}
+
+	CJumpLocation	exception_handler(NULL);
+
+	if (!handled)
+	{
+		CCodeLabel	no_target( NULL );
+
+		if( R4300_InstructionHandlerNeedsPC( op_code ) )
+		{
+			SetVar( &gCPUState.CurrentPC, address );
+			exception = true;
+		}
+
+		GenerateGenericR4300( op_code, R4300_GetInstructionHandler( op_code ) );
+
+		if( exception )
+		{
+			exception_handler = GenerateBranchIfSet( const_cast< u32 * >( &gCPUState.StuffToDo ), no_target );
+		}
+
+		// Check whether we want to invert the status of this branch
+		if( p_branch != NULL )
+		{
+			//
+			// Check if the branch has been taken
+			//
+			if( p_branch->Direct )
+			{
+				if( p_branch->ConditionalBranchTaken )
+				{
+					*p_branch_jump = GenerateBranchIfNotEqual8( &gCPUState.Delay, DO_DELAY, no_target );
+				}
+				else
+				{
+					*p_branch_jump = GenerateBranchIfEqual8( &gCPUState.Delay, DO_DELAY, no_target );
+				}
+			}
+			else
+			{
+				// XXXX eventually just exit here, and skip default exit code below
+				if( p_branch->Eret )
+				{
+					*p_branch_jump = GenerateBranchAlways( no_target );
+				}
+				else
+				{
+					*p_branch_jump = GenerateBranchIfNotEqual32( &gCPUState.TargetPC, p_branch->TargetAddress, no_target );
+				}
+			}
+		}
+		else
+		{
+			if( branch_delay_slot )
+			{
+				SetVar( &gCPUState.Delay, NO_DELAY );
+			}
+		}
+	}
+	else
+	{
+		if(exception)
+		{
+			exception_handler = GenerateBranchIfSet( const_cast< u32 * >( &gCPUState.StuffToDo ), CCodeLabel(NULL) );
+		}
+
+		if( p_branch && branch_delay_slot )
+		{
+			SetVar( &gCPUState.Delay, NO_DELAY );
+		}
+	}
+
+
+	return exception_handler;
+}
+
+//*****************************************************************************
 //	Generates instruction handler for the specified op code.
 //	Returns a jump location if an exception handler is required
 //*****************************************************************************
@@ -428,7 +543,6 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 	switch(op_code.op)
 	{
 		case OP_J:		/* nothing to do */ handled = true; break;
-
 		case OP_JAL: 	GenerateJAL( address ); handled = true; break;
 
 		case OP_BEQ:	GenerateBEQ( rs, rt, p_branch, p_branch_jump ); handled = true; break;
