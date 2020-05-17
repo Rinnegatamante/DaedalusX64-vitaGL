@@ -10,7 +10,6 @@
 
 #include "Debug/DBGConsole.h"
 
-extern bool isMKABI;
 extern bool isZeldaABI;
 
 void ADPCM(AudioHLECommand command)
@@ -447,7 +446,7 @@ void ADPCM3(AudioHLECommand command)
 
 void LOADADPCM(AudioHLECommand command)
 {
-  u32		address(command.Abi1LoadADPCM.Address );// + gAudioHLEState.Segments[(command.cmd1>>24)&0xf];
+	u32		address(command.Abi1LoadADPCM.Address );// + gAudioHLEState.Segments[(command.cmd1>>24)&0xf];
 	u16		count( command.Abi1LoadADPCM.Count );
 
 	gAudioHLEState.LoadADPCM( address, count );
@@ -464,7 +463,7 @@ void LOADADPCM2(AudioHLECommand command)
 
 void LOADADPCM3(AudioHLECommand command)
 {
-  u32		address(command.Abi3LoadADPCM.Address );// + gAudioHLEState.Segments[(command.cmd1>>24)&0xf];
+	u32		address(command.Abi3LoadADPCM.Address );// + gAudioHLEState.Segments[(command.cmd1>>24)&0xf];
 	u16		count( command.Abi3LoadADPCM.Count );
 
 	gAudioHLEState.LoadADPCM( address, count );

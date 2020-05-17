@@ -34,6 +34,7 @@ struct AudioHLEState
 	void	ClearBuffer( u16 addr, u16 count );
 
 	void	EnvMixer( u8 flags, u32 address );
+	void	EnvMixerGE( u8 flags, u32 address );
 
 	void	Resample( u8 flags, u32 pitch, u32 address );
 
@@ -57,6 +58,9 @@ struct AudioHLEState
 
 	void	Mixer( u16 dmemout, u16 dmemin, s32 gain, u16 count );
 	void	Mixer( u16 dmemout, u16 dmemin, s32 gain );
+	
+	void	Polef( u8 flags, u32 address, u16 dmemo, u16 dmemi, u16 gain, u16 count );
+	void	Iirf( u8 flags, u32 address, u16 dmemo, u16 dmemi, u16 count );
 
 private:
 	void	ExtractSamplesScale( s32 * output, u32 inPtr, s32 vscale ) const;

@@ -92,8 +92,8 @@ const u32 MemoryRegionSizes[NUM_MEM_BUFFERS] =
 u32			gRamSize =  kMaximumMemSize;	// Size of emulated RAM
 
 #ifdef DAEDALUS_PROFILE_EXECUTION
-u32			gTLBReadHit  {};
-u32			gTLBWriteHit {};
+u32			gTLBReadHit;
+u32			gTLBWriteHit;
 #endif
 
 #ifdef DAED_USE_VIRTUAL_ALLOC
@@ -156,7 +156,7 @@ bool Memory_Init()
 
 #else
 	//u32 count = 0;
-	for (u32 m {}; m < NUM_MEM_BUFFERS; m++)
+	for (u32 m = 0; m < NUM_MEM_BUFFERS; m++)
 	{
 		u32 region_size {MemoryRegionSizes[m]};
 		// Skip zero sized areas. An example of this is the cart rom
@@ -214,7 +214,7 @@ void Memory_Fini(void)
 	gMemBase = nullptr;
 
 #else
-	for (u32 m {}; m < NUM_MEM_BUFFERS; m++)
+	for (u32 m = 0; m < NUM_MEM_BUFFERS; m++)
 	{
 		if (g_pMemoryBuffers[m] != nullptr)
 		{
@@ -232,7 +232,7 @@ void Memory_Fini(void)
 
 bool Memory_Reset()
 {
-	u32 main_mem {g_ROM.settings.ExpansionPakUsage != PAK_UNUSED ? MEMORY_8_MEG : MEMORY_4_MEG};
+	u32 main_mem = g_ROM.settings.ExpansionPakUsage != PAK_UNUSED ? MEMORY_8_MEG : MEMORY_4_MEG;
 	#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "Reseting Memory - %d MB", main_mem/(1024*1024));
 #endif
@@ -363,8 +363,8 @@ void Memory_InitTables()
 		g_MemoryLookupTableWrite[i].WriteFunc	= WriteValueMapped;
 	}
 
-	u32 rom_size {RomBuffer::GetRomSize()};
-	u32 ram_size {gRamSize};
+	u32 rom_size = RomBuffer::GetRomSize();
+	u32 ram_size = gRamSize;
 
 	#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "Initialising %s main memory", (ram_size == MEMORY_8_MEG) ? "8Mb" : "4Mb");

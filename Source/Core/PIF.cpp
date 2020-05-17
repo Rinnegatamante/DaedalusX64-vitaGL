@@ -329,7 +329,7 @@ bool IController::OnRomOpen()
 	}
 
 
-	for ( u32 channel {}; channel < NUM_CONTROLLERS; channel++ )
+	for ( u32 channel = 0; channel < NUM_CONTROLLERS; channel++ )
 	{
 		mMemPack[channel] = (u8*)g_pMemoryBuffers[MEM_MEMPACK] + channel * 0x400 * 32;
 	}

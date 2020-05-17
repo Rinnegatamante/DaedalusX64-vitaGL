@@ -71,6 +71,8 @@ static float vcolors[3];
 static float *colors;
 static float *vertices;
 
+float gamma_val = 1.0f;
+
 char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
 
@@ -174,12 +176,19 @@ void DrawCommonMenuBar() {
 			if (ImGui::MenuItem("16:9", nullptr, aspect_ratio == RATIO_16_9)){
 				aspect_ratio = RATIO_16_9;
 			}
+			if (ImGui::MenuItem("16:9 Unstretched", nullptr, aspect_ratio == RATIO_16_9_HACK)){
+				aspect_ratio = RATIO_16_9_HACK;
+			}
 			if (ImGui::MenuItem("4:3", nullptr, aspect_ratio == RATIO_4_3)){
 				aspect_ratio = RATIO_4_3;
 			}
 			if (ImGui::MenuItem("Original", nullptr, aspect_ratio == RATIO_ORIG)){
 				aspect_ratio = RATIO_ORIG;
 			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Brightness")){
+			ImGui::SliderFloat("", &gamma_val, 1.0f, 0.0f);
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();

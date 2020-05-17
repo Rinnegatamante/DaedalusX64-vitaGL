@@ -23,26 +23,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //	and modified by StrmnNrmn to work with Daedalus PSP. Thanks Azimer!
 //	Drop me a line if you get chance :)
 //
-#include "stdafx.h"
 
-#include <string.h>
+#include "stdafx.h"
 
 #include "audiohle.h"
 #include "AudioHLEProcessor.h"
 
-// Disables the command because it's not used?
-static void DISABLE (AudioHLECommand command) {}
-static void WHATISTHIS (AudioHLECommand command) {}
+#include "Math/MathUtil.h"
 
-static void MP3ADDY(AudioHLECommand command)
- {
- //	setaddr = (command.cmd1 & 0xffffff);
- }
-
-AudioHLEInstruction ABI3[0x20] =
+AudioHLEInstruction ABI_Common[0x20] =
 {
-    DISABLE   ,ADPCM3    ,CLEARBUFF3,ENVMIXER3 ,LOADBUFF3 ,RESAMPLE3 ,SAVEBUFF3 ,MP3       ,
-    MP3ADDY   ,SETVOL3   ,DMEMMOVE3 ,LOADADPCM3,MIXER3   ,INTERLEAVE3,WHATISTHIS,SETLOOP3  ,
-    SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,
-    SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,SPNOOP    ,
+    SPNOOP , ADPCM , CLEARBUFF,	ENVMIXER  , LOADBUFF, RESAMPLE  , SAVEBUFF, UNKNOWN,
+	SETBUFF, SETVOL, DMEMMOVE , LOADADPCM , MIXER   , INTERLEAVE, UNKNOWN , SETLOOP,
+    SPNOOP , SPNOOP, SPNOOP   , SPNOOP    , SPNOOP  , SPNOOP    , SPNOOP  , SPNOOP,
+    SPNOOP , SPNOOP, SPNOOP   , SPNOOP    , SPNOOP  , SPNOOP    , SPNOOP  , SPNOOP
+};
+
+AudioHLEInstruction ABI_GE[0x20] =
+{
+    SPNOOP , ADPCM , CLEARBUFF,	ENVMIXER_GE, LOADBUFF, RESAMPLE  , SAVEBUFF, UNKNOWN,
+	SETBUFF, SETVOL, DMEMMOVE , LOADADPCM  , MIXER   , INTERLEAVE, UNKNOWN , SETLOOP,
+    SPNOOP , SPNOOP, SPNOOP   , SPNOOP     , SPNOOP  , SPNOOP    , SPNOOP  , SPNOOP,
+    SPNOOP , SPNOOP, SPNOOP   , SPNOOP     , SPNOOP  , SPNOOP    , SPNOOP  , SPNOOP
 };
