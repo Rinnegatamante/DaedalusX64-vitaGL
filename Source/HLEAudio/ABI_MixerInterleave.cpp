@@ -86,7 +86,14 @@ void INTERLEAVE2( AudioHLECommand command)
 	u16 out( command.Abi2Interleave.OutAddr );
 	u16 count( command.Abi2Interleave.Count );
 
-	gAudioHLEState.Interleave( out, inL, inR, count );
+	if (count != 0)
+	{
+		gAudioHLEState.Interleave( out, inL, inR, count );
+	}
+	else
+	{
+		gAudioHLEState.Interleave( inL, inR );
+	}
 }
 
 void INTERLEAVE3( AudioHLECommand command)
