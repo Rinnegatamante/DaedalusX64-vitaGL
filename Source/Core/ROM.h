@@ -148,7 +148,7 @@ struct RomInfo
 			u32			SET_ROUND_MODE:1;		//Hack to set rounding mode for the PSP
 			u32			T0_SKIP_HACK:1;			//Hack for Rayman 2 texts
 			u32			SCISSOR_HACK:1;			//Hack to unbind viewport and scissor test region
-			u32			PadA:1;	//free
+			u32			SKIP_CPU_REND_HACK:1;	//Hack to disable CPU rendering at boot
 			u32			PadB:1;	//free
 			u32			PadC:1;	//free
 			u32			PadD:1;	//free

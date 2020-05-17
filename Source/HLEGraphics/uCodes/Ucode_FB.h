@@ -30,7 +30,7 @@ static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
 {
 	u32 width  = Memory_VI_GetRegister( VI_WIDTH_REG );
 	
-	if (width == 0 || (origin <= width*2))
+	if (width == 0 || (origin <= width*2) || g_ROM.SKIP_CPU_REND_HACK)
 		return NULL;
 	
 	fb_ratio = (float)FB_WIDTH / (float)width;
