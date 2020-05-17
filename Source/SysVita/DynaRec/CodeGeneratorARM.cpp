@@ -1237,46 +1237,40 @@ void CCodeGeneratorARM::GenerateSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 void CCodeGeneratorARM::GenerateDSLL32( EN64Reg rd, EN64Reg rt, u32 sa )
 {
-	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+	LDR(ArmReg_R1, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_0));
 
-	MOV32(ArmReg_R2, sa + 32);
-	MOV_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R2);
-	SUB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
-	RSB_IMM(ArmReg_R4, ArmReg_R2, 0x20);
-	ORR_LSL(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R3);
-	ORR_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R0, ArmReg_R4);
-	MOV_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R2);
+	if( sa != 0 )
+	{
+		MOV_LSL_IMM(ArmReg_R1, ArmReg_R1, sa);
+	}
 
+	XOR(ArmReg_R0, ArmReg_R1, ArmReg_R1);
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateDSRL32( EN64Reg rd, EN64Reg rt, u32 sa )
 {
-	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
 
-	MOV32(ArmReg_R2, sa + 32);
-	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
-	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
-	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20);
-	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
-	ORR_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4);
-	MOV_LSR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+	if( sa != 0 )
+	{
+		MOV_LSR_IMM(ArmReg_R0, ArmReg_R0, sa);
+	}
 
+	XOR(ArmReg_R1, ArmReg_R0, ArmReg_R0);
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
 void CCodeGeneratorARM::GenerateDSRA32( EN64Reg rd, EN64Reg rt, u32 sa )
 {
-	LDRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u64));
+	LDR(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rt]._u32_1));
 
-	MOV32(ArmReg_R2, sa + 32);
-	MOV_LSR(ArmReg_R0, ArmReg_R0, ArmReg_R2);
-	RSB_IMM(ArmReg_R3, ArmReg_R2, 0x20);
-	SUB_IMM(ArmReg_R4, ArmReg_R2, 0x20, 0, 1);
-	ORR_LSL(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R3);
-	ORR_ASR(ArmReg_R0, ArmReg_R0, ArmReg_R1, ArmReg_R4, PL);
-	MOV_ASR(ArmReg_R1, ArmReg_R1, ArmReg_R2);
+	if( sa != 0 )
+	{
+		MOV_ASR_IMM(ArmReg_R0, ArmReg_R0, sa);
+	}
 
+	MOV_ASR_IMM(ArmReg_R1, ArmReg_R0, 0x1F); //Sign extend
 	STRD(ArmReg_R0, ArmReg_R12, offsetof(SCPUState, CPU[rd]._u64));
 }
 
