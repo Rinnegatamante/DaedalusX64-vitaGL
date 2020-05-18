@@ -51,6 +51,7 @@ extern AudioHLEInstruction ABI_Common[0x20];
 extern AudioHLEInstruction ABI_GE[0x20];
 extern AudioHLEInstruction NAudio[0x20];
 extern AudioHLEInstruction NAudio_MP3[0x20];
+extern AudioHLEInstruction NAudio_DK[0x20];
 extern AudioHLEInstruction NEAD[0x20];
 extern AudioHLEInstruction NEAD_MK[0x20];
 
@@ -89,6 +90,10 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
             HydroThunder, Tarzan, GauntletLegend, Rush2049 */
 			isMusyx = true;
 			sprintf(cur_audio_ucode, "MusyX v1");
+			break;
+		case 0x1C58126C: /* DonkeyKong */
+			ABI = NAudio_DK;
+			sprintf(cur_audio_ucode, "NAudio (DK)");
 			break;
 		case 0x1AB0140C: /* Conker's Bad Fur Day */
 		case 0x1AE8143C: /* NAudio MP3
