@@ -161,6 +161,10 @@ void DrawCommonMenuBar() {
 				gDynarecEnabled = false;
 			}
 			SetDescription("Enables interpreter for best compatibility.");
+			if (ImGui::MenuItem("High Level Emulation", nullptr, gOSHooksEnabled)){
+				gOSHooksEnabled = !gOSHooksEnabled;
+			}
+			SetDescription("Enables high level emulation of OS functions for better performance. (WARNING: can cause instability)");
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
