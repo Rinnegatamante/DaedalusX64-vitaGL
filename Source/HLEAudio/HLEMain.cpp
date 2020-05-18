@@ -89,6 +89,7 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 			isMusyx = true;
 			sprintf(cur_audio_ucode, "MusyX v1");
 			break;
+		case 0x1AB0140C: /* Conker's Bad Fur Day */
 		case 0x1AE8143C: /* NAudio MP3
 			BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
 			ABI = NAudio_MP3;
