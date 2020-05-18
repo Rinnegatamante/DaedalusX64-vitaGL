@@ -138,11 +138,18 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::BeginMenu("CPU")){
-			if (ImGui::MenuItem("DynaRec", nullptr, gDynarecEnabled && !gUseCachedInterpreter)){
+			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gDynarecEnabled && !gUseCachedInterpreter && gUnsafeDynarecOptimisations)){
 				gDynarecEnabled = true;
+				gUnsafeDynarecOptimisations = true;
 				gUseCachedInterpreter = false;
 			}
-			SetDescription("Enables dynamic recompilation for better performances.");
+			SetDescription("Enables full dynamic recompilation for best performances.");
+			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gDynarecEnabled && !gUseCachedInterpreter && !gUnsafeDynarecOptimisations)){
+				gDynarecEnabled = true;
+				gUnsafeDynarecOptimisations = false;
+				gUseCachedInterpreter = false;
+			}
+			SetDescription("Enables safe dynamic recompilation for good performances and better compatibility.");
 			if (ImGui::MenuItem("Cached Interpreter", nullptr, gUseCachedInterpreter)){
 				gUseCachedInterpreter = true;
 				gDynarecEnabled = true;

@@ -568,8 +568,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_SB:		handled = GenerateSB( rt, base, s16(op_code.immediate) ); exception = !handled; break;
 		case OP_SD:		handled = GenerateSD( rt, base, s16(op_code.immediate) ); exception = !handled; break;
 
-		case OP_SWC1:	handled = GenerateSWC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
-		case OP_SDC1:	handled = GenerateSDC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
+		case OP_SWC1:	if (gUnsafeDynarecOptimisations) {handled = GenerateSWC1( ft, base, s16(op_code.immediate) ); exception = !handled;} break;
+		case OP_SDC1:	if (gUnsafeDynarecOptimisations) {handled = GenerateSDC1( ft, base, s16(op_code.immediate) ); exception = !handled;} break;
 
 		case OP_SLTIU: 	GenerateSLTI( rt, rs, s16( op_code.immediate ), true );  handled = true; break;
 		case OP_SLTI:	GenerateSLTI( rt, rs, s16( op_code.immediate ), false ); handled = true; break;
@@ -581,8 +581,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_LBU:	handled = GenerateLBU( rt, base, s16(op_code.immediate) ); exception = !handled; break;
 		case OP_LD:		handled = GenerateLD( rt, base, s16(op_code.immediate) );  exception = !handled; break;
 
-		case OP_LWC1:	handled = GenerateLWC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
-		case OP_LDC1:	handled = GenerateLDC1( ft, base, s16(op_code.immediate) ); exception = !handled; break;
+		case OP_LWC1:	if (gUnsafeDynarecOptimisations) {handled = GenerateLWC1( ft, base, s16(op_code.immediate) ); exception = !handled;} break;
+		case OP_LDC1:	if (gUnsafeDynarecOptimisations) {handled = GenerateLDC1( ft, base, s16(op_code.immediate) ); exception = !handled;} break;
 
 		case OP_LUI:	GenerateLUI( rt, s16( op_code.immediate ) ); handled = true; break;
 

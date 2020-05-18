@@ -40,6 +40,7 @@ extern bool gDynarecEnabled;			// Use dynamic recompilation
 extern bool gUseCachedInterpreter;		// Use cached interpreter
 extern bool gDynarecLoopOptimisation;	// Enable the dynarec loop optmisation
 extern bool gDynarecDoublesOptimisation;	// Enable the dynarec loop optmisation
+extern bool	gUnsafeDynarecOptimisations;	// Enable unsafe dynarec optimisations
 extern bool gOSHooksEnabled;			// Apply os-hooks
 extern u32	gSpeedSyncEnabled;
 extern bool gDoubleDisplayEnabled;
