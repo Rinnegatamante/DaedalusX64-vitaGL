@@ -163,6 +163,10 @@ void DrawCommonMenuBar() {
 			SetDescription("Enables interpreter for best compatibility.");
 			ImGui::EndMenu();
 		}
+		if (ImGui::MenuItem("High Level Emulation", nullptr, gOSHooksEnabled)){
+			gOSHooksEnabled = !gOSHooksEnabled;
+		}
+		SetDescription("Enables high level emulation of OS functions for better performance.\nMay cause instability on some games.");
 		ImGui::Separator();
 		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
