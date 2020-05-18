@@ -54,6 +54,7 @@ extern AudioHLEInstruction NAudio_MP3[0x20];
 extern AudioHLEInstruction NAudio_DK[0x20];
 extern AudioHLEInstruction NEAD[0x20];
 extern AudioHLEInstruction NEAD_MK[0x20];
+extern AudioHLEInstruction NEAD_FZ[0x20];
 
 AudioHLEInstruction *ABI;
 bool bAudioChanged = false;
@@ -127,6 +128,10 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 		} else {
 			v = *(u32*)(p_base + 0x10);
 			switch (v) {
+				case 0x1CD01250: /* F-Zero X */
+					ABI = NEAD_FZ;
+					sprintf(cur_audio_ucode, "NEAD (FZ)");
+					break;
 				case 0x11181350: /* MarioKart, WaveRace (E) */
 					ABI = NEAD_MK;
 					sprintf(cur_audio_ucode, "NEAD (MK)");
