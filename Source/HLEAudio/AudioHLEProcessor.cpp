@@ -821,15 +821,15 @@ void	AudioHLEState::Mixer( u16 dmemout, u16 dmemin, s32 gain )
 void AudioHLEState::Polef( u8 flags, u32 address, u16 dmemo, u16 dmemi, u16 gain, u16 count )
 {
 	s16 *dst = (s16*)(gAudioHLEState.Buffer + dmemo);
-	const int16_t* const h1 = ADPCMTable;
-    int16_t* const h2 = ADPCMTable + 8;
+	const int16_t* const h1 = (int16_t*)ADPCMTable;
+	int16_t* const h2 = (int16_t*)ADPCMTable + 8;
 	
 	unsigned i;
-    int16_t l1, l2;
-    int16_t h2_before[8];
-	
+	int16_t l1, l2;
+	int16_t h2_before[8];
+
 	count = align(count, 16);
-	
+
 	if (flags & A_INIT) {
 		l1 = 0; l2 = 0;
 	} else {

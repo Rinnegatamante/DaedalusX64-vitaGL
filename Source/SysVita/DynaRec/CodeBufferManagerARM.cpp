@@ -35,7 +35,7 @@ static SceUID dynarec_memblock;
 void _DaedalusICacheInvalidate(const void * address, u32 length)
 {
 	if(length > 0)
-		sceKernelSyncVMDomain(dynarec_memblock, address, length);
+		sceKernelSyncVMDomain(dynarec_memblock, (void*)address, length);
 }
 
 class CCodeBufferManagerARM : public CCodeBufferManager
@@ -89,7 +89,7 @@ bool	CCodeBufferManagerARM::Initialise()
 	// Initializing memblock for dynarec
 	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE);
 
-	sceKernelGetMemBlockBase(dynarec_memblock, &mpBuffer);
+	sceKernelGetMemBlockBase(dynarec_memblock, (void**)&mpBuffer);
 
 	if (mpBuffer == NULL)
 		return false;

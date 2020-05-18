@@ -150,7 +150,7 @@ static void ConvertGeneric( const TextureDestInfo & dsti,
 	{
 		for (u32 y = 0; y < ti.GetHeight(); y++)
 		{
-			if ((y&1) == 0)
+			if ((y & 1) == 0)
 			{
 				unswapped_fn( dst, src, src_offset, ti.GetWidth() );
 			}
@@ -222,7 +222,7 @@ static void ConvertPalettisedTo8888( const TextureDestInfo & dsti, const Texture
 	{
 		for (u32 y = 0; y < ti.GetHeight(); y++)
 		{
-			if ((y&1) == 0)
+			if ((y & 1) == 0)
 			{
 				unswapped_fn( dst, src, src_offset, ti.GetWidth(), palette );
 			}
@@ -261,7 +261,7 @@ static void ConvertPalettisedToCI( const TextureDestInfo & dsti, const TextureIn
 	{
 		for (u32 y = 0; y < ti.GetHeight(); y++)
 		{
-			if ((y&1) == 0)
+			if ((y & 1) == 0)
 			{
 				unswapped_fn( dst, src, src_offset, ti.GetWidth() );
 			}
@@ -311,7 +311,7 @@ struct SConvert
 		//	There may well be an easier (and less gross)  way of doing this if we move the OutFiddle calculation
 		//	into the source pixel lookup, and just have dst[x] = ...
 		//
-		width = AlignPow2( width, 1<<OutFiddle );
+		width = AlignPow2( width, 1 << OutFiddle );
 
 		for (u32 x = 0; x < width; x++)
 		{
@@ -392,7 +392,7 @@ struct SConvertIA4
 			u8 b {src[src_offset ^ F]};
 
 			// Even
-			dst[width-1] = OutT( ThreeToEight[(b & 0xE0) >> 5],
+			dst[width - 1] = OutT( ThreeToEight[(b & 0xE0) >> 5],
 								 ThreeToEight[(b & 0xE0) >> 5],
 								 ThreeToEight[(b & 0xE0) >> 5],
 								   OneToEight[(b & 0x10) >> 4]);
@@ -432,9 +432,9 @@ struct SConvertI4
 	static inline void ConvertRow( OutT * dst, const u8 * src, u32 src_offset, u32 width )
 	{
 		// Do two pixels at a time
-		for ( u32 x {}; x+1 < width; x+=2 )
+		for ( u32 x = 0; (x + 1) < width; x += 2 )
 		{
-			u8 b {src[src_offset ^ F]};
+			u8 b = src[src_offset ^ F];
 
 			// Even
 			dst[x + 0] = OutT( FourToEight[(b & 0xF0)>>4],
@@ -526,7 +526,7 @@ static void ConvertCI4_Row( NativePfCI44 * dst, const u8 * src, u32 src_offset, 
 	// Handle any remaining odd pixels
 	if( width & 1 )
 	{
-		u8 b {src[src_offset ^ F]};
+		u8 b = src[src_offset ^ F];
 
 		dst[ width/2 ].Bits = (b >> 4) | 0;
 	}
@@ -543,8 +543,8 @@ static void ConvertCI4_Row_To_8888( NativePf8888 * dst, const u8 * src, u32 src_
 	{
 		u8 b = src[src_offset ^ F];
 
-		u32 bhi = (u32)(b&0xf0)>>4;
-		u32 blo = (u32)(b&0x0f);
+		u32 bhi = (u32)(b & 0xf0)>>4;
+		u32 blo = (u32)(b & 0x0f);
 
 		dst[ x + 0 ] = palette[ bhi ];	// Remember palette has already been swapped
 		dst[ x + 1 ] = palette[ blo ];
@@ -557,7 +557,7 @@ static void ConvertCI4_Row_To_8888( NativePf8888 * dst, const u8 * src, u32 src_
 	{
 		u8 b = src[src_offset ^ F];
 
-		u8 bhi = (u8)((b&0xf0)>>4);
+		u8 bhi = (u8)((b & 0xf0)>>4);
 
 		dst[width-1] = palette[ bhi ];	// Remember palette has already been swapped
 	}
@@ -582,7 +582,7 @@ static  void ConvertCI8_Row_To_8888( NativePf8888 * dst, const u8 * src, u32 src
 
 	for (u32 x = 0; x < width; x++)
 	{
-		u8 b     {src[src_offset ^ F]};
+		u8 b     = src[src_offset ^ F];
 		dst[ x ] = palette[ b ];	// Remember palette has already been swapped
 		src_offset++;
 	}
@@ -713,14 +713,6 @@ bool ConvertTexture(const TextureInfo & ti,
 					ETextureFormat texture_format,
 					u32 pitch)
 {
-	//Do nothing if palette address is nullptr or close to nullptr in a palette texture //Corn
-	//Loading a SaveState (OOT -> SSV) dont bring back our TMEM data which causes issues for the first rendered frame.
-	//Checking if the palette pointer is less than 0x1000 (rather than just nullptr) fixes it.
-	// Seems to happen on the first frame of Goldeneye too?
-	if( (ti.GetFormat() == G_IM_FMT_CI) && (ti.GetTlutAddress() < 0x1000) ) return false;
-
-	//memset( texels, 0, buffer_size );
-
 	TextureDestInfo dsti( texture_format );
 	dsti.Data    = texels;
 	dsti.Width   = ti.GetWidth();

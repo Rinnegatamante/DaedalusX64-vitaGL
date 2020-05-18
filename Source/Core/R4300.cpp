@@ -1446,8 +1446,8 @@ static void R4300_CALL_TYPE R4300_Special_DMULT( R4300_CALL_SIGNATURE ) 		// Dou
 	gCPUState.MultLo._u64 = gGPR[ op_code.rs ]._s64 * gGPR[ op_code.rt ]._s64;
 	gCPUState.MultHi._u64 = 0;
 #else
-	s64 rrs {gGPR[ op_code.rs ]._s64};
-	s64 rrt {gGPR[ op_code.rt ]._s64};
+	s64 rrs = gGPR[ op_code.rs ]._s64;
+	s64 rrt = gGPR[ op_code.rt ]._s64;
 
 	bool sign {};
 
@@ -1463,23 +1463,23 @@ static void R4300_CALL_TYPE R4300_Special_DMULT( R4300_CALL_SIGNATURE ) 		// Dou
 		sign = sign ? false : true;
 	}
 
-	u64 op1 {rrs & 0xFFFFFFFF};
-	u64 op2 {(rrs >> 32) & 0xFFFFFFFF};
-	u64 op3 {rrt & 0xFFFFFFFF};
-	u64 op4 ={(rrt >> 32) & 0xFFFFFFFF};
+	u64 op1 = rrs & 0xFFFFFFFF;
+	u64 op2 = (rrs >> 32) & 0xFFFFFFFF;
+	u64 op3 = rrt & 0xFFFFFFFF;
+	u64 op4 = (rrt >> 32) & 0xFFFFFFFF;
 
-u64 temp1 {op1 * op3};
-u64	temp2 {(temp1 >> 32) + op1 * op4};
-u64	temp3 {op2 * op3};
-u64	temp4 {(temp3 >> 32) + op2 * op4};
+	u64 temp1 = op1 * op3;
+	u64	temp2 = (temp1 >> 32) + op1 * op4;
+	u64	temp3 = op2 * op3;
+	u64	temp4 = (temp3 >> 32) + op2 * op4;
 
-u64	result1 {temp1 & 0xFFFFFFFF};
-u64	result2 {temp2 + (temp3 & 0xFFFFFFFF)};
-u64	result3 {(result2 >> 32) + temp4};
-u64	result4 {(result3 >> 32)};
+	u64	result1 = temp1 & 0xFFFFFFFF;
+	u64	result2 = temp2 + (temp3 & 0xFFFFFFFF);
+	u64	result3 = (result2 >> 32) + temp4;
+	u64	result4 = (result3 >> 32);
 
-s64	lo {result1 | (result2 << 32)};
-s64	hi {(result3 & 0xFFFFFFFF) | (result4 << 32)};
+	s64	lo = result1 | (result2 << 32);
+	s64	hi = (result3 & 0xFFFFFFFF) | (result4 << 32);
 	if (sign)
 	{
 		hi = ~hi;

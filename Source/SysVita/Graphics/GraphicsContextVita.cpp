@@ -129,7 +129,7 @@ void IGraphicsContext::ClearToBlack()
 	glDepthMask(GL_TRUE);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClearDepth( 1.0f );
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear((GLbitfield)(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) );
 }
 
 void IGraphicsContext::ClearZBuffer()
@@ -150,7 +150,7 @@ void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 	glDepthMask(GL_TRUE);
 	glClearDepth( 1.0f );
 	glClearColor( colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf() );
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	glClear((GLbitfield)(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) );
 }
 
 void IGraphicsContext::BeginFrame()

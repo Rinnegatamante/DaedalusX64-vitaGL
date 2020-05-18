@@ -554,16 +554,10 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		}
 		
-		/*if ( mTnL.Flags.Fog )
-		{
-		}
-		else*/
-		{
-			details.ColourAdjuster.Process(p_vertices, num_vertices);
-			glEnableClientState(GL_COLOR_ARRAY);
-			vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
-			vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
-		}
+		details.ColourAdjuster.Process(p_vertices, num_vertices);
+		glEnableClientState(GL_COLOR_ARRAY);
+		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
+		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
 	}
 	else if( blend_entry.States != nullptr )
 	{
@@ -625,9 +619,7 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 
 void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
-	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
-	
 	PrepareTexRectUVs(&st0, &st1);
 	
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
@@ -708,19 +700,20 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
-	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X, U: %f, V: %f, U2: %f, V2: %f", gRDPOtherMode.L, uv0.x, uv0.y, uv1.x, uv1.y);
-	
-	// FIXME(strmnnrmn): in copy mode, depth buffer is always disabled. Might not need to check this explicitly.
 	UpdateTileSnapshots( tile_idx );
 	PrepareTexRectUVs(&st0, &st1);
 
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
 	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
 
+	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "TexRectFlip: L: 0x%08X, U: %f, V: %f, U2: %f, V2: %f", gRDPOtherMode.L, uv0.x, uv0.y, uv1.x, uv1.y);
+
 	v2 screen0;
 	v2 screen1;
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
+	
+	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
@@ -740,16 +733,16 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	
 	gVertexBuffer[0] = screen0.x;
 	gVertexBuffer[1] = screen0.y;
-	gVertexBuffer[2] = 0.0f;
+	gVertexBuffer[2] = depth;
 	gVertexBuffer[3] = screen1.x;
 	gVertexBuffer[4] = screen0.y;
-	gVertexBuffer[5] = 0.0f;
+	gVertexBuffer[5] = depth;
 	gVertexBuffer[6] = screen0.x;
 	gVertexBuffer[7] = screen1.y;
-	gVertexBuffer[8] = 0.0f;
+	gVertexBuffer[8] = depth;
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
-	gVertexBuffer[11] = 0.0f;
+	gVertexBuffer[11] = depth;
 	vglVertexPointerMapped(gVertexBuffer);
 	gVertexBuffer += 12;
 	
