@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Graphics/ColourValue.h"
 #include "Utility/FastMemcpy.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "Utility/stb_image_write.h"
+
 #include "Math/MathUtil.h"
 
 #include <png.h>
@@ -145,7 +148,7 @@ void CNativeTexture::SetData( void * data, void * palette )
 					for (u32 x = 0; x < mCorrectedWidth; ++x)
 					{
 						NativePfCI44	colors  = pix_ptr[ x / 2 ];
-						u8				pal_idx = (x&1) ? colors.GetIdxA() : colors.GetIdxB();
+						u8				pal_idx = (x & 1) ? colors.GetIdxA() : colors.GetIdxB();
 
 						*out_ptr = pal_ptr[ pal_idx ];
 						out_ptr++;
@@ -199,6 +202,11 @@ void CNativeTexture::SetData( void * data, void * palette )
 			break;
 		}
 	}
+}
+
+void CNativeTexture::Dump(const char *filename)
+{
+	stbi_write_png(filename, mCorrectedWidth, mCorrectedHeight, 4, mpData, mCorrectedWidth * 4);
 }
 
 u32	CNativeTexture::GetStride() const

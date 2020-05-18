@@ -32,7 +32,7 @@
 #include "SysVita/UI/Menu.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "SysVita/UI/stb_image.h"
+#include "Utility/stb_image.h"
 
 #define PREVIEW_PADDING 6
 #define PREVIEW_HEIGHT 268.0f

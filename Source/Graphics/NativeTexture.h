@@ -48,6 +48,8 @@ class CNativeTexture : public CRefCounted
 		static	CRefPtr<CNativeTexture>		Create( u32 width, u32 height, ETextureFormat texture_format );
 #ifndef DAEDALUS_VITA
 		static	CRefPtr<CNativeTexture>		CreateFromPng( const char * p_filename, ETextureFormat texture_format );
+#else
+		void							Dump(const char * filename);
 #endif
 		void							InstallTexture() const;
 
