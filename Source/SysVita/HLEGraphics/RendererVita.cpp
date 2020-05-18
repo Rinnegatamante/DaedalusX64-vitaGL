@@ -647,11 +647,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 		ScaleN64ToScreen( xy1, screen1 );
 	}
 	
-	/*
-     FIXME: Disabling this for 0x0C184244 mode makes some enemies being rendered through walls and characters on RayMan as well as some lums.
-	 However disabling this makes icons and RayMan lifebar properly render. Keeping it enabled for now since the trade off is not worth
-	*/
-	const f32 depth = (gRDPOtherMode.depth_source && !(g_ROM.T0_SKIP_HACK && gRDPOtherMode.L == 0x0C184244))  ? mPrimDepth : 0.0f;
+	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
