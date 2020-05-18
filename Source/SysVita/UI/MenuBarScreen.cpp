@@ -46,6 +46,7 @@ int aspect_ratio = RATIO_16_9;
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
+extern bool use_mp3;
 extern bool wait_rendering;
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
@@ -245,6 +246,11 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Asynchronous", nullptr, gAudioPluginEnabled == APM_ENABLED_ASYNC)){
 			gAudioPluginEnabled = APM_ENABLED_ASYNC;
 		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Disable MP3 instructions", nullptr, !use_mp3)){
+			use_mp3 = !use_mp3;
+		}
+		SetDescription("Disables MP3 instructions for better performances.");
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu("Input")){

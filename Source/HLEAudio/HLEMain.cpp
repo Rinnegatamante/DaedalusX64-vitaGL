@@ -56,6 +56,7 @@ extern AudioHLEInstruction NEAD_MK[0x20];
 
 AudioHLEInstruction *ABI;
 bool bAudioChanged = false;
+bool use_mp3 = true;
 extern bool isZeldaABI;
 
 //*****************************************************************************
@@ -92,9 +93,11 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 		case 0x1AB0140C: /* Conker's Bad Fur Day */
 		case 0x1AE8143C: /* NAudio MP3
 			BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
-			ABI = NAudio_MP3;
-			sprintf(cur_audio_ucode, "NAudio MP3");
-			break;
+			if (use_mp3) {
+				ABI = NAudio_MP3;
+				sprintf(cur_audio_ucode, "NAudio MP3");
+				break;
+			}
 		default: /* NAudio */
 			ABI = NAudio;
 			sprintf(cur_audio_ucode, "NAudio");
