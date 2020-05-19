@@ -452,7 +452,7 @@ struct SConvertI4
 
 		if(width & 1)
 		{
-			u8 b {src[src_offset ^ F]};
+			u8 b = src[src_offset ^ F];
 
 			// Even
 			dst[width-1] = OutT( FourToEight[(b & 0xF0)>>4],

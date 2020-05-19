@@ -1351,8 +1351,8 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 {
 	//DBGConsole_Msg(0, "In SetNewVertexInfo");
 	const FiddledVtx * const pVtxBase( (const FiddledVtx*)(g_pu8RamBase + address) );
-	const Matrix4x4 & mat_project {mProjectionMat};
-	const Matrix4x4 & mat_world {mModelViewStack[mModelViewTop]};
+	const Matrix4x4 & mat_project = mProjectionMat;
+	const Matrix4x4 & mat_world = mModelViewStack[mModelViewTop];
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF( "    Ambient color RGB[%f][%f][%f] Texture scale X[%f] Texture scale Y[%f]", mTnL.Lights[mTnL.NumLights].Colour.x, mTnL.Lights[mTnL.NumLights].Colour.y, mTnL.Lights[mTnL.NumLights].Colour.z, mTnL.TextureScaleX, mTnL.TextureScaleY);
@@ -1360,7 +1360,7 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 #endif
 
 	//Model normal base vector
-	const s8 *mn {(const s8*)(g_pu8RamBase + gAuxAddr)};
+	const s8 *mn = (const s8*)(g_pu8RamBase + gAuxAddr);
 
 	// Transform and Project + Lighting or Transform and Project with Colour
 	//
@@ -1380,7 +1380,7 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 
 		//	Initialise the clipping flags
 		//
-		u32 clip_flags {};
+		u32 clip_flags;
 		if		(projected.x < -projected.w)	clip_flags |= X_POS;
 		else if (projected.x > projected.w)		clip_flags |= X_NEG;
 
@@ -1406,15 +1406,15 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 			const v3 & norm {vecTransformedNormal};
 			const v3 & col {mTnL.Lights[mTnL.NumLights].Colour};
 
-			v4 Pos {};
+			v4 Pos;
 			Pos.x = (projected.x + mTnL.CoordMod[8]) * mTnL.CoordMod[12];
 			Pos.y = (projected.y + mTnL.CoordMod[9]) * mTnL.CoordMod[13];
 			Pos.z = (projected.z + mTnL.CoordMod[10])* mTnL.CoordMod[14];
 			Pos.w = (projected.w + mTnL.CoordMod[11])* mTnL.CoordMod[15];
 
 			v3 result( col.x, col.y, col.z );
-			f32 fCosT {};
-			u32 l {};
+			f32 fCosT;
+			u32 l;
 
 			if ( mTnL.Flags.PointLight )
 			{	//POINT LIGHT
@@ -1499,8 +1499,8 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 
 void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboard)
 {
-	u32 pVtxBase {u32(g_pu8RamBase + address)};
-	const Matrix4x4 & mat_world_project {mModelViewStack[mDKRMatIdx]};
+	u32 pVtxBase = u32(g_pu8RamBase + address);
+	const Matrix4x4 & mat_world_project = mModelViewStack[mDKRMatIdx];
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF( "    Ambient color RGB[%f][%f][%f] Texture scale X[%f] Texture scale Y[%f]", mTnL.Lights[mTnL.NumLights].Colour.x, mTnL.Lights[mTnL.NumLights].Colour.y, mTnL.Lights[mTnL.NumLights].Colour.z, mTnL.TextureScaleX, mTnL.TextureScaleY);
@@ -1531,7 +1531,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 
 		for (u32 i {v0}; i < v0 + n; i++)
 		{
-			v3 w {};
+			v3 w;
 			w.x = *(s16*)((pVtxBase + 0) ^ 2);
 			w.y = *(s16*)((pVtxBase + 2) ^ 2);
 			w.z = *(s16*)((pVtxBase + 4) ^ 2);
@@ -1814,10 +1814,10 @@ inline void BaseRenderer::SetVtxColor( u32 vert, u32 color )
 #ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( vert < kMaxN64Vertices, "Vertex index is out of bounds (%d)", vert );
 #endif
-	u32 r {(color>>24)&0xFF};
-	u32 g {(color>>16)&0xFF};
-	u32 b {(color>>8)&0xFF};
-	u32 a {(color)&0xFF};
+	u32 r = (color>>24) & 0xFF;
+	u32 g = (color>>16) & 0xFF;
+	u32 b = (color>>8) & 0xFF;
+	u32 a = (color) & 0xFF;
 	mVtxProjected[vert].Colour = v4( r * (1.0f / 255.0f), g * (1.0f / 255.0f), b * (1.0f / 255.0f), a * (1.0f / 255.0f) );
 }
 
@@ -1877,7 +1877,7 @@ void BaseRenderer::UpdateTileSnapshots( u32 tile_idx )
 
 	if (gRDPOtherMode.cycle_type == CYCLE_2CYCLE)
 	{
-		u32 t1_tile {(tile_idx + 1) & 7};
+		u32 t1_tile = (tile_idx + 1) & 7;
 
 		// NB: I don't think we need to do this. lod_frac is set to 0.0 in the
 		// OSX pixel shader, so it'll always use Texel 0 when mipmapping.
@@ -1928,13 +1928,13 @@ static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 		}
 		else
 		{
-			const u32* src {static_cast<const u32*>(texture1->GetData())};
-			u32* dst      {static_cast<      u32*>(texture0->GetData())};
+			const u32* src = static_cast<const u32*>(texture1->GetData());
+			u32* dst      = static_cast<      u32*>(texture0->GetData());
 
 			//Merge RGB + I -> RGBA in texture 0
 			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
-			u32 size {texture1->GetWidth() * texture1->GetHeight() >> 1};
-			for(u32 i {}; i < size ; i++)
+			u32 size = texture1->GetWidth() * texture1->GetHeight() >> 1;
+			for(u32 i = 0; i < size ; i++)
 			{
 				*dst = (*dst & 0x0FFF0FFF) | (*src & 0xF000F000);
 				dst++;
@@ -1963,6 +1963,7 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 	// DAEDALUS_ASSERT( gRDPStateManager.IsTileInitialised( tile_idx ), "Tile %d hasn't been set up (index %d)", tile_idx, index );
 
 	const TextureInfo &  ti        = gRDPStateManager.GetUpdatedTextureDescriptor( tile_idx );
+	
 	const RDP_Tile &     rdp_tile  = gRDPStateManager.GetTile( tile_idx );
 	const RDP_TileSize & tile_size = gRDPStateManager.GetTileSize( tile_idx );
 

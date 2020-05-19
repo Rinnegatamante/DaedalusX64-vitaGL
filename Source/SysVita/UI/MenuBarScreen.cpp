@@ -57,7 +57,7 @@ bool hide_menubar = true;
 bool run_emu = true;
 bool restart_rom = false;
 bool use_mipmaps = false;
-int sort_order = 0;
+int sort_order = SORT_A_TO_Z;
 
 static bool vflux_window = false;
 static bool vflux_enabled = false;
@@ -102,15 +102,6 @@ void SetDescription(const char *text) {
 
 void DrawExtraMenu() {
 	if (ImGui::BeginMenu("Extra")){
-		if (ImGui::BeginMenu("Sort roms")){
-			if (ImGui::MenuItem("A-Z", nullptr, sort_order == 0)){
-				sort_order = 0;
-			}
-			if (ImGui::MenuItem("Z-A", nullptr, sort_order == 1)){
-				sort_order = 1;
-			}
-			ImGui::EndMenu();
-		}
 		if (ImGui::BeginMenu("UI Theme")){
 			if (ImGui::MenuItem("Dark", nullptr, imgui_theme == DARK_THEME)){
 				ImGui::StyleColorsDark();
@@ -420,6 +411,18 @@ void DrawMenuBar() {
 	ImGui_ImplVitaGL_NewFrame();
 	
 	if (ImGui::BeginMainMenuBar()){
+		if (ImGui::BeginMenu("Options")){
+			if (ImGui::BeginMenu("Sort Roms")){
+				if (ImGui::MenuItem("A to Z", nullptr, sort_order == SORT_A_TO_Z)){
+					sort_order = SORT_A_TO_Z;
+				}
+				if (ImGui::MenuItem("Z to A", nullptr, sort_order == SORT_Z_TO_A)){
+					sort_order = SORT_Z_TO_A;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
+		}
 		DrawCommonMenuBar();
 		DrawExtraMenu();
 		ImGui::SameLine();

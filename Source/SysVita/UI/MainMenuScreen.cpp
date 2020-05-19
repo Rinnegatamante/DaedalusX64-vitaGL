@@ -36,8 +36,9 @@
 
 #define PREVIEW_PADDING 6
 #define PREVIEW_HEIGHT 268.0f
-#define PREVIEW_WIDTH 387.0f
+#define PREVIEW_WIDTH  387.0f
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
+
 char selectedRom[512];
 
 struct CompatibilityList {
@@ -116,20 +117,28 @@ void sort_list(RomSelection *start, int order)
   
         while (ptr1->next != lptr) 
         {
-			if (order){
-            	if(strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) < 0)
-            	{  
-                	swap(ptr1, ptr1->next); 
-                	swapped = 1; 
-            	}
+			switch (order) {
+				case SORT_Z_TO_A:
+				{
+					if (strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) < 0)
+					{  
+						swap(ptr1, ptr1->next); 
+						swapped = 1; 
+					}
+					break;
+				}
+				case SORT_A_TO_Z:
+				{
+					if (strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) > 0)
+					{  
+						swap(ptr1, ptr1->next); 
+						swapped = 1; 
+					}
+					break;
+				}
+				default:
+					break;
 			}
-			else{
-            	if(strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) > 0)
-            	{  
-                	swap(ptr1, ptr1->next); 
-                	swapped = 1; 
-            	}
-			} 
             ptr1 = ptr1->next; 
         } 
         lptr = ptr1; 

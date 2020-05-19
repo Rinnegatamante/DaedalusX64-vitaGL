@@ -228,8 +228,8 @@ bool CachedTexture::Initialise()
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT_Q(mpTexture == nullptr);
 	#endif
-	u32 width  {mTextureInfo.GetWidth()};
-	u32 height {mTextureInfo.GetHeight()};
+	u32 width  = mTextureInfo.GetWidth();
+	u32 height = mTextureInfo.GetHeight();
 
 	if (mTextureInfo.GetEmulateMirrorS()) width  *= 2;
 	if (mTextureInfo.GetEmulateMirrorT()) height *= 2;

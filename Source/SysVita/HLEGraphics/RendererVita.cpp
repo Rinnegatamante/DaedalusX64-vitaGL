@@ -578,9 +578,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 }
 
 void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
-{
-	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
-	
+{	
 	if (mTnL.Flags.Texture)
 	{
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -590,6 +588,8 @@ void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *c
 		else UpdateTileSnapshots( mTextureTile );
 		
 		CNativeTexture *texture = mBoundTexture[0];
+		
+		//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
 		
 		if( texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) )
 		{
