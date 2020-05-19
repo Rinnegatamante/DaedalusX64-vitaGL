@@ -68,6 +68,75 @@ static int preview_width, preview_height, preview_x, preview_y;
 CRefPtr<CNativeTexture> mpPreviewTexture;
 GLuint preview_icon = 0;
 
+
+void swap(RomSelection *a, RomSelection *b) 
+{ 
+	char nametmp[128];
+	memcpy(nametmp, a->name, sizeof nametmp);
+
+	RomSettings settingstmp = a->settings;
+	RomID idtmp = a->id;
+	u32 sizetmp = a->size;
+	ECicType cictmp = a->cic;
+	CompatibilityList *statustmp = a->status;
+
+	//a->name = b->name;
+	memcpy(a->name, b->name, sizeof nametmp);
+
+	a->settings = b->settings;
+	a->id = b->id;
+	a->size = b->size;
+	a->cic = b->cic;
+	a->status = b->status;
+
+    //b->name = nametmp;
+	memcpy(b->name, nametmp, sizeof nametmp);
+
+	b->settings = settingstmp;
+	b->id = idtmp;
+	b->size = sizetmp;
+	b->cic = cictmp;
+	b->status = statustmp; 
+} 
+
+void sort_list(RomSelection *start, int order) 
+{ 
+    int swapped, i; 
+    RomSelection *ptr1; 
+    RomSelection *lptr = NULL; 
+  
+    /* Checking for empty list */
+    if (start == NULL) 
+        return; 
+  
+    do
+    { 
+        swapped = 0; 
+        ptr1 = start; 
+  
+        while (ptr1->next != lptr) 
+        {
+			if (order){
+            	if(strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) < 0)
+            	{  
+                	swap(ptr1, ptr1->next); 
+                	swapped = 1; 
+            	}
+			}
+			else{
+            	if(strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) > 0)
+            	{  
+                	swap(ptr1, ptr1->next); 
+                	swapped = 1; 
+            	}
+			} 
+            ptr1 = ptr1->next; 
+        } 
+        lptr = ptr1; 
+    } 
+    while (swapped); 
+}  
+
 bool LoadPreview(RomSelection *rom) {
 	if (old_hovered == rom) return has_preview_icon;
 	old_hovered = rom;
@@ -234,12 +303,15 @@ char *DrawRomSelector() {
 		}
 	}
 	
+	sort_list(list, sort_order);
+
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH - 400, SCR_HEIGHT - 19), ImGuiSetCond_Always);
 	ImGui::Begin("Selector Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	RomSelection *hovered = nullptr;
 	RomSelection *p = list;
+
 	while (p) {
 		if (ImGui::Button(p->name)){
 			sprintf(selectedRom, p->name);
