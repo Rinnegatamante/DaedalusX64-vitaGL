@@ -113,10 +113,6 @@ TEST_DISABLE_GU_FUNCS
 
 u32 Patch_guTranslate()
 {
-#ifdef DAEDALUS_VITA
-	// FIX ME
-	return PATCH_RET_NOT_PROCESSED0(guTranslate);
-#else
 	TEST_DISABLE_GU_FUNCS
 	const f32 fScale = 65536.0f;
 
@@ -127,9 +123,9 @@ u32 Patch_guTranslate()
 	const f32 fy = gGPR[REG_a2]._f32_0;
 	const f32 fz = gGPR[REG_a3]._f32_0;
 
-	u32 x = (u32)(fx * fScale);
-	u32 y = (u32)(fy * fScale);
-	u32 z = (u32)(fz * fScale);
+	u32 x = (s32)(fx * fScale);
+	u32 y = (s32)(fy * fScale);
+	u32 z = (s32)(fz * fScale);
 
 	u32 one = (u32)(1.0f * fScale);
 
@@ -160,7 +156,6 @@ u32 Patch_guTranslate()
 	QuickWrite32Bits(pMtxBase, 0x3c, z1lobits);	// z1
 
 	return PATCH_RET_JR_RA;
-#endif
 }
 
 u32 Patch_guScaleF()
@@ -193,10 +188,6 @@ TEST_DISABLE_GU_FUNCS
 
 u32 Patch_guScale()
 {
-#ifdef DAEDALUS_VITA
-	// FIX ME
-	return PATCH_RET_NOT_PROCESSED0(guScale);
-#else
 	TEST_DISABLE_GU_FUNCS
 	const f32 fScale = 65536.0f;
 
@@ -207,9 +198,9 @@ u32 Patch_guScale()
 	const f32 fy = gGPR[REG_a2]._f32_0;
 	const f32 fz = gGPR[REG_a3]._f32_0;
 
-	u32 x = (u32)(fx * fScale);
-	u32 y = (u32)(fy * fScale);
-	u32 z = (u32)(fz * fScale);
+	u32 x = (s32)(fx * fScale);
+	u32 y = (s32)(fy * fScale);
+	u32 z = (s32)(fz * fScale);
 
 	u32 zer = (u32)(0.0f);
 
@@ -243,15 +234,10 @@ u32 Patch_guScale()
 	QuickWrite32Bits(pMtxBase, 0x3c, 0x00000000);	// z1
 
 	return PATCH_RET_JR_RA;
-#endif
 }
 
 u32 Patch_guMtxF2L()
 {
-#ifdef DAEDALUS_VITA
-	// FIX ME
-	return PATCH_RET_NOT_PROCESSED0(guMtxF2L);
-#else
 	TEST_DISABLE_GU_FUNCS
 	const f32 fScale = 65536.0f;
 
@@ -272,9 +258,8 @@ u32 Patch_guMtxF2L()
 		a._u32 = QuickRead32Bits(pMtxFBase, (row << 4) + 0x0);
 		b._u32 = QuickRead32Bits(pMtxFBase, (row << 4) + 0x4);
 
-		// Should be TRUNC
-		tmp_a = (u32)(a._f32 * fScale);
-		tmp_b = (u32)(b._f32 * fScale);
+		tmp_a = (s32)(a._f32 * fScale);
+		tmp_b = (s32)(b._f32 * fScale);
 
 		hibits = (tmp_a & 0xFFFF0000) | (tmp_b >> 16);
 		QuickWrite32Bits(pMtxLBaseHiBits, (row << 3) , hibits);
@@ -286,9 +271,8 @@ u32 Patch_guMtxF2L()
 		a._u32 = QuickRead32Bits(pMtxFBase, (row << 4) + 0x8);
 		b._u32 = QuickRead32Bits(pMtxFBase, (row << 4) + 0xc);
 
-		// Should be TRUNC
-		tmp_a = (u32)(a._f32 * fScale);
-		tmp_b = (u32)(b._f32 * fScale);
+		tmp_a = (s32)(a._f32 * fScale);
+		tmp_b = (s32)(b._f32 * fScale);
 
 		hibits = (tmp_a & 0xFFFF0000) | (tmp_b >> 16);
 		QuickWrite32Bits(pMtxLBaseHiBits, (row << 3) + 4, hibits);
@@ -298,7 +282,6 @@ u32 Patch_guMtxF2L()
 	}
 
 	return PATCH_RET_JR_RA;
-#endif
 }
 
 //Using VFPU and no memcpy (works without hack?) //Corn
