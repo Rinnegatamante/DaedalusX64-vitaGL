@@ -712,8 +712,6 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	v2 screen1;
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
-	
-	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 
 	CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
@@ -733,16 +731,16 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	
 	gVertexBuffer[0] = screen0.x;
 	gVertexBuffer[1] = screen0.y;
-	gVertexBuffer[2] = depth;
+	gVertexBuffer[2] = 0.0f;
 	gVertexBuffer[3] = screen1.x;
 	gVertexBuffer[4] = screen0.y;
-	gVertexBuffer[5] = depth;
+	gVertexBuffer[5] = 0.0f;
 	gVertexBuffer[6] = screen0.x;
 	gVertexBuffer[7] = screen1.y;
-	gVertexBuffer[8] = depth;
+	gVertexBuffer[8] = 0.0f;
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
-	gVertexBuffer[11] = depth;
+	gVertexBuffer[11] = 0.0f;
 	vglVertexPointerMapped(gVertexBuffer);
 	gVertexBuffer += 12;
 	
