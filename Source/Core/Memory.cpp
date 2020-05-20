@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Plugins/AudioPlugin.h"
 #include "Plugins/GraphicsPlugin.h"
 
+bool use_expansion_pak = true;
+
 static const u32	kMaximumMemSize = MEMORY_8_MEG;
 
 #undef min
@@ -122,7 +124,7 @@ void * 			g_pMemoryBuffers[NUM_MEM_BUFFERS];
 
 bool Memory_Init()
 {
-	gRamSize = kMaximumMemSize;
+	gRamSize = use_expansion_pak ? MEMORY_8_MEG : MEMORY_4_MEG;
 
 #ifdef DAED_USE_VIRTUAL_ALLOC
 	gMemBase = VirtualAlloc(0, 512*1024*1024, MEM_RESERVE, PAGE_READWRITE);
@@ -196,7 +198,7 @@ bool Memory_Init()
 
 void Memory_Fini(void)
 {
-		#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 	DPF(DEBUG_MEMORY, "Freeing Memory");
 #endif
 #ifdef DAED_USE_VIRTUAL_ALLOC
@@ -232,7 +234,7 @@ void Memory_Fini(void)
 
 bool Memory_Reset()
 {
-	u32 main_mem = g_ROM.settings.ExpansionPakUsage != PAK_UNUSED ? MEMORY_8_MEG : MEMORY_4_MEG;
+	u32 main_mem = use_expansion_pak ? MEMORY_8_MEG : MEMORY_4_MEG;
 	#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "Reseting Memory - %d MB", main_mem/(1024*1024));
 #endif
@@ -634,21 +636,12 @@ void MemoryUpdateSPStatus( u32 flags )
 	if (flags & SP_SET_SIG7)				DBGConsole_Msg( 0, "SP: Setting Sig7" );
 #endif
 
-	// If !HALT && !BROKE
-
-	bool start_rsp = false, stop_rsp = false;
 	u32	clr_bits = 0, set_bits = 0;
 
 	if (flags & SP_CLR_HALT)
-	{
 		clr_bits |= SP_STATUS_HALT;
-		start_rsp = true;
-	}
 	else if (flags & SP_SET_HALT)
-	{
 		set_bits |= SP_STATUS_HALT;
-		stop_rsp = true;
-	}
 
 	if (flags & SP_SET_INTR)	// Shouldn't ever set this?
 	{
@@ -689,7 +682,7 @@ void MemoryUpdateSPStatus( u32 flags )
 	//
 	// We execute the task here, after we've written to the SP status register.
 	//
-	if (start_rsp)
+	if (!(new_status & (SP_STATUS_HALT | SP_STATUS_BROKE)))
 	{
 		#ifdef DAEDALUS_ENABLE_ASSERTS
 		DAEDALUS_ASSERT( (new_status & SP_STATUS_BROKE) == 0, "Unexpected RSP HLE status %08x", new_status );
@@ -706,8 +699,8 @@ void MemoryUpdateDP( u32 flags )
 	// Ignore address, as this is only called with DPC_STATUS_REG write
 	// DBGConsole_Msg(0, "DP Status: 0x%08x", flags);
 
-	u32 dpc_status  {Memory_DPC_GetRegister(DPC_STATUS_REG)};
-	bool unfreeze_task  {false};
+	u32 dpc_status = Memory_DPC_GetRegister(DPC_STATUS_REG);
+	bool unfreeze_task = false;
 
 	// ToDO : Avoid branching
 	if (flags & DPC_CLR_XBUS_DMEM_DMA)			dpc_status &= ~DPC_STATUS_XBUS_DMEM_DMA;

@@ -51,6 +51,7 @@ extern bool wait_rendering;
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
 extern char cur_audio_ucode[32];
+extern bool use_expansion_pak;
 
 bool show_menubar = true;
 bool hide_menubar = true;
@@ -168,6 +169,9 @@ void DrawCommonMenuBar() {
 			gOSHooksEnabled = !gOSHooksEnabled;
 		}
 		SetDescription("Enables high level emulation of OS functions for better performance.\nMay cause instability on some games.");
+		if (ImGui::MenuItem("Expansion Pak", nullptr, use_expansion_pak)){
+				use_expansion_pak = !use_expansion_pak;
+			}
 		ImGui::Separator();
 		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
