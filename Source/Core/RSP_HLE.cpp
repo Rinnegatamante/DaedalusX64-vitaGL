@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Interrupt.h"
 #include "Memory.h"
+#include "Core/ROM.h"
 #include "Debug/DBGConsole.h"
 #include "Debug/DebugLog.h"
 #include "Debug/Dump.h"			// For Dump_GetDumpDirectory()
@@ -45,11 +46,12 @@ extern void jpeg_decode_PS(OSTask *task);
 extern void jpeg_decode_PS0(OSTask *task);
 extern void jpeg_decode_OB(OSTask *task);
 
-/* RE2Task.cpp */
+/* RE2Task.cpp + HqvmTask.cpp */
 extern "C" {
 	extern void resize_bilinear_task(OSTask *task);
 	extern void decode_video_frame_task(OSTask *task);
 	extern void fill_video_double_buffer_task(OSTask *task);
+	extern void hvqm2_decode_sp1_task(OSTask *task);
 };
 
 #ifdef DAEDALUS_DEBUG_CONSOLE
@@ -288,6 +290,12 @@ EProcessResult RSP_HLE_RE2(OSTask * task)
 	return PR_COMPLETED;
 }
 
+EProcessResult RSP_HLE_Hvqm(OSTask * task)
+{
+	hvqm2_decode_sp1_task(task);
+	return PR_COMPLETED;
+}
+
 void RSP_HLE_ProcessTask()
 {
 	OSTask * pTask = (OSTask *)(g_pu8SpMemBase + 0x0FC0);
@@ -311,6 +319,10 @@ void RSP_HLE_ProcessTask()
 			
 			if ((u32*)(pTask->t.data_ptr) == nullptr) {
 				result = RSP_HLE_RE2(pTask);
+			} else if (g_ROM.rh.CartID == 0x4B59) { // Yakouchuu II - Satsujin Kouro
+				u32 sum = sum_bytes(g_pu8RamBase + (u32)pTask->t.ucode, 1488);
+				if (sum_bytes == 0x19495) result = RSP_HLE_Hvqm(pTask);
+				else result = RSP_HLE_Graphics();
 			} else {
 				result = RSP_HLE_Graphics();
 			}
@@ -326,6 +338,9 @@ void RSP_HLE_ProcessTask()
 
 		case M_JPGTASK:
 			result = RSP_HLE_Jpeg(pTask);
+			break;
+		case M_FBTASK:
+			result = RSP_HLE_Hvqm(pTask);
 			break;
 		#ifdef DAEDALUS_ENABLE_ASSERTS
 		default:

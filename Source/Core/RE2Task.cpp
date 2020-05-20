@@ -25,7 +25,7 @@
 **/
 
 //
-//	N.B. This source code is derived from Mupen64Plus's Audio plugin
+//	N.B. This source code is derived from Mupen64Plus's source
 //	and modified by Rinnegatamante to work with Daedalus X64.
 //
 

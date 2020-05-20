@@ -362,7 +362,7 @@ static void WriteValue_8470_847F( u32 address, u32 value )
 // 0x0480 0000 to 0x048F FFFF Serial Interface (SI) Registers
 static void WriteValue_8480_848F( u32 address, u32 value )
 {
-		#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 	DPF( DEBUG_MEMORY_SI, "Writing to MEM_SI_REG: 0x%08x", address );
 #endif
 	u32 offset {address & 0xFF};
