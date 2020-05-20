@@ -285,6 +285,8 @@ public:
 	// Viewport stuff
 	void				SetN64Viewport( const v2 & scale, const v2 & trans );
 	void				SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 );
+	
+	void				ForceViewport(float w, float h);
 #ifdef DAEDALUS_VITA
 	void				SetNegativeViewport();
 	void				SetPositiveViewport();
@@ -348,6 +350,9 @@ public:
 	virtual void 		ResetDebugState()						{}
 #endif
 
+	inline float		LightN64ToScreenX(float x) const		{ return x * mN64ToScreenScale.x; }
+	inline float		LightN64ToScreenY(float y) const		{ return y * mN64ToScreenScale.y; }
+	
 	inline float		N64ToScreenX(float x) const				{ return x * mN64ToScreenScale.x + mN64ToScreenTranslate.x; }
 	inline float		N64ToScreenY(float y) const				{ return y * mN64ToScreenScale.y + mN64ToScreenTranslate.y; }
 
@@ -383,8 +388,8 @@ protected:
 
 	inline void ScaleN64ToScreen( const v2 & n64_coords, v2 & answ ) const
 	{
-		answ.x = roundf( roundf( n64_coords.x ) * mN64ToScreenScale.x );
-		answ.y = roundf( roundf( n64_coords.y ) * mN64ToScreenScale.y );
+		answ.x = roundf( LightN64ToScreenX( roundf( n64_coords.x ) ) );
+		answ.y = roundf( LightN64ToScreenY( roundf( n64_coords.y ) ) );
 	}
 #ifdef DAEDALUS_VITA
 	virtual void		RenderTriangles( float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer ) = 0;

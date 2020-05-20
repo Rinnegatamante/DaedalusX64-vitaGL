@@ -301,15 +301,77 @@ void BaseRenderer::EndScene()
 
 //
 
+void BaseRenderer::ForceViewport(float w, float h)
+{
+	fViWidth = w;
+	fViHeight = h;
+	mVpScale = v2(w / 2, h / 2);
+	mVpTrans = v2(w / 2, h / 2);
+	
+	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
+	u32 display_width  = 0, display_height = 0;
+	CGraphicsContext::Get()->ViewportType(&display_width, &display_height);
+	
+	if (mScreenWidth != display_width || mScreenHeight != display_height ||
+		oldfViWidth != fViWidth || oldfViHeight != fViHeight ){
+		
+		mScreenWidth  = (f32)display_width;
+		mScreenHeight = (f32)display_height;
+		oldfViWidth = fViWidth;
+		oldfViHeight = fViHeight;
+
+#ifdef DAEDALUS_PSP
+		// Centralise the viewport in the display.
+		u32 frame_width  = (u32)(gGlobalPreferences.TVEnable ? 720 : 480);
+		u32 frame_height = (u32)(gGlobalPreferences.TVEnable ? 480 : 272);
+
+		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
+		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
+#elif defined(DAEDALUS_VITA)
+		// Centralise the viewport in the display.
+		u32 frame_width  = SCR_WIDTH;
+		u32 frame_height = SCR_HEIGHT;
+
+		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
+		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
+#else
+		f32 display_x = 0, display_y = 0;
+#endif
+
+		mN64ToScreenScale.x = gZoomX * (mScreenWidth  / fViWidth);
+		mN64ToScreenScale.y = gZoomX * (mScreenHeight / fViHeight);
+
+		mN64ToScreenTranslate.x  = display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
+		mN64ToScreenTranslate.y  = display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
+
+#ifndef DAEDALUS_VITA
+		if (gRumblePakActive)
+		{
+			mN64ToScreenTranslate.x += (FastRand() & 3);
+			mN64ToScreenTranslate.y += (FastRand() & 3);
+		}
+#endif
+
+#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
+		f32 w = mScreenWidth;
+		f32 h = mScreenHeight;
+
+		mScreenToDevice = Matrix4x4(
+			2.f / w,       0.f,     0.f,     0.f,
+				0.f,  -2.f / h,     0.f,     0.f,
+				0.f,       0.f,     1.f,     0.f,
+			  -1.0f,       1.f,     0.f,     1.f
+		);
+#endif
+	}
+	
+	UpdateViewport();
+}
+
 void BaseRenderer::InitViewport()
 {
 	// Init the N64 viewport.
-	if (gRDPFrame == 0) {
-		mVpScale = v2( 160.0f, 120.0f );
-		mVpTrans = v2( 160.0f, 120.0f );
-		fViWidth = 320.0f;
-		fViHeight = 240.0f;
-	} else SetVIScales();
+	SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
 	u32 display_width  = 0, display_height = 0;

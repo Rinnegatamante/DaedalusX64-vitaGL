@@ -67,8 +67,10 @@ void RenderFrameBuffer(u32 origin)
 	gRenderer->BeginScene();
 	
 	CRefPtr<CNativeTexture> texture = LoadFrameBuffer(origin);
-	if(texture != NULL)
-		gRenderer->Draw2DTexture(FB_WIDTH - Memory_VI_GetRegister( VI_WIDTH_REG ), FB_HEIGHT - ((float)FB_HEIGHT * fb_ratio), FB_WIDTH + 1, FB_HEIGHT + 1, 0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), FB_HEIGHT, texture);
+	if(texture != NULL) {
+		gRenderer->ForceViewport(Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio);
+		gRenderer->Draw2DTexture(0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio, 0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), FB_HEIGHT, texture);
+	}
 
 	gRenderer->EndScene();
 	CGraphicsContext::Get()->UpdateFrame( false );

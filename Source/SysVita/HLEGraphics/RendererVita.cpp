@@ -858,11 +858,11 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 	
-	float sx0 = N64ToScreenX(x0);
-	float sy0 = N64ToScreenY(y0);
+	float sx0 = LightN64ToScreenX(x0);
+	float sy0 = LightN64ToScreenY(y0);
 
-	float sx1 = N64ToScreenX(x1);
-	float sy1 = N64ToScreenY(y1);
+	float sx1 = LightN64ToScreenX(x1);
+	float sy1 = LightN64ToScreenY(y1);
 	
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -925,17 +925,17 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	gVertexBuffer[0] = N64ToScreenX(x0);
-	gVertexBuffer[1] = N64ToScreenY(y0);
+	gVertexBuffer[0] = LightN64ToScreenX(x0);
+	gVertexBuffer[1] = LightN64ToScreenY(y0);
 	gVertexBuffer[2] = 0.0f;
-	gVertexBuffer[3] = N64ToScreenX(x1);
-	gVertexBuffer[4] = N64ToScreenY(y1);
+	gVertexBuffer[3] = LightN64ToScreenX(x1);
+	gVertexBuffer[4] = LightN64ToScreenY(y1);
 	gVertexBuffer[5] = 0.0f;
-	gVertexBuffer[6] = N64ToScreenX(x2);
-	gVertexBuffer[7] = N64ToScreenY(y2);
+	gVertexBuffer[6] = LightN64ToScreenX(x2);
+	gVertexBuffer[7] = LightN64ToScreenY(y2);
 	gVertexBuffer[8] = 0.0f;
-	gVertexBuffer[9] = N64ToScreenX(x3);
-	gVertexBuffer[10] = N64ToScreenY(y3);
+	gVertexBuffer[9] = LightN64ToScreenX(x3);
+	gVertexBuffer[10] = LightN64ToScreenY(y3);
 	gVertexBuffer[11] = 0.0f;
 	gTexCoordBuffer[0] = 0.0f;
 	gTexCoordBuffer[1] = 0.0f;
