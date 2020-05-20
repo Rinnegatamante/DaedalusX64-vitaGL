@@ -307,6 +307,8 @@ void BaseRenderer::InitViewport()
 	if (gRDPFrame == 0) {
 		mVpScale = v2( 160.0f, 120.0f );
 		mVpTrans = v2( 160.0f, 120.0f );
+		fViWidth = 320.0f;
+		fViHeight = 240.0f;
 	} else SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
@@ -405,6 +407,7 @@ bool is_negative_x = false;
 bool is_negative_y = false;
 
 void inline SetInternalViewport() {
+	//DBGConsole_Msg(0, "InternalViewport: %ld, %ld, %ld, %ld", vp_x, vp_y, vp_w, vp_h);
 #ifdef DAEDALUS_PSP
 	const u32 vx = 2048;
 	const u32 vy = 2048;
@@ -448,6 +451,7 @@ void BaseRenderer::UpdateViewport()
 void BaseRenderer::SetNegativeViewport()
 {
 	if ((vp_w < 0) || (vp_h < 0) || (vp_x < 0) || (vp_y < 0)) {
+		//DBGConsole_Msg(0, "PreNegativeViewport: %ld, %ld, %ld, %ld", vp_x, vp_y, vp_w, vp_h);
 		if (vp_x < 0) {
 			vp_w += vp_x;
 			vp_x -= vp_x;
@@ -475,6 +479,7 @@ void BaseRenderer::SetNegativeViewport()
 void BaseRenderer::SetPositiveViewport()
 {
 	if (is_negative_w || is_negative_h || is_negative_x || is_negative_y) {
+		//DBGConsole_Msg(0, "PrePositiveViewport: %ld, %ld, %ld, %ld", vp_x, vp_y, vp_w, vp_h);
 		if (is_negative_x) {
 			vp_w += vp_x;
 			vp_x -= vp_x;
@@ -2069,13 +2074,13 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 // and everything works correctly.
 inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
+#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT(size > 0, "Texture has crazy width/height");
-	#endif
-	s32 offset_10_5 {offset << 3};
+#endif
+	s32 offset_10_5 = offset << 3;
 
-	s32 c0 {*c0_ - offset_10_5};
-	s32 c1 {*c1_ - offset_10_5};
+	s32 c0 = *c0_ - offset_10_5;
+	s32 c1 = *c1_ - offset_10_5;
 
 	// Many texrects already have GU_CLAMP set, so avoid some work.
 #ifdef DAEDALUS_PSP
