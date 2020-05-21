@@ -18,10 +18,6 @@
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
-extern "C" {
-#include <math_neon.h>
-};
-
 // Using uninterceptable buttons as aliases for right stick
 #define SCE_CTRL_RUP    SCE_CTRL_HEADPHONE
 #define SCE_CTRL_RDOWN  SCE_CTRL_VOLUP
@@ -1012,8 +1008,8 @@ u32		IInputManager::GetConfigurationFromName( const char * name ) const
 v2	ProjectToUnitSquare( const v2 & in )
 {
 	f32		length( in.Length() );
-	float	abs_x( fabsf_neon( in.x ) );
-	float	abs_y( fabsf_neon( in.y ) );
+	float	abs_x( fabsf( in.x ) );
+	float	abs_y( fabsf( in.y ) );
 	float	scale;
 
 	//

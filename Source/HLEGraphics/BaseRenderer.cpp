@@ -51,10 +51,6 @@ struct ScePspFMatrix4
 	float m[16];
 };
 
-extern "C" {
-#include <math_neon.h>
-};
-
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
@@ -1335,13 +1331,8 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 				else
 				{
 					//Cheap way to do Acos(x)/Pi (abs() fixes star in SM64, sort of) //Corn
-#ifdef DAEDALUS_VITA
-					f32 NormX = fabsf_neon( norm.x );
-					f32 NormY = fabsf_neon( norm.y );
-#else
 					f32 NormX = fabsf( norm.x );
 					f32 NormY = fabsf( norm.y );
-#endif
 					mVtxProjected[i].Texture.x =  0.5f - 0.25f * NormX - 0.25f * NormX * NormX * NormX;
 					mVtxProjected[i].Texture.y =  0.5f - 0.25f * NormY - 0.25f * NormY * NormY * NormY;
 				}
