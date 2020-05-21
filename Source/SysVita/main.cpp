@@ -303,8 +303,7 @@ int main(int argc, char* argv[])
 
 	loadConfig();
 
-	while (run_emu)
-	{
+	while (run_emu) {
 		EnableMenuButtons(true);
 
 		if (restart_rom) restart_rom = false;
