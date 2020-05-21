@@ -125,7 +125,7 @@ static void startDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static int downloadThread(unsigned int args, void *arg){
+static int downloadThread(unsigned int args, void* arg){
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
@@ -147,8 +147,7 @@ static int downloadThread(unsigned int args, void *arg){
 		if (downloaded_bytes > 12 * 1024) {
 			sceIoRemove(dbname);
 			sceIoRename(TEMP_DOWNLOAD_NAME, dbname);
-		}
-		else sceIoRemove(TEMP_DOWNLOAD_NAME);
+		} else sceIoRemove(TEMP_DOWNLOAD_NAME);
 		downloaded_bytes = total_bytes;
 	}
 	curl_easy_cleanup(curl_handle);
@@ -178,8 +177,7 @@ static void Initialize()
 	int ret = sceNetShowNetstat();
 	void *net_memory = nullptr;
 	SceNetInitParam initparam;
-	if (ret == SCE_NET_ERROR_ENOTINIT)
-	{
+	if (ret == SCE_NET_ERROR_ENOTINIT) {
 		net_memory = malloc(NET_INIT_SIZE);
 		initparam.memory = net_memory;
 		initparam.size = NET_INIT_SIZE;
@@ -198,7 +196,7 @@ static void Initialize()
 
 	// Initializing dear ImGui
 	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO(); (void)io;
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
@@ -310,8 +308,7 @@ int main(int argc, char* argv[])
 		EnableMenuButtons(true);
 
 		if (restart_rom) restart_rom = false;
-		else
-		{
+		else {
 			rom = nullptr;
 			do {
 				rom = DrawRomSelector();
