@@ -46,18 +46,17 @@ int aspect_ratio = RATIO_16_9;
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
-extern bool use_mp3;
-extern bool wait_rendering;
+
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
 extern char cur_audio_ucode[32];
-extern bool use_expansion_pak;
+
 
 bool show_menubar = true;
 bool hide_menubar = true;
 bool run_emu = true;
 bool restart_rom = false;
-bool use_mipmaps = false;
+int gCPU = 1;
 int sort_order = SORT_A_TO_Z;
 
 static bool vflux_window = false;
@@ -101,6 +100,38 @@ void SetDescription(const char *text) {
 		ImGui::SetTooltip(text);
 }
 
+void saveConfig(){
+	char configFile[512];
+	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), g_ROM.settings.GameName.c_str());
+
+	FILE *config = fopen(configFile, "w+");
+	if (config != NULL) {
+        fprintf(config, "%s=%d\n", "gCPU", gCPU);
+        fprintf(config, "%s=%d\n", "gOSHooksEnabled", gOSHooksEnabled);
+        fprintf(config, "%s=%d\n", "gSpeedSyncEnabled", gSpeedSyncEnabled);
+        
+        fprintf(config, "%s=%d\n", "gVideoRateMatch", gVideoRateMatch);
+        fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
+        fprintf(config, "%s=%d\n", "aspect_ratio",aspect_ratio);
+        fprintf(config, "%s=%d\n", "gCheckTextureHashFrequency", gCheckTextureHashFrequency);
+        fprintf(config, "%s=%d\n", "ForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
+        
+        fprintf(config, "%s=%d\n", "use_mipmaps", use_mipmaps);
+        fprintf(config, "%s=%d\n", "use_vsync", use_vsync);
+        fprintf(config, "%s=%d\n", "use_cdram", use_cdram);
+        fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
+        fprintf(config, "%s=%d\n", "wait_rendering", wait_rendering);
+        
+        fprintf(config, "%s=%d\n", "gAudioPluginEnabled", gAudioPluginEnabled);
+        fprintf(config, "%s=%d\n", "use_mp3", use_mp3);
+        
+        fprintf(config, "%s=%d\n", "use_expansion_pak", use_expansion_pak);
+        fprintf(config, "%s=%d\n", "gControllerIndex", gControllerIndex);
+		fflush(config);
+		fclose(config);
+	}
+}
+
 void DrawExtraMenu() {
 	if (ImGui::BeginMenu("Extra")){
 		if (ImGui::BeginMenu("UI Theme")){
@@ -141,24 +172,24 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::BeginMenu("CPU")){
-			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gDynarecEnabled && !gUseCachedInterpreter && gUnsafeDynarecOptimisations)){
+			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gCPU == 1)){
 				gDynarecEnabled = true;
 				gUnsafeDynarecOptimisations = true;
 				gUseCachedInterpreter = false;
 			}
 			SetDescription("Enables full dynamic recompilation for best performances.");
-			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gDynarecEnabled && !gUseCachedInterpreter && !gUnsafeDynarecOptimisations)){
+			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gCPU == 2)){
 				gDynarecEnabled = true;
 				gUnsafeDynarecOptimisations = false;
 				gUseCachedInterpreter = false;
 			}
 			SetDescription("Enables safe dynamic recompilation for good performances and better compatibility.");
-			if (ImGui::MenuItem("Cached Interpreter", nullptr, gUseCachedInterpreter)){
+			if (ImGui::MenuItem("Cached Interpreter", nullptr, gCPU == 3)){
 				gUseCachedInterpreter = true;
 				gDynarecEnabled = true;
 			}
 			SetDescription("Enables cached interpreter for decent performances and better compatibility.");
-			if (ImGui::MenuItem("Interpreter", nullptr, !(gUseCachedInterpreter || gDynarecEnabled))){
+			if (ImGui::MenuItem("Interpreter", nullptr, gCPU == 4)){
 				gUseCachedInterpreter = false;
 				gDynarecEnabled = false;
 			}
@@ -468,6 +499,10 @@ void DrawInGameMenuBar() {
 	if (show_menubar) {
 		if (ImGui::BeginMainMenuBar()){
 			if (ImGui::BeginMenu("Files")){
+		        if (ImGui::MenuItem("Save ROM config")){
+			        saveConfig();
+		        }
+		        ImGui::Separator();
 				if (ImGui::BeginMenu("Save Savestate")){
 					for (int i = 0; i <= MAX_SAVESLOT; i++) {
 						char tag[8];

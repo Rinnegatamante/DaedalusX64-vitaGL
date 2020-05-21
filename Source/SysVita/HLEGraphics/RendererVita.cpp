@@ -29,7 +29,7 @@ extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
 
-extern bool use_mipmaps;
+bool use_mipmaps = false;
 
 struct ScePspFMatrix4
 {
