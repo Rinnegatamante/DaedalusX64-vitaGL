@@ -37,7 +37,7 @@ enum {
 	RATIO_16_9_HACK
 };
 
-extern int aspect_ratio;
+extern int gAspectRatio;
 #endif
 
 class c32;

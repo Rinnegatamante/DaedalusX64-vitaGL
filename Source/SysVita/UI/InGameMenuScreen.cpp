@@ -51,7 +51,7 @@ void DrawInGameMenu() {
 		tmr1 = sceKernelGetProcessTimeWide();
 	}else if (delta_touch > 3000000){
 		ImGui::GetIO().MouseDrawCursor = false;
-		show_menubar = !hide_menubar;
+		show_menubar = !gHideMenubar;
 	}
 	
 	// Handling emulation pause

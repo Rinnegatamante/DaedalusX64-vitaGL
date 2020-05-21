@@ -94,7 +94,7 @@ u32 TextureInfo::GenerateHashValue() const
 	//We want to sample the texture data as far apart as possible
 	if (step < (CHK_ROW << 2))	//if texture is small hash all of it
 	{
-		for (u32 z {}; z < step; z++)
+		for (u32 z = 0; z < step; z++)
 		{
 			hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ ptr_u32[z];
 		}

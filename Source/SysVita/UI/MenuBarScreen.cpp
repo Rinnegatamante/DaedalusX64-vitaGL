@@ -33,19 +33,11 @@
 
 #define MAX_SAVESLOT 9
 
-enum {
-	DARK_THEME,
-	LIGHT_THEME,
-	CLASSIC_THEME
-};
-
-static uint8_t imgui_theme = DARK_THEME;
-
-int aspect_ratio = RATIO_16_9;
+int gUiTheme = DARK_THEME;
+int gAspectRatio = RATIO_16_9;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
-
 
 extern bool has_rumblepak[4];
 extern char cur_ucode[256];
@@ -53,11 +45,12 @@ extern char cur_audio_ucode[32];
 
 
 bool show_menubar = true;
-bool hide_menubar = true;
+bool gHideMenubar = true;
 bool run_emu = true;
 bool restart_rom = false;
-int gCPU = CPU_DYNAREC_UNSAFE;
-int sort_order = SORT_A_TO_Z;
+
+int gCpuMode = CPU_DYNAREC_UNSAFE;
+int gSortOrder = SORT_A_TO_Z;
 
 static bool vflux_window = false;
 static bool vflux_enabled = false;
@@ -77,6 +70,44 @@ float gamma_val = 1.0f;
 
 char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
+
+void saveConfig(const char *game)
+{
+	char configFile[512];
+	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), game);
+	
+	sceIoMkdir(DAEDALUS_VITA_PATH("Configs/"), 0777);
+	
+	FILE *config = fopen(configFile, "w+");
+	if (config != NULL) {
+		fprintf(config, "%s=%d\n", "gCpuMode", gCpuMode);
+		fprintf(config, "%s=%d\n", "gOSHooksEnabled", gOSHooksEnabled);
+		fprintf(config, "%s=%d\n", "gSpeedSyncEnabled", gSpeedSyncEnabled);
+		
+		fprintf(config, "%s=%d\n", "gVideoRateMatch", gVideoRateMatch);
+		fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
+		fprintf(config, "%s=%d\n", "gAspectRatio", gAspectRatio);
+		fprintf(config, "%s=%d\n", "gCheckTextureHashFrequency", gCheckTextureHashFrequency);
+		fprintf(config, "%s=%d\n", "gForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
+		
+		fprintf(config, "%s=%d\n", "gUseMipmaps", gUseMipmaps);
+		fprintf(config, "%s=%d\n", "gUseVSync", gUseVSync);
+		fprintf(config, "%s=%d\n", "gUseCdram", gUseCdram);
+		fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
+		fprintf(config, "%s=%d\n", "gWaitRendering", gWaitRendering);
+		
+		fprintf(config, "%s=%d\n", "gAudioPluginEnabled", (int)gAudioPluginEnabled);
+		fprintf(config, "%s=%d\n", "gUseMp3", gUseMp3);
+		
+		fprintf(config, "%s=%d\n", "gUseExpansionPak", gUseExpansionPak);
+		fprintf(config, "%s=%d\n", "gControllerIndex", gControllerIndex);
+		
+		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
+		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
+		fprintf(config, "%s=%d\n", "gHideMenubar", gHideMenubar);
+		fclose(config);
+	}
+}
 
 void SetupVFlux() {
 	colors = (float*)malloc(sizeof(float)*4*4);
@@ -100,57 +131,26 @@ void SetDescription(const char *text) {
 		ImGui::SetTooltip(text);
 }
 
-void saveConfig(){
-	char configFile[512];
-	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), g_ROM.settings.GameName.c_str());
-
-	FILE *config = fopen(configFile, "w+");
-	if (config != NULL) {
-		fprintf(config, "%s=%d\n", "gCPU", gCPU);
-		fprintf(config, "%s=%d\n", "gOSHooksEnabled", gOSHooksEnabled);
-		fprintf(config, "%s=%d\n", "gSpeedSyncEnabled", gSpeedSyncEnabled);
-		
-		fprintf(config, "%s=%d\n", "gVideoRateMatch", gVideoRateMatch);
-		fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
-		fprintf(config, "%s=%d\n", "aspect_ratio",aspect_ratio);
-		fprintf(config, "%s=%d\n", "gCheckTextureHashFrequency", gCheckTextureHashFrequency);
-		fprintf(config, "%s=%d\n", "ForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
-		
-		fprintf(config, "%s=%d\n", "use_mipmaps", use_mipmaps);
-		fprintf(config, "%s=%d\n", "use_vsync", use_vsync);
-		fprintf(config, "%s=%d\n", "use_cdram", use_cdram);
-		fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
-		fprintf(config, "%s=%d\n", "wait_rendering", wait_rendering);
-		
-		fprintf(config, "%s=%d\n", "gAudioPluginEnabled", gAudioPluginEnabled);
-		fprintf(config, "%s=%d\n", "use_mp3", use_mp3);
-		
-		fprintf(config, "%s=%d\n", "use_expansion_pak", use_expansion_pak);
-		fprintf(config, "%s=%d\n", "gControllerIndex", gControllerIndex);
-		fflush(config);
-		fclose(config);
-	}
-}
-
 void DrawExtraMenu() {
 	if (ImGui::BeginMenu("Extra")){
+		if (ImGui::MenuItem("Save Global Settings")){
+			saveConfig("default");
+		}
+		ImGui::Separator();
 		if (ImGui::BeginMenu("UI Theme")){
-			if (ImGui::MenuItem("Dark", nullptr, imgui_theme == DARK_THEME)){
-				ImGui::StyleColorsDark();
-				imgui_theme = DARK_THEME;
+			if (ImGui::MenuItem("Dark", nullptr, gUiTheme == DARK_THEME)){
+				setUiTheme(DARK_THEME);
 			}
-			if (ImGui::MenuItem("Light", nullptr, imgui_theme == LIGHT_THEME)){
-				ImGui::StyleColorsLight();
-				imgui_theme = LIGHT_THEME;
+			if (ImGui::MenuItem("Light", nullptr, gUiTheme == LIGHT_THEME)){
+				setUiTheme(LIGHT_THEME);
 			}
-			if (ImGui::MenuItem("Classic", nullptr, imgui_theme == CLASSIC_THEME)){
-				ImGui::StyleColorsClassic();
-				imgui_theme = CLASSIC_THEME;
+			if (ImGui::MenuItem("Classic", nullptr, gUiTheme == CLASSIC_THEME)){
+				setUiTheme(CLASSIC_THEME);
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::MenuItem("Hide Menubar", nullptr, hide_menubar)){
-			hide_menubar = !hide_menubar;
+		if (ImGui::MenuItem("Hide Menubar", nullptr, gHideMenubar)){
+			gHideMenubar = !gHideMenubar;
 		}
 		ImGui::Separator();
 		if (ImGui::MenuItem("Debugger", nullptr, debug_window)){
@@ -172,24 +172,20 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::BeginMenu("CPU")){
-			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gCPU == CPU_DYNAREC_UNSAFE)){
-				gCPU = CPU_DYNAREC_UNSAFE;
-				setCPUMode();
+			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gCpuMode == CPU_DYNAREC_UNSAFE)){
+				setCpuMode(CPU_DYNAREC_UNSAFE);
 			}
 			SetDescription("Enables full dynamic recompilation for best performances.");
-			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gCPU == CPU_DYNAREC_SAFE)){
-				gCPU = CPU_DYNAREC_SAFE;
-				setCPUMode();
+			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gCpuMode == CPU_DYNAREC_SAFE)){
+				setCpuMode(CPU_DYNAREC_SAFE);
 			}
 			SetDescription("Enables safe dynamic recompilation for good performances and better compatibility.");
-			if (ImGui::MenuItem("Cached Interpreter", nullptr, gCPU == CPU_CACHED_INTERPRETER)){
-				gCPU = CPU_CACHED_INTERPRETER;
-				setCPUMode();
+			if (ImGui::MenuItem("Cached Interpreter", nullptr, gCpuMode == CPU_CACHED_INTERPRETER)){
+				setCpuMode(CPU_CACHED_INTERPRETER);
 			}
 			SetDescription("Enables cached interpreter for decent performances and better compatibility.");
-			if (ImGui::MenuItem("Interpreter", nullptr, gCPU == CPU_INTERPRETER)){
-				gCPU = CPU_INTERPRETER;
-				setCPUMode();
+			if (ImGui::MenuItem("Interpreter", nullptr, gCpuMode == CPU_INTERPRETER)){
+				setCpuMode(CPU_INTERPRETER);
 			}
 			SetDescription("Enables interpreter for best compatibility.");
 			ImGui::EndMenu();
@@ -198,8 +194,8 @@ void DrawCommonMenuBar() {
 			gOSHooksEnabled = !gOSHooksEnabled;
 		}
 		SetDescription("Enables high level emulation of OS functions for better performance.\nMay cause instability on some games.");
-		if (ImGui::MenuItem("Expansion Pak", nullptr, use_expansion_pak)){
-				use_expansion_pak = !use_expansion_pak;
+		if (ImGui::MenuItem("Expansion Pak", nullptr, gUseExpansionPak)){
+				gUseExpansionPak = !gUseExpansionPak;
 			}
 		ImGui::Separator();
 		if (ImGui::MenuItem("Frame Limit", nullptr, gSpeedSyncEnabled)){
@@ -218,17 +214,17 @@ void DrawCommonMenuBar() {
 	}
 	if (ImGui::BeginMenu("Graphics")){
 		if (ImGui::BeginMenu("Aspect Ratio")){
-			if (ImGui::MenuItem("16:9", nullptr, aspect_ratio == RATIO_16_9)){
-				aspect_ratio = RATIO_16_9;
+			if (ImGui::MenuItem("16:9", nullptr, gAspectRatio == RATIO_16_9)){
+				gAspectRatio = RATIO_16_9;
 			}
-			if (ImGui::MenuItem("16:9 Unstretched", nullptr, aspect_ratio == RATIO_16_9_HACK)){
-				aspect_ratio = RATIO_16_9_HACK;
+			if (ImGui::MenuItem("16:9 Unstretched", nullptr, gAspectRatio == RATIO_16_9_HACK)){
+				gAspectRatio = RATIO_16_9_HACK;
 			}
-			if (ImGui::MenuItem("4:3", nullptr, aspect_ratio == RATIO_4_3)){
-				aspect_ratio = RATIO_4_3;
+			if (ImGui::MenuItem("4:3", nullptr, gAspectRatio == RATIO_4_3)){
+				gAspectRatio = RATIO_4_3;
 			}
-			if (ImGui::MenuItem("Original", nullptr, aspect_ratio == RATIO_ORIG)){
-				aspect_ratio = RATIO_ORIG;
+			if (ImGui::MenuItem("Original", nullptr, gAspectRatio == RATIO_ORIG)){
+				gAspectRatio = RATIO_ORIG;
 			}
 			ImGui::EndMenu();
 		}
@@ -245,8 +241,8 @@ void DrawCommonMenuBar() {
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
 		SetDescription("Forces bilinear filtering on every texture.");
-		if (ImGui::MenuItem("Mipmaps", nullptr, use_mipmaps)){
-			use_mipmaps = !use_mipmaps;
+		if (ImGui::MenuItem("Mipmaps", nullptr, gUseMipmaps)){
+			gUseMipmaps = !gUseMipmaps;
 		}
 		SetDescription("Forces mipmaps generation for 3D rendering.");
 		ImGui::Separator();
@@ -254,22 +250,22 @@ void DrawCommonMenuBar() {
 			vflux_window = !vflux_window;
 		}
 		SetDescription("Blends a color filter on screen depending on daytime.");
-		if (ImGui::MenuItem("V-Sync", nullptr, use_vsync)){
-			use_vsync = use_vsync == GL_TRUE ? GL_FALSE : GL_TRUE;
-			vglWaitVblankStart(use_vsync);
+		if (ImGui::MenuItem("V-Sync", nullptr, gUseVSync)){
+			gUseVSync = gUseVSync == GL_TRUE ? GL_FALSE : GL_TRUE;
+			vglWaitVblankStart(gUseVSync);
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("Use VRAM", nullptr, use_cdram)){
-			use_cdram = use_cdram == GL_TRUE ? GL_FALSE : GL_TRUE;
-			vglUseVram(use_cdram);
+		if (ImGui::MenuItem("Use VRAM", nullptr, gUseCdram)){
+			gUseCdram = gUseCdram == GL_TRUE ? GL_FALSE : GL_TRUE;
+			vglUseVram(gUseCdram);
 		}
 		SetDescription("Enables VRAM usage for textures storing.");
 		if (ImGui::MenuItem("Clear Depth Buffer", nullptr, gClearDepthFrameBuffer)){
 			gClearDepthFrameBuffer = !gClearDepthFrameBuffer;
 		}
 		SetDescription("Enables depth buffer clear at every frame. May solve some glitches.");
-		if (ImGui::MenuItem("Wait Rendering Done", nullptr, wait_rendering)){
-			wait_rendering = !wait_rendering;
+		if (ImGui::MenuItem("Wait Rendering Done", nullptr, gWaitRendering)){
+			gWaitRendering = !gWaitRendering;
 		}
 		SetDescription("Makes CPU wait GPU rendering end before elaborating the next frame.\nReduces artifacting at the cost of performances.");
 		ImGui::EndMenu();
@@ -285,8 +281,8 @@ void DrawCommonMenuBar() {
 			gAudioPluginEnabled = APM_ENABLED_ASYNC;
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("Disable MP3 instructions", nullptr, !use_mp3)){
-			use_mp3 = !use_mp3;
+		if (ImGui::MenuItem("Disable MP3 instructions", nullptr, !gUseMp3)){
+			gUseMp3 = !gUseMp3;
 		}
 		SetDescription("Disables MP3 instructions for better performances.");
 		ImGui::EndMenu();
@@ -446,11 +442,11 @@ void DrawMenuBar() {
 	if (ImGui::BeginMainMenuBar()){
 		if (ImGui::BeginMenu("Options")){
 			if (ImGui::BeginMenu("Sort Roms")){
-				if (ImGui::MenuItem("A to Z", nullptr, sort_order == SORT_A_TO_Z)){
-					sort_order = SORT_A_TO_Z;
+				if (ImGui::MenuItem("A to Z", nullptr, gSortOrder == SORT_A_TO_Z)){
+					gSortOrder = SORT_A_TO_Z;
 				}
-				if (ImGui::MenuItem("Z to A", nullptr, sort_order == SORT_Z_TO_A)){
-					sort_order = SORT_Z_TO_A;
+				if (ImGui::MenuItem("Z to A", nullptr, gSortOrder == SORT_Z_TO_A)){
+					gSortOrder = SORT_Z_TO_A;
 				}
 				ImGui::EndMenu();
 			}
@@ -497,8 +493,8 @@ void DrawInGameMenuBar() {
 	if (show_menubar) {
 		if (ImGui::BeginMainMenuBar()){
 			if (ImGui::BeginMenu("Files")){
-				if (ImGui::MenuItem("Save ROM config")){
-					saveConfig();
+				if (ImGui::MenuItem("Save Game Settings")){
+					saveConfig(g_ROM.settings.GameName.c_str());
 				}
 				ImGui::Separator();
 				if (ImGui::BeginMenu("Save Savestate")){

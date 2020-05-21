@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Plugins/AudioPlugin.h"
 #include "Plugins/GraphicsPlugin.h"
 
-bool use_expansion_pak = true;
+bool gUseExpansionPak = true;
 
 static const u32	kMaximumMemSize = MEMORY_8_MEG;
 
@@ -124,7 +124,7 @@ void * 			g_pMemoryBuffers[NUM_MEM_BUFFERS];
 
 bool Memory_Init()
 {
-	gRamSize = use_expansion_pak ? MEMORY_8_MEG : MEMORY_4_MEG;
+	gRamSize = gUseExpansionPak ? MEMORY_8_MEG : MEMORY_4_MEG;
 
 #ifdef DAED_USE_VIRTUAL_ALLOC
 	gMemBase = VirtualAlloc(0, 512*1024*1024, MEM_RESERVE, PAGE_READWRITE);
@@ -234,7 +234,7 @@ void Memory_Fini(void)
 
 bool Memory_Reset()
 {
-	u32 main_mem = use_expansion_pak ? MEMORY_8_MEG : MEMORY_4_MEG;
+	u32 main_mem = gUseExpansionPak ? MEMORY_8_MEG : MEMORY_4_MEG;
 	#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "Reseting Memory - %d MB", main_mem/(1024*1024));
 #endif

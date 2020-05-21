@@ -593,21 +593,21 @@ bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
 	if( mTnL.Flags.TriCull )
 	{
 #ifdef DAEDALUS_PSP_USE_VFPU
-		const s32 NSign {vfpu_TriNormSign((u8*)&mVtxProjected[0], v0, v1, v2)};
+		const s32 NSign = vfpu_TriNormSign((u8*)&mVtxProjected[0], v0, v1, v2);
 		if( NSign <= 0 )
 #else
-		const v4 & A {mVtxProjected[v0].ProjectedPos};
-		const v4 & B {mVtxProjected[v1].ProjectedPos};
-		const v4 & C {mVtxProjected[v2].ProjectedPos};
+		const v4 & A = mVtxProjected[v0].ProjectedPos;
+		const v4 & B = mVtxProjected[v1].ProjectedPos;
+		const v4 & C = mVtxProjected[v2].ProjectedPos;
 
 		//Avoid using 1/w, will use five more mults but save three divides //Corn
 		//Precalc reused w combos so compiler does a proper job
-		const f32 ABw  {A.w*B.w};
-		const f32 ACw  {A.w*C.w};
-		const f32 BCw  {B.w*C.w};
-		const f32 AxBC {A.x*BCw};
-		const f32 AyBC {A.y*BCw};
-		const f32 NSign {(((B.x*ACw - AxBC)*(C.y*ABw - AyBC) - (C.x*ABw - AxBC)*(B.y*ACw - AyBC)) * ABw * C.w)};
+		const f32 ABw  = A.w*B.w;
+		const f32 ACw  = A.w*C.w;
+		const f32 BCw  = B.w*C.w;
+		const f32 AxBC = A.x*BCw;
+		const f32 AyBC = A.y*BCw;
+		const f32 NSign = (((B.x*ACw - AxBC)*(C.y*ABw - AyBC) - (C.x*ABw - AxBC)*(B.y*ACw - AyBC)) * ABw * C.w);
 		if( NSign <= 0.0f )
 #endif
 		{
@@ -795,7 +795,7 @@ static u32 clipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, u
 	u32 outCount(0);
 	DaedalusVtx4 * out(dest);
 
-	const DaedalusVtx4 * a {};
+	const DaedalusVtx4 * a;
 	const DaedalusVtx4 * b(source);
 
 	f32 bDotPlane = b->ProjectedPos.Dot( plane );
@@ -807,7 +807,7 @@ static u32 clipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, u
 		const u32 index = (( ( condition >> 31 ) & ( i ^ condition ) ) ^ condition );
 		a = &source[index];
 
-		f32 aDotPlane {a->ProjectedPos.Dot( plane )};
+		f32 aDotPlane = a->ProjectedPos.Dot( plane );
 
 		// current point inside
 		if ( aDotPlane <= 0.f )
@@ -872,7 +872,7 @@ namespace
 	DaedalusVtx4		temp_a[ 8 ] {};
 	DaedalusVtx4		temp_b[ 8 ] {};
 	// Flying Dragon clips more than 256
-	const u32			MAX_CLIPPED_VERTS {320};
+	const u32			MAX_CLIPPED_VERTS = 320;
 	DaedalusVtx			clip_vtx[MAX_CLIPPED_VERTS];
 }
 
@@ -899,9 +899,9 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 
 	for(u32 i {}; i < (mNumIndices - 2);)
 	{
-		const u32 & idx0 {mIndexBuffer[ i++ ]};
-		const u32 & idx1 {mIndexBuffer[ i++ ]};
-		const u32 & idx2 {mIndexBuffer[ i++ ]};
+		const u32 & idx0 = mIndexBuffer[ i++ ];
+		const u32 & idx1 = mIndexBuffer[ i++ ];
+		const u32 & idx2 = mIndexBuffer[ i++ ];
 
 		//Check if any of the vertices are outside the clipbox (NDC), if so we need to clip the triangle
 		if(mVtxProjected[idx0].ClipFlags | mVtxProjected[idx1].ClipFlags | mVtxProjected[idx2].ClipFlags)
@@ -1483,7 +1483,7 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 						fCosT = norm.Dot( mTnL.Lights[l].Direction );
 						if (fCosT > 0.0f)
 						{
-							f32 pi {mTnL.Lights[l].Iscale / (Pos - mTnL.Lights[l].Position).LengthSq()};
+							f32 pi = mTnL.Lights[l].Iscale / (Pos - mTnL.Lights[l].Position).LengthSq();
 							if (pi < 1.0f) fCosT *= pi;
 
 							result.x += mTnL.Lights[l].Colour.x * fCosT;
@@ -1606,8 +1606,8 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			mVtxProjected[i].ClipFlags = 0;
 
 			// Assign true vert colour
-			const u32 WL {*(u16*)((pVtxBase + 6) ^ 2)};
-			const u32 WH {*(u16*)((pVtxBase + 8) ^ 2)};
+			const u32 WL = *(u16*)((pVtxBase + 6) ^ 2);
+			const u32 WH = *(u16*)((pVtxBase + 8) ^ 2);
 
 			mVtxProjected[i].Colour.x = (1.0f / 255.0f) * (WL >> 8);
 			mVtxProjected[i].Colour.y = (1.0f / 255.0f) * (WL & 0xFF);
@@ -1977,7 +1977,7 @@ static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 			//Merge RGB + I -> RGBA in texture 1
 			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
 			u32 size {texture1->GetWidth() * texture1->GetHeight() >> 1};
-			for(u32 i {}; i < size ; i++)
+			for(u32 i = 0; i < size ; i++)
 			{
 				*dst = (*dst & 0xF000F000) | (*src & 0x0FFF0FFF);
 				dst++;
@@ -2278,7 +2278,7 @@ void BaseRenderer::SetProjection(const u32 address, bool bReplace)
 		if( g_ROM.ZELDA_HACK )
 			mProjectionMat.mRaw[14] += 0.4f;
 #ifdef DAEDALUS_VITA
-		if( aspect_ratio == RATIO_16_9_HACK )
+		if( gAspectRatio == RATIO_16_9_HACK )
 #else		
 		if( gGlobalPreferences.ViewportType == VT_FULLSCREEN_HD )
 #endif
@@ -2417,7 +2417,7 @@ inline void BaseRenderer::PokeWorldProject()
 		mWPmodified = false;
 		mReloadProj = true;
 #ifdef DAEDALUS_VITA
-		if( aspect_ratio == RATIO_16_9_HACK )
+		if( gAspectRatio == RATIO_16_9_HACK )
 #else		
 		if( gGlobalPreferences.ViewportType == VT_FULLSCREEN_HD )
 #endif

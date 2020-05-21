@@ -52,8 +52,8 @@ static FILE *fh;
 char *bytes_string;
 static SceUID net_mutex;
 
-int use_cdram = GL_TRUE;
-int use_vsync = GL_TRUE;
+int gUseCdram = GL_TRUE;
+int gUseVSync = GL_TRUE;
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -189,8 +189,8 @@ static void Initialize()
 
 	// Initializing vitaGL
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
-	vglUseVram(use_cdram);
-	vglWaitVblankStart(use_vsync);
+	vglUseVram(gUseCdram);
+	vglWaitVblankStart(gUseVSync);
 
 	System_Init();
 
@@ -222,10 +222,15 @@ static void Initialize()
 	free(net_memory);
 }
 
-void setCPUMode()
+void setCpuMode(int cpu_mode)
 {
-	switch (gCPU)
+	switch (cpu_mode)
 	{
+	case CPU_DYNAREC_UNSAFE:
+		gDynarecEnabled = true;
+		gUnsafeDynarecOptimisations = true;
+		gUseCachedInterpreter = false;
+		break;
 	case CPU_DYNAREC_SAFE:
 		gDynarecEnabled = true;
 		gUnsafeDynarecOptimisations = false;
@@ -239,60 +244,75 @@ void setCPUMode()
 		gUseCachedInterpreter = false;
 		gDynarecEnabled = false;
 		break;
-	case CPU_DYNAREC_UNSAFE:
 	default:
-		gDynarecEnabled = true;
-		gUnsafeDynarecOptimisations = true;
-		gUseCachedInterpreter = false;
 		break;
 	}
+	gCpuMode = cpu_mode;
 }
 
-bool loadConfig()
+void setUiTheme(int theme)
+{
+	switch (theme) {
+	case DARK_THEME:
+		ImGui::StyleColorsDark();
+		break;
+	case LIGHT_THEME:
+		ImGui::StyleColorsLight();
+		break;
+	case CLASSIC_THEME:
+		ImGui::StyleColorsClassic();
+		break;
+	}
+	gUiTheme = theme;
+}
+
+void loadConfig(const char *game)
 {
 	char configFile[512];
 	char buffer[30];
 	int value;
-
-	char *filename = strdup(g_ROM.settings.GameName.c_str());
-
-	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), filename);
-
+	
+	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), game);
 	FILE *config = fopen(configFile, "r");
-
-	if (!config)
-	{
-		sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), "default");
-		config = fopen(configFile, "r");
-	}
 
 	if (config)
 	{
 		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
 		{
-			if (strcmp("gCPU", buffer) == 0) gCPU = value;
-			if (strcmp("gOSHooksEnabled", buffer) == 0) gOSHooksEnabled = value;
-			if (strcmp("gSpeedSyncEnabled", buffer) == 0) gSpeedSyncEnabled = value;
-			if (strcmp("gVideoRateMatch", buffer) == 0) gVideoRateMatch = value;
-			if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
-			if (strcmp("aspect_ratio", buffer) == 0) aspect_ratio = value;
-			if (strcmp("ForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
-			if (strcmp("use_mipmaps", buffer) == 0) use_mipmaps = value;
-			if (strcmp("use_vsync", buffer) == 0) use_vsync = value;
-			if (strcmp("use_cdram", buffer) == 0) use_cdram = value;
-			if (strcmp("gClearDepthFrameBuffer", buffer) == 0) gClearDepthFrameBuffer = value;
-			if (strcmp("wait_rendering", buffer) == 0) wait_rendering = value;
-			if (strcmp("gAudioPluginEnabled", buffer) == 0) gAudioPluginEnabled = value;
-			if (strcmp("use_mp3", buffer) == 0) use_mp3 = value;
-			if (strcmp("use_expansion_pak", buffer) == 0) use_expansion_pak = value;
-			if (strcmp("gControllerIndex", buffer) == 0) gControllerIndex = value;
+			if (strcmp("gCpuMode", buffer) == 0) gCpuMode = value;
+			else if (strcmp("gOSHooksEnabled", buffer) == 0) gOSHooksEnabled = value;
+			else if (strcmp("gSpeedSyncEnabled", buffer) == 0) gSpeedSyncEnabled = value;
+			
+			else if (strcmp("gVideoRateMatch", buffer) == 0) gVideoRateMatch = value;
+			else if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
+			else if (strcmp("gAspectRatio", buffer) == 0) gAspectRatio = value;
+			else if (strcmp("gCheckTextureHashFrequency", buffer) == 0) gCheckTextureHashFrequency = value;
+			else if (strcmp("gForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
+			
+			else if (strcmp("gUseMipmaps", buffer) == 0) gUseMipmaps = value;
+			else if (strcmp("gUseVSync", buffer) == 0) gUseVSync = value;
+			else if (strcmp("gUseCdram", buffer) == 0) gUseCdram = value;
+			else if (strcmp("gClearDepthFrameBuffer", buffer) == 0) gClearDepthFrameBuffer = value;
+			else if (strcmp("gWaitRendering", buffer) == 0) gWaitRendering = value;
+			
+			else if (strcmp("gAudioPluginEnabled", buffer) == 0) gAudioPluginEnabled = (EAudioPluginMode)value;
+			else if (strcmp("gUseMp3", buffer) == 0) gUseMp3 = value;
+			
+			else if (strcmp("gUseExpansionPak", buffer) == 0) gUseExpansionPak = value;
+			else if (strcmp("gControllerIndex", buffer) == 0) gControllerIndex = value;
+			
+			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
+			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
+			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;
 		}
 		fclose(config);
-
-		return true;
+		
+		setUiTheme(gUiTheme);
+		setCpuMode(gCpuMode);
+		vglUseVram(gUseCdram);
+		vglWaitVblankStart(gUseVSync);
+		CInputManager::Get()->SetConfiguration(gControllerIndex);
 	}
-
-	return false;
 }
 
 int main(int argc, char* argv[])
@@ -301,9 +321,8 @@ int main(int argc, char* argv[])
 
 	char *rom;
 
-	loadConfig();
-
 	while (run_emu) {
+		loadConfig("default");
 		EnableMenuButtons(true);
 
 		if (restart_rom) restart_rom = false;
@@ -318,11 +337,9 @@ int main(int argc, char* argv[])
 		sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
 		EnableMenuButtons(false);
 		System_Open(fullpath);
-		loadConfig();
-		setCPUMode();
+		loadConfig(g_ROM.settings.GameName.c_str());
 		CPU_Run();
 		System_Close();
-		loadConfig();
 	}
 
 	System_Finalize();

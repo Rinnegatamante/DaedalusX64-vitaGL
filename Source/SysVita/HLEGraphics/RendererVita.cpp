@@ -29,7 +29,7 @@ extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
 
-bool use_mipmaps = false;
+bool gUseMipmaps = false;
 
 struct ScePspFMatrix4
 {
@@ -407,7 +407,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 			if(texture != nullptr)
 			{
 				texture->InstallTexture();
-				if (is_3d && use_mipmaps) texture->GenerateMipmaps();
+				if (is_3d && gUseMipmaps) texture->GenerateMipmaps();
 				installed_texture = true;
 			}
 		}
@@ -541,7 +541,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 			if( mBoundTexture[ texture_idx ] )
 			{
 				mBoundTexture[ texture_idx ]->InstallTexture();
-				if (is_3d && use_mipmaps) mBoundTexture[ texture_idx ]->GenerateMipmaps();
+				if (is_3d && gUseMipmaps) mBoundTexture[ texture_idx ]->GenerateMipmaps();
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
 				installed_texture = true;
@@ -629,7 +629,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 
 	v2 screen0;
 	v2 screen1;
-	if (aspect_ratio == RATIO_16_9_HACK) {
+	if (gAspectRatio == RATIO_16_9_HACK) {
 		screen0.x = roundf( roundf( HD_SCALE * xy0.x ) * mN64ToScreenScale.x + 118 );
 		screen0.y = roundf( roundf( xy0.y )            * mN64ToScreenScale.y + mN64ToScreenTranslate.y );
 		screen1.x = roundf( roundf( HD_SCALE * xy1.x ) * mN64ToScreenScale.x + 118 );

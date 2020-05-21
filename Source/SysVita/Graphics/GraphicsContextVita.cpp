@@ -22,7 +22,7 @@
 #include "HLEGraphics/BaseRenderer.h"
 
 extern bool pause_emu;
-bool wait_rendering = false;
+bool gWaitRendering = false;
 
 #define MAX_INDEXES 0xFFFF
 uint16_t *gIndexes;
@@ -174,7 +174,7 @@ void IGraphicsContext::EndFrame()
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	if (gamma_val != 1.0f) gRenderer->DoGamma(gamma_val);
 	DrawInGameMenu();
-	if (wait_rendering) glFinish();
+	if (gWaitRendering) glFinish();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
@@ -213,7 +213,7 @@ void IGraphicsContext::StoreSaveScreenData()
 void IGraphicsContext::GetScreenSize(u32 * p_width, u32 * p_height) const
 {
 	// Note: Change these if you change SCR_WIDTH/SCR_HEIGHT
-	switch (aspect_ratio) {
+	switch (gAspectRatio) {
 	case RATIO_4_3:
 		*p_width  = 725;
 		*p_height = SCR_HEIGHT;

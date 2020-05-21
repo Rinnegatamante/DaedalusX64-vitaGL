@@ -440,7 +440,7 @@ TEST_DISABLE_THREAD_FUNCS
 	{
 		thread = ActiveThread;
 	}
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "osDestroyThread(0x%08x)", thread);
 #endif
 	state = Read16Bits(thread + offsetof(OSThread, state));

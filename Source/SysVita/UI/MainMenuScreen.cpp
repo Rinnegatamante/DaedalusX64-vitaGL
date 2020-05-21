@@ -312,7 +312,7 @@ char *DrawRomSelector() {
 		}
 	}
 	
-	sort_list(list, sort_order);
+	sort_list(list, gSortOrder);
 
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH - 400, SCR_HEIGHT - 19), ImGuiSetCond_Always);
