@@ -34,11 +34,10 @@
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
 
-#define NET_INIT_SIZE 1 * 1024 * 1024
+#define NET_INIT_SIZE 1*1024*1024
 #define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
 
-extern "C"
-{
+extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 	int _newlib_heap_size_user = 160 * 1024 * 1024;
 }
@@ -56,8 +55,7 @@ static SceUID net_mutex;
 int use_cdram = GL_TRUE;
 int use_vsync = GL_TRUE;
 
-void log2file(const char *format, ...)
-{
+void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
 	va_start(arg, format);
 	char msg[512];
@@ -65,25 +63,21 @@ void log2file(const char *format, ...)
 	va_end(arg);
 	sprintf(msg, "%s\n", msg);
 	FILE *log = fopen("ux0:/data/DaedalusX64.log", "a+");
-	if (log != NULL)
-	{
+	if (log != NULL) {
 		fwrite(msg, 1, strlen(msg), log);
 		fclose(log);
 	}
 }
 
-void dump2file(void *ptr, uint32_t size)
-{
+void dump2file(void *ptr, uint32_t size) {
 	FILE *log = fopen("ux0:/data/DaedalusX64.dmp", "a+");
-	if (log != NULL)
-	{
+	if (log != NULL) {
 		fwrite(ptr, 1, size, log);
 		fclose(log);
 	}
 }
 
-static void EnableMenuButtons(bool status)
-{
+static void EnableMenuButtons(bool status) {
 	ImGui_ImplVitaGL_GamepadUsage(status);
 	ImGui_ImplVitaGL_MouseStickUsage(status);
 }
@@ -131,12 +125,10 @@ static void startDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static int downloadThread(unsigned int args, void *arg)
-{
+static int downloadThread(unsigned int args, void *arg){
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
-	for (int i = 1; i <= NUM_DB_CHUNKS; i++)
-	{
+	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
 		sceKernelWaitSema(net_mutex, 1, NULL);
 		sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
 		sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=%ld&per_page=100", i);
@@ -152,13 +144,11 @@ static int downloadThread(unsigned int args, void *arg)
 		startDownload(url);
 
 		fclose(fh);
-		if (downloaded_bytes > 12 * 1024)
-		{
+		if (downloaded_bytes > 12 * 1024) {
 			sceIoRemove(dbname);
 			sceIoRename(TEMP_DOWNLOAD_NAME, dbname);
 		}
-		else
-			sceIoRemove(TEMP_DOWNLOAD_NAME);
+		else sceIoRemove(TEMP_DOWNLOAD_NAME);
 		downloaded_bytes = total_bytes;
 	}
 	curl_easy_cleanup(curl_handle);
@@ -208,8 +198,7 @@ static void Initialize()
 
 	// Initializing dear ImGui
 	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO();
-	(void)io;
+	ImGuiIO &io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
@@ -218,11 +207,9 @@ static void Initialize()
 
 	// Downloading compatibility databases
 	sceKernelStartThread(thd, 0, NULL);
-	for (int i = 1; i <= NUM_DB_CHUNKS; i++)
-	{
+	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
 		sceKernelSignalSema(net_mutex, 1);
-		while (downloaded_bytes < total_bytes)
-		{
+		while (downloaded_bytes < total_bytes) {
 			DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
 		}
 		total_bytes++;
@@ -283,42 +270,24 @@ bool loadConfig()
 
 	if (config)
 	{
-		DBGConsole_Msg(0, "loading: [G%s]", configFile);
-
 		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
 		{
-			if (strcmp("gCPU", buffer) == 0)
-				gCPU = value;
-			if (strcmp("gOSHooksEnabled", buffer) == 0)
-				gOSHooksEnabled = value;
-			if (strcmp("gSpeedSyncEnabled", buffer) == 0)
-				gSpeedSyncEnabled = value;
-			if (strcmp("gVideoRateMatch", buffer) == 0)
-				gVideoRateMatch = value;
-			if (strcmp("gAudioRateMatch", buffer) == 0)
-				gAudioRateMatch = value;
-			if (strcmp("aspect_ratio", buffer) == 0)
-				aspect_ratio = value;
-			if (strcmp("ForceLinearFilter", buffer) == 0)
-				gGlobalPreferences.ForceLinearFilter = value;
-			if (strcmp("use_mipmaps", buffer) == 0)
-				use_mipmaps = value;
-			if (strcmp("use_vsync", buffer) == 0)
-				use_vsync = value;
-			if (strcmp("use_cdram", buffer) == 0)
-				use_cdram = value;
-			if (strcmp("gClearDepthFrameBuffer", buffer) == 0)
-				gClearDepthFrameBuffer = value;
-			if (strcmp("wait_rendering", buffer) == 0)
-				wait_rendering = value;
-			if (strcmp("gAudioPluginEnabled", buffer) == 0)
-				gAudioPluginEnabled = value;
-			if (strcmp("use_mp3", buffer) == 0)
-				use_mp3 = value;
-			if (strcmp("use_expansion_pak", buffer) == 0)
-				use_expansion_pak = value;
-			if (strcmp("gControllerIndex", buffer) == 0)
-				gControllerIndex = value;
+			if (strcmp("gCPU", buffer) == 0) gCPU = value;
+			if (strcmp("gOSHooksEnabled", buffer) == 0) gOSHooksEnabled = value;
+			if (strcmp("gSpeedSyncEnabled", buffer) == 0) gSpeedSyncEnabled = value;
+			if (strcmp("gVideoRateMatch", buffer) == 0) gVideoRateMatch = value;
+			if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
+			if (strcmp("aspect_ratio", buffer) == 0) aspect_ratio = value;
+			if (strcmp("ForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
+			if (strcmp("use_mipmaps", buffer) == 0) use_mipmaps = value;
+			if (strcmp("use_vsync", buffer) == 0) use_vsync = value;
+			if (strcmp("use_cdram", buffer) == 0) use_cdram = value;
+			if (strcmp("gClearDepthFrameBuffer", buffer) == 0) gClearDepthFrameBuffer = value;
+			if (strcmp("wait_rendering", buffer) == 0) wait_rendering = value;
+			if (strcmp("gAudioPluginEnabled", buffer) == 0) gAudioPluginEnabled = value;
+			if (strcmp("use_mp3", buffer) == 0) use_mp3 = value;
+			if (strcmp("use_expansion_pak", buffer) == 0) use_expansion_pak = value;
+			if (strcmp("gControllerIndex", buffer) == 0) gControllerIndex = value;
 		}
 		fclose(config);
 
@@ -328,7 +297,7 @@ bool loadConfig()
 	return false;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	Initialize();
 
@@ -340,13 +309,11 @@ int main(int argc, char *argv[])
 	{
 		EnableMenuButtons(true);
 
-		if (restart_rom)
-			restart_rom = false;
+		if (restart_rom) restart_rom = false;
 		else
 		{
 			rom = nullptr;
-			do
-			{
+			do {
 				rom = DrawRomSelector();
 			} while (rom == nullptr);
 		}
