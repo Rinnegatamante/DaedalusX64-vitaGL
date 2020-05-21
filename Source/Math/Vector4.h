@@ -70,7 +70,11 @@ public:
 
 	float Dot( const v4 & rhs ) const
 	{
+#ifdef DAEDALUS_VITA
+		return dot4_neon((float*)f, (float*)rhs.f);
+#else
 		return (x*rhs.x) + (y*rhs.y) + (z*rhs.z) + (w*rhs.w);
+#endif
 	}
 	
 	union {
