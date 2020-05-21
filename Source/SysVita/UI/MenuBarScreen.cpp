@@ -56,7 +56,7 @@ bool show_menubar = true;
 bool hide_menubar = true;
 bool run_emu = true;
 bool restart_rom = false;
-int gCPU = 1;
+int gCPU = CPU_DYNAREC_UNSAFE;
 int sort_order = SORT_A_TO_Z;
 
 static bool vflux_window = false;
@@ -106,27 +106,27 @@ void saveConfig(){
 
 	FILE *config = fopen(configFile, "w+");
 	if (config != NULL) {
-        fprintf(config, "%s=%d\n", "gCPU", gCPU);
-        fprintf(config, "%s=%d\n", "gOSHooksEnabled", gOSHooksEnabled);
-        fprintf(config, "%s=%d\n", "gSpeedSyncEnabled", gSpeedSyncEnabled);
-        
-        fprintf(config, "%s=%d\n", "gVideoRateMatch", gVideoRateMatch);
-        fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
-        fprintf(config, "%s=%d\n", "aspect_ratio",aspect_ratio);
-        fprintf(config, "%s=%d\n", "gCheckTextureHashFrequency", gCheckTextureHashFrequency);
-        fprintf(config, "%s=%d\n", "ForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
-        
-        fprintf(config, "%s=%d\n", "use_mipmaps", use_mipmaps);
-        fprintf(config, "%s=%d\n", "use_vsync", use_vsync);
-        fprintf(config, "%s=%d\n", "use_cdram", use_cdram);
-        fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
-        fprintf(config, "%s=%d\n", "wait_rendering", wait_rendering);
-        
-        fprintf(config, "%s=%d\n", "gAudioPluginEnabled", gAudioPluginEnabled);
-        fprintf(config, "%s=%d\n", "use_mp3", use_mp3);
-        
-        fprintf(config, "%s=%d\n", "use_expansion_pak", use_expansion_pak);
-        fprintf(config, "%s=%d\n", "gControllerIndex", gControllerIndex);
+		fprintf(config, "%s=%d\n", "gCPU", gCPU);
+		fprintf(config, "%s=%d\n", "gOSHooksEnabled", gOSHooksEnabled);
+		fprintf(config, "%s=%d\n", "gSpeedSyncEnabled", gSpeedSyncEnabled);
+		
+		fprintf(config, "%s=%d\n", "gVideoRateMatch", gVideoRateMatch);
+		fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
+		fprintf(config, "%s=%d\n", "aspect_ratio",aspect_ratio);
+		fprintf(config, "%s=%d\n", "gCheckTextureHashFrequency", gCheckTextureHashFrequency);
+		fprintf(config, "%s=%d\n", "ForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
+		
+		fprintf(config, "%s=%d\n", "use_mipmaps", use_mipmaps);
+		fprintf(config, "%s=%d\n", "use_vsync", use_vsync);
+		fprintf(config, "%s=%d\n", "use_cdram", use_cdram);
+		fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
+		fprintf(config, "%s=%d\n", "wait_rendering", wait_rendering);
+		
+		fprintf(config, "%s=%d\n", "gAudioPluginEnabled", gAudioPluginEnabled);
+		fprintf(config, "%s=%d\n", "use_mp3", use_mp3);
+		
+		fprintf(config, "%s=%d\n", "use_expansion_pak", use_expansion_pak);
+		fprintf(config, "%s=%d\n", "gControllerIndex", gControllerIndex);
 		fflush(config);
 		fclose(config);
 	}
@@ -172,26 +172,30 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::BeginMenu("CPU")){
-			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gCPU == 1)){
+			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gCPU == CPU_DYNAREC_UNSAFE)){
 				gDynarecEnabled = true;
 				gUnsafeDynarecOptimisations = true;
 				gUseCachedInterpreter = false;
+				gCPU = CPU_DYNAREC_UNSAFE;
 			}
 			SetDescription("Enables full dynamic recompilation for best performances.");
-			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gCPU == 2)){
+			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gCPU == CPU_DYNAREC_SAFE)){
 				gDynarecEnabled = true;
 				gUnsafeDynarecOptimisations = false;
 				gUseCachedInterpreter = false;
+				gCPU = CPU_DYNAREC_SAFE;
 			}
 			SetDescription("Enables safe dynamic recompilation for good performances and better compatibility.");
-			if (ImGui::MenuItem("Cached Interpreter", nullptr, gCPU == 3)){
+			if (ImGui::MenuItem("Cached Interpreter", nullptr, gCPU == CPU_CACHED_INTERPRETER)){
 				gUseCachedInterpreter = true;
 				gDynarecEnabled = true;
+				gCPU = CPU_CACHED_INTERPRETER;
 			}
 			SetDescription("Enables cached interpreter for decent performances and better compatibility.");
-			if (ImGui::MenuItem("Interpreter", nullptr, gCPU == 4)){
+			if (ImGui::MenuItem("Interpreter", nullptr, gCPU == CPU_INTERPRETER)){
 				gUseCachedInterpreter = false;
 				gDynarecEnabled = false;
+				gCPU = CPU_INTERPRETER;
 			}
 			SetDescription("Enables interpreter for best compatibility.");
 			ImGui::EndMenu();
@@ -499,10 +503,10 @@ void DrawInGameMenuBar() {
 	if (show_menubar) {
 		if (ImGui::BeginMainMenuBar()){
 			if (ImGui::BeginMenu("Files")){
-		        if (ImGui::MenuItem("Save ROM config")){
-			        saveConfig();
-		        }
-		        ImGui::Separator();
+				if (ImGui::MenuItem("Save ROM config")){
+					saveConfig();
+				}
+				ImGui::Separator();
 				if (ImGui::BeginMenu("Save Savestate")){
 					for (int i = 0; i <= MAX_SAVESLOT; i++) {
 						char tag[8];

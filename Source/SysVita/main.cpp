@@ -222,6 +222,30 @@ static void Initialize()
 	free(net_memory);
 }
 
+void setCPUMode(){
+		switch (gCPU){
+			case CPU_DYNAREC_SAFE:
+				gDynarecEnabled = true;
+				gUnsafeDynarecOptimisations = false;
+				gUseCachedInterpreter = false;			
+				break;
+			case CPU_CACHED_INTERPRETER:
+				gUseCachedInterpreter = true;
+				gDynarecEnabled = true;			
+				break;
+			case CPU_INTERPRETER:
+				gUseCachedInterpreter = false;
+				gDynarecEnabled = false;			
+				break;
+			case CPU_DYNAREC_UNSAFE:
+			default:
+				gDynarecEnabled = true;
+				gUnsafeDynarecOptimisations = true;
+				gUseCachedInterpreter = false;			
+				break;									
+		}
+}
+
 bool loadConfig(){
 	char configFile[512];
 	char buffer[30];
@@ -234,25 +258,26 @@ bool loadConfig(){
 	FILE *config = fopen(configFile, "r");
 	if (config) {
 		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
-        {
-            if (strcmp("gCPU",buffer) == 0) gCPU = value;
-            if (strcmp("gOSHooksEnabled",buffer) == 0) gOSHooksEnabled = value;
-            if (strcmp("gSpeedSyncEnabled",buffer) == 0) gSpeedSyncEnabled = value;
-            if (strcmp("gVideoRateMatch",buffer) == 0) gVideoRateMatch = value;
-            if (strcmp("gAudioRateMatch",buffer) == 0) gAudioRateMatch = value;
-            if (strcmp("aspect_ratio",buffer) == 0) aspect_ratio = value;
-            if (strcmp("ForceLinearFilter",buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
-            if (strcmp("use_mipmaps",buffer) == 0) use_mipmaps = value;
-            if (strcmp("use_vsync",buffer) == 0) use_vsync = value;
-            if (strcmp("use_cdram",buffer) == 0) use_cdram = value;
-            if (strcmp("gClearDepthFrameBuffer",buffer) == 0) gClearDepthFrameBuffer = value;
-            if (strcmp("wait_rendering",buffer) == 0) wait_rendering = value;
-            if (strcmp("gAudioPluginEnabled",buffer) == 0) gAudioPluginEnabled = value;
-            if (strcmp("use_mp3",buffer) == 0) use_mp3 = value;
-            if (strcmp("use_expansion_pak",buffer) == 0) use_expansion_pak = value;
-            if (strcmp("gControllerIndex",buffer) == 0) gControllerIndex = value;
-        }
-    	fclose(config);
+		{
+			if (strcmp("gCPU",buffer) == 0) gCPU = value;
+			if (strcmp("gOSHooksEnabled",buffer) == 0) gOSHooksEnabled = value;
+			if (strcmp("gSpeedSyncEnabled",buffer) == 0) gSpeedSyncEnabled = value;
+			if (strcmp("gVideoRateMatch",buffer) == 0) gVideoRateMatch = value;
+			if (strcmp("gAudioRateMatch",buffer) == 0) gAudioRateMatch = value;
+			if (strcmp("aspect_ratio",buffer) == 0) aspect_ratio = value;
+			if (strcmp("ForceLinearFilter",buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
+			if (strcmp("use_mipmaps",buffer) == 0) use_mipmaps = value;
+			if (strcmp("use_vsync",buffer) == 0) use_vsync = value;
+			if (strcmp("use_cdram",buffer) == 0) use_cdram = value;
+			if (strcmp("gClearDepthFrameBuffer",buffer) == 0) gClearDepthFrameBuffer = value;
+			if (strcmp("wait_rendering",buffer) == 0) wait_rendering = value;
+			if (strcmp("gAudioPluginEnabled",buffer) == 0) gAudioPluginEnabled = value;
+			if (strcmp("use_mp3",buffer) == 0) use_mp3 = value;
+			if (strcmp("use_expansion_pak",buffer) == 0) use_expansion_pak = value;
+			if (strcmp("gControllerIndex",buffer) == 0) gControllerIndex = value;
+		}
+		fclose(config);
+
 		return true;
 	}
 	return false;
@@ -279,7 +304,8 @@ int main(int argc, char* argv[])
 		sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
 		EnableMenuButtons(false);
 		System_Open(fullpath);
-		//loadConfig();
+		loadConfig();
+		setCPUMode();
 		CPU_Run();
 		System_Close();
 	}

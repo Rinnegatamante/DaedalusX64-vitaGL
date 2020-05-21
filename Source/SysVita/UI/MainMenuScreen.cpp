@@ -90,7 +90,7 @@ void swap(RomSelection *a, RomSelection *b)
 	a->cic = b->cic;
 	a->status = b->status;
 
-    //b->name = nametmp;
+	//b->name = nametmp;
 	memcpy(b->name, nametmp, sizeof nametmp);
 
 	b->settings = settingstmp;
@@ -102,21 +102,21 @@ void swap(RomSelection *a, RomSelection *b)
 
 void sort_list(RomSelection *start, int order) 
 { 
-    int swapped, i; 
-    RomSelection *ptr1; 
-    RomSelection *lptr = NULL; 
+	int swapped, i; 
+	RomSelection *ptr1; 
+	RomSelection *lptr = NULL; 
   
-    /* Checking for empty list */
-    if (start == NULL) 
-        return; 
+	/* Checking for empty list */
+	if (start == NULL) 
+		return; 
   
-    do
-    { 
-        swapped = 0; 
-        ptr1 = start; 
+	do
+	{ 
+		swapped = 0; 
+		ptr1 = start; 
   
-        while (ptr1->next != lptr) 
-        {
+		while (ptr1->next != lptr) 
+		{
 			switch (order) {
 				case SORT_Z_TO_A:
 				{
@@ -139,46 +139,11 @@ void sort_list(RomSelection *start, int order)
 				default:
 					break;
 			}
-            ptr1 = ptr1->next; 
-        } 
-        lptr = ptr1; 
-    } 
-    while (swapped); 
-}
-
-bool loadConfig(char *rom){
-	char configFile[512];
-	char buffer[30];
-	int value;
-
-	char* filename = strdup(rom);
-	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), filename);
-
-	FILE *config = fopen(configFile, "r");
-	if (config) {
-		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
-        {
-            if (strcmp("gCPU",buffer) == 0) gCPU = value;
-            if (strcmp("gOSHooksEnabled",buffer) == 0) gOSHooksEnabled = value;
-            if (strcmp("gSpeedSyncEnabled",buffer) == 0) gSpeedSyncEnabled = value;
-            if (strcmp("gVideoRateMatch",buffer) == 0) gVideoRateMatch = value;
-            if (strcmp("gAudioRateMatch",buffer) == 0) gAudioRateMatch = value;
-            if (strcmp("aspect_ratio",buffer) == 0) aspect_ratio = value;
-            if (strcmp("ForceLinearFilter",buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
-            if (strcmp("use_mipmaps",buffer) == 0) use_mipmaps = value;
-            if (strcmp("use_vsync",buffer) == 0) use_vsync = value;
-            if (strcmp("use_cdram",buffer) == 0) use_cdram = value;
-            if (strcmp("gClearDepthFrameBuffer",buffer) == 0) gClearDepthFrameBuffer = value;
-            if (strcmp("wait_rendering",buffer) == 0) wait_rendering = value;
-            if (strcmp("gAudioPluginEnabled",buffer) == 0) gAudioPluginEnabled = value;
-            if (strcmp("use_mp3",buffer) == 0) use_mp3 = value;
-            if (strcmp("use_expansion_pak",buffer) == 0) use_expansion_pak = value;
-            if (strcmp("gControllerIndex",buffer) == 0) gControllerIndex = value;
-        }
-    	fclose(config);
-		return true;
-	}
-	return false;
+			ptr1 = ptr1->next; 
+		} 
+		lptr = ptr1; 
+	} 
+	while (swapped); 
 }
 
 bool LoadPreview(RomSelection *rom) {
@@ -372,7 +337,6 @@ char *DrawRomSelector() {
 	ImGui::Begin("Info Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	if (hovered) {
-		loadConfig(hovered->settings.GameName.c_str());
 		if (has_preview_icon = LoadPreview(hovered)) {
 			ImGui::SetCursorPos(ImVec2(preview_x + PREVIEW_PADDING, preview_y + PREVIEW_PADDING));
 			ImGui::Image((void*)preview_icon, ImVec2(preview_width, preview_height));

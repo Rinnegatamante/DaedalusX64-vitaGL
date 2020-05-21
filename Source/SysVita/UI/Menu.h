@@ -5,6 +5,13 @@ enum {
 	SORT_Z_TO_A
 };
 
+enum {
+	CPU_DYNAREC_UNSAFE,
+	CPU_DYNAREC_SAFE,
+	CPU_CACHED_INTERPRETER,
+	CPU_INTERPRETER
+};
+
 extern bool show_menubar;
 extern bool hide_menubar;
 extern int use_cdram;
