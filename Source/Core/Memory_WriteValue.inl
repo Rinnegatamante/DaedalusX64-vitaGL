@@ -213,10 +213,10 @@ static void WriteValue_8440_844F( u32 address, u32 value )
 }
 #else
 extern void RenderFrameBuffer(u32);
-extern u32 gRDPFrame;
+extern bool gCPURendering;
 static void WriteValue_8440_844F( u32 address, u32 value )
 {
-	u32 offset {address & 0xFF};
+	u32 offset = address & 0xFF;
 
 	switch (offset)
 	{
@@ -238,7 +238,7 @@ static void WriteValue_8440_844F( u32 address, u32 value )
 		DPF( DEBUG_VI, "VI_ORIGIN_REG set to %d", value );
 #endif
 		 // NB: if no display lists executed, interpret framebuffer
-		if( gRDPFrame == 0 )
+		if( gCPURendering )
 		{
 			RenderFrameBuffer(value & 0x7FFFFF);
 		}

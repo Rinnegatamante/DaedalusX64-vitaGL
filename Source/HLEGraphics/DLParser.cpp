@@ -170,6 +170,8 @@ void RDP_MoveMemLight(u32 light_idx, const N64Light *light);
 // Used to keep track of when we're processing the first display list
 static bool gFirstCall = true;
 
+extern bool gCPURendering;
+
 static u32				gSegments[16];
 static RDP_Scissor		scissors;
 static RDP_GeometryMode gGeometryMode;
@@ -328,6 +330,7 @@ bool DLParser_Initialise()
 	
 	// Resetting number of executed frames
 	gRDPFrame = 0;
+	gCPURendering = true;
 
 	// Reset scissor to default
 	scissors.top = 0;
@@ -603,6 +606,8 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 	if( handler )
 		handler->OnDisplayListComplete();
 #endif
+
+	gCPURendering = false;
 
 	return count;
 }
