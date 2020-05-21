@@ -120,7 +120,7 @@ void sort_list(RomSelection *start, int order)
 			switch (order) {
 				case SORT_Z_TO_A:
 				{
-					if (strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) < 0)
+					if (strcmp(ptr1->name,ptr1->next->name) < 0)
 					{  
 						swap(ptr1, ptr1->next); 
 						swapped = 1; 
@@ -129,7 +129,7 @@ void sort_list(RomSelection *start, int order)
 				}
 				case SORT_A_TO_Z:
 				{
-					if (strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) > 0)
+					if (strcmp(ptr1->name,ptr1->next->name) > 0)
 					{  
 						swap(ptr1, ptr1->next); 
 						swapped = 1; 

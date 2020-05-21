@@ -173,29 +173,23 @@ void DrawCommonMenuBar() {
 	if (ImGui::BeginMenu("Emulation")){
 		if (ImGui::BeginMenu("CPU")){
 			if (ImGui::MenuItem("DynaRec (Unsafe)", nullptr, gCPU == CPU_DYNAREC_UNSAFE)){
-				gDynarecEnabled = true;
-				gUnsafeDynarecOptimisations = true;
-				gUseCachedInterpreter = false;
 				gCPU = CPU_DYNAREC_UNSAFE;
+				setCPUMode();
 			}
 			SetDescription("Enables full dynamic recompilation for best performances.");
 			if (ImGui::MenuItem("DynaRec (Safe)", nullptr, gCPU == CPU_DYNAREC_SAFE)){
-				gDynarecEnabled = true;
-				gUnsafeDynarecOptimisations = false;
-				gUseCachedInterpreter = false;
 				gCPU = CPU_DYNAREC_SAFE;
+				setCPUMode();
 			}
 			SetDescription("Enables safe dynamic recompilation for good performances and better compatibility.");
 			if (ImGui::MenuItem("Cached Interpreter", nullptr, gCPU == CPU_CACHED_INTERPRETER)){
-				gUseCachedInterpreter = true;
-				gDynarecEnabled = true;
 				gCPU = CPU_CACHED_INTERPRETER;
+				setCPUMode();
 			}
 			SetDescription("Enables cached interpreter for decent performances and better compatibility.");
 			if (ImGui::MenuItem("Interpreter", nullptr, gCPU == CPU_INTERPRETER)){
-				gUseCachedInterpreter = false;
-				gDynarecEnabled = false;
 				gCPU = CPU_INTERPRETER;
+				setCPUMode();
 			}
 			SetDescription("Enables interpreter for best compatibility.");
 			ImGui::EndMenu();

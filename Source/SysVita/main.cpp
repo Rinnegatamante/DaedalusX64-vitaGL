@@ -34,10 +34,11 @@
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
 
-#define NET_INIT_SIZE 1*1024*1024
+#define NET_INIT_SIZE 1 * 1024 * 1024
 #define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
 
-extern "C" {
+extern "C"
+{
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 	int _newlib_heap_size_user = 160 * 1024 * 1024;
 }
@@ -55,7 +56,8 @@ static SceUID net_mutex;
 int use_cdram = GL_TRUE;
 int use_vsync = GL_TRUE;
 
-void log2file(const char *format, ...) {
+void log2file(const char *format, ...)
+{
 	__gnuc_va_list arg;
 	va_start(arg, format);
 	char msg[512];
@@ -63,21 +65,25 @@ void log2file(const char *format, ...) {
 	va_end(arg);
 	sprintf(msg, "%s\n", msg);
 	FILE *log = fopen("ux0:/data/DaedalusX64.log", "a+");
-	if (log != NULL) {
+	if (log != NULL)
+	{
 		fwrite(msg, 1, strlen(msg), log);
 		fclose(log);
 	}
 }
 
-void dump2file(void *ptr, uint32_t size) {
+void dump2file(void *ptr, uint32_t size)
+{
 	FILE *log = fopen("ux0:/data/DaedalusX64.dmp", "a+");
-	if (log != NULL) {
+	if (log != NULL)
+	{
 		fwrite(ptr, 1, size, log);
 		fclose(log);
 	}
 }
 
-static void EnableMenuButtons(bool status) {
+static void EnableMenuButtons(bool status)
+{
 	ImGui_ImplVitaGL_GamepadUsage(status);
 	ImGui_ImplVitaGL_MouseStickUsage(status);
 }
@@ -125,29 +131,34 @@ static void startDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static int downloadThread(unsigned int args, void* arg){
+static int downloadThread(unsigned int args, void *arg)
+{
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
-	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+	for (int i = 1; i <= NUM_DB_CHUNKS; i++)
+	{
 		sceKernelWaitSema(net_mutex, 1, NULL);
 		sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
 		sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=%ld&per_page=100", i);
 		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
 		int resumes_count = 0;
 		downloaded_bytes = 0;
-		
+
 		// FIXME: Workaround since GitHub Api does not set Content-Length
 		SceIoStat stat;
 		sceIoGetstat(dbname, &stat);
 		total_bytes = stat.st_size;
-		
+
 		startDownload(url);
 
 		fclose(fh);
-		if (downloaded_bytes > 12 * 1024) {
+		if (downloaded_bytes > 12 * 1024)
+		{
 			sceIoRemove(dbname);
 			sceIoRename(TEMP_DOWNLOAD_NAME, dbname);
-		} else sceIoRemove(TEMP_DOWNLOAD_NAME);
+		}
+		else
+			sceIoRemove(TEMP_DOWNLOAD_NAME);
 		downloaded_bytes = total_bytes;
 	}
 	curl_easy_cleanup(curl_handle);
@@ -159,25 +170,26 @@ static void Initialize()
 {
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
 	strcpy(g_DaedalusConfig.mSaveDir, DAEDALUS_VITA_PATH("SaveGames/"));
-	
+
 	// Setting userland maximum clocks
 	scePowerSetArmClockFrequency(444);
 	scePowerSetBusClockFrequency(222);
 	scePowerSetGpuClockFrequency(222);
 	scePowerSetGpuXbarClockFrequency(166);
-	
+
 	// Disabling all FPU exceptions traps on main thread
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
-	
+
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
-	
+
 	// Initializing net
 	net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 	int ret = sceNetShowNetstat();
 	void *net_memory = nullptr;
 	SceNetInitParam initparam;
-	if (ret == SCE_NET_ERROR_ENOTINIT) {
+	if (ret == SCE_NET_ERROR_ENOTINIT)
+	{
 		net_memory = malloc(NET_INIT_SIZE);
 		initparam.memory = net_memory;
 		initparam.size = NET_INIT_SIZE;
@@ -186,34 +198,37 @@ static void Initialize()
 	}
 	sceNetCtlInit();
 	SceUID thd = sceKernelCreateThread("Net Downloader Thread", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
-	
+
 	// Initializing vitaGL
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(use_cdram);
 	vglWaitVblankStart(use_vsync);
-	
+
 	System_Init();
-	
+
 	// Initializing dear ImGui
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGuiIO &io = ImGui::GetIO();
+	(void)io;
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
-	
+
 	// Downloading compatibility databases
 	sceKernelStartThread(thd, 0, NULL);
-	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+	for (int i = 1; i <= NUM_DB_CHUNKS; i++)
+	{
 		sceKernelSignalSema(net_mutex, 1);
-		while (downloaded_bytes < total_bytes) {
+		while (downloaded_bytes < total_bytes)
+		{
 			DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
 		}
 		total_bytes++;
 	}
 	ImGui::GetIO().MouseDrawCursor = true;
-	
+
 	// Closing net
 	sceKernelWaitThreadEnd(thd, NULL, NULL);
 	sceNetCtlTerm();
@@ -222,84 +237,120 @@ static void Initialize()
 	free(net_memory);
 }
 
-void setCPUMode(){
-		switch (gCPU){
-			case CPU_DYNAREC_SAFE:
-				gDynarecEnabled = true;
-				gUnsafeDynarecOptimisations = false;
-				gUseCachedInterpreter = false;			
-				break;
-			case CPU_CACHED_INTERPRETER:
-				gUseCachedInterpreter = true;
-				gDynarecEnabled = true;			
-				break;
-			case CPU_INTERPRETER:
-				gUseCachedInterpreter = false;
-				gDynarecEnabled = false;			
-				break;
-			case CPU_DYNAREC_UNSAFE:
-			default:
-				gDynarecEnabled = true;
-				gUnsafeDynarecOptimisations = true;
-				gUseCachedInterpreter = false;			
-				break;									
-		}
+void setCPUMode()
+{
+	switch (gCPU)
+	{
+	case CPU_DYNAREC_SAFE:
+		gDynarecEnabled = true;
+		gUnsafeDynarecOptimisations = false;
+		gUseCachedInterpreter = false;
+		break;
+	case CPU_CACHED_INTERPRETER:
+		gUseCachedInterpreter = true;
+		gDynarecEnabled = true;
+		break;
+	case CPU_INTERPRETER:
+		gUseCachedInterpreter = false;
+		gDynarecEnabled = false;
+		break;
+	case CPU_DYNAREC_UNSAFE:
+	default:
+		gDynarecEnabled = true;
+		gUnsafeDynarecOptimisations = true;
+		gUseCachedInterpreter = false;
+		break;
+	}
 }
 
-bool loadConfig(){
+bool loadConfig()
+{
 	char configFile[512];
 	char buffer[30];
 	int value;
 
-	char* filename = strdup(g_ROM.settings.GameName.c_str());
+	char *filename = strdup(g_ROM.settings.GameName.c_str());
 
 	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), filename);
 
 	FILE *config = fopen(configFile, "r");
-	if (config) {
+
+	if (!config)
+	{
+		sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), "default");
+		config = fopen(configFile, "r");
+	}
+
+	if (config)
+	{
+		DBGConsole_Msg(0, "loading: [G%s]", configFile);
+
 		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
 		{
-			if (strcmp("gCPU",buffer) == 0) gCPU = value;
-			if (strcmp("gOSHooksEnabled",buffer) == 0) gOSHooksEnabled = value;
-			if (strcmp("gSpeedSyncEnabled",buffer) == 0) gSpeedSyncEnabled = value;
-			if (strcmp("gVideoRateMatch",buffer) == 0) gVideoRateMatch = value;
-			if (strcmp("gAudioRateMatch",buffer) == 0) gAudioRateMatch = value;
-			if (strcmp("aspect_ratio",buffer) == 0) aspect_ratio = value;
-			if (strcmp("ForceLinearFilter",buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
-			if (strcmp("use_mipmaps",buffer) == 0) use_mipmaps = value;
-			if (strcmp("use_vsync",buffer) == 0) use_vsync = value;
-			if (strcmp("use_cdram",buffer) == 0) use_cdram = value;
-			if (strcmp("gClearDepthFrameBuffer",buffer) == 0) gClearDepthFrameBuffer = value;
-			if (strcmp("wait_rendering",buffer) == 0) wait_rendering = value;
-			if (strcmp("gAudioPluginEnabled",buffer) == 0) gAudioPluginEnabled = value;
-			if (strcmp("use_mp3",buffer) == 0) use_mp3 = value;
-			if (strcmp("use_expansion_pak",buffer) == 0) use_expansion_pak = value;
-			if (strcmp("gControllerIndex",buffer) == 0) gControllerIndex = value;
+			if (strcmp("gCPU", buffer) == 0)
+				gCPU = value;
+			if (strcmp("gOSHooksEnabled", buffer) == 0)
+				gOSHooksEnabled = value;
+			if (strcmp("gSpeedSyncEnabled", buffer) == 0)
+				gSpeedSyncEnabled = value;
+			if (strcmp("gVideoRateMatch", buffer) == 0)
+				gVideoRateMatch = value;
+			if (strcmp("gAudioRateMatch", buffer) == 0)
+				gAudioRateMatch = value;
+			if (strcmp("aspect_ratio", buffer) == 0)
+				aspect_ratio = value;
+			if (strcmp("ForceLinearFilter", buffer) == 0)
+				gGlobalPreferences.ForceLinearFilter = value;
+			if (strcmp("use_mipmaps", buffer) == 0)
+				use_mipmaps = value;
+			if (strcmp("use_vsync", buffer) == 0)
+				use_vsync = value;
+			if (strcmp("use_cdram", buffer) == 0)
+				use_cdram = value;
+			if (strcmp("gClearDepthFrameBuffer", buffer) == 0)
+				gClearDepthFrameBuffer = value;
+			if (strcmp("wait_rendering", buffer) == 0)
+				wait_rendering = value;
+			if (strcmp("gAudioPluginEnabled", buffer) == 0)
+				gAudioPluginEnabled = value;
+			if (strcmp("use_mp3", buffer) == 0)
+				use_mp3 = value;
+			if (strcmp("use_expansion_pak", buffer) == 0)
+				use_expansion_pak = value;
+			if (strcmp("gControllerIndex", buffer) == 0)
+				gControllerIndex = value;
 		}
 		fclose(config);
 
 		return true;
 	}
+
 	return false;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 	Initialize();
-	
+
 	char *rom;
-	
-	while (run_emu) {
+
+	loadConfig();
+
+	while (run_emu)
+	{
 		EnableMenuButtons(true);
-		
-		if (restart_rom) restart_rom = false;
-		else {
+
+		if (restart_rom)
+			restart_rom = false;
+		else
+		{
 			rom = nullptr;
-			do {
+			do
+			{
 				rom = DrawRomSelector();
 			} while (rom == nullptr);
 		}
-		
+
 		char fullpath[512];
 		sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
 		EnableMenuButtons(false);
@@ -308,8 +359,9 @@ int main(int argc, char* argv[])
 		setCPUMode();
 		CPU_Run();
 		System_Close();
+		loadConfig();
 	}
-	
+
 	System_Finalize();
 
 	return 0;

@@ -29,3 +29,4 @@ void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes);
 void SetupVFlux();
+void setCPUMode();
