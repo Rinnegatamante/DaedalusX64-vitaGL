@@ -129,8 +129,9 @@ ALIGNED_TYPE(struct, DaedalusLight, 16)
 	f32		qa;				// Used by MM(GBI2 point light)
 	u32		Pad0;			// Padding
 };
+#ifdef DAEDALUS_PSP
 DAEDALUS_STATIC_ASSERT( sizeof( DaedalusLight ) == 64 );	//Size=64 bytes and order is important or VFPU ASM for PSP will fail
-
+#endif
 // Order here should be the same as in TnLMode
 enum ETnLModeFlags
 {
