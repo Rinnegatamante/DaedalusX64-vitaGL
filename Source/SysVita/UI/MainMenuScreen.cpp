@@ -90,7 +90,7 @@ void swap(RomSelection *a, RomSelection *b)
 	a->cic = b->cic;
 	a->status = b->status;
 
-    //b->name = nametmp;
+	//b->name = nametmp;
 	memcpy(b->name, nametmp, sizeof nametmp);
 
 	b->settings = settingstmp;
@@ -102,25 +102,25 @@ void swap(RomSelection *a, RomSelection *b)
 
 void sort_list(RomSelection *start, int order) 
 { 
-    int swapped, i; 
-    RomSelection *ptr1; 
-    RomSelection *lptr = NULL; 
+	int swapped, i; 
+	RomSelection *ptr1; 
+	RomSelection *lptr = NULL; 
   
-    /* Checking for empty list */
-    if (start == NULL) 
-        return; 
+	/* Checking for empty list */
+	if (start == NULL) 
+		return; 
   
-    do
-    { 
-        swapped = 0; 
-        ptr1 = start; 
+	do
+	{ 
+		swapped = 0; 
+		ptr1 = start; 
   
-        while (ptr1->next != lptr) 
-        {
+		while (ptr1->next != lptr) 
+		{
 			switch (order) {
 				case SORT_Z_TO_A:
 				{
-					if (strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) < 0)
+					if (strcmp(ptr1->name,ptr1->next->name) < 0)
 					{  
 						swap(ptr1, ptr1->next); 
 						swapped = 1; 
@@ -129,7 +129,7 @@ void sort_list(RomSelection *start, int order)
 				}
 				case SORT_A_TO_Z:
 				{
-					if (strcmp(ptr1->settings.GameName,ptr1->next->settings.GameName) > 0)
+					if (strcmp(ptr1->name,ptr1->next->name) > 0)
 					{  
 						swap(ptr1, ptr1->next); 
 						swapped = 1; 
@@ -139,12 +139,12 @@ void sort_list(RomSelection *start, int order)
 				default:
 					break;
 			}
-            ptr1 = ptr1->next; 
-        } 
-        lptr = ptr1; 
-    } 
-    while (swapped); 
-}  
+			ptr1 = ptr1->next; 
+		} 
+		lptr = ptr1; 
+	} 
+	while (swapped); 
+}
 
 bool LoadPreview(RomSelection *rom) {
 	if (old_hovered == rom) return has_preview_icon;
@@ -329,7 +329,7 @@ char *DrawRomSelector() {
 		if (ImGui::IsItemHovered()) hovered = p;
 		p = p->next;
 	}
-	
+
 	ImGui::End();
 	
 	ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - 400, 19), ImGuiSetCond_Always);

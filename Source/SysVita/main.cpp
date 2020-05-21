@@ -135,12 +135,12 @@ static int downloadThread(unsigned int args, void* arg){
 		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
 		int resumes_count = 0;
 		downloaded_bytes = 0;
-		
+
 		// FIXME: Workaround since GitHub Api does not set Content-Length
 		SceIoStat stat;
 		sceIoGetstat(dbname, &stat);
 		total_bytes = stat.st_size;
-		
+
 		startDownload(url);
 
 		fclose(fh);
@@ -159,18 +159,18 @@ static void Initialize()
 {
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
 	strcpy(g_DaedalusConfig.mSaveDir, DAEDALUS_VITA_PATH("SaveGames/"));
-	
+
 	// Setting userland maximum clocks
 	scePowerSetArmClockFrequency(444);
 	scePowerSetBusClockFrequency(222);
 	scePowerSetGpuClockFrequency(222);
 	scePowerSetGpuXbarClockFrequency(166);
-	
+
 	// Disabling all FPU exceptions traps on main thread
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
-	
+
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
-	
+
 	// Initializing net
 	net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
@@ -186,14 +186,14 @@ static void Initialize()
 	}
 	sceNetCtlInit();
 	SceUID thd = sceKernelCreateThread("Net Downloader Thread", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
-	
+
 	// Initializing vitaGL
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(use_cdram);
 	vglWaitVblankStart(use_vsync);
-	
+
 	System_Init();
-	
+
 	// Initializing dear ImGui
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -202,7 +202,7 @@ static void Initialize()
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
-	
+
 	// Downloading compatibility databases
 	sceKernelStartThread(thd, 0, NULL);
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
@@ -213,7 +213,7 @@ static void Initialize()
 		total_bytes++;
 	}
 	ImGui::GetIO().MouseDrawCursor = true;
-	
+
 	// Closing net
 	sceKernelWaitThreadEnd(thd, NULL, NULL);
 	sceNetCtlTerm();
@@ -222,15 +222,90 @@ static void Initialize()
 	free(net_memory);
 }
 
+void setCPUMode()
+{
+	switch (gCPU)
+	{
+	case CPU_DYNAREC_SAFE:
+		gDynarecEnabled = true;
+		gUnsafeDynarecOptimisations = false;
+		gUseCachedInterpreter = false;
+		break;
+	case CPU_CACHED_INTERPRETER:
+		gUseCachedInterpreter = true;
+		gDynarecEnabled = true;
+		break;
+	case CPU_INTERPRETER:
+		gUseCachedInterpreter = false;
+		gDynarecEnabled = false;
+		break;
+	case CPU_DYNAREC_UNSAFE:
+	default:
+		gDynarecEnabled = true;
+		gUnsafeDynarecOptimisations = true;
+		gUseCachedInterpreter = false;
+		break;
+	}
+}
+
+bool loadConfig()
+{
+	char configFile[512];
+	char buffer[30];
+	int value;
+
+	char *filename = strdup(g_ROM.settings.GameName.c_str());
+
+	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), filename);
+
+	FILE *config = fopen(configFile, "r");
+
+	if (!config)
+	{
+		sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Config/"), "default");
+		config = fopen(configFile, "r");
+	}
+
+	if (config)
+	{
+		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
+		{
+			if (strcmp("gCPU", buffer) == 0) gCPU = value;
+			if (strcmp("gOSHooksEnabled", buffer) == 0) gOSHooksEnabled = value;
+			if (strcmp("gSpeedSyncEnabled", buffer) == 0) gSpeedSyncEnabled = value;
+			if (strcmp("gVideoRateMatch", buffer) == 0) gVideoRateMatch = value;
+			if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
+			if (strcmp("aspect_ratio", buffer) == 0) aspect_ratio = value;
+			if (strcmp("ForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
+			if (strcmp("use_mipmaps", buffer) == 0) use_mipmaps = value;
+			if (strcmp("use_vsync", buffer) == 0) use_vsync = value;
+			if (strcmp("use_cdram", buffer) == 0) use_cdram = value;
+			if (strcmp("gClearDepthFrameBuffer", buffer) == 0) gClearDepthFrameBuffer = value;
+			if (strcmp("wait_rendering", buffer) == 0) wait_rendering = value;
+			if (strcmp("gAudioPluginEnabled", buffer) == 0) gAudioPluginEnabled = value;
+			if (strcmp("use_mp3", buffer) == 0) use_mp3 = value;
+			if (strcmp("use_expansion_pak", buffer) == 0) use_expansion_pak = value;
+			if (strcmp("gControllerIndex", buffer) == 0) gControllerIndex = value;
+		}
+		fclose(config);
+
+		return true;
+	}
+
+	return false;
+}
+
 int main(int argc, char* argv[])
 {
 	Initialize();
-	
+
 	char *rom;
-	
+
+	loadConfig();
+
 	while (run_emu) {
 		EnableMenuButtons(true);
-		
+
 		if (restart_rom) restart_rom = false;
 		else {
 			rom = nullptr;
@@ -238,15 +313,18 @@ int main(int argc, char* argv[])
 				rom = DrawRomSelector();
 			} while (rom == nullptr);
 		}
-		
+
 		char fullpath[512];
 		sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
 		EnableMenuButtons(false);
 		System_Open(fullpath);
+		loadConfig();
+		setCPUMode();
 		CPU_Run();
 		System_Close();
+		loadConfig();
 	}
-	
+
 	System_Finalize();
 
 	return 0;
