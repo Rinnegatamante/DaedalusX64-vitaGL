@@ -1638,19 +1638,19 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 		mat.mRaw[6] *= mModelViewStack[2].mRaw[10] * 0.5f;
 		mat.mRaw[10] *= mModelViewStack[2].mRaw[10] * 0.5f;
 
-		for (u32 i {v0}; i < v0 + n; i++)
+		for (u32 i = v0; i < v0 + n; i++)
 		{
 			v3 w;
 			w.x = *(s16*)((pVtxBase + 0) ^ 2);
 			w.y = *(s16*)((pVtxBase + 2) ^ 2);
 			w.z = *(s16*)((pVtxBase + 4) ^ 2);
 
-			w = mat.TransformNormal( w );
+			v3 w2 = mat.TransformNormal( w );
 
 			v4 & transformed( mVtxProjected[i].TransformedPos );
-			transformed.x = BaseVec.x + w.x;
-			transformed.y = BaseVec.y + w.y;
-			transformed.z = BaseVec.z + w.z;
+			transformed.x = BaseVec.x + w2.x;
+			transformed.y = BaseVec.y + w2.y;
+			transformed.z = BaseVec.z + w2.z;
 			transformed.w = 1.0f;
 
 			// Set Clipflags, zero clippflags if billbording //Corn
@@ -1679,7 +1679,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 #ifdef DAEDALUS_PSP_USE_VFPU
 		_TnLVFPUDKR( n, &mat_world_project, (const FiddledVtx*)pVtxBase, &mVtxProjected[v0] );
 #else
-		for (u32 i {v0}; i < v0 + n; i++)
+		for (u32 i = v0; i < v0 + n; i++)
 		{
 			v4 & transformed( mVtxProjected[i].TransformedPos );
 			transformed.x = *(s16*)((pVtxBase + 0) ^ 2);
