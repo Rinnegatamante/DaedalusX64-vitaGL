@@ -1585,14 +1585,14 @@ static void R4300_CALL_TYPE R4300_Special_ADD( R4300_CALL_SIGNATURE ) 			// ADD 
 	R4300_CALL_MAKE_OP( op_code );
 
 	// Can generate overflow exception
-	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._s32_0 + gGPR[ op_code.rt ]._s32_0 );
+	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._u32_0 + gGPR[ op_code.rt ]._u32_0 );
 }
 
 static void R4300_CALL_TYPE R4300_Special_ADDU( R4300_CALL_SIGNATURE ) 			// ADD Unsigned - doesn't throw exception
 {
 	R4300_CALL_MAKE_OP( op_code );
 
-	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._s32_0 + gGPR[ op_code.rt ]._s32_0 );
+	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._u32_0 + gGPR[ op_code.rt ]._u32_0 );
 }
 
 static void R4300_CALL_TYPE R4300_Special_SUB( R4300_CALL_SIGNATURE ) 			// SUB Signed - may throw exception
@@ -1600,7 +1600,7 @@ static void R4300_CALL_TYPE R4300_Special_SUB( R4300_CALL_SIGNATURE ) 			// SUB 
 	R4300_CALL_MAKE_OP( op_code );
 
 	// Can generate overflow exception
-	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._s32_0 - gGPR[ op_code.rt ]._s32_0 );
+	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._u32_0 - gGPR[ op_code.rt ]._u32_0 );
 }
 
 
@@ -1608,7 +1608,7 @@ static void R4300_CALL_TYPE R4300_Special_SUBU( R4300_CALL_SIGNATURE ) 			// SUB
 {
 	R4300_CALL_MAKE_OP( op_code );
 
-	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._s32_0 - gGPR[ op_code.rt ]._s32_0 );
+	gGPR[ op_code.rd ]._s64 = (s64)(s32)( gGPR[ op_code.rs ]._u32_0 - gGPR[ op_code.rt ]._u32_0 );
 }
 
 static void R4300_CALL_TYPE R4300_Special_AND( R4300_CALL_SIGNATURE ) 				// logical AND

@@ -321,7 +321,7 @@ void RSP_HLE_ProcessTask()
 				result = RSP_HLE_RE2(pTask);
 			} else if (g_ROM.rh.CartID == 0x4B59) { // Yakouchuu II - Satsujin Kouro
 				u32 sum = sum_bytes(g_pu8RamBase + (u32)pTask->t.ucode, 1488);
-				if (sum_bytes == 0x19495) result = RSP_HLE_Hvqm(pTask);
+				if (sum == 0x19495) result = RSP_HLE_Hvqm(pTask);
 				else result = RSP_HLE_Graphics();
 			} else {
 				result = RSP_HLE_Graphics();

@@ -189,13 +189,11 @@ BaseRenderer::BaseRenderer()
 		mActiveTile[i] = 0;
 	}
 
-
+	memset(&mTnL, 0, sizeof(mTnL) );
 	mTnL.Flags._u32 = 0;
 	mTnL.NumLights = 0;
 	mTnL.TextureScaleX = 1.0f;
 	mTnL.TextureScaleY = 1.0f;
-
-	memset( mTnL.Lights, 0, sizeof(mTnL.Lights) );
 }
 
 
@@ -240,6 +238,10 @@ void BaseRenderer::SetVIScales()
 	{
 		fViHeight += fViHeight;
 	}
+	
+	// Avoid a divide by zero in the viewport code.
+	if (fViWidth == 0.0f) fViWidth = 320.0f;
+	if (fViHeight == 0.0f) fViHeight = 240.0f;
 
 	//Used to set a limit on Scissors //Corn
 	uViWidth  = (u32)fViWidth - 1;
@@ -745,7 +747,7 @@ void BaseRenderer::FlushTris()
 //Croping triangles just outside the NDC box and let PSP HW do the final crop
 //improves quality but fails in some games (Rocket Robot/Lego racers)//Corn
 
-ALIGNED_TYPE(const v4, NDCPlane[6], 16) =
+const v4 NDCPlane[6] =
 {
 	v4(  0.f,  0.f, -1.f, -1.f ),	// near
 	v4(  0.f,  0.f,  1.f, -1.f ),	// far
