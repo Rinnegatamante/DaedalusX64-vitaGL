@@ -1438,7 +1438,7 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 
 		//	Initialise the clipping flags
 		//
-		u32 clip_flags;
+		u32 clip_flags = 0;
 		if		(projected.x < -projected.w)	clip_flags |= X_POS;
 		else if (projected.x > projected.w)		clip_flags |= X_NEG;
 
@@ -1640,7 +1640,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			projected = mat_world_project.Transform( transformed );	//Do projection
 
 			// Set Clipflags
-			u32 clip_flags {};
+			u32 clip_flags = 0;
 			if		(projected.x < -projected.w)	clip_flags |= X_POS;
 			else if (projected.x > projected.w)		clip_flags |= X_NEG;
 
