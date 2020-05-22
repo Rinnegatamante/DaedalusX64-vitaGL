@@ -621,7 +621,7 @@ const TextureInfo & CRDPStateManager::GetUpdatedTextureDescriptor( u32 idx )
 		TextureInfo &			ti           = mTileTextureInfo[ idx ];
 		const RDP_Tile &		rdp_tile     = mTiles[ idx ];
 		const RDP_TileSize &	rdp_tilesize = mTileSizes[ idx ];
-		const u32				tmem_lookup  = (u32)rdp_tile.tmem >> 4;
+		const u32				tmem_lookup  = (u32)(rdp_tile.tmem >> 4);
 		const TimgLoadDetails &	info  = mTmemLoadInfo[ tmem_lookup ];
 
 		u32		address = info.Address;
@@ -635,7 +635,7 @@ const TextureInfo & CRDPStateManager::GetUpdatedTextureDescriptor( u32 idx )
 			const TimgLoadDetails & info_base = mTmemLoadInfo[ 0 ];
 
 			//Calculate offset in bytes and add to base address
-			address = info_base.Address + (u32)rdp_tile.tmem << 3;
+			address = info_base.Address + (rdp_tile.tmem << 3);
 			pitch	= info_base.Pitch;
 			swapped = info_base.Swapped;
 		}
