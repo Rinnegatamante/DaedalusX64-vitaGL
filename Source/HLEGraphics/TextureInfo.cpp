@@ -66,7 +66,7 @@ u32 TextureInfo::GenerateHashValue() const
 		{
 			//Check palette changes too but only first 16 palette values//Corn
 			const u32* ptr_u32 = (u32*)(g_pu8RamBase + GetTlutAddress());
-			for (u32 z {}; z < 8; z++) hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ *ptr_u32++;
+			for (u32 z = 0; z < 8; z++) hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ *ptr_u32++;
 		}
 	}
 	else if( g_ROM.GameHacks == WORMS_ARMAGEDDON )
@@ -75,8 +75,8 @@ u32 TextureInfo::GenerateHashValue() const
 		if (GetFormat() == G_IM_FMT_CI)
 		{
 			//Check palette changes too but only first 16 palette values//Corn
-			const u32* ptr_u32 {(u32*)GetTlutAddress()};
-			for (u32 z {}; z < 8; z++) hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ *ptr_u32++;
+			const u32* ptr_u32 = (u32*)(g_pu8RamBase + GetTlutAddress());
+			for (u32 z = 0; z < 8; z++) hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ *ptr_u32++;
 		}
 	}
 
@@ -102,7 +102,7 @@ u32 TextureInfo::GenerateHashValue() const
 	else	//if texture is big, hash only some parts inside it
 	{
 		step = (step - 4) / CHK_ROW;
-		for (u32 y {}; y < CHK_ROW; y++)
+		for (u32 y = 0; y < CHK_ROW; y++)
 		{
 			hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ ptr_u32[0];
 			hash_value = ((hash_value << 1) | (hash_value >> 0x1F)) ^ ptr_u32[1];
@@ -111,7 +111,7 @@ u32 TextureInfo::GenerateHashValue() const
 			ptr_u32 += step;
 		}
 	}
-#if 0
+
 	//If texture has a palette then make hash of that too
 	//Might not be needed but it would catch if only the colors are changed in a palette texture
 	//It is a bit expensive CPU wise so better leave out unless really needed
@@ -119,10 +119,10 @@ u32 TextureInfo::GenerateHashValue() const
 	//Used in OOT for the sky, really minor so is not worth the CPU time to always check for it
 	if (GetFormat() == G_IM_FMT_CI)
 	{
-		const u32* ptr_u32 = (u32*)GetTlutAddress();
+		const u32* ptr_u32 = (u32*)(g_pu8RamBase + GetTlutAddress());
 		for (u32 z = 0; z < ((GetSize() == G_IM_SIZ_4b)? 8 : 128); z++) hash_value ^= *ptr_u32++;
 	}
-#endif
+
 	//printf("%08X %d S%d P%d H%d W%d B%d\n", hash_value, step, Size, Pitch, Height, Width, Height * Pitch);
 	return hash_value;
 }
