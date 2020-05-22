@@ -393,7 +393,7 @@ protected:
 		answ.y = roundf( LightN64ToScreenY( roundf( n64_coords.y ) ) );
 	}
 #ifdef DAEDALUS_VITA
-	virtual void		RenderTriangles( float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer ) = 0;
+	virtual void		RenderTriangles( uint32_t *colors, u32 num_vertices, bool disable_zbuffer ) = 0;
 #else
 	virtual void		RenderTriangles( DaedalusVtx * p_vertices, u32 num_vertices, bool disable_zbuffer ) = 0;
 #endif
@@ -404,7 +404,7 @@ protected:
 
 	void				PrepareTrisClipped( TempVerts * temp_verts ) const;
 #ifdef DAEDALUS_VITA
-	uint32_t			PrepareTrisUnclipped( float **vtx, float **tex, uint32_t **clr ) const;
+	uint32_t			PrepareTrisUnclipped( uint32_t **clr );
 #else
 	void				PrepareTrisUnclipped( TempVerts * temp_verts ) const;
 #endif

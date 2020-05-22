@@ -36,7 +36,7 @@ public:
 
 	virtual void		RestoreRenderStates();
 
-	virtual void		RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer);
+	virtual void		RenderTriangles(uint32_t *colors, u32 num_vertices, bool disable_zbuffer);
 
 	virtual void		TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1);
 	virtual void		TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1);

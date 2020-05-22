@@ -577,42 +577,8 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 
 }
 
-void RendererVita::RenderTriangles(float *vertices, float *texcoord, uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
+void RendererVita::RenderTriangles(uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
 {	
-	if (mTnL.Flags.Texture)
-	{
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		vglTexCoordPointerMapped(texcoord);
-		
-		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
-		else UpdateTileSnapshots( mTextureTile );
-		
-		CNativeTexture *texture = mBoundTexture[0];
-		
-		//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
-		
-		if( texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) )
-		{
-			float scale_x = texture->GetScaleX();
-			float scale_y = texture->GetScaleY();
-				
-			// Hack to fix the sun in Zelda OOT/MM
-			if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
-			{
-				scale_x *= 0.5f;
-				scale_y *= 0.5f;
-			}
-			
-			float *vtx_tex = texcoord;	
-			for (u32 i = 0; i < num_vertices; ++i)
-			{
-				vtx_tex[0] = (vtx_tex[0] * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
-				vtx_tex[1] = (vtx_tex[1] * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
-				vtx_tex += 2;
-			}	
-		}
-	}
-	vglVertexPointerMapped(vertices);
 	SetPositiveViewport();
 	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer, true);
 }

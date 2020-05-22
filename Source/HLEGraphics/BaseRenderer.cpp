@@ -681,7 +681,7 @@ void BaseRenderer::FlushTris()
 #endif
 	{
 		#ifdef DAEDALUS_VITA
-		count = PrepareTrisUnclipped( &vtx, &tex, &clr );
+		count = PrepareTrisUnclipped( &clr );
 		#else
 		PrepareTrisUnclipped( &temp_verts );
 		#endif
@@ -728,7 +728,7 @@ void BaseRenderer::FlushTris()
 	//
 	//	Render out our vertices
 #ifdef DAEDALUS_VITA
-	RenderTriangles( vtx, tex, clr, count, gRDPOtherMode.depth_source ? true : false );
+	RenderTriangles( clr, count, gRDPOtherMode.depth_source ? true : false );
 #else
 	RenderTriangles( temp_verts.Verts, temp_verts.Count, gRDPOtherMode.depth_source ? true : false );
 #endif
@@ -1011,7 +1011,7 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 
 //
 #ifdef DAEDALUS_VITA
-uint32_t BaseRenderer::PrepareTrisUnclipped( float **vtx, float **tex, uint32_t **clr ) const
+uint32_t BaseRenderer::PrepareTrisUnclipped( uint32_t **clr )
 #else
 void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 #endif
@@ -1040,21 +1040,70 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 	//	Now we just shuffle all the data across directly (potentially duplicating verts)
 	//
 #ifdef DAEDALUS_VITA
-	*vtx = gVertexBuffer;
-	*tex = gTexCoordBuffer;
+	vglVertexPointerMapped(gVertexBuffer);
 	*clr = gColorBuffer;
-	for( u32 i = 0; i < num_vertices; ++i )
-	{
-		u32 index = mIndexBuffer[ i ];
+	if (mTnL.Flags.Texture) {
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		vglTexCoordPointerMapped(gTexCoordBuffer);
 		
-		gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
-		gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
-		gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
-		gTexCoordBuffer[0] = mVtxProjected[ index ].Texture.x;
-		gTexCoordBuffer[1] = mVtxProjected[ index ].Texture.y;
-		gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
-		gVertexBuffer += 3;
-		gTexCoordBuffer += 2;
+		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
+		else UpdateTileSnapshots( mTextureTile );
+		
+		CNativeTexture *texture = mBoundTexture[0];
+		
+		//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
+		
+		if( texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) )
+		{
+			float scale_x = texture->GetScaleX();
+			float scale_y = texture->GetScaleY();
+				
+			// Hack to fix the sun in Zelda OOT/MM
+			if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
+			{
+				scale_x *= 0.5f;
+				scale_y *= 0.5f;
+			}
+
+			for( u32 i = 0; i < num_vertices; ++i )
+			{
+				u32 index = mIndexBuffer[ i ];
+		
+				gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
+				gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
+				gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
+				gTexCoordBuffer[0] = (mVtxProjected[ index ].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
+				gTexCoordBuffer[1] = (mVtxProjected[ index ].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
+				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+				gVertexBuffer += 3;
+				gTexCoordBuffer += 2;
+			}
+		} else {
+			for( u32 i = 0; i < num_vertices; ++i )
+			{
+				u32 index = mIndexBuffer[ i ];
+		
+				gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
+				gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
+				gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
+				gTexCoordBuffer[0] = mVtxProjected[ index ].Texture.x;
+				gTexCoordBuffer[1] = mVtxProjected[ index ].Texture.y;
+				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+				gVertexBuffer += 3;
+				gTexCoordBuffer += 2;
+			}
+		}
+	} else {
+		for( u32 i = 0; i < num_vertices; ++i )
+		{
+			u32 index = mIndexBuffer[ i ];
+		
+			gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
+			gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
+			gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
+			gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+			gVertexBuffer += 3;
+		}
 	}
 	gColorBuffer += num_vertices;
 	return num_vertices;
