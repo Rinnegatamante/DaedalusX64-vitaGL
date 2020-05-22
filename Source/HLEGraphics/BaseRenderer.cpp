@@ -2027,7 +2027,7 @@ static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 
 			//Merge RGB + I -> RGBA in texture 1
 			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
-			u32 size {texture1->GetWidth() * texture1->GetHeight() >> 1};
+			u32 size = texture1->GetWidth() * texture1->GetHeight() >> 1;
 			for(u32 i = 0; i < size ; i++)
 			{
 				*dst = (*dst & 0xF000F000) | (*src & 0x0FFF0FFF);
@@ -2046,6 +2046,47 @@ static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 			for(u32 i = 0; i < size ; i++)
 			{
 				*dst = (*dst & 0x0FFF0FFF) | (*src & 0xF000F000);
+				dst++;
+				src++;
+			}
+		}
+	}
+}
+#else
+static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
+				   const TextureInfo & ti1, CNativeTexture * texture1)
+{
+	if((ti0.GetFormat() == G_IM_FMT_RGBA) &&
+	   (ti1.GetFormat() == G_IM_FMT_I) &&
+	   (ti1.GetWidth()  == ti0.GetWidth()) &&
+	   (ti1.GetHeight() == ti0.GetHeight()))
+	{
+		if( g_ROM.T1_HACK )
+		{
+			const u32 * src = static_cast<const u32*>(texture0->GetData());
+			u32 * dst       = static_cast<      u32*>(texture1->GetData());
+
+			//Merge RGB + I -> RGBA in texture 1
+			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
+			u32 size = texture1->GetCorrectedWidth() * texture1->GetCorrectedHeight();
+			for(u32 i = 0; i < size ; i++)
+			{
+				*dst = (*dst & 0xFF000000) | (*src & 0x00FFFFFF);
+				dst++;
+				src++;
+			}
+		}
+		else
+		{
+			const u32* src = static_cast<const u32*>(texture1->GetData());
+			u32* dst      = static_cast<      u32*>(texture0->GetData());
+
+			//Merge RGB + I -> RGBA in texture 0
+			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
+			u32 size = texture1->GetCorrectedWidth() * texture1->GetCorrectedHeight();
+			for(u32 i = 0; i < size ; i++)
+			{
+				*dst = (*dst & 0x00FFFFFF) | (*src & 0xFF000000);
 				dst++;
 				src++;
 			}
@@ -2093,14 +2134,12 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 				mBoundTextureInfo[index] = ti;
 				mBoundTexture[index]     = texture;
 
-#ifdef DAEDALUS_PSP
 				//If second texture is loaded try to merge two textures RGB(T0) + A(T1) into one RGBA(T1) //Corn
 				//If T1 Hack is not enabled index can never be other than 0
 				if(index)
 				{
 					T1Hack(mBoundTextureInfo[0], mBoundTexture[0], mBoundTextureInfo[1], mBoundTexture[1]);
 				}
-#endif
 			// }
 		}
 	}
