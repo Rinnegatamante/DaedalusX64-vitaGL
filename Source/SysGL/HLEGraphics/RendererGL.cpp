@@ -619,7 +619,6 @@ void RendererGL::RestoreRenderStates()
 	glDisable(GL_LIGHTING);
 
 	glBlendColor(0.f, 0.f, 0.f, 0.f);
-	glBlendEquation(GL_ADD);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDisable( GL_BLEND );

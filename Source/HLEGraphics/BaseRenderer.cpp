@@ -2350,7 +2350,7 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
 	s32 w = Max<s32>( r - l, 0 );
 	s32 h = Max<s32>( b - t, 0 );
-	if (!g_ROM.GameHacks == POKEMON_STADIUM) glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
+	if (g_ROM.GameHacks != POKEMON_STADIUM) glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
 #else
 	DAEDALUS_ERROR("Need to implement scissor for this platform.");
 #endif
