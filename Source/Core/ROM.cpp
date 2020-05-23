@@ -442,7 +442,7 @@ void SpecificGameHacks( const ROMHeader & id )
 		break;
 	case 0x4842:	//Body Harvest
 	case 0x434E:	//Nightmare Creatures
-	case 0x5543:	//Cruisn' USA
+	case 0x5543:	//Cruis'n USA
 		g_ROM.GameHacks = BODY_HARVEST;
 		break;
 	case 0x5453:    //Eiko no Saint Andrews

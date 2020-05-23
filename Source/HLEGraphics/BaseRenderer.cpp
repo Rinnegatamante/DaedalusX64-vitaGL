@@ -133,8 +133,6 @@ static f32 oldfViHeight = 240.0f;
 u32 uViWidth = 320;
 u32 uViHeight = 240;
 
-f32 gZoomX = 1.0;	//Default is 1.0f
-
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 // General purpose variable used for debugging
 f32 TEST_VARX = 0.0f;
@@ -336,11 +334,11 @@ void BaseRenderer::ForceViewport(float w, float h)
 		f32 display_x = 0, display_y = 0;
 #endif
 
-		mN64ToScreenScale.x = gZoomX * (mScreenWidth  / fViWidth);
-		mN64ToScreenScale.y = gZoomX * (mScreenHeight / fViHeight);
+		mN64ToScreenScale.x = mScreenWidth  / fViWidth;
+		mN64ToScreenScale.y = mScreenHeight / fViHeight;
 
-		mN64ToScreenTranslate.x  = display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
-		mN64ToScreenTranslate.y  = display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
+		mN64ToScreenTranslate.x  = display_x;
+		mN64ToScreenTranslate.y  = display_y;
 
 #ifndef DAEDALUS_VITA
 		if (gRumblePakActive)
@@ -411,11 +409,11 @@ void BaseRenderer::InitViewport()
 		f32 display_x = 0, display_y = 0;
 #endif
 
-		mN64ToScreenScale.x = gZoomX * (mScreenWidth  / fViWidth);
-		mN64ToScreenScale.y = gZoomX * (mScreenHeight / fViHeight);
+		mN64ToScreenScale.x = mScreenWidth  / fViWidth;
+		mN64ToScreenScale.y = mScreenHeight / fViHeight;
 
-		mN64ToScreenTranslate.x  = display_x - roundf(0.55f * (gZoomX - 1.0f) * fViWidth);
-		mN64ToScreenTranslate.y  = display_y - roundf(0.55f * (gZoomX - 1.0f) * fViHeight);
+		mN64ToScreenTranslate.x  = display_x;
+		mN64ToScreenTranslate.y  = display_y;
 
 #ifndef DAEDALUS_VITA
 		if (gRumblePakActive)

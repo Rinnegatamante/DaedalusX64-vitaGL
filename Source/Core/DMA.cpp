@@ -155,9 +155,9 @@ void DMA_SI_CopyToDRAM( )
 	// Check controller status!
 	CController::Get()->Process();
 
-	u32 mem {Memory_SI_GetRegister(SI_DRAM_ADDR_REG) & 0x1fffffff};
-	u32 * p_src {(u32 *)g_pMemoryBuffers[MEM_PIF_RAM]};
-	u32 * p_dst {(u32 *)(g_pu8RamBase + mem)};
+	u32 mem = Memory_SI_GetRegister(SI_DRAM_ADDR_REG) & 0x1fffffff;
+	u32 * p_src = (u32 *)g_pMemoryBuffers[MEM_PIF_RAM];
+	u32 * p_dst = (u32 *)(g_pu8RamBase + mem);
 
 #ifdef DAEDLAUS_PROFILER
 	DPF( DEBUG_MEMORY_PIF, "PIF -> DRAM (0x%08x) Transfer ", mem );

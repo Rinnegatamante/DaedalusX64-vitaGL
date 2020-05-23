@@ -59,7 +59,6 @@ static EFrameskipValue			GetFrameskipValueFromInt( u32 value );
 
 
 extern EFrameskipValue			gFrameskipValue;
-extern f32 						gZoomX;
 
 SGlobalPreferences				gGlobalPreferences;
 
@@ -488,7 +487,6 @@ void SRomPreferences::Apply() const
 	gCheckTextureHashFrequency  = GetTexureHashFrequencyAsFrames( CheckTextureHashFrequency );
 	gMemoryAccessOptimisation   = g_ROM.settings.MemoryAccessOptimisation || MemoryAccessOptimisation;
 	gFrameskipValue             = Frameskip;
-	gZoomX                      = ZoomX;
 	gCheatsEnabled              = g_ROM.settings.CheatsEnabled || CheatsEnabled;
 	gAudioPluginEnabled         = AudioEnabled;
 //	gAdaptFrequency             = AudioAdaptFrequency;
