@@ -297,7 +297,7 @@ EProcessResult RSP_HLE_Hvqm(OSTask * task)
 }
 
 void RSP_HLE_ProcessTask()
-{
+{	
 	OSTask * pTask = (OSTask *)(g_pu8SpMemBase + 0x0FC0);
 
 	EProcessResult	result( PR_NOT_STARTED );
@@ -317,7 +317,7 @@ void RSP_HLE_ProcessTask()
 			if(Memory_DPC_GetRegister(DPC_STATUS_REG) & DPC_STATUS_FREEZE)
 				return;
 			
-			if ((u32*)(pTask->t.data_ptr) == nullptr) {
+			if (pTask->t.data_ptr == NULL) {
 				result = RSP_HLE_RE2(pTask);
 			} else if (g_ROM.rh.CartID == 0x4B59) { // Yakouchuu II - Satsujin Kouro
 				u32 sum = sum_bytes(g_pu8RamBase + (u32)pTask->t.ucode, 1488);
@@ -327,30 +327,19 @@ void RSP_HLE_ProcessTask()
 				result = RSP_HLE_Graphics();
 			}
 			break;
-
 		case M_AUDTASK:
 			result = RSP_HLE_Audio();
 			break;
-
-		case M_VIDTASK:
-			// Can't handle
-			break;
-
 		case M_JPGTASK:
 			result = RSP_HLE_Jpeg(pTask);
 			break;
 		case M_FBTASK:
 			result = RSP_HLE_Hvqm(pTask);
 			break;
-		#ifdef DAEDALUS_ENABLE_ASSERTS
 		default:
-			// Can't handle
+			result = PR_COMPLETED;
 			DBGConsole_Msg(0, "Unknown task: %08x", pTask->t.type );
-			//	RSP_HLE_DumpTaskInfo( pTask );
-			//	RDP_DumpRSPCode("boot",    0xDEAFF00D, (u32*)(g_pu8RamBase + (((u32)pTask->t.ucode_boot)&0x00FFFFFF)), 0x04001000, pTask->t.ucode_boot_size);
-			//	RDP_DumpRSPCode("unkcode", 0xDEAFF00D, (u32*)(g_pu8RamBase + (((u32)pTask->t.ucode)&0x00FFFFFF)),      0x04001080, 0x1000 - 0x80);//pTask->t.ucode_size);
 			break;
-		#endif
 	}
 
 	// Started and completed. No need to change cores. [synchronously]

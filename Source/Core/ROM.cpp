@@ -339,13 +339,15 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5742: g_ROM.GameHacks = SUPER_BOWLING;		break;
 	case 0x514D: g_ROM.GameHacks = PMARIO;				break;
 	case 0x5632: g_ROM.GameHacks = CHAMELEON_TWIST_2;	break;
-	case 0x4643: g_ROM.GameHacks = CLAY_FIGHTER_63;		break;
 	case 0x504A: g_ROM.GameHacks = ISS64;				break;
 	case 0x5944: g_ROM.GameHacks = DKR;					break;
 	case 0x3247: g_ROM.GameHacks = EXTREME_G2;			break;
 	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
 	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
+	case 0x4643:	// Clay Fighter 63
+		g_ROM.SKIP_MSG_SEND_HACK = true;
+		break;
 	case 0x4154:    // Tarzan
 		g_ROM.SCISSOR_HACK = true;
 		g_ROM.GameHacks = TARZAN;
@@ -388,6 +390,7 @@ void SpecificGameHacks( const ROMHeader & id )
 		break;
 	case 0x4c5a:	//ZELDA_OOT
 		g_ROM.ZELDA_HACK = true;
+		g_ROM.SKIP_MSG_SEND_HACK = true;
 		g_ROM.GameHacks = ZELDA_OOT;
 		break;
 	case 0x4F44:	//DK64
@@ -423,9 +426,9 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x534E:	//Beetle Racing
 		g_ROM.TLUT_HACK = true;
 		break;
-	case 0x4641:	//Animal crossing
+	case 0x4641:	//Animal Crossing
 		g_ROM.TLUT_HACK = true;
-		g_ROM.GameHacks = ANIMAL_CROSSING;
+		g_ROM.SKIP_MSG_SEND_HACK = true;
 		break;
 	case 0x4842:	//Body Harvest
 	case 0x434E:	//Nightmare Creatures

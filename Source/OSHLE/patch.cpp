@@ -451,41 +451,28 @@ bool Patch_Hacks( PatchSymbol * ps )
 	// Eventually we should fix them though
 	//
 	// osSendMesg - Breaks the in game menu in Zelda OOT
-	// osSendMesg - Causes Animal Corssing to freeze after the N64 logo
+	// osSendMesg - Causes Animal Crossing to freeze after the N64 logo
+	// osSendMesg - Causes Resident Evil 2 to freeze almost instantly
 	// osSendMesg - Causes Clay Fighter 63 1-3 to not boot
 	//
-	switch( g_ROM.GameHacks )
-	{
-	case ZELDA_OOT:
-	case ANIMAL_CROSSING:
-	case CLAY_FIGHTER_63:
-
+	if (g_ROM.SKIP_MSG_SEND_HACK) {
 		if( strcmp("osSendMesg", ps->Name) == 0)
 		{
 			Found = true;
-			break;
 		}
-		break;
-
+	}
 	//
 	// __osDispatchThread and __osEnqueueAndYield causes Body Harvest to not boot
 	// This game is very sensitive with IRQs, see DMA.cpp (DMA_SI_CopyToDRAM)
-	case BODY_HARVEST:
+	if (g_ROM.GameHacks == BODY_HARVEST) {
 		if( strcmp("__osDispatchThread", ps->Name) == 0)
 		{
 			Found = true;
-			break;
-
 		}
-		if( strcmp("__osEnqueueAndYield", ps->Name) == 0)
+		else if( strcmp("__osEnqueueAndYield", ps->Name) == 0)
 		{
 			Found = true;
-			break;
-
 		}
-		break;
-	default:
-		break;
 	}
 
 	return Found;

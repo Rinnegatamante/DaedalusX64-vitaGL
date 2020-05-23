@@ -1441,15 +1441,15 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 {
 	const FiddledVtx * const pVtxBase( (const FiddledVtx*)(g_pu8RamBase + address) );
-	const Matrix4x4 & mat_project {mProjectionMat};
-	const Matrix4x4 & mat_world {mModelViewStack[mModelViewTop]};
+	const Matrix4x4 & mat_project = mProjectionMat;
+	const Matrix4x4 & mat_world = mModelViewStack[mModelViewTop];
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF( "    Ambient color RGB[%f][%f][%f] Texture scale X[%f] Texture scale Y[%f]", mTnL.Lights[mTnL.NumLights].Colour.x, mTnL.Lights[mTnL.NumLights].Colour.y, mTnL.Lights[mTnL.NumLights].Colour.z, mTnL.TextureScaleX, mTnL.TextureScaleY);
 	DL_PF( "    Light[%s] Texture[%s] EnvMap[%s] Fog[%s]", (mTnL.Flags.Light)? "On":"Off", (mTnL.Flags.Texture)? "On":"Off", (mTnL.Flags.TexGen)? (mTnL.Flags.TexGenLin)? "Linear":"Spherical":"Off", (mTnL.Flags.Fog)? "On":"Off");
 #endif
 
-	const s8 *mn {(s8*)(g_pu8RamBase + gAuxAddr)};
+	const s8 *mn = (s8*)(g_pu8RamBase + gAuxAddr);
 	_TnLVFPUCBFD( &mat_world, &mat_project, pVtxBase, &mVtxProjected[v0], n, &mTnL, mn, v0<<1 );
 }
 
@@ -1475,7 +1475,7 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 	//
 	for (u32 i {v0}; i < v0 + n; i++)
 	{
-		const FiddledVtx & vert {pVtxBase[i - v0]};
+		const FiddledVtx & vert = pVtxBase[i - v0];
 
 		// VTX Transform
 		//
@@ -1512,8 +1512,8 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 			v3 model_normal( mn[((i<<1)+0)^3], mn[((i<<1)+1)^3], vert.normz );
 			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
 			vecTransformedNormal.Normalise();
-			const v3 & norm {vecTransformedNormal};
-			const v3 & col {mTnL.Lights[mTnL.NumLights].Colour};
+			const v3 & norm = vecTransformedNormal;
+			const v3 & col = mTnL.Lights[mTnL.NumLights].Colour;
 
 			v4 Pos;
 			Pos.x = (projected.x + mTnL.CoordMod[8]) * mTnL.CoordMod[12];

@@ -103,9 +103,7 @@ enum EGameHacks
 	PMARIO,
 	GEX_GECKO,
 	WONDER_PROJECTJ2,
-	ANIMAL_CROSSING,
 	CHAMELEON_TWIST_2,
-	CLAY_FIGHTER_63,
 	BODY_HARVEST,
 	AIDYN_CRONICLES,
 	ISS64,
@@ -117,6 +115,8 @@ enum EGameHacks
 	SIN_PUNISHMENT,
 	DK64,
 	BANJO_TOOIE,
+	EMPTY0,             // Empty slot for a specific gamehack
+	EMPTY1,             // Empty slot for a specific gamehack
 	MAX_HACK_NAMES	//DONT CHANGE THIS! AND SHOULD BE LAST ENTRY
 };
 
@@ -149,7 +149,7 @@ struct RomInfo
 			u32			T0_SKIP_HACK:1;			//Hack for Rayman 2 texts
 			u32			SCISSOR_HACK:1;			//Hack to unbind viewport and scissor test region
 			u32			SKIP_CPU_REND_HACK:1;	//Hack to disable CPU rendering at boot
-			u32			PadB:1;	//free
+			u32			SKIP_MSG_SEND_HACK:1;	//Dummies osSendMesg
 			u32			PadC:1;	//free
 			u32			PadD:1;	//free
 			u32			PadE:1;	//free
