@@ -345,6 +345,8 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
 	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
+	case 0x4F50: g_ROM.GameHacks = POKEMON_STADIUM;		break;
+	case 0x3350: g_ROM.GameHacks = POKEMON_STADIUM;		break; // Pokemon Stadium 2
 	case 0x4643:	// Clay Fighter 63
 		g_ROM.SKIP_MSG_SEND_HACK = true;
 		break;

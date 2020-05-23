@@ -706,10 +706,22 @@ void RDP_MoveMemViewport(u32 address)
 	// With D3D we had to ensure that the vp coords are positive, so
 	// we truncated them to 0. This happens a lot, as things
 	// seem to specify the scale as the screen w/2 h/2
-
-	v2 vec_scale( vp->scale_x * 0.25f, vp->scale_y * 0.25f );
-	v2 vec_trans( vp->trans_x * 0.25f, vp->trans_y * 0.25f );
-
+	
+	// Pokemon Stadium sometimes sets weird viewports, discarding those.
+	// This is probably caused by lack of some microcode function implementation.
+	if (g_ROM.GameHacks == POKEMON_STADIUM)
+	{
+		if (vp->scale_x == 200) {
+			return;
+		}
+		if (vp->scale_x == 112) {
+			return;
+		}
+	}
+	
+	v2 vec_scale( (f32)vp->scale_x * 0.25f, (f32)vp->scale_y * 0.25f );
+	v2 vec_trans( (f32)vp->trans_x * 0.25f, (f32)vp->trans_y * 0.25f );
+	//DBGConsole_Msg(0, "MoveMemViewport: trans (%f, %f), scale(%f, %f)", (f32)vp->trans_x, (f32)vp->trans_y, (f32)vp->scale_x, (f32)vp->scale_y);
 	gRenderer->SetN64Viewport( vec_scale, vec_trans );
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST

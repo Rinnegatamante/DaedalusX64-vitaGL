@@ -369,6 +369,12 @@ void BaseRenderer::ForceViewport(float w, float h)
 void BaseRenderer::InitViewport()
 {
 	// Init the N64 viewport.
+	if (gRDPFrame == 0) {
+		mVpScale = v2( 320.0f, 240.0f );
+		mVpTrans = v2( 320.0f, 240.0f );
+		fViWidth = 640.0f;
+		fViHeight = 480.0f;
+	}else 
 	SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
@@ -489,6 +495,7 @@ void inline SetInternalViewport() {
 
 void BaseRenderer::UpdateViewport()
 {
+	//DBGConsole_Msg(0, "UpdateViewport: trans (%f, %f), scale(%f, %f)", mVpTrans.x, mVpTrans.y, mVpScale.x, mVpScale.y);
 	v2		n64_min( mVpTrans.x - mVpScale.x, mVpTrans.y - mVpScale.y );
 	v2		n64_max( mVpTrans.x + mVpScale.x, mVpTrans.y + mVpScale.y );
 
@@ -2343,7 +2350,7 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
 	s32 w = Max<s32>( r - l, 0 );
 	s32 h = Max<s32>( b - t, 0 );
-	glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
+	if (!g_ROM.GameHacks == POKEMON_STADIUM) glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
 #else
 	DAEDALUS_ERROR("Need to implement scissor for this platform.");
 #endif

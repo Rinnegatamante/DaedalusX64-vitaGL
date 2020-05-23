@@ -115,7 +115,7 @@ enum EGameHacks
 	SIN_PUNISHMENT,
 	DK64,
 	BANJO_TOOIE,
-	EMPTY0,             // Empty slot for a specific gamehack
+	POKEMON_STADIUM,
 	EMPTY1,             // Empty slot for a specific gamehack
 	MAX_HACK_NAMES	//DONT CHANGE THIS! AND SHOULD BE LAST ENTRY
 };
