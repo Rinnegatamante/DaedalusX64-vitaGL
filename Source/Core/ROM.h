@@ -116,7 +116,7 @@ enum EGameHacks
 	DK64,
 	BANJO_TOOIE,
 	POKEMON_STADIUM,
-	EMPTY1,             // Empty slot for a specific gamehack
+	QUAKE,
 	MAX_HACK_NAMES	//DONT CHANGE THIS! AND SHOULD BE LAST ENTRY
 };
 
@@ -150,7 +150,7 @@ struct RomInfo
 			u32			SCISSOR_HACK:1;			//Hack to unbind viewport and scissor test region
 			u32			SKIP_CPU_REND_HACK:1;	//Hack to disable CPU rendering at boot
 			u32			SKIP_MSG_SEND_HACK:1;	//Dummies osSendMesg
-			u32			PadC:1;	//free
+			u32			KEEP_MODE_H_HACK:1;		//Hack to prevent RDP OtherMode H reset
 			u32			PadD:1;	//free
 			u32			PadE:1;	//free
 			u32			PadF:1;	//free

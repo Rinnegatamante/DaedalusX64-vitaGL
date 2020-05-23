@@ -530,8 +530,9 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 	if(gFirstCall)
 	{
 		CGraphicsContext::Get()->ClearAllSurfaces();
-
 		gFirstCall = false;
+		gRDPOtherMode.L = 0;
+		gRDPOtherMode.H = 0x0CFF;
 	}
 
 	// Update Screen only when something is drawn, otherwise several games ex Army Men will flash or shake.
@@ -546,11 +547,8 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 
 	DLParser_InitMicrocode( code_base, code_size, data_base, data_size );
 
-	//
-	// Not sure what to init this with. We should probably read it from the dmem
-	//
-	gRDPOtherMode.L = 0x00500001;
-	gRDPOtherMode.H = 0;
+	if (g_ROM.GameHacks != QUAKE) gRDPOtherMode.L = 0;
+	if (!g_ROM.KEEP_MODE_H_HACK) gRDPOtherMode.H = 0x0CFF;
 
 	gRDPFrame++;
 
@@ -713,8 +711,7 @@ void RDP_MoveMemViewport(u32 address)
 	{
 		if (vp->scale_x == 200) {
 			return;
-		}
-		if (vp->scale_x == 112) {
+		} else if (vp->scale_x == 112) {
 			return;
 		}
 	}
