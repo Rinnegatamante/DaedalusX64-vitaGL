@@ -96,6 +96,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 
+v2 aux_trans, aux_scale;
+uint32_t aux_discard = 0;
+uint32_t aux_draws = 0;
+
 struct N64Viewport
 {
     s16 scale_y, scale_x, scale_w, scale_z;
@@ -705,20 +709,26 @@ void RDP_MoveMemViewport(u32 address)
 	// we truncated them to 0. This happens a lot, as things
 	// seem to specify the scale as the screen w/2 h/2
 	
-	// Pokemon Stadium sometimes sets weird viewports, discarding those.
-	// This is probably caused by lack of some microcode function implementation.
+	//DBGConsole_Msg(0, "MoveMemViewport: trans (%f, %f), scale(%f, %f)", (f32)vp->trans_x, (f32)vp->trans_y, (f32)vp->scale_x, (f32)vp->scale_y);
+	
+	// Pokemon Stadium gamese use multiple framebuffers, thus causing viewport to have incorrect position.
+	// Need proper auxiliary buffers support to fix this in a sane way. For now we hack the most important stuffs.
 	if (g_ROM.GameHacks == POKEMON_STADIUM)
 	{
-		if (vp->scale_x == 200) {
-			return;
-		} else if (vp->scale_x == 112) {
+		if (vp->scale_x == 200) { // Pokemon Stadium Pokemon Selection
+			aux_trans = gRenderer->mVpTrans;
+			aux_scale = gRenderer->mVpScale;
+			aux_discard = 10;
+			aux_draws = 60;
+			vp->trans_x = 412.0f;
+			vp->trans_y = 1250.0f;
+		} else if (vp->scale_x == 112) { // Pokemon Stadium 2 Pokemon Selection
 			return;
 		}
 	}
 	
 	v2 vec_scale( (f32)vp->scale_x * 0.25f, (f32)vp->scale_y * 0.25f );
 	v2 vec_trans( (f32)vp->trans_x * 0.25f, (f32)vp->trans_y * 0.25f );
-	//DBGConsole_Msg(0, "MoveMemViewport: trans (%f, %f), scale(%f, %f)", (f32)vp->trans_x, (f32)vp->trans_y, (f32)vp->scale_x, (f32)vp->scale_y);
 	gRenderer->SetN64Viewport( vec_scale, vec_trans );
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST

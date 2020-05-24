@@ -28,6 +28,8 @@ RendererVita  *gRendererVita = nullptr;
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
+extern u32 aux_draws;
+extern u32 aux_discard;
 
 bool gUseMipmaps = false;
 
@@ -575,6 +577,14 @@ void RendererVita::RenderTriangles(uint32_t *colors, u32 num_vertices, bool disa
 
 void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
+	if (g_ROM.GameHacks == POKEMON_STADIUM) {
+		if (aux_draws) {
+			aux_draws--;
+			if ((aux_draws < aux_discard) && (xy0.x == 52.0f)) return;
+			SetN64Viewport( aux_scale, aux_trans );
+		}
+	}
+	
 	UpdateTileSnapshots( tile_idx );
 	PrepareTexRectUVs(&st0, &st1);
 	

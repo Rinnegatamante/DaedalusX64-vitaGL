@@ -44,6 +44,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 class CNativeTexture;
 struct TempVerts;
 
+extern v2 aux_trans, aux_scale;
+
 // FIXME - this is for the PSP only.
 struct TextureVtx
 {
@@ -358,6 +360,9 @@ public:
 	inline float		N64ToScreenY(float y) const				{ return y * mN64ToScreenScale.y + mN64ToScreenTranslate.y; }
 
 	CRefPtr<CNativeTexture> LoadTextureDirectly( const TextureInfo & ti );
+	
+	v2					mVpScale;
+	v2					mVpTrans;
 
 protected:
 #if defined(DAEDALUS_PSP)
@@ -425,9 +430,6 @@ protected:
 
 	v2					mN64ToScreenScale;
 	v2					mN64ToScreenTranslate;
-
-	v2					mVpScale;
-	v2					mVpTrans;
 
 	u64					mMux;
 
