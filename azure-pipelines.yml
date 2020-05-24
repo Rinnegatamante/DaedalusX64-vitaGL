@@ -45,15 +45,16 @@ steps:
     cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake
     make -j$(nproc)
     cd ../Data
-    zip -r DaedalusX64.zip DaedalusX64
+    zip -9 -r DaedalusX64.zip DaedalusX64
   displayName: 'Build Daedalus X64'
     
-- task: GitHubRelease@0
+- task: GitHubRelease@1
   inputs:
     gitHubConnection: release
     repositoryName: Rinnegatamante/DaedalusX64-vitaGL
-    tagSource: manual
+    tagSource: userSpecifiedTag
     tag: Nightly
+    title: 'Nightly $(Build.BuildNumber)'
     action: edit
     assets: |
       daedbuild/DaedalusX64.vpk
