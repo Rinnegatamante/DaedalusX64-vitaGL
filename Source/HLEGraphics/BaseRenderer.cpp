@@ -54,6 +54,7 @@ struct ScePspFMatrix4
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
+extern uint16_t *gIndexBuffer;
 
 #include <vitaGL.h>
 extern void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx);
@@ -251,9 +252,16 @@ void BaseRenderer::SetVIScales()
 
 void BaseRenderer::Reset()
 {
+	gIndexBuffer += mNumIndices;
 	mNumIndices = 0;
 	mVtxClipFlagsUnion = 0;
-
+	mVtxProjectedBuffer = gVertexBuffer;
+	mTexProjectedBuffer = gTexCoordBuffer;
+	mClrProjectedBuffer = (u8*)gColorBuffer;
+	mIdxBuffer = gIndexBuffer;
+	gVertexBuffer += 3 * kMaxN64Vertices;
+	gTexCoordBuffer += 2 * kMaxN64Vertices;
+	gColorBuffer += kMaxN64Vertices;
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	mNumTrisRendered = 0;
 	mNumTrisClipped = 0;
@@ -644,9 +652,9 @@ bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
 #ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( mNumIndices + 3 < kMaxIndices, "Array overflow, too many Indices" );
 #endif
-	mIndexBuffer[ mNumIndices++ ] = (u16)v0;
-	mIndexBuffer[ mNumIndices++ ] = (u16)v1;
-	mIndexBuffer[ mNumIndices++ ] = (u16)v2;
+	mIdxBuffer[ mNumIndices++ ] = (u16)v0;
+	mIdxBuffer[ mNumIndices++ ] = (u16)v1;
+	mIdxBuffer[ mNumIndices++ ] = (u16)v2;
 
 	mVtxClipFlagsUnion |= f0 | f1 | f2;
 
@@ -688,7 +696,7 @@ void BaseRenderer::FlushTris()
 #endif
 	{
 		#ifdef DAEDALUS_VITA
-		count = PrepareTrisUnclipped( &clr );
+		PrepareTrisUnclipped();
 		#else
 		PrepareTrisUnclipped( &temp_verts );
 		#endif
@@ -735,12 +743,11 @@ void BaseRenderer::FlushTris()
 	//
 	//	Render out our vertices
 #ifdef DAEDALUS_VITA
-	RenderTriangles( clr, count, gRDPOtherMode.depth_source ? true : false );
+	RenderTriangles( (u32*)mClrProjectedBuffer, mNumIndices, gRDPOtherMode.depth_source ? true : false );
 #else
 	RenderTriangles( temp_verts.Verts, temp_verts.Count, gRDPOtherMode.depth_source ? true : false );
 #endif
-	mNumIndices = 0;
-	mVtxClipFlagsUnion = 0;
+	Reset();
 }
 
 
@@ -884,141 +891,11 @@ namespace
 }
 
 
-//
-#ifndef DAEDALUS_VITA
-void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
-{
-	DAEDALUS_PROFILE( "BaseRenderer::PrepareTrisClipped" );
 
-	//
-	//	At this point all vertices are lit/projected and have both transformed and projected
-	//	vertex positions. For the best results we clip against the projected vertex positions,
-	//	but use the resulting intersections to interpolate the transformed positions.
-	//	The clipping is more efficient in normalised device coordinates, but rendering these
-	//	directly prevents the PSP performing perspective correction. We could invert the projection
-	//	matrix and use this to back-project the clip planes into world coordinates, but this
-	//	suffers from various precision issues. Carrying around both sets of coordinates gives
-	//	us the best of both worlds :)
-	//
-	//  Convert directly to PSP hardware format, that way we only copy 24 bytes instead of 64 bytes //Corn
-	//
-	u32 num_vertices {};
-
-	for(u32 i {}; i < (mNumIndices - 2);)
-	{
-		const u32 & idx0 = mIndexBuffer[ i++ ];
-		const u32 & idx1 = mIndexBuffer[ i++ ];
-		const u32 & idx2 = mIndexBuffer[ i++ ];
-
-		//Check if any of the vertices are outside the clipbox (NDC), if so we need to clip the triangle
-		if(mVtxProjected[idx0].ClipFlags | mVtxProjected[idx1].ClipFlags | mVtxProjected[idx2].ClipFlags)
-		{
-			temp_a[ 0 ] = mVtxProjected[ idx0 ];
-			temp_a[ 1 ] = mVtxProjected[ idx1 ];
-			temp_a[ 2 ] = mVtxProjected[ idx2 ];
-
-			u32 out {clip_tri_to_frustum( temp_a, temp_b )};
-			//If we have less than 3 vertices left after the clipping
-			//we can't make a triangle so we bail and skip rendering it.
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-			DL_PF("    Clip & re-tesselate [%d,%d,%d] with %d vertices", i-3, i-2, i-1, out);
-			DL_PF("    %#5.3f, %#5.3f, %#5.3f", mVtxProjected[ idx0 ].ProjectedPos.x/mVtxProjected[ idx0 ].ProjectedPos.w, mVtxProjected[ idx0 ].ProjectedPos.y/mVtxProjected[ idx0 ].ProjectedPos.w, mVtxProjected[ idx0 ].ProjectedPos.z/mVtxProjected[ idx0 ].ProjectedPos.w);
-			DL_PF("    %#5.3f, %#5.3f, %#5.3f", mVtxProjected[ idx1 ].ProjectedPos.x/mVtxProjected[ idx1 ].ProjectedPos.w, mVtxProjected[ idx1 ].ProjectedPos.y/mVtxProjected[ idx1 ].ProjectedPos.w, mVtxProjected[ idx1 ].ProjectedPos.z/mVtxProjected[ idx1 ].ProjectedPos.w);
-			DL_PF("    %#5.3f, %#5.3f, %#5.3f", mVtxProjected[ idx2 ].ProjectedPos.x/mVtxProjected[ idx2 ].ProjectedPos.w, mVtxProjected[ idx2 ].ProjectedPos.y/mVtxProjected[ idx2 ].ProjectedPos.w, mVtxProjected[ idx2 ].ProjectedPos.z/mVtxProjected[ idx2 ].ProjectedPos.w);
-			#endif
-
-			if( out < 3 )
-				continue;
-
-			// Retesselate
-			u32 new_num_vertices( num_vertices + (out - 3) * 3 );
-						#ifdef DAEDALUS_DEBUG_CONSOLE
-			if( new_num_vertices > MAX_CLIPPED_VERTS )
-			{
-				DAEDALUS_ERROR( "Too many clipped verts: %d", new_num_vertices );
-				break;
-			}
-					#endif
-			//Make new triangles from the vertices we got back from clipping the original triangle
-			for( u32 j {}; j <= out - 3; ++j)
-			{
-#ifdef DAEDALUS_PSP_USE_VFPU
-				_ConvertVertice( &clip_vtx[ num_vertices++ ], &temp_a[ 0 ]);
-				_ConvertVertice( &clip_vtx[ num_vertices++ ], &temp_a[ j + 1 ]);
-				_ConvertVertice( &clip_vtx[ num_vertices++ ], &temp_a[ j + 2 ]);
-#else
-				clip_vtx[ num_vertices ].Texture = temp_a[ 0 ].Texture;
-				clip_vtx[ num_vertices ].Colour = c32( temp_a[ 0 ].Colour );
-				clip_vtx[ num_vertices ].Position.x = temp_a[ 0 ].TransformedPos.x;
-				clip_vtx[ num_vertices ].Position.y = temp_a[ 0 ].TransformedPos.y;
-				clip_vtx[ num_vertices++ ].Position.z = temp_a[ 0 ].TransformedPos.z;
-
-				clip_vtx[ num_vertices ].Texture = temp_a[ j + 1 ].Texture;
-				clip_vtx[ num_vertices ].Colour = c32( temp_a[ j + 1 ].Colour );
-				clip_vtx[ num_vertices ].Position.x = temp_a[ j + 1 ].TransformedPos.x;
-				clip_vtx[ num_vertices ].Position.y = temp_a[ j + 1 ].TransformedPos.y;
-				clip_vtx[ num_vertices++ ].Position.z = temp_a[ j + 1 ].TransformedPos.z;
-
-				clip_vtx[ num_vertices ].Texture = temp_a[ j + 2 ].Texture;
-				clip_vtx[ num_vertices ].Colour = c32( temp_a[ j + 2 ].Colour );
-				clip_vtx[ num_vertices ].Position.x = temp_a[ j + 2 ].TransformedPos.x;
-				clip_vtx[ num_vertices ].Position.y = temp_a[ j + 2 ].TransformedPos.y;
-				clip_vtx[ num_vertices++ ].Position.z = temp_a[ j + 2 ].TransformedPos.z;
-#endif
-			}
-		}
-		else	//Triangle is inside the clipbox so we just add it as it is.
-		{
-					#ifdef DAEDALUS_DEBUG_CONSOLE
-			if( num_vertices > (MAX_CLIPPED_VERTS - 3) )
-			{
-
-				DAEDALUS_ERROR( "Too many clipped verts: %d", num_vertices + 3 );
-				break;
-			}
-					#endif
-
-#ifdef DAEDALUS_PSP_USE_VFPU
-			_ConvertVertice( &clip_vtx[ num_vertices++ ], &mVtxProjected[ idx0 ]);
-			_ConvertVertice( &clip_vtx[ num_vertices++ ], &mVtxProjected[ idx1 ]);
-			_ConvertVertice( &clip_vtx[ num_vertices++ ], &mVtxProjected[ idx2 ]);
-#else
-			clip_vtx[ num_vertices ].Texture = mVtxProjected[ idx0 ].Texture;
-			clip_vtx[ num_vertices ].Colour = c32( mVtxProjected[ idx0 ].Colour );
-			clip_vtx[ num_vertices ].Position.x = mVtxProjected[ idx0 ].TransformedPos.x;
-			clip_vtx[ num_vertices ].Position.y = mVtxProjected[ idx0 ].TransformedPos.y;
-			clip_vtx[ num_vertices++ ].Position.z = mVtxProjected[ idx0 ].TransformedPos.z;
-
-			clip_vtx[ num_vertices ].Texture = mVtxProjected[ idx1 ].Texture;
-			clip_vtx[ num_vertices ].Colour = c32( mVtxProjected[ idx1 ].Colour );
-			clip_vtx[ num_vertices ].Position.x = mVtxProjected[ idx1 ].TransformedPos.x;
-			clip_vtx[ num_vertices ].Position.y = mVtxProjected[ idx1 ].TransformedPos.y;
-			clip_vtx[ num_vertices++ ].Position.z = mVtxProjected[ idx1 ].TransformedPos.z;
-
-			clip_vtx[ num_vertices ].Texture = mVtxProjected[ idx2 ].Texture;
-			clip_vtx[ num_vertices ].Colour = c32( mVtxProjected[ idx2 ].Colour );
-			clip_vtx[ num_vertices ].Position.x = mVtxProjected[ idx2 ].TransformedPos.x;
-			clip_vtx[ num_vertices ].Position.y = mVtxProjected[ idx2 ].TransformedPos.y;
-			clip_vtx[ num_vertices++ ].Position.z = mVtxProjected[ idx2 ].TransformedPos.z;
-#endif
-		}
-	}
-
-	//
-	//	Now the vertices have been clipped we need to write them into
-	//	a buffer we obtain this from the display list.
-	if (num_vertices > 0)
-	{
-		DaedalusVtx * p_vertices = temp_verts->Alloc(num_vertices);
-
-		memcpy( p_vertices, clip_vtx, num_vertices * sizeof(DaedalusVtx) );	//std memcpy() is as fast as VFPU here!
-	}
-}
-#endif
 
 //
 #ifdef DAEDALUS_VITA
-uint32_t BaseRenderer::PrepareTrisUnclipped( uint32_t **clr )
+void BaseRenderer::PrepareTrisUnclipped()
 #else
 void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 #endif
@@ -1027,8 +904,8 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( mNumIndices > 0, "The number of indices should have been checked" );
 	#endif
-	const u32		num_vertices = mNumIndices;
 #ifndef DAEDALUS_VITA
+	const u32		num_vertices = mNumIndices;
 	DaedalusVtx *	p_vertices   = temp_verts->Alloc(num_vertices);
 #endif
 	//
@@ -1038,20 +915,20 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 	//
 	//	http://forums.ps2dev.org/viewtopic.php?t=4703
 	//
-	//DAEDALUS_STATIC_ASSERT( MAX_CLIPPED_VERTS > ARRAYSIZE(mIndexBuffer) );
+	//DAEDALUS_STATIC_ASSERT( MAX_CLIPPED_VERTS > ARRAYSIZE(mIdxBuffer) );
 
 #ifdef DAEDALUS_PSP_USE_VFPU
-	_ConvertVerticesIndexed( p_vertices, mVtxProjected, num_vertices, mIndexBuffer );
+	_ConvertVerticesIndexed( p_vertices, mVtxProjected, num_vertices, mIdxBuffer );
 #else
 	//
 	//	Now we just shuffle all the data across directly (potentially duplicating verts)
 	//
 #ifdef DAEDALUS_VITA
-	vglVertexPointerMapped(gVertexBuffer);
-	*clr = gColorBuffer;
+	vglIndexPointerMapped(mIdxBuffer);
+	vglVertexPointerMapped(mVtxProjectedBuffer);
 	if (mTnL.Flags.Texture) {
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		vglTexCoordPointerMapped(gTexCoordBuffer);
+		vglTexCoordPointerMapped(mTexProjectedBuffer);
 		
 		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
 		else UpdateTileSnapshots( mTextureTile );
@@ -1072,52 +949,17 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 				scale_y *= 0.5f;
 			}
 
-			for( u32 i = 0; i < num_vertices; ++i )
+			for( u32 i = 0; i < mNumIndices; ++i )
 			{
-				u32 index = mIndexBuffer[ i ];
-		
-				gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
-				gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
-				gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
-				gTexCoordBuffer[0] = (mVtxProjected[ index ].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
-				gTexCoordBuffer[1] = (mVtxProjected[ index ].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
-				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
-				gVertexBuffer += 3;
-				gTexCoordBuffer += 2;
+				mTexProjectedBuffer[i*2] = (mTexProjectedBuffer[i*2] * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
+				mTexProjectedBuffer[i*2+1] = (mTexProjectedBuffer[i*2+1] * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
 			}
-		} else {
-			for( u32 i = 0; i < num_vertices; ++i )
-			{
-				u32 index = mIndexBuffer[ i ];
-		
-				gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
-				gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
-				gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
-				gTexCoordBuffer[0] = mVtxProjected[ index ].Texture.x;
-				gTexCoordBuffer[1] = mVtxProjected[ index ].Texture.y;
-				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
-				gVertexBuffer += 3;
-				gTexCoordBuffer += 2;
-			}
-		}
-	} else {
-		for( u32 i = 0; i < num_vertices; ++i )
-		{
-			u32 index = mIndexBuffer[ i ];
-		
-			gVertexBuffer[0] = mVtxProjected[ index ].TransformedPos.x;
-			gVertexBuffer[1] = mVtxProjected[ index ].TransformedPos.y;
-			gVertexBuffer[2] = mVtxProjected[ index ].TransformedPos.z;
-			gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
-			gVertexBuffer += 3;
 		}
 	}
-	gColorBuffer += num_vertices;
-	return num_vertices;
 #else
 	for( u32 i = 0; i < num_vertices; ++i )
 	{
-		u32 index = mIndexBuffer[ i ];
+		u32 index = mIdxBuffer[ i ];
 
 		p_vertices[ i ].Texture = mVtxProjected[ index ].Texture;
 		p_vertices[ i ].Colour = c32( mVtxProjected[ index ].Colour );
@@ -1158,83 +1000,6 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 	}
 }
 
-
-//
-
-/*void BaseRenderer::TestVFPUVerts( u32 v0, u32 num, const FiddledVtx * verts, const Matrix4x4 & mat_world )
-{
-	bool	env_map( (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) == (TNL_LIGHT|TNL_TEXGEN) );
-
-	u32 vend( v0 + num );
-	for (u32 i = v0; i < vend; i++)
-	{
-		const FiddledVtx & vert = verts[i - v0];
-		const v4 &	projected( mVtxProjected[i].ProjectedPos );
-
-		if (mTnL.Flags.Fog)
-		{
-			float eyespace_z = projected.z / projected.w;
-			float fog_coeff = (eyespace_z * mTnL.FogMult) + mTnL.FogOffset;
-
-			// Set the alpha
-			f32 value = Clamp< f32 >( fog_coeff, 0.0f, 1.0f );
-
-			if( Abs( value - mVtxProjected[i].Colour.w ) > 0.01f )
-			{
-				printf( "Fog wrong: %f != %f\n", mVtxProjected[i].Colour.w, value );
-			}
-		}
-
-		if (mTnL.Flags.Texture)
-		{
-			// Update texture coords n.b. need to divide tu/tv by bogus scale on addition to buffer
-
-			// If the vert is already lit, then there is no normal (and hence we
-			// can't generate tex coord)
-			float tx, ty;
-			if (env_map)
-			{
-				v3 vecTransformedNormal;		// Used only when TNL_LIGHT set
-				v3	model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
-
-				vecTransformedNormal = mat_world.TransformNormal( model_normal );
-				vecTransformedNormal.Normalise();
-
-				const v3 & norm = vecTransformedNormal;
-
-				// Assign the spheremap's texture coordinates
-				tx = (0.5f * ( 1.0f + ( norm.x*mat_world.m11 +
-										norm.y*mat_world.m21 +
-										norm.z*mat_world.m31 ) ));
-
-				ty = (0.5f * ( 1.0f - ( norm.x*mat_world.m12 +
-										norm.y*mat_world.m22 +
-										norm.z*mat_world.m32 ) ));
-			}
-			else
-			{
-				tx = (float)vert.tu * mTnL.TextureScaleX;
-				ty = (float)vert.tv * mTnL.TextureScaleY;
-			}
-
-			if( Abs(tx - mVtxProjected[i].Texture.x ) > 0.0001f ||
-				Abs(ty - mVtxProjected[i].Texture.y ) > 0.0001f )
-			{
-				printf( "tx/y wrong : %f,%f != %f,%f (%s)\n", mVtxProjected[i].Texture.x, mVtxProjected[i].Texture.y, tx, ty, env_map ? "env" : "scale" );
-			}
-		}
-
-		//
-		//	Initialise the clipping flags (always done on the VFPU, so skip here)
-		//
-		//u32 flags = CalcClipFlags( projected );
-		//if( flags != mVtxProjected[i].ClipFlags )
-		//{
-		//	printf( "flags wrong: %02x != %02x\n", mVtxProjected[i].ClipFlags, flags );
-		//}
-	}
-}*/
-
 #else	//Transform using VFPU(fast) or FPU/CPU(slow)
 
 //
@@ -1268,17 +1033,17 @@ v3 BaseRenderer::LightVert( const v3 & norm ) const
 
 v3 BaseRenderer::LightPointVert( const v4 & w ) const
 {
-	const v3 & col {mTnL.Lights[mTnL.NumLights].Colour};
+	const v3 & col = mTnL.Lights[mTnL.NumLights].Colour;
 	v3 result( col.x, col.y, col.z );
 
-	for ( u32 l {}; l < mTnL.NumLights; l++ )
+	for ( u32 l = 0; l < mTnL.NumLights; l++ )
 	{
 		if ( mTnL.Lights[l].SkipIfZero )
 		{
 			v3 distance_vec( mTnL.Lights[l].Position.x-w.x, mTnL.Lights[l].Position.y-w.y, mTnL.Lights[l].Position.z-w.z );
 
-			f32 light_qlen {distance_vec.LengthSq()};
-			f32 light_llen {sqrtf( light_qlen )};
+			f32 light_qlen = distance_vec.LengthSq();
+			f32 light_llen = sqrtf( light_qlen );
 
 			f32 at = mTnL.Lights[l].ca + mTnL.Lights[l].la * light_llen + mTnL.Lights[l].qa * light_qlen;
 			if (at > 0.0f)
@@ -1328,7 +1093,8 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 		v4 & projected( mVtxProjected[i].ProjectedPos );
 		projected = mat_world_project.Transform( w );
 		mVtxProjected[i].TransformedPos = mat_world.Transform( w );
-
+		memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
+		
 		//	Initialise the clipping flags
 		//
 		u32 clip_flags {};
@@ -1361,10 +1127,10 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 			{//NORMAL LIGHT
 				col = LightVert(vecTransformedNormal);
 			}
-			mVtxProjected[i].Colour.x = col.x;
-			mVtxProjected[i].Colour.y = col.y;
-			mVtxProjected[i].Colour.z = col.z;
-			mVtxProjected[i].Colour.w = vert.rgba_a * (1.0f / 255.0f);
+			mClrProjectedBuffer[i*4] = (col.x * 255.0f);
+			mClrProjectedBuffer[i*4+1] = (col.y * 255.0f);
+			mClrProjectedBuffer[i*4+2] = (col.z * 255.0f);
+			mClrProjectedBuffer[i*4+3] = vert.rgba_a;
 
 			// ENV MAPPING
 			//
@@ -1381,23 +1147,23 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 
 				if( mTnL.Flags.TexGenLin )
 				{
-					mVtxProjected[i].Texture.x = 0.5f * ( 1.0f + norm.x );
-					mVtxProjected[i].Texture.y = 0.5f * ( 1.0f + norm.y );
+					mTexProjectedBuffer[i*2] = 0.5f * ( 1.0f + norm.x );
+					mTexProjectedBuffer[i*2+1] = 0.5f * ( 1.0f + norm.y );
 				}
 				else
 				{
 					//Cheap way to do Acos(x)/Pi (abs() fixes star in SM64, sort of) //Corn
 					f32 NormX = fabsf( norm.x );
 					f32 NormY = fabsf( norm.y );
-					mVtxProjected[i].Texture.x =  0.5f - 0.25f * NormX - 0.25f * NormX * NormX * NormX;
-					mVtxProjected[i].Texture.y =  0.5f - 0.25f * NormY - 0.25f * NormY * NormY * NormY;
+					mTexProjectedBuffer[i*2] =  0.5f - 0.25f * NormX - 0.25f * NormX * NormX * NormX;
+					mTexProjectedBuffer[i*2+1] =  0.5f - 0.25f * NormY - 0.25f * NormY * NormY * NormY;
 				}
 			}
 			else
 			{
 				//Set Texture coordinates
-				mVtxProjected[i].Texture.x = (float)vert.tu * mTnL.TextureScaleX;
-				mVtxProjected[i].Texture.y = (float)vert.tv * mTnL.TextureScaleY;
+				mTexProjectedBuffer[i*2] = (float)vert.tu * mTnL.TextureScaleX;
+				mTexProjectedBuffer[i*2+1] = (float)vert.tv * mTnL.TextureScaleY;
 			}
 		}
 		else
@@ -1413,8 +1179,8 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 
 
 			//Set Texture coordinates
-			mVtxProjected[i].Texture.x = (float)vert.tu * mTnL.TextureScaleX;
-			mVtxProjected[i].Texture.y = (float)vert.tv * mTnL.TextureScaleY;
+			mTexProjectedBuffer[i*2] = (float)vert.tu * mTnL.TextureScaleX;
+			mTexProjectedBuffer[i*2+1] = (float)vert.tv * mTnL.TextureScaleY;
 		}
 
 #ifdef DAEDALUS_PSP
@@ -1426,11 +1192,11 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 				f32 eye_z {projected.z / projected.w};
 				f32 fog_alpha {eye_z * mTnL.FogMult + mTnL.FogOffs};
 				//f32 fog_alpha = eye_z * 20.0f - 19.0f;	//Fog test line
-				mVtxProjected[i].Colour.w = Clamp< f32 >( fog_alpha, 0.0f, 1.0f );
+				mClrProjectedBuffer[i*4+3] = Clamp< f32 >( fog_alpha, 0.0f, 1.0f );
 			}
 			else
 			{
-				mVtxProjected[i].Colour.w = 0.0f;
+				mClrProjectedBuffer[i*4+3] = 0.0f;
 			}
 		}
 #endif
@@ -1488,6 +1254,7 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 
 		v4 & transformed( mVtxProjected[i].TransformedPos );
 		transformed = mat_world.Transform( w );
+		memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
 
 		v4 & projected( mVtxProjected[i].ProjectedPos );
 		projected = mat_project.Transform( transformed );
@@ -1505,10 +1272,10 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 		else if (projected.z > projected.w)		clip_flags |= Z_NEG;
 		mVtxProjected[i].ClipFlags = clip_flags;
 
-		mVtxProjected[i].Colour.x = (f32)vert.rgba_r * (1.0f / 255.0f);
-		mVtxProjected[i].Colour.y = (f32)vert.rgba_g * (1.0f / 255.0f);
-		mVtxProjected[i].Colour.z = (f32)vert.rgba_b * (1.0f / 255.0f);
-		mVtxProjected[i].Colour.w = (f32)vert.rgba_a * (1.0f / 255.0f);	//Pass alpha channel unmodified
+		mClrProjectedBuffer[i*4] = vert.rgba_r;
+		mClrProjectedBuffer[i*4+1] = vert.rgba_g;
+		mClrProjectedBuffer[i*4+2] = vert.rgba_b;
+		mClrProjectedBuffer[i*4+3] = vert.rgba_a;	//Pass alpha channel unmodified
 
 		// LIGHTING OR COLOR
 		//
@@ -1574,34 +1341,34 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 			}
 
 			//Clamp result to 1.0
-			if( result.x < 1.0f ) mVtxProjected[i].Colour.x *= result.x;
-			if( result.y < 1.0f ) mVtxProjected[i].Colour.y *= result.y;
-			if( result.z < 1.0f ) mVtxProjected[i].Colour.z *= result.z;
+			if( result.x < 1.0f ) mClrProjectedBuffer[i*4] *= (result.x * 255.0f);
+			if( result.y < 1.0f ) mClrProjectedBuffer[i*4+1] *= (result.y * 255.0f);
+			if( result.z < 1.0f ) mClrProjectedBuffer[i*4+2] *= (result.z * 255.0f);
 
 			// ENV MAPPING
 			if ( mTnL.Flags.TexGen )
 			{
 				if( mTnL.Flags.TexGenLin )
 				{
-					mVtxProjected[i].Texture.x =  0.5f - 0.25f * norm.x - 0.25f * norm.x * norm.x * norm.x;	//Cheap way to do ~Acos(x)/Pi //Corn
-					mVtxProjected[i].Texture.y =  0.5f - 0.25f * norm.y - 0.25f * norm.y * norm.y * norm.y;
+					mTexProjectedBuffer[i*2] =  0.5f - 0.25f * norm.x - 0.25f * norm.x * norm.x * norm.x;	//Cheap way to do ~Acos(x)/Pi //Corn
+					mTexProjectedBuffer[i*2+1] =  0.5f - 0.25f * norm.y - 0.25f * norm.y * norm.y * norm.y;
 				}
 				else
 				{
-					mVtxProjected[i].Texture.x = 0.5f * ( 1.0f + norm.x );
-					mVtxProjected[i].Texture.y = 0.5f * ( 1.0f + norm.y );
+					mTexProjectedBuffer[i*2] = 0.5f * ( 1.0f + norm.x );
+					mTexProjectedBuffer[i*2+1] = 0.5f * ( 1.0f + norm.y );
 				}
 			}
 			else
 			{	//TEXTURE SCALE
-				mVtxProjected[i].Texture.x = (f32)vert.tu * mTnL.TextureScaleX;
-				mVtxProjected[i].Texture.y = (f32)vert.tv * mTnL.TextureScaleY;
+				mTexProjectedBuffer[i*2] = (f32)vert.tu * mTnL.TextureScaleX;
+				mTexProjectedBuffer[i*2+1] = (f32)vert.tv * mTnL.TextureScaleY;
 			}
 		}
 		else
 		{	//TEXTURE SCALE
-			mVtxProjected[i].Texture.x = (f32)vert.tu * mTnL.TextureScaleX;
-			mVtxProjected[i].Texture.y = (f32)vert.tv * mTnL.TextureScaleY;
+			mTexProjectedBuffer[i*2] = (f32)vert.tu * mTnL.TextureScaleX;
+			mTexProjectedBuffer[i*2+1] = (f32)vert.tv * mTnL.TextureScaleY;
 		}
 	}
 }
@@ -1657,6 +1424,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			transformed.y = BaseVec.y + w2.y;
 			transformed.z = BaseVec.z + w2.z;
 			transformed.w = 1.0f;
+			memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
 
 			// Set Clipflags, zero clippflags if billbording //Corn
 			mVtxProjected[i].ClipFlags = 0;
@@ -1665,10 +1433,10 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			const u32 WL = *(u16*)((pVtxBase + 6) ^ 2);
 			const u32 WH = *(u16*)((pVtxBase + 8) ^ 2);
 
-			mVtxProjected[i].Colour.x = (1.0f / 255.0f) * (WL >> 8);
-			mVtxProjected[i].Colour.y = (1.0f / 255.0f) * (WL & 0xFF);
-			mVtxProjected[i].Colour.z = (1.0f / 255.0f) * (WH >> 8);
-			mVtxProjected[i].Colour.w = (1.0f / 255.0f) * (WH & 0xFF);
+			mClrProjectedBuffer[i*4] = (WL >> 8);
+			mClrProjectedBuffer[i*4+1] = (WL & 0xFF);
+			mClrProjectedBuffer[i*4+2] = (WH >> 8);
+			mClrProjectedBuffer[i*4+3] = (WH & 0xFF);
 
 			pVtxBase += 10;
 		}
@@ -1691,6 +1459,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			transformed.y = *(s16*)((pVtxBase + 2) ^ 2);
 			transformed.z = *(s16*)((pVtxBase + 4) ^ 2);
 			transformed.w = 1.0f;
+			memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
 
 			v4 & projected( mVtxProjected[i].ProjectedPos );
 			projected = mat_world_project.Transform( transformed );	//Do projection
@@ -1711,10 +1480,10 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			const u32 WL {*(u16*)((pVtxBase + 6) ^ 2)};
 			const u32 WH {*(u16*)((pVtxBase + 8) ^ 2)};
 
-			mVtxProjected[i].Colour.x = (1.0f / 255.0f) * (WL >> 8);
-			mVtxProjected[i].Colour.y = (1.0f / 255.0f) * (WL & 0xFF);
-			mVtxProjected[i].Colour.z = (1.0f / 255.0f) * (WH >> 8);
-			mVtxProjected[i].Colour.w = (1.0f / 255.0f) * (WH & 0xFF);
+			mClrProjectedBuffer[i*4] = (WL >> 8);
+			mClrProjectedBuffer[i*4+1] = (WL & 0xFF);
+			mClrProjectedBuffer[i*4+2] = (WH >> 8);
+			mClrProjectedBuffer[i*4+3] = (WH & 0xFF);
 
 			pVtxBase += 10;
 		}
@@ -1770,6 +1539,7 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 		//
 		v4 & transformed( mVtxProjected[i].TransformedPos );
 		transformed = mat_world.Transform( w );
+		memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
 		v4 & projected( mVtxProjected[i].ProjectedPos );
 		projected = mat_project.Transform( transformed );
 
@@ -1790,15 +1560,15 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 		{
 			v3	model_normal((f32)mn[vert.cidx+3], (f32)mn[vert.cidx+2], (f32)mn[vert.cidx+1] );
 
-			v3 vecTransformedNormal {};
+			v3 vecTransformedNormal;
 			vecTransformedNormal = mat_world.TransformNormal( model_normal );
 			vecTransformedNormal.Normalise();
 
-			const v3 col {LightVert(vecTransformedNormal)};
-			mVtxProjected[i].Colour.x = col.x;
-			mVtxProjected[i].Colour.y = col.y;
-			mVtxProjected[i].Colour.z = col.z;
-			mVtxProjected[i].Colour.w = (f32)mn[vert.cidx+0] * (1.0f / 255.0f);
+			const v3 col = LightVert(vecTransformedNormal);
+			mClrProjectedBuffer[i*4] = (col.x * 255.0f);
+			mClrProjectedBuffer[i*4+1] = (col.y * 255.0f);
+			mClrProjectedBuffer[i*4+2] = (col.z * 255.0f);
+			mClrProjectedBuffer[i*4+3] = mn[vert.cidx+0];
 
 			if ( mTnL.Flags.TexGen )
 			{
@@ -1807,31 +1577,31 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 				//Env mapping
 				if( mTnL.Flags.TexGenLin )
 				{	//Cheap way to do Acos(x)/Pi //Corn
-					mVtxProjected[i].Texture.x =  0.5f - 0.25f * norm.x - 0.25f * norm.x * norm.x * norm.x;
-					mVtxProjected[i].Texture.y =  0.5f - 0.25f * norm.y - 0.25f * norm.y * norm.y * norm.y;
+					mTexProjectedBuffer[i*2] =  0.5f - 0.25f * norm.x - 0.25f * norm.x * norm.x * norm.x;
+					mTexProjectedBuffer[i*2+1] =  0.5f - 0.25f * norm.y - 0.25f * norm.y * norm.y * norm.y;
 				}
 				else
 				{
-					mVtxProjected[i].Texture.x = 0.5f * ( 1.0f + norm.x );
-					mVtxProjected[i].Texture.y = 0.5f * ( 1.0f + norm.y );
+					mTexProjectedBuffer[i*2] = 0.5f * ( 1.0f + norm.x );
+					mTexProjectedBuffer[i*2+1] = 0.5f * ( 1.0f + norm.y );
 				}
 			}
 			else
 			{
-				mVtxProjected[i].Texture.x = (float)vert.tu * mTnL.TextureScaleX;
-				mVtxProjected[i].Texture.y = (float)vert.tv * mTnL.TextureScaleY;
+				mTexProjectedBuffer[i*2] = (float)vert.tu * mTnL.TextureScaleX;
+				mTexProjectedBuffer[i*2+1] = (float)vert.tv * mTnL.TextureScaleY;
 			}
 		}
 		else
 		{
 
-			mVtxProjected[i].Colour.x = (f32)mn[vert.cidx+3] * (1.0f / 255.0f);
-			mVtxProjected[i].Colour.y = (f32)mn[vert.cidx+2] * (1.0f / 255.0f);
-			mVtxProjected[i].Colour.z = (f32)mn[vert.cidx+1] * (1.0f / 255.0f);
-			mVtxProjected[i].Colour.w = (f32)mn[vert.cidx+0] * (1.0f / 255.0f);
+			mClrProjectedBuffer[i*4] = mn[vert.cidx+3];
+			mClrProjectedBuffer[i*4+1] = mn[vert.cidx+2];
+			mClrProjectedBuffer[i*4+2] = mn[vert.cidx+1];
+			mClrProjectedBuffer[i*4+3] = mn[vert.cidx+0];
 
-			mVtxProjected[i].Texture.x = (float)vert.tu * mTnL.TextureScaleX;
-			mVtxProjected[i].Texture.y = (float)vert.tv * mTnL.TextureScaleY;
+			mTexProjectedBuffer[i*2] = (float)vert.tu * mTnL.TextureScaleX;
+			mTexProjectedBuffer[i*2+1] = (float)vert.tv * mTnL.TextureScaleY;
 		}
 	}
 }

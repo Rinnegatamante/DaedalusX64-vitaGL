@@ -28,6 +28,7 @@ RendererVita  *gRendererVita = nullptr;
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
+extern uint16_t *gIndexBufferForRect;
 
 bool gUseMipmaps = false;
 
@@ -710,7 +711,8 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	gColorBuffer += 4;
 
 	SetNegativeViewport();
-
+	
+	vglIndexPointerMapped(gIndexBufferForRect);
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
@@ -743,6 +745,7 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	gColorBuffer += 4;
 	
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	vglIndexPointerMapped(gIndexBufferForRect);
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
 
@@ -787,6 +790,7 @@ void RendererVita::DoGamma(float gamma)
 	glEnableClientState(GL_COLOR_ARRAY);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
+	vglIndexPointerMapped(gIndexBufferForRect);
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
@@ -851,6 +855,7 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
+	vglIndexPointerMapped(gIndexBufferForRect);
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
@@ -910,6 +915,7 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
+	vglIndexPointerMapped(gIndexBufferForRect);
 	vglDrawObjects(GL_TRIANGLE_FAN, 4, GL_TRUE);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }

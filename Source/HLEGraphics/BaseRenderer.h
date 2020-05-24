@@ -404,7 +404,7 @@ protected:
 
 	void				PrepareTrisClipped( TempVerts * temp_verts ) const;
 #ifdef DAEDALUS_VITA
-	uint32_t			PrepareTrisUnclipped( uint32_t **clr );
+	void				PrepareTrisUnclipped();
 #else
 	void				PrepareTrisUnclipped( TempVerts * temp_verts ) const;
 #endif
@@ -420,7 +420,6 @@ private:
 
 protected:
 	static const u32 kMaxN64Vertices = 80;		// F3DLP.Rej supports up to 80 verts!
-
 	TnLParams			mTnL;
 
 	v2					mN64ToScreenScale;
@@ -486,11 +485,16 @@ protected:
 	Matrix4x4			mScreenToDevice;					// Used by OSX renderer - scales screen coords (0..640 etc) to device coords (-1..+1)
 #endif
 
-	static const u32 	kMaxIndices = 320;					// We need at least 80 verts * 3 = 240? But Flying Dragon uses more than 256 //Corn
-	u16					mIndexBuffer[kMaxIndices];
 	u32					mNumIndices;
 
 	// Processed vertices waiting for output...
+#ifdef DAEDALUS_VITA
+	float               *mVtxProjectedBuffer;
+	float               *mTexProjectedBuffer;
+	u8                  *mClrProjectedBuffer;
+	u16					*mIdxBuffer;
+#endif
+
 	DaedalusVtx4		mVtxProjected[kMaxN64Vertices];		// Transformed and projected vertices (suitable for clipping etc)
 	u32					mVtxClipFlagsUnion;					// Bitwise OR of all the vertex flags added to the current batch. If this is 0, we can trivially accept everything without clipping
 

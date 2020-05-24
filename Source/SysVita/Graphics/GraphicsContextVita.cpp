@@ -24,11 +24,12 @@
 extern bool pause_emu;
 bool gWaitRendering = false;
 
-#define MAX_INDEXES 0xFFFF
-uint16_t *gIndexes;
+uint16_t *gIndexBufferForRect;
+uint16_t *gIndexBufferPtr;
 float *gVertexBuffer;
 uint32_t *gColorBuffer;
 float *gTexCoordBuffer;
+uint16_t *gIndexBuffer;
 float *gVertexBufferPtr;
 uint32_t *gColorBufferPtr;
 float *gTexCoordBufferPtr;
@@ -96,17 +97,21 @@ IGraphicsContext::IGraphicsContext()
 	:	mInitialised(false)
 	,	mDumpNextScreen(false)
 {	
-	uint16_t i;
-	gIndexes = (uint16_t*)malloc(sizeof(uint16_t)*MAX_INDEXES);
-	for (i = 0; i < MAX_INDEXES; i++){
-		gIndexes[i] = i;
-	}
-	gVertexBufferPtr = (float*)malloc(0x800000);
+	gVertexBufferPtr = (float*)malloc(0x600000);
 	gColorBufferPtr = (uint32_t*)malloc(0x600000);
 	gTexCoordBufferPtr = (float*)malloc(0x600000);
+	gIndexBufferPtr = (uint16_t*)malloc(0x200000);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
 	gTexCoordBuffer = gTexCoordBufferPtr;
+	
+	// Reserving first 4 indices for 2D renders
+	for (int i = 0; i < 4; i++) {
+		gIndexBufferPtr[i] = i;
+	}
+	gIndexBufferForRect = gIndexBufferPtr;
+	gIndexBufferPtr += 4;
+	gIndexBuffer = gIndexBufferPtr;
 }
 
 IGraphicsContext::~IGraphicsContext()
@@ -160,7 +165,7 @@ void IGraphicsContext::BeginFrame()
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
 	gTexCoordBuffer = gTexCoordBufferPtr;
-	vglIndexPointerMapped(gIndexes);
+	gIndexBuffer = gIndexBufferPtr;
 	
 	if (new_frame) {
 		CGraphicsContext::Get()->ClearToBlack();
