@@ -242,11 +242,9 @@ void AppendCompatibilityDatabase(const char *file) {
 
 CompatibilityList *SearchForCompatibilityData(const char *name) {
 	CompatibilityList *node = comp;
-	char tmp[128], *p;
-	if (p = strstr(name, " (")) {
-		memcpy(tmp, name, p - name);
-		tmp[p - name] = 0;
-	} else sprintf(tmp, name);
+	char tmp[128];
+	sprintf(tmp, name);
+	stripGameName(tmp);
 	while (node) {
 		if (strcasecmp(node->name, tmp) == 0) return node;
 		node = node->next;

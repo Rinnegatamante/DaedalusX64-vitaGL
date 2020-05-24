@@ -21,6 +21,13 @@ enum {
 	CLASSIC_THEME
 };
 
+// Texture caching modes
+enum {
+	TEX_CACHE_DISABLED,
+	TEX_CACHE_FAST,
+	TEX_CACHE_ACCURATE
+};
+
 extern bool show_menubar;
 
 // Config Variables
@@ -28,6 +35,7 @@ extern bool gHideMenubar;
 extern int  gUseCdram;
 extern int  gUseVSync;
 extern int  gCpuMode;
+extern int  gTexCacheMode;
 extern bool gUseMp3;
 extern bool gWaitRendering;
 extern bool gUseExpansionPak;
@@ -40,6 +48,9 @@ void DrawInGameMenu();
 void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes);
+
 void SetupVFlux();
 void setCpuMode(int cpu_mode);
 void setUiTheme(int theme);
+void setTexCacheMode(int mode);
+void stripGameName(char *name);

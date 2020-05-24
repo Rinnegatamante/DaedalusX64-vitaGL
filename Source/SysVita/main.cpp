@@ -44,6 +44,7 @@ extern "C" {
 
 extern bool run_emu;
 extern bool restart_rom;
+extern bool kUpdateTexturesEveryFrame;
 
 static CURL *curl_handle = NULL;
 static volatile uint64_t total_bytes = 0xFFFFFFFF;
@@ -266,13 +267,42 @@ void setUiTheme(int theme)
 	gUiTheme = theme;
 }
 
+void setTexCacheMode(int mode)
+{
+	switch (mode) {
+	case TEX_CACHE_DISABLED:
+		kUpdateTexturesEveryFrame = true;
+		break;
+	case TEX_CACHE_ACCURATE:
+		kUpdateTexturesEveryFrame = false;
+		gCheckTextureHashFrequency = 1;
+		break;
+	case TEX_CACHE_FAST:
+		kUpdateTexturesEveryFrame = false;
+		gCheckTextureHashFrequency = 0;
+		break;
+	}
+	gTexCacheMode = mode;
+}
+
+void stripGameName(char *name) {
+	char *p = nullptr;
+	if (p = strstr(name, " (")) {
+		p[0] = 0;
+	}
+}
+
 void loadConfig(const char *game)
 {
+	char tmp[128];
+	sprintf(tmp, game);
+	stripGameName(tmp);
+	
 	char configFile[512];
 	char buffer[30];
 	int value;
 	
-	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), game);
+	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), tmp);
 	FILE *config = fopen(configFile, "r");
 
 	if (config)
@@ -286,7 +316,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gVideoRateMatch", buffer) == 0) gVideoRateMatch = value;
 			else if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
 			else if (strcmp("gAspectRatio", buffer) == 0) gAspectRatio = value;
-			else if (strcmp("gCheckTextureHashFrequency", buffer) == 0) gCheckTextureHashFrequency = value;
+			else if (strcmp("gTexCacheMode", buffer) == 0) gTexCacheMode = value;
 			else if (strcmp("gForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
 			
 			else if (strcmp("gUseMipmaps", buffer) == 0) gUseMipmaps = value;
@@ -309,6 +339,7 @@ void loadConfig(const char *game)
 		
 		setUiTheme(gUiTheme);
 		setCpuMode(gCpuMode);
+		setTexCacheMode(gTexCacheMode);
 		vglUseVram(gUseCdram);
 		vglWaitVblankStart(gUseVSync);
 		CInputManager::Get()->SetConfiguration(gControllerIndex);

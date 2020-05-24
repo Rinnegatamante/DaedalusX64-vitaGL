@@ -284,15 +284,10 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 	state.NumVertices = num_vertices;
 	state.PrimitiveColour = mPrimitiveColour;
 	state.EnvironmentColour = mEnvColour;
-
-	if( states->GetNumStates() > 1 )
-	{
-		memcpy( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
-	}
 	
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	for( u32 i {}; i < states->GetNumStates(); ++i )
+	for( u32 i = 0; i < states->GetNumStates(); ++i )
 	{
 		const CRenderSettings *		settings( states->GetColourSettings( i ) );
 
@@ -308,7 +303,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 
 		if( i > 0 )
 		{
-			memcpy( gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
+			memcpy( gColorBuffer, p_vertices, num_vertices * sizeof( u32 ) );
 			p_vertices = gColorBuffer;
 			gColorBuffer += num_vertices;
 		}

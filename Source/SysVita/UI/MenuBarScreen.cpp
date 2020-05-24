@@ -35,6 +35,7 @@
 
 int gUiTheme = DARK_THEME;
 int gAspectRatio = RATIO_16_9;
+int gTexCacheMode = TEX_CACHE_ACCURATE;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
@@ -73,8 +74,12 @@ int cur_dbg_line = 0;
 
 void saveConfig(const char *game)
 {
+	char tmp[128];
+	sprintf(tmp, game);
+	stripGameName(tmp);
+	
 	char configFile[512];
-	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), game);
+	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), tmp);
 	
 	sceIoMkdir(DAEDALUS_VITA_PATH("Configs/"), 0777);
 	
@@ -87,7 +92,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gVideoRateMatch", gVideoRateMatch);
 		fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
 		fprintf(config, "%s=%d\n", "gAspectRatio", gAspectRatio);
-		fprintf(config, "%s=%d\n", "gCheckTextureHashFrequency", gCheckTextureHashFrequency);
+		fprintf(config, "%s=%d\n", "gTexCacheMode", gTexCacheMode);
 		fprintf(config, "%s=%d\n", "gForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
 		
 		fprintf(config, "%s=%d\n", "gUseMipmaps", gUseMipmaps);
@@ -233,10 +238,21 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("Textures Caching", nullptr, !gCheckTextureHashFrequency)){
-			gCheckTextureHashFrequency = gCheckTextureHashFrequency ? 0 : 1;
+		if (ImGui::BeginMenu("Textures Caching")){
+			if (ImGui::MenuItem("Disabled", nullptr, gTexCacheMode == TEX_CACHE_DISABLED)){
+				setTexCacheMode(TEX_CACHE_DISABLED);
+			}
+			SetDescription("Disables caching for stored textures.\nReduces graphical glitches at the cost of performances.");
+			if (ImGui::MenuItem("Accurate", nullptr, gTexCacheMode == TEX_CACHE_ACCURATE)){
+				setTexCacheMode(TEX_CACHE_ACCURATE);
+			}
+			SetDescription("Caches stored textures at each frame.\nImproves performances but may cause glitches.");
+			if (ImGui::MenuItem("Fast", nullptr, gTexCacheMode == TEX_CACHE_FAST)){
+				setTexCacheMode(TEX_CACHE_FAST);
+			}
+			SetDescription("Caches permanently stored textures.\nImproves greatly performances but may cause severe glitches.");
+			ImGui::EndMenu();
 		}
-		SetDescription("Enables caching for stored textures.\nIncreases performances but may cause graphical glitches.");
 		if (ImGui::MenuItem("Bilinear Filter", nullptr, gGlobalPreferences.ForceLinearFilter)){
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
