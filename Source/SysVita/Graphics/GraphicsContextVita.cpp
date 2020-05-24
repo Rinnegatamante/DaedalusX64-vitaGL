@@ -100,7 +100,7 @@ IGraphicsContext::IGraphicsContext()
 	gVertexBufferPtr = (float*)malloc(0x600000);
 	gColorBufferPtr = (uint32_t*)malloc(0x600000);
 	gTexCoordBufferPtr = (float*)malloc(0x600000);
-	gIndexBufferPtr = (uint16_t*)malloc(0x200000);
+	gIndexBufferPtr = (uint16_t*)malloc(0x600000);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
 	gTexCoordBuffer = gTexCoordBufferPtr;

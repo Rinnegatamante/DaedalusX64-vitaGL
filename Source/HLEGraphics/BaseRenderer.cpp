@@ -678,12 +678,7 @@ void BaseRenderer::FlushTris()
 	#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( mNumIndices, "Call to FlushTris() with nothing to render" );
 	#endif
-	#ifdef DAEDALUS_VITA
-	float *vtx;
-	float *tex;
-	uint32_t *clr;
-	uint32_t count = 0;
-	#else
+	#ifndef DAEDALUS_VITA
 	TempVerts temp_verts;
 	#endif
 	// If any bit is set here it means we have to clip the trianlges since PSP HW clipping sux!
@@ -704,7 +699,7 @@ void BaseRenderer::FlushTris()
 
 	// No vertices to render? //Corn
 #ifdef DAEDALUS_VITA
-	if( count == 0 )
+	if( mNumIndices == 0 )
 #else
 	if( temp_verts.Count == 0 )
 #endif
@@ -750,137 +745,6 @@ void BaseRenderer::FlushTris()
 	Reset();
 }
 
-
-//
-//	The following clipping code was taken from The Irrlicht Engine.
-//	See http://irrlicht.sourceforge.net/ for more information.
-//	Copyright (C) 2002-2006 Nikolaus Gebhardt/Alten Thomas
-//
-//Croping triangles just outside the NDC box and let PSP HW do the final crop
-//improves quality but fails in some games (Rocket Robot/Lego racers)//Corn
-
-const v4 NDCPlane[6] =
-{
-	v4(  0.f,  0.f, -1.f, -1.f ),	// near
-	v4(  0.f,  0.f,  1.f, -1.f ),	// far
-	v4(  1.f,  0.f,  0.f, -1.f ),	// left
-	v4( -1.f,  0.f,  0.f, -1.f ),	// right
-	v4(  0.f,  1.f,  0.f, -1.f ),	// bottom
-	v4(  0.f, -1.f,  0.f, -1.f )	// top
-};
-
-
-//VFPU tris clip(fast)
-
-#ifdef DAEDALUS_PSP_USE_VFPU
-u32 clip_tri_to_frustum( DaedalusVtx4 * v0, DaedalusVtx4 * v1 )
-{
-	u32 vOut( 3 );
-
-	vOut = _ClipToHyperPlane( v1, v0, &NDCPlane[0], vOut ); if( vOut < 3 ) return vOut;		// near
-	vOut = _ClipToHyperPlane( v0, v1, &NDCPlane[1], vOut ); if( vOut < 3 ) return vOut;		// far
-	vOut = _ClipToHyperPlane( v1, v0, &NDCPlane[2], vOut ); if( vOut < 3 ) return vOut;		// left
-	vOut = _ClipToHyperPlane( v0, v1, &NDCPlane[3], vOut ); if( vOut < 3 ) return vOut;		// right
-	vOut = _ClipToHyperPlane( v1, v0, &NDCPlane[4], vOut ); if( vOut < 3 ) return vOut;		// bottom
-	vOut = _ClipToHyperPlane( v0, v1, &NDCPlane[5], vOut );									// top
-
-	return vOut;
-}
-
-#else	// FPU/CPU(slower)
-
-
-//CPU interpolate line parameters
-
-void DaedalusVtx4::Interpolate( const DaedalusVtx4 & lhs, const DaedalusVtx4 & rhs, float factor )
-{
-	ProjectedPos = lhs.ProjectedPos + (rhs.ProjectedPos - lhs.ProjectedPos) * factor;
-	TransformedPos = lhs.TransformedPos + (rhs.TransformedPos - lhs.TransformedPos) * factor;
-	Colour = lhs.Colour + (rhs.Colour - lhs.Colour) * factor;
-	Texture = lhs.Texture + (rhs.Texture - lhs.Texture) * factor;
-	ClipFlags = 0;
-}
-
-
-//CPU line clip to plane
-
-static u32 clipToHyperPlane( DaedalusVtx4 * dest, const DaedalusVtx4 * source, u32 inCount, const v4 &plane )
-{
-	u32 outCount(0);
-	DaedalusVtx4 * out(dest);
-
-	const DaedalusVtx4 * a;
-	const DaedalusVtx4 * b(source);
-
-	f32 bDotPlane = b->ProjectedPos.Dot( plane );
-
-	for( u32 i = 0; i < inCount + 1; ++i)
-	{
-		//a = &source[i%inCount];
-		const u32 condition = i - inCount;
-		const u32 index = (( ( condition >> 31 ) & ( i ^ condition ) ) ^ condition );
-		a = &source[index];
-
-		f32 aDotPlane = a->ProjectedPos.Dot( plane );
-
-		// current point inside
-		if ( aDotPlane <= 0.f )
-		{
-			// last point outside
-			if ( bDotPlane > 0.f )
-			{
-				// intersect line segment with plane
-				out->Interpolate( *b, *a, bDotPlane / (b->ProjectedPos - a->ProjectedPos).Dot( plane ) );
-				out++;
-				outCount++;
-			}
-			// copy current to out
-			*out = *a;
-			b = out;
-
-			out++;
-			outCount++;
-		}
-		else
-		{
-			// current point outside
-			if ( bDotPlane <= 0.f )
-			{
-				// previous was inside, intersect line segment with plane
-				out->Interpolate( *b, *a, bDotPlane / (b->ProjectedPos - a->ProjectedPos).Dot( plane ) );
-				out++;
-				outCount++;
-			}
-			b = a;
-		}
-
-		bDotPlane = aDotPlane;
-	}
-
-	return outCount;
-}
-
-
-//CPU tris clip to frustum
-
-u32 clip_tri_to_frustum( DaedalusVtx4 * v0, DaedalusVtx4 * v1 )
-{
-	u32 vOut {3};
-
-	vOut = clipToHyperPlane( v1, v0, vOut, NDCPlane[0] ); if ( vOut < 3 ) return vOut;		// near
-	vOut = clipToHyperPlane( v0, v1, vOut, NDCPlane[1] ); if ( vOut < 3 ) return vOut;		// far
-	vOut = clipToHyperPlane( v1, v0, vOut, NDCPlane[2] ); if ( vOut < 3 ) return vOut;		// left
-	vOut = clipToHyperPlane( v0, v1, vOut, NDCPlane[3] ); if ( vOut < 3 ) return vOut;		// right
-	vOut = clipToHyperPlane( v1, v0, vOut, NDCPlane[4] ); if ( vOut < 3 ) return vOut;		// bottom
-	vOut = clipToHyperPlane( v0, v1, vOut, NDCPlane[5] );									// top
-
-	return vOut;
-}
-#endif // CPU clip
-
-
-//
-
 namespace
 {
 	DaedalusVtx4		temp_a[ 8 ] {};
@@ -889,9 +753,6 @@ namespace
 	const u32			MAX_CLIPPED_VERTS = 320;
 	DaedalusVtx			clip_vtx[MAX_CLIPPED_VERTS];
 }
-
-
-
 
 //
 #ifdef DAEDALUS_VITA
@@ -951,8 +812,9 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 
 			for( u32 i = 0; i < mNumIndices; ++i )
 			{
-				mTexProjectedBuffer[i*2] = (mTexProjectedBuffer[i*2] * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
-				mTexProjectedBuffer[i*2+1] = (mTexProjectedBuffer[i*2+1] * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
+				u16 idx = mIdxBuffer[i];
+				mTexProjectedBuffer[idx*2] = (mTexProjectedBuffer[idx*2] * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
+				mTexProjectedBuffer[idx*2+1] = (mTexProjectedBuffer[idx*2+1] * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
 			}
 		}
 	}
@@ -1093,11 +955,10 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 		v4 & projected( mVtxProjected[i].ProjectedPos );
 		projected = mat_world_project.Transform( w );
 		mVtxProjected[i].TransformedPos = mat_world.Transform( w );
-		memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
 		
 		//	Initialise the clipping flags
 		//
-		u32 clip_flags {};
+		u32 clip_flags = 0;
 		if		(projected.x < -projected.w)	clip_flags |= X_POS;
 		else if (projected.x > projected.w)		clip_flags |= X_NEG;
 
@@ -1113,11 +974,11 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 		if ( mTnL.Flags.Light )
 		{
 			v3 model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
-			v3 vecTransformedNormal {};
+			v3 vecTransformedNormal;
 			vecTransformedNormal = mat_world.TransformNormal( model_normal );
 			vecTransformedNormal.Normalise();
 
-			v3 col {};
+			v3 col;
 
 			if ( mTnL.Flags.PointLight )
 			{//POINT LIGHT
@@ -1143,7 +1004,7 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 				vecTransformedNormal.Normalise();
 #endif
 
-				const v3 & norm {vecTransformedNormal};
+				const v3 & norm = vecTransformedNormal;
 
 				if( mTnL.Flags.TexGenLin )
 				{
@@ -1170,7 +1031,10 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 		{
 			//if( mTnL.Flags.Shade )
 			{// FLAT shade
-				mVtxProjected[i].Colour = v4( vert.rgba_r * (1.0f / 255.0f), vert.rgba_g * (1.0f / 255.0f), vert.rgba_b * (1.0f / 255.0f), vert.rgba_a * (1.0f / 255.0f) );
+				mClrProjectedBuffer[i*4] = vert.rgba_r;
+				mClrProjectedBuffer[i*4+1] = vert.rgba_g;
+				mClrProjectedBuffer[i*4+2] = vert.rgba_b;
+				mClrProjectedBuffer[i*4+3] = vert.rgba_a;
 			}
 			/*else
 			{// PRIM shade, SSV uses this, doesn't seem to do anything????
@@ -1196,10 +1060,11 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 			}
 			else
 			{
-				mClrProjectedBuffer[i*4+3] = 0.0f;
+				mClrProjectedBuffer[i*4+3] = 0;
 			}
 		}
 #endif
+		memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
 	}
 }
 
@@ -1459,7 +1324,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			transformed.y = *(s16*)((pVtxBase + 2) ^ 2);
 			transformed.z = *(s16*)((pVtxBase + 4) ^ 2);
 			transformed.w = 1.0f;
-			memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
+			memcpy(&mVtxProjectedBuffer[i*3], transformed.f, sizeof(float)*3);
 
 			v4 & projected( mVtxProjected[i].ProjectedPos );
 			projected = mat_world_project.Transform( transformed );	//Do projection
@@ -1477,8 +1342,8 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			mVtxProjected[i].ClipFlags = clip_flags;
 
 			// Assign true vert colour
-			const u32 WL {*(u16*)((pVtxBase + 6) ^ 2)};
-			const u32 WH {*(u16*)((pVtxBase + 8) ^ 2)};
+			const u32 WL = *(u16*)((pVtxBase + 6) ^ 2);
+			const u32 WH = *(u16*)((pVtxBase + 8) ^ 2);
 
 			mClrProjectedBuffer[i*4] = (WL >> 8);
 			mClrProjectedBuffer[i*4+1] = (WL & 0xFF);
@@ -1539,7 +1404,7 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 		//
 		v4 & transformed( mVtxProjected[i].TransformedPos );
 		transformed = mat_world.Transform( w );
-		memcpy(&mVtxProjectedBuffer[i*3], mVtxProjected[i].TransformedPos.f, sizeof(float)*3);
+		memcpy(&mVtxProjectedBuffer[i*3], transformed.f, sizeof(float)*3);
 		v4 & projected( mVtxProjected[i].ProjectedPos );
 		projected = mat_project.Transform( transformed );
 
@@ -1702,7 +1567,10 @@ inline void BaseRenderer::SetVtxColor( u32 vert, u32 color )
 	u32 g = (color>>16) & 0xFF;
 	u32 b = (color>>8) & 0xFF;
 	u32 a = (color) & 0xFF;
-	mVtxProjected[vert].Colour = v4( r * (1.0f / 255.0f), g * (1.0f / 255.0f), b * (1.0f / 255.0f), a * (1.0f / 255.0f) );
+	mClrProjectedBuffer[vert*4] = r;
+	mClrProjectedBuffer[vert*4+1] = g;
+	mClrProjectedBuffer[vert*4+2] = b;
+	mClrProjectedBuffer[vert*4+3] = a;
 }
 
 
@@ -1723,8 +1591,8 @@ inline void BaseRenderer::SetVtxXY( u32 vert, float x, float y )
 #ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( vert < kMaxN64Vertices, "Vertex index is out of bounds (%d)", vert );
 #endif
-	mVtxProjected[vert].TransformedPos.x = x;
-	mVtxProjected[vert].TransformedPos.y = y;
+	mVtxProjectedBuffer[vert*3] = x;
+	mVtxProjectedBuffer[vert*3+1] = y;
 }
 
 

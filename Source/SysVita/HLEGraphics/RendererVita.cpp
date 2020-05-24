@@ -288,12 +288,12 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 
 	if( states->GetNumStates() > 1 )
 	{
-		memcpy( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
+		memcpy( gColorBuffer, p_vertices, kMaxN64Vertices * sizeof( u32 ) );
 	}
 	
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	for( u32 i {}; i < states->GetNumStates(); ++i )
+	for( u32 i = 0; i < states->GetNumStates(); ++i )
 	{
 		const CRenderSettings *		settings( states->GetColourSettings( i ) );
 
@@ -309,9 +309,8 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 
 		if( i > 0 )
 		{
-			memcpy( gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
 			p_vertices = gColorBuffer;
-			gColorBuffer += num_vertices;
+			gColorBuffer += kMaxN64Vertices;
 		}
 
 		if(out.VertexExpressionRGB != nullptr)
@@ -656,6 +655,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	
 	SetNegativeViewport();
 	
+	vglIndexPointerMapped(gIndexBufferForRect);
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }

@@ -315,7 +315,7 @@ public:
 	void				SetNewVertexInfoPD(u32 address, u32 v0, u32 n);	// Assumes dwAddress has already been checked!
 	void				ModifyVertexInfo(u32 whered, u32 vert, u32 val);
 	void				SetVtxColor( u32 vert, u32 color );
-	inline void			SetVtxTextureCoord( u32 vert, s16 tu, s16 tv ) { mVtxProjected[vert].Texture.x = (f32)tu * (1.0f / 32.0f); mVtxProjected[vert].Texture.y = (f32)tv * (1.0f / 32.0f); }
+	inline void			SetVtxTextureCoord( u32 vert, s16 tu, s16 tv ) { mTexProjectedBuffer[vert*2] = (f32)tu * (1.0f / 32.0f); mTexProjectedBuffer[vert*2+1] = (f32)tv * (1.0f / 32.0f); }
 	inline void			SetVtxXY( u32 vert, float x, float y );
 	void				SetVtxZ( u32 vert, float z );
 	inline void			CopyVtx( u32 vert_src, u32 vert_dst ) { mVtxProjected[vert_dst] = mVtxProjected[vert_src]; }
