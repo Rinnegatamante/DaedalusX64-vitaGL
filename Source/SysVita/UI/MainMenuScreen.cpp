@@ -73,7 +73,7 @@ GLuint preview_icon = 0;
 void swap(RomSelection *a, RomSelection *b) 
 { 
 	char nametmp[128];
-	memcpy(nametmp, a->name, sizeof nametmp);
+	sprintf(nametmp, a->name);
 
 	RomSettings settingstmp = a->settings;
 	RomID idtmp = a->id;
@@ -82,7 +82,7 @@ void swap(RomSelection *a, RomSelection *b)
 	CompatibilityList *statustmp = a->status;
 
 	//a->name = b->name;
-	memcpy(a->name, b->name, sizeof nametmp);
+	sprintf(a->name, b->name);
 
 	a->settings = b->settings;
 	a->id = b->id;
@@ -91,7 +91,7 @@ void swap(RomSelection *a, RomSelection *b)
 	a->status = b->status;
 
 	//b->name = nametmp;
-	memcpy(b->name, nametmp, sizeof nametmp);
+	sprintf(b->name, nametmp);
 
 	b->settings = settingstmp;
 	b->id = idtmp;
@@ -120,7 +120,7 @@ void sort_list(RomSelection *start, int order)
 			switch (order) {
 				case SORT_Z_TO_A:
 				{
-					if (strcmp(ptr1->name,ptr1->next->name) < 0)
+					if (strcasecmp(ptr1->name,ptr1->next->name) < 0)
 					{  
 						swap(ptr1, ptr1->next); 
 						swapped = 1; 
@@ -129,7 +129,7 @@ void sort_list(RomSelection *start, int order)
 				}
 				case SORT_A_TO_Z:
 				{
-					if (strcmp(ptr1->name,ptr1->next->name) > 0)
+					if (strcasecmp(ptr1->name,ptr1->next->name) > 0)
 					{  
 						swap(ptr1, ptr1->next); 
 						swapped = 1; 
@@ -169,7 +169,7 @@ bool LoadPreview(RomSelection *rom) {
 	return false;
 }
 
-// TODO: Use a proper json lib for better performances and safety
+// TODO: Use a proper json lib for more safety
 void AppendCompatibilityDatabase(const char *file) {
 	FILE *f = fopen(file, "rb");
 	if (f) {
