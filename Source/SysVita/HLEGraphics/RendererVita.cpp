@@ -747,6 +747,8 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = color;
 	gColorBuffer += 4;
 	
+	SetNegativeViewport();
+	
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
@@ -856,6 +858,9 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
+	
+	SetNegativeViewport();
+	
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
@@ -915,6 +920,9 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
+	
+	SetNegativeViewport();
+	
 	vglDrawObjects(GL_TRIANGLE_FAN, 4, GL_TRUE);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
