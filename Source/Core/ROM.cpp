@@ -445,8 +445,9 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5543:	//Cruis'n USA
 		g_ROM.GameHacks = BODY_HARVEST;
 		break;
-	case 0x5453:    //Eiko no Saint Andrews
+	case 0x5453:    //Eikou no Saint Andrews
 	case 0x4646:    //Fighting Force 64
+	case 0x594D:    //Mortal Kombat Mythologies: Sub-Zero
 		g_ROM.SCISSOR_HACK = true;
 		break;
 	default:
