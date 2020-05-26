@@ -317,7 +317,7 @@ void RSP_HLE_ProcessTask()
 			if(Memory_DPC_GetRegister(DPC_STATUS_REG) & DPC_STATUS_FREEZE)
 				return;
 			
-			if (pTask->t.data_ptr == NULL) {
+			if ((u32*)(pTask->t.data_ptr) == nullptr) {
 				result = RSP_HLE_RE2(pTask);
 			} else if (g_ROM.rh.CartID == 0x4B59) { // Yakouchuu II - Satsujin Kouro
 				u32 sum = sum_bytes(g_pu8RamBase + (u32)pTask->t.ucode, 1488);

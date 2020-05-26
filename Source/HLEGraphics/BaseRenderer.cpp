@@ -373,7 +373,7 @@ void BaseRenderer::InitViewport()
 		fViWidth = 640.0f;
 		fViHeight = 480.0f;
 	}else 
-	SetVIScales();
+		SetVIScales();
 
 	// Get the current display dimensions. This might change frame by frame e.g. if the window is resized.
 	u32 display_width  = 0, display_height = 0;
