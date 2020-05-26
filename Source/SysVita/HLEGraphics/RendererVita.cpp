@@ -73,20 +73,18 @@ static void InitBlenderMode()
 
 	switch (active_mode)
 	{
-	case 0x0382: // Mace objects
-	case 0x0091: // Mace special blend mode
-	case 0x0C08: // 1080 sky
-	case 0x0F0A: // DK64 blueprints
-	case 0x0302: // Bomberman 2 special blend mode
-	case 0xA500: // Sin and Punishment
-	case 0xCB02: // Battlezone
-	case 0xC800: // Conker's Bad Fur Day
-	case 0x07C2: // ISS 64
 	case 0x00C0: // ISS 64
+	case 0x0091: // Mace special blend mode
+	case 0x0302: // Bomberman 2 special blend mode
+	case 0x0382: // Mace objects
+	case 0x07C2: // ISS 64
+	case 0x0C08: // 1080 sky
 	case 0xC302: // ISS 64
 	case 0xC702: // Donald Duck: Quack Attack
+	case 0xC800: // Conker's Bad Fur Day
+	case 0x0F0A: // DK64 blueprints
+	case 0xA500: // Sin and Punishment
 	case 0xFA00: // Bomberman second attack
-	case 0x0010: // Diddy Kong rare logo
 		glDisable(GL_BLEND);
 		break;
 	case 0x55F0: // Bust-A-Move 3 DX
@@ -106,33 +104,39 @@ static void InitBlenderMode()
 		glBlendFunc(GL_ONE, GL_ONE);
 		glEnable(GL_BLEND);
 		break;
-	case 0xC712: // Pokemon Stadium
-	case 0xAF50: // Zelda: MM
 	case 0x0F5A: // Zelda: MM
-	case 0x0FA5:
+	case 0x0FA5: // OOT menu
 	case 0x5055: // Paper Mario intro
+	case 0xAF50: // Zelda: MM
+	case 0xC712: // Pokemon Stadium
 		glBlendFunc(GL_ZERO, GL_ONE);
 		glEnable(GL_BLEND);
 		break;
-	case 0x5F50:
 	case 0x0C40: // Extreme-G
+	case 0x4C40: // Wave Race
+	case 0x5F50:
 		glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_BLEND);
 		break;
-	case 0xF550:
-	case 0x0150: // Spiderman
-	case 0x0550: // Bomberman 64
-	case 0x0D18:
+	case 0x0010: // Diddy Kong rare logo
 	case 0x0040: // F-Zero X
-	case 0xC810: // AeroGauge
-	case 0x0C18: // StarFox 64 main menu
-	case 0x0050:
+	case 0x0050: // A Bug's Life
 	case 0x0051:
 	case 0x0055:
-	case 0xC440: // Banjo-Kazooie / Banjo-Tooie
+	case 0x0150: // Spiderman
 	case 0x0321:
+	case 0x0440: // Bomberman 64
+	case 0x04D0: // Conker's Bad Fur Day
+	case 0x0550: // Bomberman 64
+	case 0x0C18: // StarFox 64 main menu
+	case 0x0F54: // Star Wars racers
 	case 0xC410: // Donald Duck: Quack Attack dust
+	case 0xC440: // Banjo-Kazooie / Banjo-Tooie
+	case 0xC810: // AeroGauge
+	case 0xCB02: // Doom 64 weapons
+	case 0x0D18:
 	case 0x8410: // Paper Mario
+	case 0xF550:
 		if (!(!alpha_cvg_sel || cvg_x_alpha)) glDisable(GL_BLEND);
 		else {
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -153,8 +157,12 @@ static void InitBlenderMode()
 		glEnable(GL_BLEND);
 		break;
 	default:
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_BLEND);
+		//DBGConsole_Msg(0, "Uncommon blender mode: 0x%04X", active_mode);
+		if (!(!alpha_cvg_sel || cvg_x_alpha)) glDisable(GL_BLEND);
+		else {
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glEnable(GL_BLEND);
+		}
 		break;
 	}
 }
@@ -210,7 +218,6 @@ void RendererVita::RestoreRenderStates()
 	glEnable(GL_SCISSOR_TEST);
 	
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	glDisable( GL_BLEND );
 	
 	// Default is ZBuffer disabled
@@ -815,13 +822,14 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	
 	glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE);
 	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
 	glEnable(GL_BLEND);
 	glDisable(GL_ALPHA_TEST);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
@@ -883,13 +891,14 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	
 	glDepthMask(gRDPOtherMode.z_upd ? GL_TRUE : GL_FALSE);
 	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	
 	glEnable(GL_BLEND);
 	glDisable(GL_ALPHA_TEST);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
