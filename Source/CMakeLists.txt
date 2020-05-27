@@ -269,6 +269,7 @@ if (VITA_RELEASE)
 		curl
 		ssl
 		crypto
+		speexdsp
 		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 	)
 

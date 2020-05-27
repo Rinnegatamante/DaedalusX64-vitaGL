@@ -30,12 +30,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "SysPSP/Utility/CacheUtil.h"
 #endif
 
+#ifdef USE_SPEEXDSP
+#include <speex/speex_resampler.h>
+SpeexResamplerState *speex_resampler;
+#endif
+
 CAudioBuffer::CAudioBuffer( u32 buffer_size )
 	:	mBufferBegin( new Sample[ buffer_size ] )
 	,	mBufferEnd( mBufferBegin + buffer_size )
 	,	mReadPtr( mBufferBegin )
 	,	mWritePtr( mBufferBegin )
 {
+#ifdef USE_SPEEXDSP
+	int err;
+	speex_resampler = speex_resampler_init(2, DESIRED_OUTPUT_FREQUENCY, DESIRED_OUTPUT_FREQUENCY, 0, &err);
+	speex_resampler_skip_zeros(speex_resampler);
+#endif
 }
 
 CAudioBuffer::~CAudioBuffer()
@@ -45,11 +55,6 @@ CAudioBuffer::~CAudioBuffer()
 
 u32 CAudioBuffer::GetNumBufferedSamples() const
 {
-	 //Todo: Check Cache Routines
-// #ifdef DAEDALUS_PSP
-// 	dcache_wbinv_all();
-// #endif
-
 	// Safe? What if we read mWrite, and then mRead moves to start of buffer?
 	s32 diff = mWritePtr - mReadPtr;
 
@@ -63,20 +68,10 @@ u32 CAudioBuffer::GetNumBufferedSamples() const
 
 void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 frequency, u32 output_freq )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
+#ifdef DAEDALUS_ENABLE_ASSERTS
 	DAEDALUS_ASSERT( frequency <= output_freq, "Input frequency is too high" );
 #endif
-	//static FILE * fh = nullptr;
-	//if( !fh )
-	//{
-	//	fh = fopen( "audio_in.raw", "wb" );
-	//}
-	//fwrite( samples, sizeof( Sample ), num_samples, fh );
-	//fflush( fh );
-	//clear the Cache
-	#ifdef DAEDALUS_PSP
-	//sceKernelDcacheWritebackInvalidateAll();
-	#endif
+
 	const Sample *	read_ptr( mReadPtr );		// No need to invalidate, as this is uncached/volatile
 	Sample *		write_ptr( mWritePtr );
 
@@ -93,27 +88,23 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 	u32		  in_idx( 0 );
 	u32		  output_samples( (( num_samples * output_freq ) / frequency) - 1);
 
-	for( u32 i = output_samples; i != 0 ; i-- )
-	{
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( in_idx + 1 < num_samples, "Input index out of range - %d / %d", in_idx+1, num_samples );
+#ifdef USE_SPEEXDSP
+	speex_resampler_set_rate(speex_resampler, frequency, output_freq);
+	
+	Sample out_buf[1024 * 1024];
+	uint32_t in_processed = num_samples;
+	uint32_t out_processed = 1024 * 1024;
+	speex_resampler_process_interleaved_int(speex_resampler, (s16*)samples, &in_processed, (s16*)out_buf, &out_processed);
 #endif
-//#if 0 // 1->Sine tone, 0->Normal
-		//static float c= 0.0f;
-		//c += 100.0f / 44100.0f;
-		//if( c >= 1.0f )
-		//  c-=1.f;
-		//s16 v( s16( SHRT_MAX * sinf( c * 3.141f*2 ) ) );
-		// Sample	out;
-		// s16 v = WriteCounter++;
-		// if( WriteCounter >= MAX_COUNTER )
-		// {
-		// 	printf( "Loop write\n" );
-		// 	WriteCounter = 0;
-		// }
-		// out.L = out.R = v;
-		//
-// #else
+
+#ifdef USE_SPEEXDSP
+	for (u32 i = 0; i < out_processed; i++)
+#else
+	u32 i = output_samples;
+	while (i != 0)
+#endif
+	{
+#ifndef USE_SPEEXDSP
 		// Resample in integer mode (faster & less ASM code) //Corn
 		Sample	out;
 
@@ -123,7 +114,8 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 		s += r;
 		in_idx += s >> 12;
 		s &= 4095;
-// #endif
+		i--;
+#endif
 
 		write_ptr++;
 		if( write_ptr >= mBufferEnd )
@@ -137,13 +129,13 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 			//    as the program winds up waiting for the buffer to empty.
 			// ToDo: Adjust Audio Frequency/ Look at Turok in this regard.
 			// We might want to put a Sleep in when executing on the SC?
-			//Give time to other threads when using SYNC mode.
-		//ThreadYield();
-
 			read_ptr = mReadPtr;
 		}
-
+#ifdef USE_SPEEXDSP
+		*write_ptr = out_buf[i];
+#else
 		*write_ptr = out;
+#endif
 	}
 
 	//Todo: Check Cache Routines
@@ -155,13 +147,6 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 
 u32	CAudioBuffer::Drain( Sample * samples, u32 num_samples )
 {
-	//Todo: Check Cache Routines
-	// Ideally we could just invalidate this range?
-	//clear the Cache
-	#ifdef DAEDALUS_PSP
-	//sceKernelDcacheWritebackInvalidateAll();
-	#endif
-
 	const Sample *	read_ptr( mReadPtr );		// No need to invalidate, as this is uncached/volatile
 	const Sample *	write_ptr( mWritePtr );		//
 
@@ -182,19 +167,7 @@ u32	CAudioBuffer::Drain( Sample * samples, u32 num_samples )
 		samples_required--;
 	}
 
-	//static FILE * fh = nullptr;
-	//if( !fh )
-	//{
-	//	fh = fopen( "audio_out.raw", "wb" );
-	//}
-	//fwrite( samples, sizeof( Sample ), (num_samples-samples_required), fh );
-	//fflush( fh );
-
 	mReadPtr = read_ptr;		// No need to invalidate, as this is uncached
-	//clear the Cache
-	#ifdef DAEDALUS_PSP
-	//sceKernelDcacheWritebackInvalidateAll();
-	#endif
 	//
 	//	If there weren't enough samples, zero out the buffer
 	//	FIXME(strmnnrmn): Unnecessary on OSX...
