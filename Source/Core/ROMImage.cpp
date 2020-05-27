@@ -54,6 +54,10 @@ const char * ROM_GetCicName( ECicType cic_type )
 	case CIC_6103:	return "CIC-6103";
 	case CIC_6105:	return "CIC-6105";
 	case CIC_6106:	return "CIC-6106";
-	default:		return "?";
+	case CIC_5167:	return "CIC-5167";
+	case CIC_8303:	return "CIC-8303";
+	case CIC_DDUS:	return "CIC-DDUS";
+	case CIC_DDTL:	return "CIC-DDTL";
+	default:		return "Unknown";
 	}
 }

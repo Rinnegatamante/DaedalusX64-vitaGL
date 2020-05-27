@@ -342,8 +342,7 @@ char *DrawRomSelector() {
 		ImGui::Text("Game Name: %s", hovered->settings.GameName.c_str());
 		ImGui::Text("Region: %s", ROM_GetCountryNameFromID(hovered->id.CountryID));
 		ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
-		if (hovered->cic == CIC_UNKNOWN) ImGui::Text("Cic Type: Unknown");
-		else ImGui::Text("Cic Type: %ld", (s32)hovered->cic + 6101);
+		ImGui::Text("Cic Type: %s", ROM_GetCicName(hovered->cic));
 		ImGui::Text("ROM Size: %lu MBs", hovered->size);
 		ImGui::Text("Save Type: %s", ROM_GetSaveTypeName(hovered->settings.SaveType));
 		ImGui::Text("Expansion Pak: %s", ROM_GetExpansionPakUsageName(hovered->settings.ExpansionPakUsage));

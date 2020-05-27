@@ -196,7 +196,15 @@ static void ROM_SimulatePIFBoot( ECicType cic_chip, u32 Country )
 		case CIC_6101:
 			gGPR[22]._u64=0x000000000000003FLL;
 			break;
-		case CIC_6102:
+		case CIC_8303: //64DD IPL CIC
+		case CIC_DDTL: //64DD IPL TOOL CIC
+		case CIC_5167: //64DD CONVERSION CIC
+			gGPR[22]._u64=0x00000000000000DDLL;
+			break;
+		case CIC_DDUS: //64DD US IPL CIC
+			gGPR[22]._u64=0x00000000000000DELL;
+			break;
+		case CIC_6102: 
 			gGPR[1]._u64=0x0000000000000001LL;
 			gGPR[2]._u64=0x000000000EBDA536LL;
 			gGPR[3]._u64=0x000000000EBDA536LL;

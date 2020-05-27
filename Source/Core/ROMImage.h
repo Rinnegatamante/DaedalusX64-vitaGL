@@ -64,7 +64,10 @@ enum ECicType
 	CIC_6104,
 	CIC_6105,
 	CIC_6106,
-
+	CIC_5167,
+	CIC_8303,
+	CIC_DDUS,
+	CIC_DDTL,
 	NUM_CIC_CHIPS
 };
 
