@@ -129,8 +129,9 @@ void AudioOutput::AddBuffer( u8 *start, u32 length )
 	u32 output_freq = DESIRED_OUTPUT_FREQUENCY;
 	if (gAudioRateMatch)
 	{
-		if (gSoundSync > 88200)	output_freq = 88200;	//limit upper rate
+		if (gSoundSync > DESIRED_OUTPUT_FREQUENCY * 2) output_freq = DESIRED_OUTPUT_FREQUENCY * 2;	//limit upper rate
 		else if (gSoundSync < DESIRED_OUTPUT_FREQUENCY)	output_freq = DESIRED_OUTPUT_FREQUENCY;	//limit lower rate
+		else output_freq = gSoundSync;
 	}
 
 
