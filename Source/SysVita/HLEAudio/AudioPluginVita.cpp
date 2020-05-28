@@ -44,9 +44,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern volatile u32 sound_status;
 
-static bool async_boot = true;
+bool async_boot = true;
 
-static SceUID audio_mutex;
+static SceUID audio_mutex = 0xDEADBEEF;
 
 static int audioProcess(unsigned int args, void *argp)
 {
@@ -166,7 +166,7 @@ EProcessResult	CAudioPluginVita::ProcessAList()
 	
 	// FIXME: We would want this to be on constructor but it somehow breaks everything
 	if (async_boot) {
-		audio_mutex = sceKernelCreateSema("Audio Mutex", 0, 0, 1, NULL);
+		if (audio_mutex == 0xDEADBEEF) audio_mutex = sceKernelCreateSema("Audio Mutex", 0, 0, 1, NULL);
 
 		// create audio processing thread
 		SceUID audioThid = sceKernelCreateThread("audioProcess", &audioProcess, 0x10000100, 0x10000, 0, 0, NULL);
