@@ -110,5 +110,5 @@ void ThreadSleepTicks( u32 ticks )
 
 void ThreadYield()
 {
-	sceKernelDelayThread( 1 );				// Is 0 valid?
+	sceKernelDelayThread( 100 );
 }

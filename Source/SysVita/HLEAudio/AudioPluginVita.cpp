@@ -39,9 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/ROM.h"
 #include "Core/RSP_HLE.h"
 
-#define RSP_AUDIO_INTR_CYCLES     1
-
 #define DEFAULT_FREQUENCY 44100	// Taken from Mupen64 : )
+#define RSP_AUDIO_INTR_CYCLES     1
 
 extern volatile u32 sound_status;
 
@@ -55,6 +54,7 @@ static int audioProcess(unsigned int args, void *argp)
 	{
 		sceKernelWaitSema(audio_mutex, 1, NULL);
 		Audio_Ucode();
+		CPU_AddEvent(RSP_AUDIO_INTR_CYCLES, CPU_EVENT_AUDIO);
 	}
 	sceKernelExitDeleteThread(0);
 	return 0;
@@ -120,14 +120,12 @@ void	CAudioPluginVita::StopEmulation()
 
 void	CAudioPluginVita::DacrateChanged( int SystemType )
 {
-//	printf( "DacrateChanged( %s )\n", (SystemType == ST_NTSC) ? "NTSC" : "PAL" );
 	u32 type = (u32)((SystemType == ST_NTSC) ? VI_NTSC_CLOCK : VI_PAL_CLOCK);
 	u32 dacrate = Memory_AI_GetRegister(AI_DACRATE_REG);
 	u32	frequency = type / (dacrate + 1);
 
 	mAudioOutput->SetFrequency( frequency );
 }
-
 
 //*****************************************************************************
 //
@@ -184,7 +182,7 @@ EProcessResult	CAudioPluginVita::ProcessAList()
 			break;
 		case APM_ENABLED_ASYNC:
 			sceKernelSignalSema(audio_mutex, 1);
-			result = PR_COMPLETED;
+			result = PR_STARTED;
 			break;
 		case APM_ENABLED_SYNC:
 			Audio_Ucode();

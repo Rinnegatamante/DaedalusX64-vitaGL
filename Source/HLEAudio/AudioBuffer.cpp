@@ -83,11 +83,6 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 	//	and reduce s by 1.0 (to keep it in the range 0.0 .. 1.0)
 	//	Principle is the same but rewritten to integer mode (faster & less ASM) //Corn
 
-	const s32 r( (frequency << 12)  / output_freq );
-	s32		  s( 0 );
-	u32		  in_idx( 0 );
-	u32		  output_samples( (( num_samples * output_freq ) / frequency) - 1);
-
 #ifdef USE_SPEEXDSP
 	speex_resampler_set_rate(speex_resampler, frequency, output_freq);
 	
@@ -95,6 +90,11 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 	uint32_t in_processed = num_samples;
 	uint32_t out_processed = 1024 * 1024;
 	speex_resampler_process_interleaved_int(speex_resampler, (s16*)samples, &in_processed, (s16*)out_buf, &out_processed);
+#else
+	const s32 r( (frequency << 12)  / output_freq );
+	s32		  s( 0 );
+	u32		  in_idx( 0 );
+	u32		  output_samples( (( num_samples * output_freq ) / frequency) - 1);
 #endif
 
 #ifdef USE_SPEEXDSP
