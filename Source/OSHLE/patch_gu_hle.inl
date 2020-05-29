@@ -290,12 +290,13 @@ TEST_DISABLE_GU_FUNCS
 	u8 * pYBase  = (u8 *)ReadAddress(gGPR[REG_a1]._u32_0);
 	u8 * pZBase  = (u8 *)ReadAddress(gGPR[REG_a2]._u32_0);
 
-	REG32 r[3];
+	REG32 r[4];
 	r[0]._u32 = QuickRead32Bits(pXBase, 0x0);
 	r[1]._u32 = QuickRead32Bits(pYBase, 0x0);
 	r[2]._u32 = QuickRead32Bits(pZBase, 0x0);
+	r[3]._f32 = 0.0f;
 #ifdef DAEDALUS_VITA
-	normalize3_neon((float*)r, (float*)r);
+	normalize4_neon((float*)r, (float*)r);
 #else
 	f32 fLenRecip = 1.0f / sqrtf((r[0]._f32 * r[0]._f32) + (r[1]._f32 * r[1]._f32) + (r[2]._f32 * r[2]._f32));
 
@@ -317,12 +318,13 @@ u32 Patch_guNormalize_Rugrats() //Using VFPU and no memcpy //Corn
 TEST_DISABLE_GU_FUNCS
 	u8 * pBase  = (u8 *)ReadAddress(gGPR[REG_a0]._u32_0);
 
-	REG32 r[3];
+	REG32 r[4];
 	r[0]._u32 = QuickRead32Bits(pBase, 0x0);
 	r[1]._u32 = QuickRead32Bits(pBase, 0x4);
 	r[2]._u32 = QuickRead32Bits(pBase, 0x8);
+	r[3]._f32 = 0.0f;
 #ifdef DAEDALUS_VITA
-	normalize3_neon((float*)r, (float*)r);
+	normalize4_neon((float*)r, (float*)r);
 #else
 	f32 fLenRecip = 1.0f / sqrtf((r[0]._f32 * r[0]._f32) + (r[1]._f32 * r[1]._f32) + (r[2]._f32 * r[2]._f32));
 
