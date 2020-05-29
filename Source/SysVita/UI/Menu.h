@@ -39,6 +39,8 @@ extern int  gTexCacheMode;
 extern bool gUseMp3;
 extern bool gWaitRendering;
 extern bool gUseExpansionPak;
+extern bool gUseHighResTextures;
+extern bool gTexturesDumper;
 extern bool gUseMipmaps;
 extern int  gSortOrder;
 extern int  gUiTheme;

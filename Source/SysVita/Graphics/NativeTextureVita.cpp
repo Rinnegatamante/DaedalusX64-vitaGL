@@ -22,15 +22,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Graphics/NativePixelFormat.h"
 #include "Graphics/ColourValue.h"
 #include "Utility/FastMemcpy.h"
+#include "Utility/IO.h"
+#include "Utility/CRC.h"
+#include "Core/ROM.h"
+#include "SysVita/UI/Menu.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "Utility/stb_image_write.h"
+
+#include "Utility/stb_image.h"
 
 #include "Math/MathUtil.h"
 
 #include <png.h>
 
 #include <vitaGL.h>
+
+enum {
+	HIGH_RES_UNCHECKED,
+	HIGH_RES_ABSENT,
+	HIGH_RES_INSTALLED
+};
 
 static const u32 kPalette4BytesRequired = 16 * sizeof( NativePf8888 );
 static const u32 kPalette8BytesRequired = 256 * sizeof( NativePf8888 );
@@ -68,6 +80,10 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 ,	mTextureBlockWidth( GetTextureBlockWidth( mCorrectedWidth, texture_format ) )
 ,	mTextureId( 0 )
 ,	hasMipmaps( false )
+,	highResState( HIGH_RES_UNCHECKED )
+,	dumped( 0 )
+,	crc( 0 )
+,	origData(NULL)
 {
 	mScale.x = 1.0f / (float)mCorrectedWidth;
 	mScale.y = 1.0f / (float)mCorrectedHeight;
@@ -78,6 +94,7 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 CNativeTexture::~CNativeTexture()
 {
 	glDeleteTextures( 1, &mTextureId );
+	if (origData) free(origData);
 }
 
 bool CNativeTexture::HasData() const
@@ -85,9 +102,27 @@ bool CNativeTexture::HasData() const
 	return mTextureId != 0;
 }
 
-void CNativeTexture::InstallTexture() const
+void CNativeTexture::InstallTexture()
 {
 	glBindTexture( GL_TEXTURE_2D, mTextureId );
+	if (gTexturesDumper) DumpForHighRes();
+	else if (gUseHighResTextures) {
+		if (highResState == HIGH_RES_UNCHECKED) {
+			if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight);
+			char filename[128];
+			sprintf(filename, "%s%04X/%08X.png", DAEDALUS_VITA_PATH("Textures/"), g_ROM.rh.CartID, crc);
+			int hires_width, hires_height;
+			uint8_t *hires_data = stbi_load(filename, &hires_width, &hires_height, NULL, 4);
+			if (hires_data) {
+				origData = malloc(mCorrectedWidth * mCorrectedHeight * 4);
+				memcpy(origData, mpData, mCorrectedWidth * mCorrectedHeight * 4);
+				mpData = origData;
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, hires_width, hires_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, hires_data);
+				free(hires_data);
+				highResState = HIGH_RES_INSTALLED;
+			} else highResState = HIGH_RES_ABSENT;
+		}
+	}
 }
 
 void CNativeTexture::GenerateMipmaps()
@@ -207,6 +242,20 @@ void CNativeTexture::SetData( void * data, void * palette )
 void CNativeTexture::Dump(const char *filename)
 {
 	stbi_write_png(filename, mCorrectedWidth, mCorrectedHeight, 4, mpData, mCorrectedWidth * 4);
+}
+
+void CNativeTexture::DumpForHighRes()
+{
+	if (!dumped) {
+		if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight);
+		char filename[128], folder[128];
+		sprintf(folder, "%s%04X", DAEDALUS_VITA_PATH("Textures/"), g_ROM.rh.CartID);
+		sprintf(filename, "%s/%08X.png", folder, crc);
+		sceIoMkdir(DAEDALUS_VITA_PATH("Textures/"), 0777);
+		sceIoMkdir(folder, 0777);
+		stbi_write_png(filename, mCorrectedWidth, mCorrectedHeight, 4, mpData, mCorrectedWidth * 4);
+		dumped = true;
+	}
 }
 
 u32	CNativeTexture::GetStride() const

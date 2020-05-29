@@ -331,6 +331,9 @@ void loadConfig(const char *game)
 			else if (strcmp("gUseExpansionPak", buffer) == 0) gUseExpansionPak = value;
 			else if (strcmp("gControllerIndex", buffer) == 0) gControllerIndex = value;
 			
+			else if (strcmp("gTexturesDumper", buffer) == 0) gTexturesDumper = (bool)value;
+			else if (strcmp("gUseHighResTextures", buffer) == 0) gUseHighResTextures = (bool)value;
+			
 			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
 			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;

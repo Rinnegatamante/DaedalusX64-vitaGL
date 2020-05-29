@@ -50,8 +50,9 @@ class CNativeTexture : public CRefCounted
 		static	CRefPtr<CNativeTexture>		CreateFromPng( const char * p_filename, ETextureFormat texture_format );
 #else
 		void							Dump(const char * filename);
+		void							DumpForHighRes();
 #endif
-		void							InstallTexture() const;
+		void							InstallTexture();
 
 		void							SetData( void * data, void * palette );
 
@@ -104,7 +105,11 @@ class CNativeTexture : public CRefCounted
 #endif
 #endif // DAEDALUS_PSP
 #ifdef DAEDALUS_VITA
+		bool				dumped;
 		bool				hasMipmaps;
+		int					highResState;
+		u32					crc;
+		void *				origData;
 #endif
 };
 

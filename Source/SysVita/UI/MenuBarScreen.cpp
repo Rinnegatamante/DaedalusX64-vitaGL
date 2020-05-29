@@ -36,6 +36,8 @@
 int gUiTheme = DARK_THEME;
 int gAspectRatio = RATIO_16_9;
 int gTexCacheMode = TEX_CACHE_ACCURATE;
+bool gTexturesDumper = false;
+bool gUseHighResTextures = false;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
@@ -107,6 +109,9 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gUseExpansionPak", gUseExpansionPak);
 		fprintf(config, "%s=%d\n", "gControllerIndex", gControllerIndex);
 		
+		fprintf(config, "%s=%d\n", "gTexturesDumper", (int)gTexturesDumper);
+		fprintf(config, "%s=%d\n", "gUseHighResTextures", (int)gUseHighResTextures);
+		
 		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
 		fprintf(config, "%s=%d\n", "gHideMenubar", gHideMenubar);
@@ -164,6 +169,11 @@ void DrawExtraMenu() {
 		if (ImGui::MenuItem("Console Logs", nullptr, logs_window)){
 			logs_window = !logs_window;
 		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("Textures Dumper", nullptr, gTexturesDumper)){
+			gTexturesDumper = !gTexturesDumper;
+		}
+		SetDescription("Enables textures dumping for high-res textures pack.");
 		ImGui::Separator();
 		if (ImGui::MenuItem("Credits", nullptr, credits_window)){
 			credits_window = !credits_window;
@@ -261,6 +271,10 @@ void DrawCommonMenuBar() {
 			gUseMipmaps = !gUseMipmaps;
 		}
 		SetDescription("Forces mipmaps generation for 3D rendering.");
+		if (ImGui::MenuItem("High-Res Textures", nullptr, gUseHighResTextures)){
+			gUseHighResTextures = !gUseHighResTextures;
+		}
+		SetDescription("Enables external high-res textures packs usage.");
 		ImGui::Separator();
 		if (ImGui::MenuItem("vFlux", nullptr, vflux_window)){
 			vflux_window = !vflux_window;
