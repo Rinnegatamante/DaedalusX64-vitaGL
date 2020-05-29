@@ -22,7 +22,7 @@ TEST_DISABLE_THREAD_FUNCS
 
 	// Pri is arg 5
 	u32 pri = QuickRead32Bits(pStackBase, 4*5);
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "[WosCreateThread](0x%08x, %d, 0x%08x(), 0x%08x, 0x%08x, %d)",
 		thread, id, func, arg, stack, pri );
 #endif

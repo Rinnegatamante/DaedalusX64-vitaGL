@@ -38,9 +38,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/PrintOpCode.h"
 #include "Utility/Profiler.h"
 
-static const bool	gGraphicsEnabled = true;
-static const bool	gAudioEnabled	 = true;
-
 /* JpegTask.cpp */
 extern void jpeg_decode_PS(OSTask *task);
 extern void jpeg_decode_PS0(OSTask *task);
@@ -160,26 +157,8 @@ void RSP_HLE_Finished(u32 setbits)
 
 static EProcessResult RSP_HLE_Graphics()
 {
-	DAEDALUS_PROFILE( "HLE: Graphics" );
-
-	if (gGraphicsEnabled && gGraphicsPlugin != nullptr)
-	{
-		gGraphicsPlugin->ProcessDList();
-	}
-	else
-	{
-		// Skip the entire dlist if graphics are disabled
-		Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_DP);
-		R4300_Interrupt_UpdateCause3();
-	}
-
-
-#ifdef DAEDALUS_BATCH_TEST_ENABLED
-	if (CBatchTestEventHandler * handler = BatchTest_GetHandler())
-	{
-		handler->OnDisplayListComplete();
-	}
-#endif
+	// TODO: Maybe we can get async dlist processing too?
+	gGraphicsPlugin->ProcessDList();
 
 	return PR_COMPLETED;
 }
@@ -189,13 +168,7 @@ static EProcessResult RSP_HLE_Graphics()
 
 static EProcessResult RSP_HLE_Audio()
 {
-	DAEDALUS_PROFILE( "HLE: Audio" );
-
-	if (gAudioEnabled && gAudioPlugin != nullptr)
-	{
-		return gAudioPlugin->ProcessAList();
-	}
-	return PR_COMPLETED;
+	return gAudioPlugin->ProcessAList();
 }
 
 // RSP_HLE_Jpeg and RSP_HLE_CICX105 were borrowed from Mupen64plus
@@ -299,6 +272,8 @@ EProcessResult RSP_HLE_Hvqm(OSTask * task)
 void RSP_HLE_ProcessTask()
 {	
 	OSTask * pTask = (OSTask *)(g_pu8SpMemBase + 0x0FC0);
+	
+	//DBGConsole_Msg(0, "RSP Task: Type: %ld, Ptr: 0x%08X, Size: 0x%04X", pTask->t.type, (u32*)(pTask->t.data_ptr), pTask->t.ucode_boot_size);
 
 	EProcessResult	result( PR_NOT_STARTED );
 

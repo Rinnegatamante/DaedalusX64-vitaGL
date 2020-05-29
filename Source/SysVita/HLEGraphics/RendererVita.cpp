@@ -537,8 +537,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 		details.ColourAdjuster.Reset();
 
 		blend_entry.OverrideFunction( details );
-
-		bool installed_texture = false;
+		
 		if( details.InstallTexture )
 		{
 			int texture_idx = g_ROM.T1_HACK ? 1 : 0;
@@ -548,15 +547,8 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 				if (is_3d && gUseMipmaps) mBoundTexture[ texture_idx ]->GenerateMipmaps();
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mTexWrap[texture_idx].u);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[texture_idx].v);
-				installed_texture = true;
-			}
-		}
-		
-		// If no texture was specified, or if we couldn't load it, clear it out
-		if( !installed_texture )
-		{
-			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		}
+			} else glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		} else glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		
 		details.ColourAdjuster.Process(p_vertices, num_vertices);
 		glEnableClientState(GL_COLOR_ARRAY);
