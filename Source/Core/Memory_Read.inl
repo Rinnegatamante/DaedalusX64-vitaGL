@@ -131,7 +131,7 @@ static void * Read_8440_844F( u32 address )
 	{
 		//u64 count_to_vbl = (VID_CLOCK-1) - (g_qwNextVBL - gCPUState.CPUControl[C0_COUNT]);
 		//vi_pos = (u32)((count_to_vbl*512)/VID_CLOCK);
-		u32 vi_pos {Memory_VI_GetRegister(VI_CURRENT_REG)};
+		u32 vi_pos = Memory_VI_GetRegister(VI_CURRENT_REG);
 		vi_pos = (vi_pos + 2) % 512;
 
 		//DBGConsole_Msg(0, "Reading vi pos: %d", vi_pos);

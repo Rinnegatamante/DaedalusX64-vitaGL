@@ -652,14 +652,14 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 	case CPU_EVENT_VBL:
 		{
 			//Todo: Work on VI_INTR_CYCLES should be 62500 * (60/Real game FPS)
-			u32 vertical_sync_reg {Memory_VI_GetRegister( VI_V_SYNC_REG )};
+			u32 vertical_sync_reg = Memory_VI_GetRegister(VI_V_SYNC_REG);
 			if (vertical_sync_reg == 0)
 			{
 				VI_INTR_CYCLES = 62500;
 			}
 			else
 			{
-				VI_INTR_CYCLES = (vertical_sync_reg+1) * ( gVideoRateMatch ? gVISyncRate : 1500 );
+				VI_INTR_CYCLES = (vertical_sync_reg + 1) * ( gVideoRateMatch ? gVISyncRate : 1500 );
 			}
 
 			// Apply cheatcodes, if enabled
@@ -694,7 +694,7 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 				Save_Flush();
 
 				//TESTING
-			for (size_t i {}; i < gVblCallbacks.size(); ++i)
+			for (size_t i = 0; i < gVblCallbacks.size(); ++i)
 			{
 				VblCallback & callback = gVblCallbacks[i];
 				callback.Fn(callback.Arg);
@@ -711,7 +711,7 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 		break;
 	case CPU_EVENT_AUDIO:
 		{
-			u32 status {Memory_SP_SetRegisterBits(SP_STATUS_REG, SP_STATUS_TASKDONE|SP_STATUS_YIELDED|SP_STATUS_BROKE|SP_STATUS_HALT)};
+			u32 status = Memory_SP_SetRegisterBits(SP_STATUS_REG, SP_STATUS_TASKDONE|SP_STATUS_YIELDED|SP_STATUS_BROKE|SP_STATUS_HALT);
 			if( status & SP_STATUS_INTR_BREAK )
 				CPU_AddEvent(4000, CPU_EVENT_SPINT);
 		}
@@ -827,7 +827,7 @@ void R4300_CALL_TYPE CPU_UpdateCounter( u32 ops_executed )
 	gTotalInstructionsExecuted += ops_executed;
 #endif
 
-	const u32 cycles {ops_executed * COUNTER_INCREMENT_PER_OP};
+	const u32 cycles = ops_executed * COUNTER_INCREMENT_PER_OP;
 
 	// Increment count register
 	gCPUState.CPUControl[C0_COUNT]._u32 += cycles;

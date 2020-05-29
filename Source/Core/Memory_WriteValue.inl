@@ -221,20 +221,17 @@ static void WriteValue_8440_844F( u32 address, u32 value )
 	switch (offset)
 	{
 	case 0x0:	// VI_CONTROL_REG
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 		DPF( DEBUG_VI, "VI_CONTROL_REG set to 0x%08x", value );
-		#endif
+#endif
 #ifdef DAEDALUS_LOG
 		DisplayVIControlInfo(value);
 #endif
-		if (gGraphicsPlugin != NULL)
-		{
-			gGraphicsPlugin->ViStatusChanged();
-		}
+		gGraphicsPlugin->ViStatusChanged();
 		break;
 
 	case 0x4:	// VI_ORIGIN_REG
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 		DPF( DEBUG_VI, "VI_ORIGIN_REG set to %d", value );
 #endif
 		 // NB: if no display lists executed, interpret framebuffer
@@ -255,23 +252,20 @@ static void WriteValue_8440_844F( u32 address, u32 value )
 #ifdef DAEDALUS_DEBUG_CONSOLE
 		DPF( DEBUG_VI, "VI_WIDTH_REG set to %d pixels", value );
 #endif
-		if (gGraphicsPlugin != NULL)
-		{
-			gGraphicsPlugin->ViWidthChanged();
-		}
+		gGraphicsPlugin->ViWidthChanged();
 		break;
 
 	case 0x10:	// VI_CURRENT_REG
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 		DPF( DEBUG_VI, "VI_CURRENT_REG set to 0x%08x", value );
 		// Any write clears interrupt line...
 		DPF( DEBUG_VI, "VI: Clearing interrupt flag. PC: 0x%08x", gCPUState.CurrentPC );
-		#endif
+#endif
 		Memory_MI_ClrRegisterBits(MI_INTR_REG, MI_INTR_VI);
 		R4300_Interrupt_UpdateCause3();
 		return;
 	}
-
+	
 	*(u32 *)((u8 *)g_pMemoryBuffers[MEM_VI_REG] + offset) = value;
 }
 #endif

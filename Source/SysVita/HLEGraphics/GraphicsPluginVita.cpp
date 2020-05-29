@@ -123,16 +123,16 @@ class CGraphicsPluginImpl : public CGraphicsPlugin
 
 		bool		Initialise();
 		
-		virtual bool		StartEmulation()		{ return true; }
-		virtual void		ViStatusChanged()		{}
-		virtual void		ViWidthChanged()		{}
-		virtual void		ProcessDList();
+		virtual bool			StartEmulation()		{ return true; }
+		virtual void			ViStatusChanged()		{}
+		virtual void			ViWidthChanged()		{}
+		virtual EProcessResult	ProcessDList();
 
-		virtual void		UpdateScreen();
+		virtual void			UpdateScreen();
 
-		virtual void		RomClosed();
+		virtual void			RomClosed();
 private:
-		u32					LastOrigin;
+		u32						LastOrigin;
 };
 
 CGraphicsPluginImpl::CGraphicsPluginImpl():	LastOrigin( 0 )
@@ -163,7 +163,7 @@ bool CGraphicsPluginImpl::Initialise()
 	return true;
 }
 
-void CGraphicsPluginImpl::ProcessDList()
+EProcessResult CGraphicsPluginImpl::ProcessDList()
 {
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	if (!DLDebugger_Process())
@@ -173,6 +173,7 @@ void CGraphicsPluginImpl::ProcessDList()
 #else
 	DLParser_Process();
 #endif
+	return PR_COMPLETED;
 }
 
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST

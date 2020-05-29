@@ -157,10 +157,7 @@ void RSP_HLE_Finished(u32 setbits)
 
 static EProcessResult RSP_HLE_Graphics()
 {
-	// TODO: Maybe we can get async dlist processing too?
-	gGraphicsPlugin->ProcessDList();
-
-	return PR_COMPLETED;
+	return gGraphicsPlugin->ProcessDList();
 }
 
 
@@ -284,7 +281,7 @@ void RSP_HLE_ProcessTask()
 		RSP_HLE_Finished(SP_STATUS_BROKE|SP_STATUS_HALT);
 		return;
 	}
-
+	
 	switch ( pTask->t.type )
 	{
 		case M_GFXTASK:

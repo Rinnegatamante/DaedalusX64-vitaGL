@@ -22,20 +22,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef PLUGINS_GRAPHICSPLUGIN_H_
 #define PLUGINS_GRAPHICSPLUGIN_H_
 
+#include "Core/RSP_HLE.h"
+
 class CGraphicsPlugin
 {
 	public:
 		virtual ~CGraphicsPlugin();
 
-		virtual bool		StartEmulation() = 0;
+		virtual bool			StartEmulation() = 0;
 
-		virtual void		ViStatusChanged() = 0;
-		virtual void		ViWidthChanged() = 0;
-		virtual void		ProcessDList() = 0;
+		virtual void			ViStatusChanged() = 0;
+		virtual void			ViWidthChanged() = 0;
+		virtual EProcessResult	ProcessDList() = 0;
 
-		virtual void		UpdateScreen() = 0;
+		virtual void			UpdateScreen() = 0;
 
-		virtual void		RomClosed() = 0;
+		virtual void			RomClosed() = 0;
 };
 
 //
