@@ -399,6 +399,7 @@ void DrawCommonWindows() {
 		ImGui::Text("TheFloW for his contributions to the DynaRec code");
 		ImGui::Text("m4xw for the help sanitizing PIF code");
 		ImGui::Text("Salvy & frangarcj for the help with some bugfixes");
+		ImGui::Text("Inssame for some additions to the UI code");
 		ImGui::Text("That One Seong & TheIronUniverse for the Livearea assets");
 		ImGui::Text("withLogic for the high-res preview assets");
 		ImGui::End();
