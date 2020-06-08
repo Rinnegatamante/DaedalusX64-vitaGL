@@ -46,6 +46,12 @@ steps:
     make -j$(nproc)
     cd ../Data
     zip -9 -r DaedalusX64.zip DaedalusX64
+    cd ../Launcher
+    make
+    cp ../Source/sce_sys/icon0.png builder/assets/icon0.png
+    cp ../Source/sce_sys/livearea/contents/bg.png builder/assets/bg.png
+    cp ../Source/sce_sys/livearea/contents/startup.png builder/assets/startup.png
+    zip -9 -r builder.zip builder
   displayName: 'Build Daedalus X64'
     
 - task: GitHubRelease@1
@@ -59,4 +65,5 @@ steps:
     assets: |
       daedbuild/DaedalusX64.vpk
       Data/DaedalusX64.zip
+      Launcher/builder.zip
   displayName: 'Deploy artifacts'
