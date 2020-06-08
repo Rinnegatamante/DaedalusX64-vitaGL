@@ -260,6 +260,7 @@ if (VITA_RELEASE)
 		ScePower_stub
 		SceNet_stub
 		SceNetCtl_stub
+		SceAppMgr_stub
 		c
 		stdc++
 		m

@@ -37,6 +37,9 @@
 #define NET_INIT_SIZE 1*1024*1024
 #define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
 
+bool gSkipCompatListUpdate = false;
+bool gStandaloneMode = true;
+
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 	int _newlib_heap_size_user = 160 * 1024 * 1024;
@@ -173,21 +176,24 @@ static void Initialize()
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
 
 	// Initializing net
-	net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
-	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-	int ret = sceNetShowNetstat();
 	void *net_memory = nullptr;
-	SceNetInitParam initparam;
-	if (ret == SCE_NET_ERROR_ENOTINIT) {
-		net_memory = malloc(NET_INIT_SIZE);
-		initparam.memory = net_memory;
-		initparam.size = NET_INIT_SIZE;
-		initparam.flags = 0;
-		sceNetInit(&initparam);
+	SceUID thd;
+	if (!gSkipCompatListUpdate) {
+		net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
+		sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
+		int ret = sceNetShowNetstat();
+		SceNetInitParam initparam;
+		if (ret == SCE_NET_ERROR_ENOTINIT) {
+			net_memory = malloc(NET_INIT_SIZE);
+			initparam.memory = net_memory;
+			initparam.size = NET_INIT_SIZE;
+			initparam.flags = 0;
+			sceNetInit(&initparam);
+		}
+		sceNetCtlInit();
+		thd = sceKernelCreateThread("Net Downloader Thread", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
 	}
-	sceNetCtlInit();
-	SceUID thd = sceKernelCreateThread("Net Downloader Thread", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
-
+	
 	// Initializing vitaGL
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
 	vglUseVram(gUseCdram);
@@ -205,22 +211,25 @@ static void Initialize()
 	SetupVFlux();
 
 	// Downloading compatibility databases
-	sceKernelStartThread(thd, 0, NULL);
-	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
-		sceKernelSignalSema(net_mutex, 1);
-		while (downloaded_bytes < total_bytes) {
-			DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
+	if (!gSkipCompatListUpdate) {
+		sceKernelStartThread(thd, 0, NULL);
+		for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+			sceKernelSignalSema(net_mutex, 1);
+			while (downloaded_bytes < total_bytes) {
+				DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
+			}
+			total_bytes++;
 		}
-		total_bytes++;
-	}
-	ImGui::GetIO().MouseDrawCursor = true;
+	
+		ImGui::GetIO().MouseDrawCursor = true;
 
-	// Closing net
-	sceKernelWaitThreadEnd(thd, NULL, NULL);
-	sceNetCtlTerm();
-	sceNetTerm();
-	sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
-	free(net_memory);
+		// Closing net
+		sceKernelWaitThreadEnd(thd, NULL, NULL);
+		sceNetCtlTerm();
+		sceNetTerm();
+		sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
+		free(net_memory);
+	}
 }
 
 void setCpuMode(int cpu_mode)
@@ -349,18 +358,28 @@ void loadConfig(const char *game)
 	}
 }
 
+char boot_params[1024];
+
 int main(int argc, char* argv[])
 {
-	Initialize();
-
 	char *rom;
+		
+	// Check if Daedalus X64 has been launched with a custom bubble
+	sceAppMgrGetAppParam(boot_params);
+	if (strstr(boot_params,"psgm:play")) {
+		gSkipCompatListUpdate = true;
+		gStandaloneMode = false;
+		rom = strstr(boot_params, "&param=") + 7;
+	}
+	
+	Initialize();
 
 	while (run_emu) {
 		loadConfig("default");
 		EnableMenuButtons(true);
 
 		if (restart_rom) restart_rom = false;
-		else {
+		else if (gStandaloneMode) {
 			rom = nullptr;
 			do {
 				rom = DrawRomSelector();
@@ -374,6 +393,8 @@ int main(int argc, char* argv[])
 		loadConfig(g_ROM.settings.GameName.c_str());
 		CPU_Run();
 		System_Close();
+		
+		if (!gStandaloneMode && !restart_rom) break;
 	}
 
 	System_Finalize();
