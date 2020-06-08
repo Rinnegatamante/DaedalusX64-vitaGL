@@ -25,6 +25,14 @@ A compatibility list can be found on [this GitHub repository](https://github.com
 You can head to Vita Nuova discord server to get help with DaedalusX64-vitaGL. We have a dedicated channel (#daedalus-x64) for discussing futur developments, suggesitons, help, etc.
  
 Invite link: https://discord.gg/PyCaBx9
+
+## HD Textures Pack Tutorial
+In order to create an HD texture pack (or adapt an existing one to Daedalus X64). You'll need to follow these steps:
+* Launch Daedalus X64 and enable **Textures Dumper** option under **Extra** menu.
+* Launch the game you want to create an HD texture pack for.
+* Play a bit the game in order to let Daedalus X64 dump all the textures the game loads in the meantime.
+* Close Daedalus X64, if you'll now navigate in **ux0:/data/DaedalusX64/Textures** you'll find a new folder named as the Cartridge ID of the game you've run containing a lot of images.
+* Create HD replacements for those images (or use existing ones from other textures pack) without changing filenames.
  
 ## Credits
  
