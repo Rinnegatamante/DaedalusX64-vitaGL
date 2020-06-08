@@ -28,7 +28,7 @@ v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
 namespace
 {
-	static const f32					DEFAULT_MIN_DEADZONE = 0.28f;
+	static const f32					DEFAULT_MIN_DEADZONE = 0.25f;
 	static const f32					DEFAULT_MAX_DEADZONE = 1.f;
 
 	static const s32					N64_ANALOGUE_STICK_RANGE( 80 );
