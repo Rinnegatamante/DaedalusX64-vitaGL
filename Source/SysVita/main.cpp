@@ -39,6 +39,7 @@
 
 bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
+bool gIsRomFullPath = false;
 
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
@@ -370,6 +371,7 @@ int main(int argc, char* argv[])
 		gSkipCompatListUpdate = true;
 		gStandaloneMode = false;
 		rom = strstr(boot_params, "&param=") + 7;
+		if ((strstr(boot_params, "ux0:") != nullptr) || (strstr(boot_params, "uma0:") != nullptr)) gIsRomFullPath = true;
 	}
 	
 	Initialize();
@@ -385,11 +387,14 @@ int main(int argc, char* argv[])
 				rom = DrawRomSelector();
 			} while (rom == nullptr);
 		}
-
-		char fullpath[512];
-		sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
+		
 		EnableMenuButtons(false);
-		System_Open(fullpath);
+		if (!gIsRomFullPath) {
+			char fullpath[512];
+			sprintf(fullpath, "%s%s", DAEDALUS_VITA_PATH("Roms/"), rom);
+			System_Open(fullpath);
+		}else System_Open(rom);
+		
 		loadConfig(g_ROM.settings.GameName.c_str());
 		CPU_Run();
 		System_Close();
