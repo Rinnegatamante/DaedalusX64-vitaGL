@@ -115,6 +115,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
 		fprintf(config, "%s=%d\n", "gHideMenubar", gHideMenubar);
+		fprintf(config, "%s=%d\n", "gSkipCompatListUpdate", (int)gSkipCompatListUpdate);
 		fclose(config);
 	}
 }
@@ -161,6 +162,9 @@ void DrawExtraMenu() {
 		}
 		if (ImGui::MenuItem("Hide Menubar", nullptr, gHideMenubar)){
 			gHideMenubar = !gHideMenubar;
+		}
+		if (ImGui::MenuItem("Update Compat List at Boot", nullptr, !gSkipCompatListUpdate)){
+			gSkipCompatListUpdate = !gSkipCompatListUpdate;
 		}
 		ImGui::Separator();
 		if (ImGui::MenuItem("Debugger", nullptr, debug_window)){

@@ -347,6 +347,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
 			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;
+			else if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 		}
 		fclose(config);
 		
@@ -364,6 +365,9 @@ char boot_params[1024];
 int main(int argc, char* argv[])
 {
 	char *rom;
+		
+	// We need this to override the compat list update skip option
+	loadConfig("default");
 		
 	// Check if Daedalus X64 has been launched with a custom bubble
 	sceAppMgrGetAppParam(boot_params);

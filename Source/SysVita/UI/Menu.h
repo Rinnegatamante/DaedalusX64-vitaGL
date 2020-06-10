@@ -42,6 +42,7 @@ extern bool gUseExpansionPak;
 extern bool gUseHighResTextures;
 extern bool gTexturesDumper;
 extern bool gUseMipmaps;
+extern bool gSkipCompatListUpdate;
 extern int  gSortOrder;
 extern int  gUiTheme;
 
