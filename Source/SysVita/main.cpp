@@ -302,6 +302,25 @@ void stripGameName(char *name) {
 	}
 }
 
+void preloadConfig()
+{
+	char configFile[512];
+	char buffer[30];
+	int value;
+	
+	sprintf(configFile, "%sdefault.ini", DAEDALUS_VITA_PATH("Configs/"));
+	FILE *config = fopen(configFile, "r");
+	
+	if (config)
+	{
+		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
+		{
+			if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
+		}
+		fclose(config);
+	}
+}
+
 void loadConfig(const char *game)
 {
 	char tmp[128];
@@ -367,7 +386,7 @@ int main(int argc, char* argv[])
 	char *rom;
 		
 	// We need this to override the compat list update skip option
-	loadConfig("default");
+	preloadConfig();
 		
 	// Check if Daedalus X64 has been launched with a custom bubble
 	sceAppMgrGetAppParam(boot_params);
@@ -379,7 +398,7 @@ int main(int argc, char* argv[])
 	}
 	
 	Initialize();
-
+	
 	while (run_emu) {
 		loadConfig("default");
 		EnableMenuButtons(true);
