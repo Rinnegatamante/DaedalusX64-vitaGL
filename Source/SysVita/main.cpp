@@ -226,11 +226,14 @@ static void Initialize()
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
 
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
-
+	
+	// Turn off auto updater if build is marked as dirty
+	uint8_t gSkipAutoUpdate = strstr(stringify(GIT_VERSION), "dirty") != nullptr;
+	
 	// Initializing net
 	void *net_memory = nullptr;
 	SceUID thd[2];
-	if (gAutoUpdate || !gSkipCompatListUpdate) {
+	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
 		net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
 		sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 		int ret = sceNetShowNetstat();
@@ -244,7 +247,7 @@ static void Initialize()
 		}
 		sceNetCtlInit();
 		if (!gSkipCompatListUpdate) thd[0] = sceKernelCreateThread("Compat List Updater", &compatListThread, 0x10000100, 0x100000, 0, 0, NULL);
-		if (gAutoUpdate) thd[1] = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
+		if (gAutoUpdate && !gSkipAutoUpdate) thd[1] = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
 	}
 	
 	// Initializing vitaGL
@@ -264,7 +267,7 @@ static void Initialize()
 	SetupVFlux();
 	
 	// Checking for updates
-	if (gAutoUpdate && !strstr(stringify(GIT_VERSION), "dirty")) {
+	if (gAutoUpdate && !gSkipAutoUpdate) {
 		sceKernelStartThread(thd[1], 0, NULL);
 		for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 			sceKernelSignalSema(net_mutex, 1);
@@ -290,7 +293,7 @@ static void Initialize()
 		sceKernelWaitThreadEnd(thd[0], NULL, NULL);
 	}
 	
-	if (gAutoUpdate || !gSkipCompatListUpdate) {
+	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
 		ImGui::GetIO().MouseDrawCursor = true;
 
 		// Closing net
