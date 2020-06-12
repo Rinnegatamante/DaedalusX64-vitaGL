@@ -164,7 +164,7 @@ void DrawExtraMenu() {
 		if (ImGui::MenuItem("Hide Menubar", nullptr, gHideMenubar)){
 			gHideMenubar = !gHideMenubar;
 		}
-		if (ImGui::MenuItem("Auto Update at Boot", nullptr, !gAutoUpdate)){
+		if (ImGui::MenuItem("Auto Update at Boot", nullptr, gAutoUpdate)){
 			gAutoUpdate = !gAutoUpdate;
 		}
 		if (ImGui::MenuItem("Update Compat List at Boot", nullptr, !gSkipCompatListUpdate)){

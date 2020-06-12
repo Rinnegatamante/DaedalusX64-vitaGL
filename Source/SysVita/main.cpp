@@ -301,6 +301,7 @@ static void Initialize()
 		sceNetTerm();
 		sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
 		free(net_memory);
+		sceKernelDeleteSema(net_mutex);
 	}
 }
 
