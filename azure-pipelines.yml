@@ -65,5 +65,6 @@ steps:
     assets: |
       daedbuild/DaedalusX64.vpk
       Data/DaedalusX64.zip
+      daedbuild/DaedalusX64.self
       Launcher/builder.zip
   displayName: 'Deploy artifacts'
