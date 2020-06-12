@@ -139,7 +139,6 @@ static int compatListThread(unsigned int args, void* arg){
 		sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
 		sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=%ld&per_page=100", i);
 		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
-		int resumes_count = 0;
 		downloaded_bytes = 0;
 
 		// FIXME: Workaround since GitHub Api does not set Content-Length
@@ -163,7 +162,7 @@ static int compatListThread(unsigned int args, void* arg){
 
 static int updaterThread(unsigned int args, void* arg){
 	uint8_t update_detected = 0;
-	char url[512], vpkname[64];
+	char url[512];
 	curl_handle = curl_easy_init();
 	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 		sceKernelWaitSema(net_mutex, 1, NULL);
@@ -173,11 +172,10 @@ static int updaterThread(unsigned int args, void* arg){
 			break;
 		}
 		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
-		int resumes_count = 0;
 		downloaded_bytes = 0;
 
 		// FIXME: Workaround since GitHub Api does not set Content-Length
-		total_bytes = i == UPDATER_CHECK_UPDATES ? 24 * 1024 : 1572864; /* 24 KB / 1.5 MB */
+		total_bytes = i == UPDATER_CHECK_UPDATES ? 20 * 1024 : 1572864; /* 20 KB / 1.5 MB */
 
 		startDownload(url);
 
@@ -192,8 +190,7 @@ static int updaterThread(unsigned int args, void* arg){
 				fread(buffer, 1, size, fh);
 				fclose(fh);
 				sceIoRemove(TEMP_DOWNLOAD_NAME);
-				char *ptr = strstr(buffer, "target_commitish") + 20;
-				if (strncmp(ptr, stringify(GIT_VERSION), 6)) {
+				if (strncmp(strstr(buffer, "target_commitish") + 20, stringify(GIT_VERSION), 6)) {
 					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.self");
 					update_detected = 1;
 				}
@@ -232,7 +229,6 @@ static void Initialize()
 	
 	// Initializing net
 	void *net_memory = nullptr;
-	SceUID thd[2];
 	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
 		net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
 		sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
@@ -246,8 +242,6 @@ static void Initialize()
 			sceNetInit(&initparam);
 		}
 		sceNetCtlInit();
-		if (!gSkipCompatListUpdate) thd[0] = sceKernelCreateThread("Compat List Updater", &compatListThread, 0x10000100, 0x100000, 0, 0, NULL);
-		if (gAutoUpdate && !gSkipAutoUpdate) thd[1] = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
 	}
 	
 	// Initializing vitaGL
@@ -268,29 +262,35 @@ static void Initialize()
 	
 	// Checking for updates
 	if (gAutoUpdate && !gSkipAutoUpdate) {
-		sceKernelStartThread(thd[1], 0, NULL);
+		SceUID thd= sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
+		sceKernelStartThread(thd, 0, NULL);
 		for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 			sceKernelSignalSema(net_mutex, 1);
+			sceKernelDelayThread(1000);
 			while (downloaded_bytes < total_bytes) {
 				if (i == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, "Checking for updates", NUM_UPDATE_PASSES);
 				else DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, "Downloading an update", NUM_UPDATE_PASSES);
 			}
 			total_bytes++;
 		}
-		sceKernelWaitThreadEnd(thd[1], NULL, NULL);
+		sceKernelWaitThreadEnd(thd, NULL, NULL);
+		total_bytes = 0xFFFFFFFF;
+		downloaded_bytes = 0;
 	}
 
 	// Downloading compatibility databases
 	if (!gSkipCompatListUpdate) {
-		sceKernelStartThread(thd[0], 0, NULL);
+		SceUID thd = sceKernelCreateThread("Compat List Updater", &compatListThread, 0x10000100, 0x100000, 0, 0, NULL);
+		sceKernelStartThread(thd, 0, NULL);
 		for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
 			sceKernelSignalSema(net_mutex, 1);
+			sceKernelDelayThread(1000);
 			while (downloaded_bytes < total_bytes) {
 				DrawDownloaderScreen(i, downloaded_bytes, total_bytes, "Downloading compatibility list database", NUM_DB_CHUNKS);
 			}
 			total_bytes++;
 		}
-		sceKernelWaitThreadEnd(thd[0], NULL, NULL);
+		sceKernelWaitThreadEnd(thd, NULL, NULL);
 	}
 	
 	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
