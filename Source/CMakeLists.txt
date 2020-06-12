@@ -206,13 +206,18 @@ if (VITA_RELEASE)
 	include("${VITASDK}/share/vita.cmake" REQUIRED)
 
 	message("PSVita Release Build..")
-
+	
+	execute_process(COMMAND git describe --abbrev=6 --dirty --always --tags
+		OUTPUT_VARIABLE GIT_HASH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	
 	set(VITA_APP_NAME "${PROJECT_NAME}")
 	set(VITA_TITLEID  "DEDALOX64")
 	set(VITA_VERSION  "01.00")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
 
 	add_definitions("-DDAEDALUS_VITA")
 
@@ -274,7 +279,7 @@ if (VITA_RELEASE)
 		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 	)
 
-	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf)
+	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
 	vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
 		VERSION ${VITA_VERSION}
 		NAME ${VITA_APP_NAME}

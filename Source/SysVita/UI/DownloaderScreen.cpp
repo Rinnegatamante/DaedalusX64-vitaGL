@@ -31,7 +31,7 @@
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"
 
-void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes) {
+void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes) {
 	vglStartRendering();
 	ImGui_ImplVitaGL_NewFrame();
 	ImGui::GetIO().MouseDrawCursor = false;
@@ -40,7 +40,7 @@ void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes) 
 	ImGui::Begin("", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	char msg[512];
-	sprintf(msg, "Downloading compatibility list database (%ld / %ld)", index, NUM_DB_CHUNKS);
+	sprintf(msg, "%s (%ld / %ld)", text, index, passes);
 	ImVec2 pos = ImGui::CalcTextSize(msg);
 	ImGui::SetCursorPos(ImVec2((400 - pos.x) / 2, 20));
 	ImGui::Text(msg);

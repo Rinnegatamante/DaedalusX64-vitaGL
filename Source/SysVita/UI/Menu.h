@@ -1,4 +1,14 @@
-#define NUM_DB_CHUNKS 2
+#define FUNC_TO_NAME(x) #x
+#define stringify(x) FUNC_TO_NAME(x)
+
+#define NUM_DB_CHUNKS     2 // Number of pages to download for the compat list
+#define NUM_UPDATE_PASSES 2 // Number of passes required to download an update
+
+// Auto updater passes
+enum {
+	UPDATER_CHECK_UPDATES,
+	UPDATER_DOWNLOAD_UPDATE
+};
 
 // Roms sorting modes
 enum {
@@ -43,6 +53,7 @@ extern bool gUseHighResTextures;
 extern bool gTexturesDumper;
 extern bool gUseMipmaps;
 extern bool gSkipCompatListUpdate;
+extern bool gAutoUpdate;
 extern int  gSortOrder;
 extern int  gUiTheme;
 
@@ -50,7 +61,7 @@ char *DrawRomSelector();
 void DrawInGameMenu();
 void DrawMenuBar();
 void DrawInGameMenuBar();
-void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes);
+void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
 
 void SetupVFlux();
 void setCpuMode(int cpu_mode);

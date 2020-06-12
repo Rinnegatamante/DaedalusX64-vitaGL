@@ -116,6 +116,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
 		fprintf(config, "%s=%d\n", "gHideMenubar", gHideMenubar);
 		fprintf(config, "%s=%d\n", "gSkipCompatListUpdate", (int)gSkipCompatListUpdate);
+		fprintf(config, "%s=%d\n", "gAutoUpdate", (int)gAutoUpdate);
 		fclose(config);
 	}
 }
@@ -162,6 +163,9 @@ void DrawExtraMenu() {
 		}
 		if (ImGui::MenuItem("Hide Menubar", nullptr, gHideMenubar)){
 			gHideMenubar = !gHideMenubar;
+		}
+		if (ImGui::MenuItem("Auto Update at Boot", nullptr, !gAutoUpdate)){
+			gAutoUpdate = !gAutoUpdate;
 		}
 		if (ImGui::MenuItem("Update Compat List at Boot", nullptr, !gSkipCompatListUpdate)){
 			gSkipCompatListUpdate = !gSkipCompatListUpdate;
@@ -399,7 +403,7 @@ void DrawCommonWindows() {
 	
 	if (credits_window) {
 		ImGui::Begin("Credits", &credits_window);
-		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Daedalus X64 v.%s", VERSION);
+		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Daedalus X64 v.%s (%s)", VERSION, stringify(GIT_VERSION));
 		ImGui::Text("Port Author: Rinnegatamante");
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Patreon Supporters:");

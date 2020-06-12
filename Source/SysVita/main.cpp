@@ -40,6 +40,7 @@
 bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
 bool gIsRomFullPath = false;
+bool gAutoUpdate = true;
 
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
@@ -130,7 +131,7 @@ static void startDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static int downloadThread(unsigned int args, void* arg){
+static int compatListThread(unsigned int args, void* arg){
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
@@ -160,6 +161,56 @@ static int downloadThread(unsigned int args, void* arg){
 	return 0;
 }
 
+static int updaterThread(unsigned int args, void* arg){
+	uint8_t update_detected = 0;
+	char url[512], vpkname[64];
+	curl_handle = curl_easy_init();
+	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
+		sceKernelWaitSema(net_mutex, 1, NULL);
+		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/latest");
+		else if (!update_detected) {
+			downloaded_bytes = total_bytes;
+			break;
+		}
+		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
+		int resumes_count = 0;
+		downloaded_bytes = 0;
+
+		// FIXME: Workaround since GitHub Api does not set Content-Length
+		total_bytes = i == UPDATER_CHECK_UPDATES ? 24 * 1024 : 1572864; /* 24 KB / 1.5 MB */
+
+		startDownload(url);
+
+		fclose(fh);
+		if (downloaded_bytes > 12 * 1024) {
+			if (i == UPDATER_CHECK_UPDATES) {
+				fh = fopen(TEMP_DOWNLOAD_NAME, "rb");
+				fseek(fh, 0, SEEK_END);
+				uint32_t size = ftell(fh);
+				fseek(fh, 0, SEEK_SET);
+				char *buffer = (char*)malloc(size);
+				fread(buffer, 1, size, fh);
+				fclose(fh);
+				sceIoRemove(TEMP_DOWNLOAD_NAME);
+				char *ptr = strstr(buffer, "target_commitish") + 20;
+				if (strncmp(ptr, stringify(GIT_VERSION), 6)) {
+					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.self");
+					update_detected = 1;
+				}
+			} else {
+				sceAppMgrUmount("app0:");
+				sceIoRemove("ux0:app/DEDALOX64/eboot.bin");
+				sceIoRename(TEMP_DOWNLOAD_NAME, "ux0:app/DEDALOX64/eboot.bin");
+				sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
+			}
+		} else sceIoRemove(TEMP_DOWNLOAD_NAME);
+		downloaded_bytes = total_bytes;
+	}
+	curl_easy_cleanup(curl_handle);
+	sceKernelExitDeleteThread(0);
+	return 0;
+}
+
 static void Initialize()
 {
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
@@ -178,8 +229,8 @@ static void Initialize()
 
 	// Initializing net
 	void *net_memory = nullptr;
-	SceUID thd;
-	if (!gSkipCompatListUpdate) {
+	SceUID thd[2];
+	if (gAutoUpdate || !gSkipCompatListUpdate) {
 		net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
 		sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 		int ret = sceNetShowNetstat();
@@ -192,7 +243,8 @@ static void Initialize()
 			sceNetInit(&initparam);
 		}
 		sceNetCtlInit();
-		thd = sceKernelCreateThread("Net Downloader Thread", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
+		if (!gSkipCompatListUpdate) thd[0] = sceKernelCreateThread("Compat List Updater", &compatListThread, 0x10000100, 0x100000, 0, 0, NULL);
+		if (gAutoUpdate) thd[1] = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
 	}
 	
 	// Initializing vitaGL
@@ -210,22 +262,38 @@ static void Initialize()
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
-
-	// Downloading compatibility databases
-	if (!gSkipCompatListUpdate) {
-		sceKernelStartThread(thd, 0, NULL);
-		for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+	
+	// Checking for updates
+	if (gAutoUpdate && !strstr(stringify(GIT_VERSION), "dirty")) {
+		sceKernelStartThread(thd[1], 0, NULL);
+		for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 			sceKernelSignalSema(net_mutex, 1);
 			while (downloaded_bytes < total_bytes) {
-				DrawDownloaderScreen(i, downloaded_bytes, total_bytes);
+				if (i == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, "Checking for updates", NUM_UPDATE_PASSES);
+				else DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, "Downloading an update", NUM_UPDATE_PASSES);
 			}
 			total_bytes++;
 		}
+		sceKernelWaitThreadEnd(thd[1], NULL, NULL);
+	}
+
+	// Downloading compatibility databases
+	if (!gSkipCompatListUpdate) {
+		sceKernelStartThread(thd[0], 0, NULL);
+		for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+			sceKernelSignalSema(net_mutex, 1);
+			while (downloaded_bytes < total_bytes) {
+				DrawDownloaderScreen(i, downloaded_bytes, total_bytes, "Downloading compatibility list database", NUM_DB_CHUNKS);
+			}
+			total_bytes++;
+		}
+		sceKernelWaitThreadEnd(thd[0], NULL, NULL);
+	}
 	
+	if (gAutoUpdate || !gSkipCompatListUpdate) {
 		ImGui::GetIO().MouseDrawCursor = true;
 
 		// Closing net
-		sceKernelWaitThreadEnd(thd, NULL, NULL);
 		sceNetCtlTerm();
 		sceNetTerm();
 		sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
@@ -316,6 +384,7 @@ void preloadConfig()
 		while (EOF != fscanf(config, "%[^=]=%d\n", buffer, &value))
 		{
 			if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
+			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 		}
 		fclose(config);
 	}
@@ -367,6 +436,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
 			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;
 			else if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
+			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 		}
 		fclose(config);
 		
@@ -398,7 +468,7 @@ int main(int argc, char* argv[])
 	}
 	
 	Initialize();
-	
+
 	while (run_emu) {
 		loadConfig("default");
 		EnableMenuButtons(true);
