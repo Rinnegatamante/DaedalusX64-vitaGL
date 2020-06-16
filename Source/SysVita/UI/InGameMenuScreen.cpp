@@ -45,7 +45,7 @@ void DrawInGameMenu() {
 	SceTouchData touch;
 	sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	
 	uint64_t delta_touch = sceKernelGetProcessTimeWide() - tmr1;
-	if (touch.reportNum > 0){
+	if (touch.reportNum > 0 || pause_emu){
 		ImGui::GetIO().MouseDrawCursor = true;
 		show_menubar = true;
 		tmr1 = sceKernelGetProcessTimeWide();
@@ -57,7 +57,10 @@ void DrawInGameMenu() {
 	// Handling emulation pause
 	SceCtrlData pad;
 	sceCtrlPeekBufferPositive(0, &pad, 1);
-	if ((pad.buttons & SCE_CTRL_SELECT) && (!(oldpad & SCE_CTRL_SELECT))) pause_emu = !pause_emu;
+	if ((pad.buttons & SCE_CTRL_SELECT) && (!(oldpad & SCE_CTRL_SELECT))) {
+		pause_emu = !pause_emu;
+		EnableMenuButtons(pause_emu);
+	}
 	oldpad = pad.buttons;
 	if (!pause_emu) vglStopRenderingInit();
 }

@@ -63,6 +63,7 @@ void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
 
+void EnableMenuButtons(bool status);
 void SetupVFlux();
 void setCpuMode(int cpu_mode);
 void setUiTheme(int theme);

@@ -83,7 +83,7 @@ void dump2file(void *ptr, uint32_t size) {
 	}
 }
 
-static void EnableMenuButtons(bool status) {
+void EnableMenuButtons(bool status) {
 	ImGui_ImplVitaGL_GamepadUsage(status);
 	ImGui_ImplVitaGL_MouseStickUsage(status);
 }
@@ -262,7 +262,7 @@ static void Initialize()
 	
 	// Checking for updates
 	if (gAutoUpdate && !gSkipAutoUpdate) {
-		SceUID thd= sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
+		SceUID thd = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
 		sceKernelStartThread(thd, 0, NULL);
 		for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 			sceKernelSignalSema(net_mutex, 1);
