@@ -408,16 +408,16 @@ void IInputManager::GetState( OSContPad pPad[4] )
 	for (int i = 0; i < 4; i++) {	
 		SceCtrlData pad;
 		if (sceCtrlPeekBufferPositiveExt2(i ? (i+1) : 0, &pad, 1) < 0) continue; //Get VITA button inputs
-		
+
 		if (gUseRearpad) {
 			SceTouchData touch;
 			sceTouchPeek(SCE_TOUCH_PORT_BACK, &touch, 1);
 			for (uint32_t j = 0; j < touch.reportNum; j++) {
 				if (touch.report[j].x < 960) {
-					if (touch.report[j].y < 544) pad.buttons |= SCE_CTRL_L1;
+					if (touch.report[j].y < 544) pad.buttons |= SCE_CTRL_L2;
 					else pad.buttons |= SCE_CTRL_L3;
 				} else {
-					if (touch.report[j].y < 544) pad.buttons |= SCE_CTRL_R1;
+					if (touch.report[j].y < 544) pad.buttons |= SCE_CTRL_R2;
 					else pad.buttons |= SCE_CTRL_R3;
 				}
 			}
@@ -508,8 +508,8 @@ const SButtonNameMapping	gButtonNameMappings[] =
 	{ "VITA.Square",	SCE_CTRL_SQUARE },
 	{ "VITA.Triangle",	SCE_CTRL_TRIANGLE },
 	{ "VITA.Circle",	SCE_CTRL_CIRCLE },
-	{ "VITA.LTrigger",	SCE_CTRL_LTRIGGER },
-	{ "VITA.RTrigger",	SCE_CTRL_RTRIGGER },
+	{ "VITA.LTrigger",	SCE_CTRL_L1 },
+	{ "VITA.RTrigger",	SCE_CTRL_R1 },
 	{ "VITA.Up",		SCE_CTRL_UP },
 	{ "VITA.Down",		SCE_CTRL_DOWN },
 	{ "VITA.Left",		SCE_CTRL_LEFT },
@@ -519,8 +519,8 @@ const SButtonNameMapping	gButtonNameMappings[] =
 	{ "VITA.RDown",	    SCE_CTRL_RDOWN },
 	{ "VITA.RLeft",	    SCE_CTRL_RLEFT },
 	{ "VITA.RRight",	SCE_CTRL_RRIGHT },
-	{ "VITA.L1",		SCE_CTRL_L1 },
-	{ "VITA.R1",		SCE_CTRL_R1 },
+	{ "VITA.L2",		SCE_CTRL_L2 },
+	{ "VITA.R2",		SCE_CTRL_R2 },
 	{ "VITA.L3",		SCE_CTRL_L3 },
 	{ "VITA.R3",		SCE_CTRL_R3 }
 };
