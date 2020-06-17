@@ -177,7 +177,7 @@ void DrawExtraMenu() {
 		if (ImGui::MenuItem(lang_strings[STR_MENU_DEBUGGER], nullptr, debug_window)){
 			debug_window = !debug_window;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_LOGS], nullptr, logs_window)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_LOG], nullptr, logs_window)){
 			logs_window = !logs_window;
 		}
 		ImGui::Separator();
@@ -466,7 +466,7 @@ void DrawCommonWindows() {
 	}
 	
 	if (logs_window) {
-		ImGui::Begin(lang_strings[STR_MENU_LOGS], &logs_window);
+		ImGui::Begin(lang_strings[STR_MENU_LOG], &logs_window);
 		for (int i = 0; i < MAX_DEBUG_LINES; i++) {
 			if ((i == cur_dbg_line - 1) || ((cur_dbg_line == 0) && (i == MAX_DEBUG_LINES - 1))) ImGui::TextColored({1.0f, 1.0f, 0.0f, 1.0f}, dbg_lines[i]);
 			else ImGui::Text(dbg_lines[i]);
