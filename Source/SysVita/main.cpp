@@ -57,6 +57,7 @@ static volatile uint64_t downloaded_bytes = 0;
 static FILE *fh;
 char *bytes_string;
 static SceUID net_mutex;
+static bool sys_initialized = false;
 
 int gUseCdram = GL_TRUE;
 int gUseVSync = GL_TRUE;
@@ -210,6 +211,8 @@ static int updaterThread(unsigned int args, void* arg){
 
 static void Initialize()
 {
+	sys_initialized = true;
+	
 	strcpy(gDaedalusExePath, DAEDALUS_VITA_PATH(""));
 	strcpy(g_DaedalusConfig.mSaveDir, DAEDALUS_VITA_PATH("SaveGames/"));
 
@@ -414,7 +417,7 @@ void setTranslation(int idx) {
 		}
 		fclose(config);
 		gLanguageIndex = idx;
-	} else DBGConsole_Msg(0, "Cannot find language file.");
+	} else if (sys_initialized) DBGConsole_Msg(0, "Cannot find language file.");
 }
 
 void forceTranslation() {
