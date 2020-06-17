@@ -5,7 +5,7 @@ char *lang_identifiers[] = {
 };
 
 // This is properly populated so that emulator won't crash if an user launches it without language INI files.
-char lang_strings[][128] = {
+char lang_strings[][256] = {
 	"Downloading compatibility list database", // STR_DOWNLOADER_COMPAT_LIST
 	"Downloading an update", // STR_DOWNLOADER_UPDATE
 	"Checking for updates", // STR_DOWNLOADER_CHECK_UPDATE

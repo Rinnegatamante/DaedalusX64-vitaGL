@@ -180,8 +180,11 @@ enum {
 
 extern char *lang_identifiers[];
 
-extern char lang_strings[][128];
+extern char lang_strings[][256];
 extern bool show_menubar;
+
+// Language identifiers for languages not supported by PSVITA nativeely
+#define SCE_SYSTEM_PARAM_LANG_CATALAN 20
 
 // Config Variables
 extern bool gHideMenubar;

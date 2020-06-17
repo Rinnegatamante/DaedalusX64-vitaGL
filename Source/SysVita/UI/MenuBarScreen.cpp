@@ -408,6 +408,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
 		}
+		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
+		}
 		ImGui::EndMenu();
 	}
 }
