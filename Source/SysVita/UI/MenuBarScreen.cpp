@@ -402,17 +402,23 @@ void DrawCommonMenuBar() {
 		ImGui::EndMenu();
 	}
 	if (ImGui::BeginMenu(lang_strings[STR_MENU_LANG])){
+		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
+		}
+		if (ImGui::MenuItem("Deutsch", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GERMAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_GERMAN);
+		}
 		if (ImGui::MenuItem("English", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ENGLISH_US)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ENGLISH_US);
 		}
-		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
-			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
+		if (ImGui::MenuItem("Español", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_SPANISH)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_SPANISH);
 		}
 		if (ImGui::MenuItem("Français", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_FRENCH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_FRENCH);
 		}
-		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)){
-			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
+		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
 		}
 		ImGui::EndMenu();
 	}
@@ -458,6 +464,8 @@ void DrawCommonWindows() {
 		ImGui::Text("Rinnegatamante (ITA)");
 		ImGui::Text("Samilop Cimmerian Iter (FRA)");
 		ImGui::Text("f2pwn (CAT)");
+		ImGui::Text("SamuEDL98 (ESP)");
+		ImGui::Text("S1ngyy (GER)");
 		ImGui::End();
 	}
 	
