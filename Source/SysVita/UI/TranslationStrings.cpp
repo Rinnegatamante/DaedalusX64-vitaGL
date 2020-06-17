@@ -84,6 +84,7 @@ char lang_strings[][256] = {
 	"Enable vFlux", // STR_VFLUX_ENABLE
 	"Port Author", // STR_CREDITS_AUTHOR
 	"Patreon Supporters:", // STR_CREDITS_PATRONERS
+	"Translators:", // STR_CREDITS_TRANSLATORS
 	"Special thanks to:", // STR_CREDITS_THANKS
 	"xerpi for the initial Vita port", // STR_CREDITS_1
 	"MasterFeizz for the ARM DynaRec", // STR_CREDITS_2

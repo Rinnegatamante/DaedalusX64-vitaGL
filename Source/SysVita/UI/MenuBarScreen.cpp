@@ -451,6 +451,9 @@ void DrawCommonWindows() {
 		ImGui::Text(lang_strings[STR_CREDITS_6]);
 		ImGui::Text(lang_strings[STR_CREDITS_7]);
 		ImGui::Text(lang_strings[STR_CREDITS_8]);
+		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_TRANSLATORS]);
+		ImGui::Text("Rinnegatamante (ITA)");
+		ImGui::Text("f2pwn (CAT)");
 		ImGui::End();
 	}
 	
