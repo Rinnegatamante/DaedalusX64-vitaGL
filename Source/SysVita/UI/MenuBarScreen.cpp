@@ -408,6 +408,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
 		}
+		if (ImGui::MenuItem("Français", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_FRENCH)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_FRENCH);
+		}
 		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
 		}
@@ -453,6 +456,7 @@ void DrawCommonWindows() {
 		ImGui::Text(lang_strings[STR_CREDITS_8]);
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_TRANSLATORS]);
 		ImGui::Text("Rinnegatamante (ITA)");
+		ImGui::Text("Samilop Cimmerian Iter (FRA)");
 		ImGui::Text("f2pwn (CAT)");
 		ImGui::End();
 	}

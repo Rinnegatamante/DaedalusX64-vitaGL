@@ -381,6 +381,9 @@ void setTranslation(int idx) {
 	char identifier[64], buffer[128];
 	
 	switch (idx) {
+	case SCE_SYSTEM_PARAM_LANG_FRENCH: // French
+		sprintf(langFile, "%sFrench.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
 	case SCE_SYSTEM_PARAM_LANG_ITALIAN: // Italiano
 		sprintf(langFile, "%sItaliano.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
