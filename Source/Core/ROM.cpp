@@ -49,6 +49,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
+#ifdef DAEDALUS_VITA
+#include "SysVita/UI/Menu.h"
+#endif
+
 #if defined(DAEDALUS_ENABLE_DYNAREC_PROFILE) || defined(DAEDALUS_W32)
 // This isn't really the most appropriate place. Need to check with
 // the graphics plugin really
@@ -623,6 +627,21 @@ struct CountryIDInfo
 
 static const CountryIDInfo g_CountryCodeInfo[] =
 {
+#ifdef DAEDALUS_VITA
+	{  0,  "0",								OS_TV_NTSC },
+	{ '7', "Beta",							OS_TV_NTSC },
+	{ 'A', "NTSC",							OS_TV_NTSC },
+	{ 'D', lang_strings[STR_REGION_GER],	OS_TV_PAL },
+	{ 'E', lang_strings[STR_REGION_USA],	OS_TV_NTSC },
+	{ 'F', lang_strings[STR_REGION_FRA],	OS_TV_PAL },
+	{ 'I', lang_strings[STR_REGION_ITA],	OS_TV_PAL },
+	{ 'J', lang_strings[STR_REGION_JAP],	OS_TV_NTSC },
+	{ 'P', lang_strings[STR_REGION_EUR],	OS_TV_PAL },
+	{ 'S', lang_strings[STR_REGION_ESP],	OS_TV_PAL },
+	{ 'U', lang_strings[STR_REGION_AUS],	OS_TV_PAL },
+	{ 'X', "PAL",							OS_TV_PAL },
+	{ 'Y', "PAL",							OS_TV_PAL }
+#else
 	{  0,  "0",			OS_TV_NTSC },
 	{ '7', "Beta",		OS_TV_NTSC },
 	{ 'A', "NTSC",		OS_TV_NTSC },
@@ -636,12 +655,13 @@ static const CountryIDInfo g_CountryCodeInfo[] =
 	{ 'U', "Australia", OS_TV_PAL },
 	{ 'X', "PAL",		OS_TV_PAL },
 	{ 'Y', "PAL",		OS_TV_PAL }
+#endif
 };
 
 // Get a string representing the country name from an ID value
 const char * ROM_GetCountryNameFromID( u8 country_id )
 {
-	for (u32 i {}; i < ARRAYSIZE( g_CountryCodeInfo ); i++)
+	for (u32 i = 0; i < ARRAYSIZE( g_CountryCodeInfo ); i++)
 	{
 		if (g_CountryCodeInfo[i].CountryID == country_id)
 		{
@@ -654,7 +674,7 @@ const char * ROM_GetCountryNameFromID( u8 country_id )
 
 u32 ROM_GetTvTypeFromID( u8 country_id )
 {
-	for (u32 i {}; i < ARRAYSIZE( g_CountryCodeInfo ); i++)
+	for (u32 i = 0; i < ARRAYSIZE( g_CountryCodeInfo ); i++)
 	{
 		if (g_CountryCodeInfo[i].CountryID == country_id)
 		{

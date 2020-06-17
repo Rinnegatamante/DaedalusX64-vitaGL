@@ -34,6 +34,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/IniFile.h"
 #include "Utility/IO.h"
 
+#ifdef DAEDALUS_VITA
+#include "SysVita/UI/Menu.h"
+#endif
+
 namespace
 {
 
@@ -79,10 +83,17 @@ const char * ROM_GetExpansionPakUsageName( EExpansionPakUsage pak_usage )
 {
 	switch( pak_usage )
 	{
+#ifdef DAEDALUS_VITA
+		case PAK_STATUS_UNKNOWN:	return lang_strings[STR_UNKNOWN];
+		case PAK_UNUSED:			return lang_strings[STR_UNUSED];
+		case PAK_USED:				return lang_strings[STR_USED];
+		case PAK_REQUIRED:			return lang_strings[STR_REQUIRED];
+#else
 		case PAK_STATUS_UNKNOWN:	return "Unknown";
 		case PAK_UNUSED:			return "Unused";
 		case PAK_USED:				return "Used";
 		case PAK_REQUIRED:			return "Required";
+#endif
 	}
 
 #ifdef DAEDALUS_DEBUG_CONSOLE
@@ -98,7 +109,11 @@ const char * ROM_GetSaveTypeName( ESaveType save_type )
 {
 	switch ( save_type )
 	{
+#ifdef DEADALUS_VITA
+		case SAVE_TYPE_UNKNOWN:		return lang_strings[STR_UNKNOWN];
+#else
 		case SAVE_TYPE_UNKNOWN:		return "Unknown";
+#endif
 		case SAVE_TYPE_EEP4K:		return "Eeprom4k";
 		case SAVE_TYPE_EEP16K:		return "Eeprom16k";
 		case SAVE_TYPE_SRAM:		return "SRAM";

@@ -223,6 +223,8 @@ static void Initialize()
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
 
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
+	sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
+	sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
 	
 	// Turn off auto updater if build is marked as dirty
 	uint8_t gSkipAutoUpdate = strstr(stringify(GIT_VERSION), "dirty") != nullptr;
@@ -268,8 +270,8 @@ static void Initialize()
 			sceKernelSignalSema(net_mutex, 1);
 			sceKernelDelayThread(1000);
 			while (downloaded_bytes < total_bytes) {
-				if (i == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, "Checking for updates", NUM_UPDATE_PASSES);
-				else DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, "Downloading an update", NUM_UPDATE_PASSES);
+				if (i == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHECK_UPDATE], NUM_UPDATE_PASSES);
+				else DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_UPDATE], NUM_UPDATE_PASSES);
 			}
 			total_bytes++;
 		}
@@ -286,7 +288,7 @@ static void Initialize()
 			sceKernelSignalSema(net_mutex, 1);
 			sceKernelDelayThread(1000);
 			while (downloaded_bytes < total_bytes) {
-				DrawDownloaderScreen(i, downloaded_bytes, total_bytes, "Downloading compatibility list database", NUM_DB_CHUNKS);
+				DrawDownloaderScreen(i, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_COMPAT_LIST], NUM_DB_CHUNKS);
 			}
 			total_bytes++;
 		}
@@ -374,6 +376,51 @@ void stripGameName(char *name) {
 	}
 }
 
+void setTranslation(int idx) {
+	char langFile[512];
+	char identifier[64], buffer[128];
+	
+	switch (idx) {
+	case SCE_SYSTEM_PARAM_LANG_ITALIAN: // Italiano
+		sprintf(langFile, "%sItaliano.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
+	default: // English
+		sprintf(langFile, "%sEnglish.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
+	}
+	
+	FILE *config = fopen(langFile, "r");
+	if (config)
+	{
+		while (EOF != fscanf(config, "%[^=]=%[^\n]\n", identifier, buffer))
+		{
+			for (int i = 0; i < LANG_STRINGS_NUM; i++) {
+				if (strcmp(lang_identifiers[i], identifier) == 0) {
+					char *newline = nullptr, *p = buffer;
+					while (newline = strstr(p, "\\n")) {
+						newline[0] = '\n';
+						sprintf(&newline[1], &newline[2]);
+						p++;
+					}
+					sprintf(lang_strings[i], buffer);
+				}
+			}
+		}
+		fclose(config);
+		gLanguageIndex = idx;
+	} else DBGConsole_Msg(0, "Cannot find language file.");
+}
+
+void forceTranslation() {
+	SceAppUtilInitParam appUtilParam;
+	SceAppUtilBootParam appUtilBootParam;
+	memset(&appUtilParam, 0, sizeof(SceAppUtilInitParam));
+	memset(&appUtilBootParam, 0, sizeof(SceAppUtilBootParam));
+	sceAppUtilInit(&appUtilParam, &appUtilBootParam);
+	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &gLanguageIndex);
+	setTranslation(gLanguageIndex);
+}
+
 void preloadConfig()
 {
 	char configFile[512];
@@ -389,8 +436,13 @@ void preloadConfig()
 		{
 			if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
+			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 		}
 		fclose(config);
+		
+		setTranslation(gLanguageIndex);
+	} else {
+		forceTranslation();
 	}
 }
 
@@ -441,6 +493,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;
 			else if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
+			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 		}
 		fclose(config);
 		

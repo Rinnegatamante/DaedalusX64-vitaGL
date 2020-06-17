@@ -99,7 +99,7 @@ set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphi
 set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererVita.cpp SysVita/HLEGraphics/ColourAdjuster.cpp SysVita/HLEGraphics/BlendModes.cpp SysVita/HLEGraphics/Combiner/BlendConstant.cpp SysVita/HLEGraphics/Combiner/CombinerExpression.cpp SysVita/HLEGraphics/Combiner/CombinerTree.cpp SysVita/HLEGraphics/Combiner/RenderSettings.cpp)
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp SysVita/HLEAudio/AudioOutput.cpp)
 set (VITA_INPUT_FILES SysVita/Input/InputManagerVita.cpp)
-set (VITA_UI_FILES SysVita/UI/MainMenuScreen.cpp SysVita/UI/InGameMenuScreen.cpp SysVita/UI/MenuBarScreen.cpp SysVita/UI/DownloaderScreen.cpp)
+set (VITA_UI_FILES SysVita/UI/TranslationStrings.cpp SysVita/UI/MainMenuScreen.cpp SysVita/UI/InGameMenuScreen.cpp SysVita/UI/MenuBarScreen.cpp SysVita/UI/DownloaderScreen.cpp)
 set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp minizip/ioapi.c minizip/zip.c minizip/unzip.c)
 set (VITA_BUILD ${VITA_DEBUG_FILES} ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES} ${VITA_HLEAUDIO_FILES} ${VITA_HLEGRAPHICS_FILES} ${VITA_INPUT_FILES} ${VITA_UI_FILES} ${VITA_UTILITY_FILES})
 
@@ -216,8 +216,8 @@ if (VITA_RELEASE)
 	set(VITA_TITLEID  "DEDALOX64")
 	set(VITA_VERSION  "01.00")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -Wno-write-strings")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -O2 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive -Wno-write-strings")
 
 	add_definitions("-DDAEDALUS_VITA")
 
@@ -266,6 +266,7 @@ if (VITA_RELEASE)
 		SceNet_stub
 		SceNetCtl_stub
 		SceAppMgr_stub
+		SceAppUtil_stub
 		c
 		stdc++
 		m

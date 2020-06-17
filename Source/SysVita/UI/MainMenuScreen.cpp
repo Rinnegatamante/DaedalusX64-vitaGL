@@ -291,7 +291,7 @@ char *DrawRomSelector() {
 						node->size = node->size / (1024 * 1024);
 						if (!CRomSettingsDB::Get()->GetSettings(node->id, &node->settings )) {
 							node->settings.Reset();
-							node->settings.Comment = "Unknown";
+							node->settings.Comment = lang_strings[STR_UNKNOWN];
 							std::string game_name;
 							if (!ROM_GetRomName(full_path.c_str(), game_name )) game_name = full_path;
 							game_name = game_name.substr(0, 63);
@@ -299,7 +299,7 @@ char *DrawRomSelector() {
 							CRomSettingsDB::Get()->SetSettings(node->id, node->settings);
 						}
 						node->status = SearchForCompatibilityData(node->settings.GameName.c_str());
-					} else node->settings.GameName = "Unknown";
+					} else node->settings.GameName = lang_strings[STR_UNKNOWN];
 					node->next = list;
 					list = node;
 				}
@@ -339,35 +339,35 @@ char *DrawRomSelector() {
 			ImGui::SetCursorPos(ImVec2(preview_x + PREVIEW_PADDING, preview_y + PREVIEW_PADDING));
 			ImGui::Image((void*)preview_icon, ImVec2(preview_width, preview_height));
 		}
-		ImGui::Text("Game Name: %s", hovered->settings.GameName.c_str());
-		ImGui::Text("Region: %s", ROM_GetCountryNameFromID(hovered->id.CountryID));
+		ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], hovered->settings.GameName.c_str());
+		ImGui::Text("%s: %s", lang_strings[STR_REGION], ROM_GetCountryNameFromID(hovered->id.CountryID));
 		ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
-		ImGui::Text("Cic Type: %s", ROM_GetCicName(hovered->cic));
-		ImGui::Text("ROM Size: %lu MBs", hovered->size);
-		ImGui::Text("Save Type: %s", ROM_GetSaveTypeName(hovered->settings.SaveType));
+		ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
+		ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
+		ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->settings.SaveType));
 		ImGui::Text("Expansion Pak: %s", ROM_GetExpansionPakUsageName(hovered->settings.ExpansionPakUsage));
 		if (hovered->status) {
 			ImGui::Text(" ");
-			ImGui::Text("Tags:");
+			ImGui::Text("%s:", lang_strings[STR_TAGS]);
 			if (hovered->status->playable) {
-				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "Playable");
-				SetTagDescription("Games that can be played from start to\nend with playable performances.");
+				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "%s", lang_strings[STR_GAME_PLAYABLE]);
+				SetTagDescription(lang_strings[STR_PLAYABLE_DESC]);
 			}
 			if (hovered->status->ingame_plus) {
-				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "Ingame +");
-				SetTagDescription("Games that go far ingame but have glitches\nor have non-playable performances.");
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "%s", lang_strings[STR_GAME_INGAME_PLUS]);
+				SetTagDescription(lang_strings[STR_INGAME_PLUS_DESC]);
 			}
 			if (hovered->status->ingame_low) {
-				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "Ingame -");
-				SetTagDescription("Games that go ingame but have major issues\nthat prevents it from going further early on.");
+				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "%s", lang_strings[STR_GAME_INGAME_MINUS]);
+				SetTagDescription(lang_strings[STR_INGAME_MINUS_DESC]);
 			}
 			if (hovered->status->crash) {
-				ImGui::TextColored(ImVec4(1.0f, 0, 0, 1.0f), "Crash");
-				SetTagDescription("Games that crash before reaching ingame.");
+				ImGui::TextColored(ImVec4(1.0f, 0, 0, 1.0f), "%s", lang_strings[STR_GAME_CRASH]);
+				SetTagDescription(lang_strings[STR_CRASH_DESC]);
 			}
 			if (hovered->status->slow) {
-				ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "Slow");
-				SetTagDescription("Game is playable but still not fullspeed.");
+				ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "%s", lang_strings[STR_GAME_SLOW]);
+				SetTagDescription(lang_strings[STR_SLOW_DESC]);
 			}
 		}
 	}
