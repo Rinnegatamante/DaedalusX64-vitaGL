@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DAEDALUS_VITA_MAIN_PATH_GENERIC "/data/DaedalusX64/"
 #define DAEDALUS_VITA_MAIN_PATH "ux0:/data/DaedalusX64/"
 #define DAEDALUS_VITA_PATH(p) DAEDALUS_VITA_MAIN_PATH p
-#define DAEDALUS_VITA_PATH_EXT(p1, p2) p1 DAEDALUS_VITA_MAIN_PATH p2
+#define DAEDALUS_VITA_PATH_EXT(p1, p2) p1 DAEDALUS_VITA_MAIN_PATH_GENERIC p2
 #endif
 
 #include <string.h>
