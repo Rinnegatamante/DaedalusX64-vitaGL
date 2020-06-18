@@ -39,7 +39,9 @@
 #define PREVIEW_WIDTH  387.0f
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
 
-char selectedRom[512];
+#define ROMS_FOLDERS_NUM 2
+
+char selectedRom[256];
 
 struct CompatibilityList {
 	char name[128];
@@ -53,6 +55,7 @@ struct CompatibilityList {
 
 struct RomSelection {
 	char name[128];
+	char fullpath[256];
 	RomSettings settings;
 	RomID id;
 	u32 size;
@@ -275,38 +278,46 @@ char *DrawRomSelector() {
 
 		IO::FindHandleT		find_handle;
 		IO::FindDataT		find_data;
-	
-		if(IO::FindFileOpen( DAEDALUS_VITA_PATH("Roms/"), &find_handle, find_data ))
-		{
-			do
+		
+		const char *rom_folders[ROMS_FOLDERS_NUM] = {
+			DAEDALUS_VITA_PATH_EXT("ux0:" , "Roms/"),
+			DAEDALUS_VITA_PATH_EXT("uma0:", "Roms/")
+		};
+		
+		for (int i = 0; i < ROMS_FOLDERS_NUM; i++) {
+			if(IO::FindFileOpen( rom_folders[i], &find_handle, find_data ))
 			{
-				const char * rom_filename( find_data.Name );
-				if(IsRomfilename( rom_filename ))
+				do
 				{
-					std::string full_path = DAEDALUS_VITA_PATH("Roms/");
-					full_path += rom_filename;
-					RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
-					sprintf(node->name, rom_filename);
-					if (ROM_GetRomDetailsByFilename(full_path.c_str(), &node->id, &node->size, &node->cic)) {
-						node->size = node->size / (1024 * 1024);
-						if (!CRomSettingsDB::Get()->GetSettings(node->id, &node->settings )) {
-							node->settings.Reset();
-							node->settings.Comment = lang_strings[STR_UNKNOWN];
-							std::string game_name;
-							if (!ROM_GetRomName(full_path.c_str(), game_name )) game_name = full_path;
-							game_name = game_name.substr(0, 63);
-							node->settings.GameName = game_name.c_str();
-							CRomSettingsDB::Get()->SetSettings(node->id, node->settings);
-						}
-						node->status = SearchForCompatibilityData(node->settings.GameName.c_str());
-					} else node->settings.GameName = lang_strings[STR_UNKNOWN];
-					node->next = list;
-					list = node;
+					const char * rom_filename( find_data.Name );
+					if(IsRomfilename( rom_filename ))
+					{
+						std::string full_path = rom_folders[i];
+						full_path += rom_filename;
+						RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
+						sprintf(node->name, rom_filename);
+						sprintf(node->fullpath, full_path.c_str());
+						if (ROM_GetRomDetailsByFilename(full_path.c_str(), &node->id, &node->size, &node->cic)) {
+							node->size = node->size / (1024 * 1024);
+							if (!CRomSettingsDB::Get()->GetSettings(node->id, &node->settings )) {
+								node->settings.Reset();
+								node->settings.Comment = lang_strings[STR_UNKNOWN];
+								std::string game_name;
+								if (!ROM_GetRomName(full_path.c_str(), game_name )) game_name = full_path;
+								game_name = game_name.substr(0, 63);
+								node->settings.GameName = game_name.c_str();
+								CRomSettingsDB::Get()->SetSettings(node->id, node->settings);
+							}
+							node->status = SearchForCompatibilityData(node->settings.GameName.c_str());
+						} else node->settings.GameName = lang_strings[STR_UNKNOWN];
+						node->next = list;
+						list = node;
+					}
 				}
-			}
-			while(IO::FindFileNext( find_handle, find_data ));
+				while(IO::FindFileNext( find_handle, find_data ));
 
-			IO::FindFileClose( find_handle );
+				IO::FindFileClose( find_handle );
+			}
 		}
 	}
 	
@@ -321,7 +332,7 @@ char *DrawRomSelector() {
 
 	while (p) {
 		if (ImGui::Button(p->name)){
-			sprintf(selectedRom, p->name);
+			sprintf(selectedRom, p->fullpath);
 			selected = true;
 		}
 		if (ImGui::IsItemHovered()) hovered = p;
