@@ -420,6 +420,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
 		}
+		if (ImGui::MenuItem("Português (BR)", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR);
+		}
 		ImGui::EndMenu();
 	}
 }
@@ -466,6 +469,7 @@ void DrawCommonWindows() {
 		ImGui::Text("f2pwn (CAT)");
 		ImGui::Text("SamuEDL98 (ESP)");
 		ImGui::Text("S1ngyy (GER)");
+		ImGui::Text("Kamui (BRA)");
 		ImGui::End();
 	}
 	
