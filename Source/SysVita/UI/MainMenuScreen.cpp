@@ -75,8 +75,9 @@ GLuint preview_icon = 0;
 
 void swap(RomSelection *a, RomSelection *b) 
 { 
-	char nametmp[128];
+	char nametmp[128], pathtmp[256];
 	sprintf(nametmp, a->name);
+	sprintf(pathtmp, a->fullpath);
 
 	RomSettings settingstmp = a->settings;
 	RomID idtmp = a->id;
@@ -84,17 +85,17 @@ void swap(RomSelection *a, RomSelection *b)
 	ECicType cictmp = a->cic;
 	CompatibilityList *statustmp = a->status;
 
-	//a->name = b->name;
 	sprintf(a->name, b->name);
-
+	sprintf(a->fullpath, b->fullpath);
+	
 	a->settings = b->settings;
 	a->id = b->id;
 	a->size = b->size;
 	a->cic = b->cic;
 	a->status = b->status;
 
-	//b->name = nametmp;
 	sprintf(b->name, nametmp);
+	sprintf(b->fullpath, pathtmp);
 
 	b->settings = settingstmp;
 	b->id = idtmp;
