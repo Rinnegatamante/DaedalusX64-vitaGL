@@ -405,6 +405,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
 		}
+		if (ImGui::MenuItem("Dansk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_DANISH)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_DANISH);
+		}
 		if (ImGui::MenuItem("Deutsch", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GERMAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_GERMAN);
 		}
@@ -463,6 +466,7 @@ void DrawCommonWindows() {
 		ImGui::Text(lang_strings[STR_CREDITS_6]);
 		ImGui::Text(lang_strings[STR_CREDITS_7]);
 		ImGui::Text(lang_strings[STR_CREDITS_8]);
+		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_TRANSLATORS]);
 		ImGui::Text("Rinnegatamante (ITA)");
 		ImGui::Text("Samilop Cimmerian Iter (FRA)");
@@ -470,6 +474,7 @@ void DrawCommonWindows() {
 		ImGui::Text("SamuEDL98 (ESP)");
 		ImGui::Text("S1ngyy (GER)");
 		ImGui::Text("Kamui (BRA)");
+		ImGui::Text("coestergaard (DAN)");
 		ImGui::End();
 	}
 	
