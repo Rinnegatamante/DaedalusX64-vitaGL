@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "CPU.h"
 #include "DMA.h"
+#include "Core/FlashMem.h"
 #include "Interrupt.h"
 #include "ROM.h"
 #include "ROMBuffer.h"
@@ -60,11 +61,6 @@ static void MemoryUpdatePI( u32 value );
 static void MemoryUpdatePIF();
 
 static void Memory_InitTables();
-
-// Flash RAM Support
-extern u32 FlashStatus[2];
-void Flash_DoCommand(u32);
-void Flash_Init();
 
 const u32 MemoryRegionSizes[NUM_MEM_BUFFERS] =
 {
@@ -134,6 +130,7 @@ bool Memory_Init()
 	}
 
 	uintptr_t base = reinterpret_cast<uintptr_t>(gMemBase);
+
 
 	g_pMemoryBuffers[ MEM_RD_RAM    ] = (u8*)VirtualAlloc( (void*)(base+0x00000000),	8*1024*1024,MEM_COMMIT, PAGE_READWRITE );
 	g_pMemoryBuffers[ MEM_SP_MEM    ] = (u8*)VirtualAlloc( (void*)(base+0x04000000),	0x2000,		MEM_COMMIT, PAGE_READWRITE );
