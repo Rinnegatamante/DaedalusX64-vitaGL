@@ -113,6 +113,7 @@ static void InitBlenderMode()
 		glEnable(GL_BLEND);
 		break;
 	case 0x0C40: // Extreme-G
+	case 0x0C48: // Star Wars: Shadow of the Empire text and hud
 	case 0x4C40: // Wave Race
 	case 0x5F50:
 		glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
