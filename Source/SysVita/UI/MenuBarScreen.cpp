@@ -423,6 +423,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
 		}
+		if (ImGui::MenuItem("Polskie", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_POLISH)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_POLISH);
+		}
 		if (ImGui::MenuItem("Português (BR)", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR);
 		}
@@ -475,6 +478,7 @@ void DrawCommonWindows() {
 		ImGui::Text("S1ngyy (GER)");
 		ImGui::Text("Kamui (BRA)");
 		ImGui::Text("coestergaard (DAN)");
+		ImGui::Text("Kiiro Yakumo (POL)");
 		ImGui::End();
 	}
 	
