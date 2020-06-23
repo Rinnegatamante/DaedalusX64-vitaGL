@@ -193,7 +193,7 @@ void AppendCompatibilityDatabase(const char *file) {
 				// Extracting title
 				ptr += 10;
 				end = strstr(ptr, "\"");
-				memcpy(node->name, ptr, end - ptr);
+				memcpy_neon(node->name, ptr, end - ptr);
 				node->name[end - ptr] = 0;
 				
 				// Extracting tags

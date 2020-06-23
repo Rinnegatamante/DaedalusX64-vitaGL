@@ -115,7 +115,7 @@ void CNativeTexture::InstallTexture()
 			uint8_t *hires_data = stbi_load(filename, &hires_width, &hires_height, NULL, 4);
 			if (hires_data) {
 				origData = malloc(mCorrectedWidth * mCorrectedHeight * 4);
-				memcpy(origData, mpData, mCorrectedWidth * mCorrectedHeight * 4);
+				memcpy_neon(origData, mpData, mCorrectedWidth * mCorrectedHeight * 4);
 				mpData = origData;
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, hires_width, hires_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, hires_data);
 				free(hires_data);

@@ -44,7 +44,7 @@ void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx)
 {
 	if (type == GL_PROJECTION)
 	{
-		memcpy(&gProjection, mtx, sizeof(gProjection));
+		memcpy_neon(&gProjection, mtx, sizeof(gProjection));
 	}
 }
 
@@ -296,7 +296,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 	
 	if( states->GetNumStates() > 1 )
 	{
-		memcpy( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
+		memcpy_neon( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
 	}
 	
 	glEnableClientState(GL_COLOR_ARRAY);
@@ -317,7 +317,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 
 		if( i > 0 )
 		{
-			memcpy(gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
+			memcpy_neon(gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
 			p_vertices = gColorBuffer;
 			gColorBuffer += num_vertices;
 		}

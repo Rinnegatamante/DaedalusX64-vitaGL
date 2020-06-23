@@ -217,7 +217,7 @@ static void InitMempackContent()
 	{
 		u8 * mempack = (u8*)g_pMemoryBuffers[MEM_MEMPACK] + dst_off;
 		
-		memcpy(mempack, gMempackInitialize, 272);
+		memcpy_neon(mempack, gMempackInitialize, 272);
 		
 		for (u32 i = 272; i < 0x8000; i += 2)
 		{

@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #define FUNC_TO_NAME(x) #x
 #define stringify(x) FUNC_TO_NAME(x)
 

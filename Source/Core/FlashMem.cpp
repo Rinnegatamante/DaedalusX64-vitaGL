@@ -96,7 +96,7 @@ void Flash_DoCommand(u32 FlashRAM_Command)
 				Save_MarkSaveDirty();
 				break;
 			case FLASHRAM_MODE_WRITE:
-				memcpy((u8*)g_pMemoryBuffers[MEM_SAVE] + FlashRAM_Offset, FlashBlock, 128);
+				memcpy_neon((u8*)g_pMemoryBuffers[MEM_SAVE] + FlashRAM_Offset, FlashBlock, 128);
 				Save_MarkSaveDirty();
 				break;
 			default:

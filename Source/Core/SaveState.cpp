@@ -198,7 +198,7 @@ bool SaveState_SaveToFile( const char * filename )
 	stream << SAVESTATE_PROJECT64_MAGIC_NUMBER;
 	stream << gRamSize;
 	ROMHeader rom_header;
-	memcpy(&rom_header, &g_ROM.rh, 64);
+	memcpy_neon(&rom_header, &g_ROM.rh, 64);
 	ROMFile::ByteSwap_3210(&rom_header, 64);
 	stream << rom_header;
 	stream << Max< u32 >(CPU_GetVideoInterruptEventCount(), 1);
@@ -264,7 +264,7 @@ static void Swap_PIF()
 	}
 
 	u8 temp[64];
-	memcpy( temp, pPIFRam, 64 );
+	memcpy_neon( temp, pPIFRam, 64 );
 
 	for (u32 i = 0; i < 64; i++)
 	{
@@ -337,21 +337,21 @@ bool SaveState_LoadFromFile( const char * filename )
 
 	u8* dpcRegData = new u8[MemoryRegionSizes[MEM_DPC_REG]];
 	stream.read(dpcRegData, MemoryRegionSizes[MEM_DPC_REG]);
-	memcpy(g_pMemoryBuffers[MEM_DPC_REG], dpcRegData, MemoryRegionSizes[MEM_DPC_REG]);
+	memcpy_neon(g_pMemoryBuffers[MEM_DPC_REG], dpcRegData, MemoryRegionSizes[MEM_DPC_REG]);
 
 	stream.skip(8); // PJ64 stores 10 MEM_DP_COMMAND_REGs
 
 	u8* miRegData = new u8[MemoryRegionSizes[MEM_MI_REG]];
 	stream.read(miRegData, MemoryRegionSizes[MEM_MI_REG]);
-	memcpy(g_pMemoryBuffers[MEM_MI_REG], miRegData, MemoryRegionSizes[MEM_MI_REG]);
+	memcpy_neon(g_pMemoryBuffers[MEM_MI_REG], miRegData, MemoryRegionSizes[MEM_MI_REG]);
 
 	stream.read_memory_buffer_write_value(MEM_VI_REG, 0x84400000); // call WriteValue to update global and GFX plugin data
 	stream.read_memory_buffer_write_value(MEM_AI_REG, 0x84500000); // call WriteValue to update audio plugin data
 
 	// here to undo any modifications done by plugins
-	memcpy(g_pMemoryBuffers[MEM_DPC_REG], dpcRegData, MemoryRegionSizes[MEM_DPC_REG]);
+	memcpy_neon(g_pMemoryBuffers[MEM_DPC_REG], dpcRegData, MemoryRegionSizes[MEM_DPC_REG]);
 	delete [] dpcRegData;
-	memcpy(g_pMemoryBuffers[MEM_MI_REG], miRegData, MemoryRegionSizes[MEM_MI_REG]);
+	memcpy_neon(g_pMemoryBuffers[MEM_MI_REG], miRegData, MemoryRegionSizes[MEM_MI_REG]);
 	delete [] miRegData;
 
 	stream.read_memory_buffer(MEM_PI_REG); //, 0x84600000);

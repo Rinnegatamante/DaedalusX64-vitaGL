@@ -557,7 +557,7 @@ inline void DLParser_Yoshi_MemRect( MicroCodeCommand command )
 	{
 		u8 *src = texaddr + (y - y0) * tex_width;
 		u8 *dst = fbaddr + y * g_CI.Width;
-		memcpy(dst, src, width);
+		memcpy_neon(dst, src, width);
 	}
 #endif
 

@@ -62,7 +62,7 @@ class CAssemblyBuffer
 
 		void EmitData( const void * pdata, u32 count )
 		{
-			memcpy( &mpWritePointer[ mCurrentPos ], pdata, count );
+			memcpy_neon( &mpWritePointer[ mCurrentPos ], pdata, count );
 			mCurrentPos += count;
 		}
 

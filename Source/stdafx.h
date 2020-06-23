@@ -34,4 +34,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Utility/DaedalusTypes.h"
 
+#ifdef DAEDALUS_VITA
+#include <vitasdk.h>
+extern "C"{
+void *memcpy_neon(void *destination, const void *source, size_t num);
+};
+#endif
+
 #endif // STDAFX_H_

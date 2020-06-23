@@ -471,7 +471,7 @@ void SpecificGameHacks( const ROMHeader & id )
 void ROM_GetRomNameFromHeader( std::string & rom_name, const ROMHeader & header )
 {
 	char	buffer[20+1];
-	memcpy( buffer, header.Name, 20 );
+	memcpy_neon( buffer, header.Name, 20 );
 	buffer[20] = '\0';
 
 	rom_name = buffer;

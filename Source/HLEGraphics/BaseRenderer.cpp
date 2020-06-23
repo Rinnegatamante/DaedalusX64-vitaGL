@@ -1011,7 +1011,7 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 	{
 		DaedalusVtx * p_vertices = temp_verts->Alloc(num_vertices);
 
-		memcpy( p_vertices, clip_vtx, num_vertices * sizeof(DaedalusVtx) );	//std memcpy() is as fast as VFPU here!
+		memcpy_neon( p_vertices, clip_vtx, num_vertices * sizeof(DaedalusVtx) );	//std memcpy_neon() is as fast as VFPU here!
 	}
 }
 #endif

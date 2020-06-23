@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef HLEGRAPHICS_TEXTUREINFO_H_
 #define HLEGRAPHICS_TEXTUREINFO_H_
 
+#include "stdafx.h"
 #include "Graphics/TextureFormat.h"
 
 #include <string.h>
@@ -60,8 +61,8 @@ private:
 public:
 	// Pretty gross. Needed so that any padding bytes are consistently zeroed.
 	TextureInfo()											{ memset( this, 0, sizeof( TextureInfo ) ); }
-	TextureInfo( const TextureInfo & rhs )					{ memcpy( this, &rhs, sizeof( TextureInfo ) ); }
-	TextureInfo & operator=( const TextureInfo & rhs )		{ memcpy( this, &rhs, sizeof( TextureInfo ) ); return *this; }
+	TextureInfo( const TextureInfo & rhs )					{ memcpy_neon( this, &rhs, sizeof( TextureInfo ) ); }
+	TextureInfo & operator=( const TextureInfo & rhs )		{ memcpy_neon( this, &rhs, sizeof( TextureInfo ) ); return *this; }
 
 	//the hash output should match the number of bits used in the texture cache array
 	inline u32				GetHashCode() const				{ u8 *ptr( (u8*)this ); u8 *end_ptr( ptr + sizeof( TextureInfo ) ); u32 hash(0); while( ptr < end_ptr ) hash = ((hash << 1) | (hash >> 0x9)) ^ *ptr++; return hash; }

@@ -249,7 +249,7 @@ void CheatCodes_Delete(u32 index)
 	{
 		for(u32 j = index; j < codegroupcount - 1; j++)
 		{
-			memcpy(&codegrouplist[j], &codegrouplist[j + 1], sizeof(CODEGROUP));
+			memcpy_neon(&codegrouplist[j], &codegrouplist[j + 1], sizeof(CODEGROUP));
 		}
 	}
 	codegroupcount--;

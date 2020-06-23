@@ -564,7 +564,7 @@ static void adpcm_decode_frames(OSTask *hle,
 
         adpcm_predict_frame(frame, src, nibbles, rshift);
 
-        memcpy(dst, frame, 2 * sizeof(frame[0]));
+        memcpy_neon(dst, frame, 2 * sizeof(frame[0]));
         adpcm_compute_residuals(dst +  2, frame +  2, book, dst     , 6);
         adpcm_compute_residuals(dst +  8, frame +  8, book, dst +  6, 8);
         adpcm_compute_residuals(dst + 16, frame + 16, book, dst + 14, 8);
@@ -736,8 +736,8 @@ static void sfx_stage(OSTask *hle, mix_sfx_with_main_subframes_t mix_sfx_with_ma
     mix_sfx_with_main_subframes(musyx, subframe, sfx_gains);
 
     /* apply FIR4 filter and writeback filtered result */
-    memcpy(buffer, musyx->subframe_740_last4, 4 * sizeof(int16_t));
-    memcpy(musyx->subframe_740_last4, subframe + SUBFRAME_SIZE - 4, 4 * sizeof(int16_t));
+    memcpy_neon(buffer, musyx->subframe_740_last4, 4 * sizeof(int16_t));
+    memcpy_neon(musyx->subframe_740_last4, subframe + SUBFRAME_SIZE - 4, 4 * sizeof(int16_t));
     mix_fir4(musyx->e50, buffer + 1, fir4_hgain, fir4_hcoeffs);
     rdram_write_many_u16((uint16_t *)musyx->e50, cbuffer_ptr + pos * 2, SUBFRAME_SIZE);
 }

@@ -365,10 +365,10 @@ void DLParser_Finalise() {}
 //*************************************************************************************
 static void DLParser_SetCustom( u32 ucode, u32 offset )
 {
-	memcpy( &gCustomInstruction, &gNormalInstruction[offset], 1024 ); // sizeof(gNormalInstruction)/MAX_UCODE
+	memcpy_neon( &gCustomInstruction, &gNormalInstruction[offset], 1024 ); // sizeof(gNormalInstruction)/MAX_UCODE
 
 #if defined(DAEDALUS_DEBUG_DISPLAYLIST) || defined(DAEDALUS_ENABLE_PROFILING)
-	memcpy( gCustomInstructionName, gNormalInstructionName[ offset ], 1024 );
+	memcpy_neon( gCustomInstructionName, gNormalInstructionName[ offset ], 1024 );
 #endif
 
 	// Start patching to create our custom ucode table ;)

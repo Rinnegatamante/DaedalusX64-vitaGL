@@ -30,7 +30,7 @@ void copy_blocks(uint16_t dmemo, uint16_t dmemi, uint16_t block_size, uint8_t co
 
         do
         {
-            memcpy(gAudioHLEState.Buffer + dmemo, gAudioHLEState.Buffer + dmemi, 0x20);
+            memcpy_neon(gAudioHLEState.Buffer + dmemo, gAudioHLEState.Buffer + dmemi, 0x20);
             bytes_left -= 0x20;
 
             dmemi += 0x20;

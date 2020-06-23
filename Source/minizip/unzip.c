@@ -1372,7 +1372,7 @@ extern int ZEXPORT unzReadCurrentFile(unzFile file, voidp buf, unsigned len)
                 bytes_not_read = s->pfile_in_zip_read->read_buffer + UNZ_BUFSIZE - s->pfile_in_zip_read->stream.next_in;
             bytes_to_read -= bytes_not_read;
             if (bytes_not_read > 0)
-                memcpy(s->pfile_in_zip_read->read_buffer, s->pfile_in_zip_read->stream.next_in, bytes_not_read);
+                memcpy_neon(s->pfile_in_zip_read->read_buffer, s->pfile_in_zip_read->stream.next_in, bytes_not_read);
             if (s->pfile_in_zip_read->rest_read_compressed < bytes_to_read)
                 bytes_to_read = (unsigned int)s->pfile_in_zip_read->rest_read_compressed;
 
@@ -1666,7 +1666,7 @@ extern int ZEXPORT unzGoToFirstFile2(
         comment_size);
     s->current_file_ok = (err == UNZ_OK);
     if ((err == UNZ_OK) && (pfile_info != NULL))
-        memcpy(pfile_info, &s->cur_file_info, sizeof(unz_file_info64));
+        memcpy_neon(pfile_info, &s->cur_file_info, sizeof(unz_file_info64));
     return err;
 }
 
@@ -1698,7 +1698,7 @@ extern int ZEXPORT unzGoToNextFile2(
         comment_size);
     s->current_file_ok = (err == UNZ_OK);
     if ((err == UNZ_OK) && (pfile_info != NULL))
-        memcpy(pfile_info, &s->cur_file_info, sizeof(unz_file_info64));
+        memcpy_neon(pfile_info, &s->cur_file_info, sizeof(unz_file_info64));
     return err;
 }
 

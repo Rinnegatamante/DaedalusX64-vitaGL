@@ -500,10 +500,10 @@ void DrawCommonWindows() {
 	}
 	
 	if (vflux_enabled) {
-		memcpy(&colors[0], vcolors, sizeof(float) * 3);
-		memcpy(&colors[4], vcolors, sizeof(float) * 3);
-		memcpy(&colors[8], vcolors, sizeof(float) * 3);
-		memcpy(&colors[12], vcolors, sizeof(float) * 3);
+		memcpy_neon(&colors[0], vcolors, sizeof(float) * 3);
+		memcpy_neon(&colors[4], vcolors, sizeof(float) * 3);
+		memcpy_neon(&colors[8], vcolors, sizeof(float) * 3);
+		memcpy_neon(&colors[12], vcolors, sizeof(float) * 3);
 		
 		float a;
 		SceDateTime time;
