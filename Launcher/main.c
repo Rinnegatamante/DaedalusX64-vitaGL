@@ -14,6 +14,7 @@ int main(int argc, const char *argv[]) {
 		sprintf(uri, "psgm:play?titleid=%s&param=%s", "DEDALOX64", buffer);
 
 		sceAppMgrLaunchAppByUri(0xFFFFF, uri);
+		for (;;){}
 	}
 	
 	sceKernelExitProcess(0);
