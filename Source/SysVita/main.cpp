@@ -467,11 +467,6 @@ void setTranslation(int idx) {
 }
 
 void forceTranslation() {
-	SceAppUtilInitParam appUtilParam;
-	SceAppUtilBootParam appUtilBootParam;
-	memset(&appUtilParam, 0, sizeof(SceAppUtilInitParam));
-	memset(&appUtilBootParam, 0, sizeof(SceAppUtilBootParam));
-	sceAppUtilInit(&appUtilParam, &appUtilBootParam);
 	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &gLanguageIndex);
 	setTranslation(gLanguageIndex);
 }
@@ -568,7 +563,14 @@ char boot_params[1024];
 int main(int argc, char* argv[])
 {
 	char *rom;
-		
+	
+	// Initializing sceAppUtil
+	SceAppUtilInitParam appUtilParam;
+	SceAppUtilBootParam appUtilBootParam;
+	memset(&appUtilParam, 0, sizeof(SceAppUtilInitParam));
+	memset(&appUtilBootParam, 0, sizeof(SceAppUtilBootParam));
+	sceAppUtilInit(&appUtilParam, &appUtilBootParam);
+	
 	// We need this to override the compat list update skip option
 	preloadConfig();
 		
