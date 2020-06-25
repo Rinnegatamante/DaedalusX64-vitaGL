@@ -24,9 +24,9 @@ char lang_strings[][256] = {
 	"Ingame -", // STR_GAME_INGAME_MINUS
 	"Crash", // STR_GAME_CRASH
 	"Slow", // STR_GAME_SLOW
-	"Games that can be played from start to\nend with playable performances.", // STR_PLAYABLE_DESC
-	"Games that go far ingame but have glitches\nor have non-playable performances.", // STR_INGAME_PLUS_DESC
-	"Games that go ingame but have major issues\nthat prevents it from going further early on.", // STR_INGAME_MINUS_DESC
+	"Games that can be played from start to end with playable performances.", // STR_PLAYABLE_DESC
+	"Games that go far ingame but have glitches or have non-playable performances.", // STR_INGAME_PLUS_DESC
+	"Games that go ingame but have major issues that prevents it from going further early on.", // STR_INGAME_MINUS_DESC
 	"Games that crash before reaching ingame.", // STR_CRASH_DESC
 	"Game is playable but still not fullspeed.", // STR_SLOW_DESC
 	"Language", // STR_MENU_LANG
@@ -94,6 +94,7 @@ char lang_strings[][256] = {
 	"Inssame for some additions to the UI code", // STR_CREDITS_6
 	"That One Seong & TheIronUniverse for the Livearea assets", // STR_CREDITS_7
 	"withLogic for the high-res preview assets", // STR_CREDITS_8
+	"Rob Scotcher for the Daedalus X64 logo image", // STR_CREDITS_9
 	"Cartridge ID", // STR_CART_ID
 	"Installed GFX Microcode", // STR_GFX_UCODE
 	"Installed Audio Microcode", // STR_AUDIO_UCODE

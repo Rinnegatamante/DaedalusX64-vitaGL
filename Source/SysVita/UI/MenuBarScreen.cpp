@@ -493,6 +493,7 @@ void DrawCommonWindows() {
 		ImGui::Text(lang_strings[STR_CREDITS_6]);
 		ImGui::Text(lang_strings[STR_CREDITS_7]);
 		ImGui::Text(lang_strings[STR_CREDITS_8]);
+		ImGui::Text(lang_strings[STR_CREDITS_9]);
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_TRANSLATORS]);
 		ImGui::Text("Rinnegatamante (ITA)");
@@ -565,11 +566,8 @@ void DrawPendingDialog() {
 		SceMsgDialogResult res;
 		memset(&res, 0, sizeof(SceMsgDialogResult));
 		sceMsgDialogGetResult(&res);
-		if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_NO) {
-			cur_dialog.no_func();
-		} else if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_YES) {
-			cur_dialog.yes_func();
-		}
+		if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_NO) cur_dialog.no_func();
+		else if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_YES) cur_dialog.yes_func();
 		sceMsgDialogTerm();
 		pendingDialog = false;
 	}
