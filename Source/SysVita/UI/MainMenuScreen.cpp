@@ -258,7 +258,7 @@ CompatibilityList *SearchForCompatibilityData(const char *name) {
 
 void SetTagDescription(const char *text) {
 	ImGui::SameLine();
-	ImGui::Text(": %s", text);
+	ImGui::TextWrapped(": %s", text);
 }
 
 char *DrawRomSelector() {
