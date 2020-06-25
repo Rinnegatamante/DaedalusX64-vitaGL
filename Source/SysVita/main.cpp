@@ -41,6 +41,8 @@ bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
 bool gAutoUpdate = true;
 
+Dialog cur_dialog;
+
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 	int _newlib_heap_size_user = 160 * 1024 * 1024;
@@ -60,6 +62,7 @@ static bool sys_initialized = false;
 
 int gUseCdram = GL_TRUE;
 int gUseVSync = GL_TRUE;
+bool pendingDialog = false;
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -220,6 +223,13 @@ static void Initialize()
 	scePowerSetBusClockFrequency(222);
 	scePowerSetGpuClockFrequency(222);
 	scePowerSetGpuXbarClockFrequency(166);
+	
+	// Initializing sceCommonDialog
+	SceCommonDialogConfigParam cmnDlgCfgParam;
+	sceCommonDialogConfigParamInit(&cmnDlgCfgParam);
+	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, (int *)&cmnDlgCfgParam.language);
+	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_ENTER_BUTTON, (int *)&cmnDlgCfgParam.enterButtonAssign);
+	sceCommonDialogSetConfigParam(&cmnDlgCfgParam);
 
 	// Disabling all FPU exceptions traps on main thread
 	sceKernelChangeThreadVfpException(0x0800009FU, 0x0);
@@ -249,7 +259,7 @@ static void Initialize()
 	}
 	
 	// Initializing vitaGL
-	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
+	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
 	vglUseVram(gUseCdram);
 	vglWaitVblankStart(gUseVSync);
 
@@ -378,6 +388,28 @@ void stripGameName(char *name) {
 	}
 }
 
+void showAlert(char *text, void (*yes_func)(), void (*no_func)()) {
+	if (pendingDialog) return;
+	
+	cur_dialog.type = DIALOG_MESSAGE;
+	cur_dialog.yes_func = yes_func;
+	cur_dialog.no_func = no_func;
+	
+	SceMsgDialogParam params;
+	SceMsgDialogUserMessageParam msg_params;
+	
+	sceMsgDialogParamInit(&params);
+	params.mode = SCE_MSG_DIALOG_MODE_USER_MSG;
+	params.userMsgParam = &msg_params;
+	
+	memset(&msg_params, 0, sizeof(SceMsgDialogUserMessageParam));
+	msg_params.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_YESNO;
+	msg_params.msg = text;
+	
+	sceMsgDialogInit(&params);
+	pendingDialog = true;
+}
+
 void setTranslation(int idx) {
 	char langFile[512];
 	char identifier[64], buffer[128];
@@ -460,6 +492,7 @@ void preloadConfig()
 			if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
+			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
 		}
 		fclose(config);
 		
@@ -501,6 +534,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gUseCdram", buffer) == 0) gUseCdram = value;
 			else if (strcmp("gClearDepthFrameBuffer", buffer) == 0) gClearDepthFrameBuffer = value;
 			else if (strcmp("gWaitRendering", buffer) == 0) gWaitRendering = value;
+			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
 			
 			else if (strcmp("gAudioPluginEnabled", buffer) == 0) gAudioPluginEnabled = (EAudioPluginMode)value;
 			else if (strcmp("gUseMp3", buffer) == 0) gUseMp3 = value;

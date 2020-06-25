@@ -12,6 +12,13 @@ enum {
 	UPDATER_DOWNLOAD_UPDATE
 };
 
+// Anti-aliasing modes
+enum {
+	ANTIALIASING_DISABLED,
+	ANTIALIASING_MSAA_2X,
+	ANTIALIASING_MSAA_4X
+};
+
 // Roms sorting modes
 enum {
 	SORT_A_TO_Z,
@@ -41,7 +48,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 129
+#define LANG_STRINGS_NUM 131
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -172,7 +179,9 @@ enum {
 	FUNC(STR_REGION_JAP) \
 	FUNC(STR_REGION_EUR) \
 	FUNC(STR_REGION_ESP) \
-	FUNC(STR_REGION_AUS)
+	FUNC(STR_REGION_AUS) \
+	FUNC(STR_ANTI_ALIASING) \
+	FUNC(STR_REBOOT_REQ)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -185,6 +194,19 @@ extern char *lang_identifiers[];
 
 extern char lang_strings[][256];
 extern bool show_menubar;
+
+// Dialog types
+enum {
+	DIALOG_MESSAGE
+};
+
+struct Dialog {
+	void (*yes_func)();
+	void (*no_func)();
+	uint8_t type;
+};
+
+extern Dialog cur_dialog;
 
 // Language identifiers for languages not supported by PSVITA nativeely
 #define SCE_SYSTEM_PARAM_LANG_CATALAN 20
@@ -207,6 +229,9 @@ extern bool gAutoUpdate;
 extern bool gUseRearpad;
 extern int  gSortOrder;
 extern int  gUiTheme;
+extern int  gAntiAliasing;
+
+extern bool pendingDialog;
 
 char *DrawRomSelector();
 void DrawInGameMenu();
@@ -221,3 +246,4 @@ void setUiTheme(int theme);
 void setTranslation(int idx);
 void setTexCacheMode(int mode);
 void stripGameName(char *name);
+void showAlert(char *text, void (*yes_func)(), void (*no_func)());

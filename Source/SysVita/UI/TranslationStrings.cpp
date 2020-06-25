@@ -134,5 +134,7 @@ char lang_strings[][256] = {
 	"Japan", // STR_REGION_JAP
 	"Europe", // STR_REGION_EUR
 	"Spain", // STR_REGION_ESP
-	"Australia" // STR_REGION_AUS
+	"Australia", // STR_REGION_AUS
+	"Anti-Aliasing", // STR_ANTI_ALIASING
+	"An application reboot is required for this change to take effect. Current settings will be saved as global settings and the application will be restarted. Do you wish to continue?" // STR_REBOOT_REQ
 };

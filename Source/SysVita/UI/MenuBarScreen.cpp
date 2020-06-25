@@ -33,10 +33,13 @@
 
 #define MAX_SAVESLOT 9
 
+void dummy_func () {}
+
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
 int gUiTheme = DARK_THEME;
 int gAspectRatio = RATIO_16_9;
 int gTexCacheMode = TEX_CACHE_ACCURATE;
+int gAntiAliasing = ANTIALIASING_MSAA_4X;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
@@ -104,6 +107,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gUseCdram", gUseCdram);
 		fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
 		fprintf(config, "%s=%d\n", "gWaitRendering", gWaitRendering);
+		fprintf(config, "%s=%d\n", "gAntiAliasing", gAntiAliasing);
 		
 		fprintf(config, "%s=%d\n", "gAudioPluginEnabled", (int)gAudioPluginEnabled);
 		fprintf(config, "%s=%d\n", "gUseMp3", gUseMp3);
@@ -122,6 +126,11 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
 		fclose(config);
 	}
+}
+
+void save_and_restart_func() {
+	saveConfig("default");
+	sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
 }
 
 void SetupVFlux() {
@@ -278,6 +287,21 @@ void DrawCommonMenuBar() {
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
+		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])){
+			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)){
+				if (gAntiAliasing != ANTIALIASING_DISABLED) showAlert(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				gAntiAliasing = ANTIALIASING_DISABLED;
+			}
+			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)){
+				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showAlert(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				gAntiAliasing = ANTIALIASING_MSAA_2X;
+			}
+			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)){
+				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showAlert(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				gAntiAliasing = ANTIALIASING_MSAA_4X;
+			}
+			ImGui::EndMenu();
+		}
 		if (ImGui::MenuItem(lang_strings[STR_MENU_MIPMAPS], nullptr, gUseMipmaps)){
 			gUseMipmaps = !gUseMipmaps;
 		}
