@@ -238,6 +238,7 @@ void DrawInGameMenu();
 void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
+void DrawPendingDialog();
 
 void EnableMenuButtons(bool status);
 void SetupVFlux();

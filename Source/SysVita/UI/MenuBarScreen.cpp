@@ -554,6 +554,27 @@ void DrawCommonWindows() {
 	}
 }
 
+void DrawPendingDialog() {
+	if (pendingDialog) {
+		while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+			vglStopRenderingInit();
+			vglUpdateCommonDialog();
+			vglStopRenderingTerm();
+			vglStartRendering();
+		}
+		SceMsgDialogResult res;
+		memset(&res, 0, sizeof(SceMsgDialogResult));
+		sceMsgDialogGetResult(&res);
+		if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_NO) {
+			cur_dialog.no_func();
+		} else if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_YES) {
+			cur_dialog.yes_func();
+		}
+		sceMsgDialogTerm();
+		pendingDialog = false;
+	}
+}
+
 void DrawMenuBar() {
 	ImGui_ImplVitaGL_NewFrame();
 	

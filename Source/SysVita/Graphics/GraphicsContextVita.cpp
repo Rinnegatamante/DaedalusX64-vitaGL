@@ -175,24 +175,7 @@ void IGraphicsContext::EndFrame()
 	if (gamma_val != 1.0f) gRenderer->DoGamma(gamma_val);
 	DrawInGameMenu();
 	if (gWaitRendering) glFinish();
-	if (pendingDialog) {
-		while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-			vglStopRenderingInit();
-			vglUpdateCommonDialog();
-			vglStopRenderingTerm();
-			vglStartRendering();
-		}
-		SceMsgDialogResult res;
-		memset(&res, 0, sizeof(SceMsgDialogResult));
-		sceMsgDialogGetResult(&res);
-		if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_NO) {
-			cur_dialog.no_func();
-		} else if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_YES) {
-			cur_dialog.yes_func();
-		}
-		sceMsgDialogTerm();
-		pendingDialog = false;
-	}
+	DrawPendingDialog();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
