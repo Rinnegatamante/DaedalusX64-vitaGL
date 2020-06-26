@@ -576,7 +576,8 @@ void loadConfig(const char *game)
 
 void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 	char *tag_start = strstr(src, tag);
-	memcpy(dst1, src, tag_start - src);
+	if (tag_start != src) memcpy_neon(dst1, src, tag_start - src);
+	else dst1[0] = 0;
 	sprintf(dst2, &tag_start[strlen(tag)]);
 }
 
@@ -616,11 +617,11 @@ int main(int argc, char* argv[])
 			} while (rom == nullptr);
 			
 			char pre_launch[32], post_launch[32];
-			extractSubstrings(lang_strings[STR_ROM_LAUNCH], "%ROMNAME%", pre_launch, post_launch);
+			extractSubstrings(lang_strings[STR_ROM_LAUNCH], "?ROMNAME?", pre_launch, post_launch);
 			sprintf(boot_params, "%s%s%s", pre_launch, rom, post_launch); // Re-using boot_params to save some memory
 			showAlert(boot_params, ALERT_MESSAGE);
 		
-			// We re-draw last frame two times in order to make the launching alter to show up
+			// We re-draw last frame two times in order to make the launching alert to show up
 			for (int i = 0; i < 2; i++) { DrawRomSelector(); } 
 		}
 		
