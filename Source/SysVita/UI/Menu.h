@@ -255,7 +255,7 @@ extern bool gUseRearpad;
 extern int  gSortOrder;
 extern int  gUiTheme;
 extern int  gAntiAliasing;
-extern int  gBigText;
+extern bool gBigText;
 
 extern bool pendingDialog;
 extern bool pendingAlert;

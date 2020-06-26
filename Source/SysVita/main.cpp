@@ -415,7 +415,7 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)()) {
 	
 	memset(&msg_params, 0, sizeof(SceMsgDialogUserMessageParam));
 	msg_params.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_YESNO;
-	msg_params.msg = text;
+	msg_params.msg = (const SceChar8*)text;
 	
 	sceMsgDialogInit(&params);
 	pendingDialog = true;
@@ -499,7 +499,7 @@ void preloadConfig()
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
-			else if (strcmp("gBigText", buffer) == 0) gBigText = value;
+			else if (strcmp("gBigText", buffer) == 0) gBigText = (bool)value;
 		}
 		fclose(config);
 		
@@ -556,7 +556,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
-			else if (strcmp("gBigText", buffer) == 0) gBigText = value;
+			else if (strcmp("gBigText", buffer) == 0) gBigText = (bool)value;
 		}
 		fclose(config);
 		

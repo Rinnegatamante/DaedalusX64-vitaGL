@@ -34,6 +34,7 @@
 
 void dummy_func () {}
 
+bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
 int gUiTheme = DARK_THEME;
 int gAspectRatio = RATIO_16_9;
@@ -50,7 +51,7 @@ extern bool has_rumblepak[4];
 extern char cur_ucode[256];
 extern char cur_audio_ucode[32];
 
-int gBigText = 0;
+bool gBigText = false;
 bool show_menubar = true;
 bool gHideMenubar = true;
 bool run_emu = true;
@@ -123,7 +124,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gSkipCompatListUpdate", (int)gSkipCompatListUpdate);
 		fprintf(config, "%s=%d\n", "gAutoUpdate", (int)gAutoUpdate);
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
-		fprintf(config, "%s=%d\n", "gBigText", gBigText);
+		fprintf(config, "%s=%d\n", "gBigText", (int)gBigText);
 		fclose(config);
 	}
 	
@@ -601,7 +602,6 @@ void DrawPendingDialog() {
 
 void DrawMenuBar() {
 	// Checking if a UI scale change is performed
-	static int oldBigText = gBigText;
 	if (oldBigText != gBigText) {
 		ImGui::GetIO().Fonts->Clear();
 		ImGui_ImplVitaGL_InvalidateDeviceObjects();
@@ -664,7 +664,6 @@ void DrawInGameMenuBar() {
 	}
 	
 	// Checking if a UI scale change is performed
-	static int oldBigText = gBigText;
 	if (oldBigText != gBigText) {
 		ImGui::GetIO().Fonts->Clear();
 		ImGui_ImplVitaGL_InvalidateDeviceObjects();
