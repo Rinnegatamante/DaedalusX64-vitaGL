@@ -73,6 +73,8 @@ CRefPtr<CNativeTexture> mpPreviewTexture;
 GLuint preview_icon = 0;
 
 
+int oldSortOrder = -1;
+
 void swap(RomSelection *a, RomSelection *b) 
 { 
 	char nametmp[128], pathtmp[256];
@@ -322,7 +324,10 @@ char *DrawRomSelector() {
 		}
 	}
 	
-	sort_list(list, gSortOrder);
+	if (oldSortOrder != gSortOrder) {
+		oldSortOrder = gSortOrder;
+		sort_list(list, gSortOrder);
+	}
 
 	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH - 400, SCR_HEIGHT - 19), ImGuiSetCond_Always);
