@@ -37,6 +37,7 @@ bool pause_emu = false;
 
 void DrawInGameMenu() {
 	DrawInGameMenuBar();
+	DrawPendingAlert();
 	
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());

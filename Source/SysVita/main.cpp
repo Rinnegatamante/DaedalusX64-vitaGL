@@ -42,6 +42,7 @@ bool gStandaloneMode = true;
 bool gAutoUpdate = true;
 
 Dialog cur_dialog;
+Alert cur_alert;
 
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
@@ -62,7 +63,9 @@ static bool sys_initialized = false;
 
 int gUseCdram = GL_TRUE;
 int gUseVSync = GL_TRUE;
+
 bool pendingDialog = false;
+bool pendingAlert = false;
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -388,7 +391,15 @@ void stripGameName(char *name) {
 	}
 }
 
-void showAlert(char *text, void (*yes_func)(), void (*no_func)()) {
+void showAlert(char *text, int type) {
+	cur_alert.type = type;
+	sprintf(cur_alert.msg, text);
+	cur_alert.tick = sceKernelGetProcessTimeWide();
+
+	pendingAlert = true;
+}
+
+void showDialog(char *text, void (*yes_func)(), void (*no_func)()) {
 	if (pendingDialog) return;
 	
 	cur_dialog.type = DIALOG_MESSAGE;
@@ -555,6 +566,9 @@ void loadConfig(const char *game)
 		vglUseVram(gUseCdram);
 		vglWaitVblankStart(gUseVSync);
 		CInputManager::Get()->SetConfiguration(gControllerIndex);
+		
+		if (!strcmp(game, "default")) showAlert(lang_strings[STR_ALERT_GLOBAL_SETTINGS_LOAD], ALERT_MESSAGE);
+		else showAlert(lang_strings[STR_ALERT_GAME_SETTINGS_LOAD], ALERT_MESSAGE);
 	}
 }
 

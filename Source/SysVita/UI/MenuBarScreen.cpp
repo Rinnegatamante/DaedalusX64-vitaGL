@@ -126,6 +126,9 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
 		fclose(config);
 	}
+	
+	if (!strcmp(game, "default")) showAlert(lang_strings[STR_ALERT_GLOBAL_SETTINGS_SAVE], ALERT_MESSAGE);
+	else showAlert(lang_strings[STR_ALERT_GAME_SETTINGS_SAVE], ALERT_MESSAGE);
 }
 
 void save_and_restart_func() {
@@ -289,15 +292,15 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
 		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])){
 			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)){
-				if (gAntiAliasing != ANTIALIASING_DISABLED) showAlert(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
 				gAntiAliasing = ANTIALIASING_DISABLED;
 			}
 			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showAlert(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
 				gAntiAliasing = ANTIALIASING_MSAA_2X;
 			}
 			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showAlert(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
 				gAntiAliasing = ANTIALIASING_MSAA_4X;
 			}
 			ImGui::EndMenu();
@@ -555,6 +558,25 @@ void DrawCommonWindows() {
 	}
 }
 
+void DrawPendingAlert() {
+	if (pendingAlert) {
+		uint64_t cur_tick = sceKernelGetProcessTimeWide();
+		uint64_t delta = cur_tick - cur_alert.tick;
+		if (cur_tick - cur_alert.tick > ALERT_TIME) pendingAlert = false;
+		else {
+			ImGuiStyle& style = ImGui::GetStyle();
+			style.WindowBorderSize = 0.0f;
+			ImGui::SetNextWindowPos(ImVec2(5, 515), ImGuiSetCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH, 30), ImGuiSetCond_Always);
+			ImGui::SetNextWindowBgAlpha(0.0f);
+			ImGui::Begin("Alert Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav);
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f - (float)delta / (float)ALERT_TIME), cur_alert.msg);
+			ImGui::End();
+			style.WindowBorderSize = 1.0f;
+		}
+	}
+}
+
 void DrawPendingDialog() {
 	if (pendingDialog) {
 		while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
@@ -606,6 +628,7 @@ void ExecSaveState(int slot) {
 	
 	CPU_RequestSaveState(full_path);
 	cached_saveslots[slot] = true;
+	showAlert(lang_strings[STR_ALERT_STATE_SAVE], ALERT_MESSAGE);
 }
 
 void LoadSaveState(int slot) {
@@ -613,6 +636,7 @@ void LoadSaveState(int slot) {
 	sprintf(full_path, "%s%s.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.settings.GameName.c_str(), slot);
 	
 	CPU_RequestLoadState(full_path);
+	showAlert(lang_strings[STR_ALERT_STATE_LOAD], ALERT_MESSAGE);
 }
 
 void DrawInGameMenuBar() {

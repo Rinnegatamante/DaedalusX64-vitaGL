@@ -6,6 +6,8 @@
 #define NUM_DB_CHUNKS     2 // Number of pages to download for the compat list
 #define NUM_UPDATE_PASSES 2 // Number of passes required to download an update
 
+#define ALERT_TIME 5000000 // Timer for alerts to disappear in microseconds
+
 // Auto updater passes
 enum {
 	UPDATER_CHECK_UPDATES,
@@ -48,7 +50,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 132
+#define LANG_STRINGS_NUM 138
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -182,7 +184,13 @@ enum {
 	FUNC(STR_REGION_ESP) \
 	FUNC(STR_REGION_AUS) \
 	FUNC(STR_ANTI_ALIASING) \
-	FUNC(STR_REBOOT_REQ)
+	FUNC(STR_REBOOT_REQ) \
+	FUNC(STR_ALERT_GLOBAL_SETTINGS_SAVE) \
+	FUNC(STR_ALERT_GAME_SETTINGS_SAVE) \
+	FUNC(STR_ALERT_GLOBAL_SETTINGS_LOAD) \
+	FUNC(STR_ALERT_GAME_SETTINGS_LOAD) \
+	FUNC(STR_ALERT_STATE_SAVE) \
+	FUNC(STR_ALERT_STATE_LOAD)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -201,13 +209,25 @@ enum {
 	DIALOG_MESSAGE
 };
 
+// Alert types
+enum {
+	ALERT_MESSAGE
+};
+
 struct Dialog {
 	void (*yes_func)();
 	void (*no_func)();
 	uint8_t type;
 };
 
+struct Alert {
+	char msg[256];
+	uint64_t tick;
+	uint8_t type;
+};
+
 extern Dialog cur_dialog;
+extern Alert cur_alert;
 
 // Language identifiers for languages not supported by PSVITA nativeely
 #define SCE_SYSTEM_PARAM_LANG_CATALAN 20
@@ -233,6 +253,7 @@ extern int  gUiTheme;
 extern int  gAntiAliasing;
 
 extern bool pendingDialog;
+extern bool pendingAlert;
 
 char *DrawRomSelector();
 void DrawInGameMenu();
@@ -240,6 +261,7 @@ void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
 void DrawPendingDialog();
+void DrawPendingAlert();
 
 void EnableMenuButtons(bool status);
 void SetupVFlux();
@@ -248,4 +270,5 @@ void setUiTheme(int theme);
 void setTranslation(int idx);
 void setTexCacheMode(int mode);
 void stripGameName(char *name);
-void showAlert(char *text, void (*yes_func)(), void (*no_func)());
+void showDialog(char *text, void (*yes_func)(), void (*no_func)());
+void showAlert(char *text, int type);

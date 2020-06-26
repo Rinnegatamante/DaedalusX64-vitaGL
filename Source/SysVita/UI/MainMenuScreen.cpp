@@ -390,6 +390,7 @@ char *DrawRomSelector() {
 	}
 	
 	ImGui::End();
+	DrawPendingAlert();
 	
 	glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
 	ImGui::Render();

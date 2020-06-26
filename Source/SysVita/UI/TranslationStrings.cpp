@@ -137,5 +137,11 @@ char lang_strings[][256] = {
 	"Spain", // STR_REGION_ESP
 	"Australia", // STR_REGION_AUS
 	"Anti-Aliasing", // STR_ANTI_ALIASING
-	"An application reboot is required for this change to take effect. Current settings will be saved as global settings and the application will be restarted. Do you wish to continue?" // STR_REBOOT_REQ
+	"An application reboot is required for this change to take effect. Current settings will be saved as global settings and the application will be restarted. Do you wish to continue?", // STR_REBOOT_REQ
+	"Global settings saved successfully!", // STR_ALERT_GLOBAL_SETTINGS_SAVE
+	"Game settings saved successfully!", // STR_ALERT_GAME_SETTINGS_SAVE
+	"Global settings loaded successfully!", // STR_ALERT_GLOBAL_SETTINGS_LOAD
+	"Game settings loaded successfully!", // STR_ALERT_GAME_SETTINGS_LOAD
+	"Savestate saved successfully!", // STR_ALERT_STATE_SAVE
+	"Savestate loaded successfully!" // STR_ALERT_STATE_LOAD
 };
