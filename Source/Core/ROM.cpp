@@ -462,6 +462,9 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x594D:    //Mortal Kombat Mythologies: Sub-Zero
 		g_ROM.SCISSOR_HACK = true;
 		break;
+	case 0x4350:    // Pachinko 365 Nichi
+		g_ROM.PROJ_HACK = true;
+		break;
 	default:
 		break;
 	}

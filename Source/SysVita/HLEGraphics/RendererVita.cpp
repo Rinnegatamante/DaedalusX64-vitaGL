@@ -429,6 +429,7 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
+	if (g_ROM.PROJ_HACK && is_3d) glScalef(1, -1, 1);
 	
 	if ( disable_zbuffer )
 	{

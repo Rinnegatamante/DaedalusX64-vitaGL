@@ -151,7 +151,7 @@ struct RomInfo
 			u32			SKIP_CPU_REND_HACK:1;	//Hack to disable CPU rendering at boot
 			u32			SKIP_MSG_SEND_HACK:1;	//Dummies osSendMesg
 			u32			KEEP_MODE_H_HACK:1;		//Hack to prevent RDP OtherMode H reset
-			u32			PadD:1;	//free
+			u32			PROJ_HACK:1;			//Hack to vertically flip projection matrix for 3D rendering
 			u32			PadE:1;	//free
 			u32			PadF:1;	//free
 		};
