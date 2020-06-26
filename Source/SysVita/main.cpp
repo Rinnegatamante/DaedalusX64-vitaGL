@@ -67,6 +67,8 @@ int gUseVSync = GL_TRUE;
 bool pendingDialog = false;
 bool pendingAlert = false;
 
+char boot_params[1024];
+
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
 	va_start(arg, format);
@@ -572,7 +574,11 @@ void loadConfig(const char *game)
 	}
 }
 
-char boot_params[1024];
+void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
+	char *tag_start = strstr(src, tag);
+	memcpy(dst1, src, tag_start - src);
+	sprintf(dst2, &tag_start[strlen(tag)]);
+}
 
 int main(int argc, char* argv[])
 {
@@ -608,6 +614,14 @@ int main(int argc, char* argv[])
 			do {
 				rom = DrawRomSelector();
 			} while (rom == nullptr);
+			
+			char pre_launch[32], post_launch[32];
+			extractSubstrings(lang_strings[STR_ROM_LAUNCH], "%ROMNAME%", pre_launch, post_launch);
+			sprintf(boot_params, "%s%s%s", pre_launch, rom, post_launch); // Re-using boot_params to save some memory
+			showAlert(boot_params, ALERT_MESSAGE);
+		
+			// We re-draw last frame two times in order to make the launching alter to show up
+			for (int i = 0; i < 2; i++) { DrawRomSelector(); } 
 		}
 		
 		EnableMenuButtons(false);

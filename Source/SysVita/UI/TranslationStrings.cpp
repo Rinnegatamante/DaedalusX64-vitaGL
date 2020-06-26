@@ -144,5 +144,6 @@ char lang_strings[][256] = {
 	"Game settings loaded successfully!", // STR_ALERT_GAME_SETTINGS_LOAD
 	"Savestate saved successfully!", // STR_ALERT_STATE_SAVE
 	"Savestate loaded successfully!", // STR_ALERT_STATE_LOAD
-	"Scale UI Texts" // STR_BIG_TEXT
+	"Scale UI Texts", // STR_BIG_TEXT
+	"Launching %ROMNAME%" // STR_ROM_LAUNCH
 };
