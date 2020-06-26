@@ -385,7 +385,7 @@ char *DrawRomSelector() {
 			if (hovered->status->slow) {
 				if (gBigText) {
 					ImGui::SameLine();
-					ImGui::Text(",");
+					ImGui::Text("&");
 					ImGui::SameLine();
 				}
 				ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "%s", lang_strings[STR_GAME_SLOW]);
