@@ -270,13 +270,12 @@ static void Initialize()
 
 	// Initializing dear ImGui
 	ImGui::CreateContext();
+	ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE);
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
-	
-	ImGui::GetIO().FontGlobalScale = gBigText ? UI_SCALE : 1.0f;
 	
 	// Checking for updates
 	if (gAutoUpdate && !gSkipAutoUpdate) {

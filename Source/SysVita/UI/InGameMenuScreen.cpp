@@ -3,7 +3,6 @@
 
 #include <vitasdk.h>
 #include <vitaGL.h>
-#include <imgui_vita.h>
 
 #include "BuildOptions.h"
 #include "Config/ConfigOptions.h"

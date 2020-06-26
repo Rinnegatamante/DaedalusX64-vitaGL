@@ -3,7 +3,6 @@
 
 #include <vitasdk.h>
 #include <vitaGL.h>
-#include <imgui_vita.h>
 
 #include "BuildOptions.h"
 #include "Config/ConfigOptions.h"
@@ -182,7 +181,6 @@ void DrawExtraMenu() {
 		}
 		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText)){
 			gBigText = !gBigText;
-			ImGui::GetIO().FontGlobalScale = gBigText ? UI_SCALE : 1.0f;
 		}
 		ImGui::Separator();
 		if (ImGui::MenuItem(lang_strings[STR_MENU_AUTOUPDATE], nullptr, gAutoUpdate)){
@@ -602,6 +600,15 @@ void DrawPendingDialog() {
 }
 
 void DrawMenuBar() {
+	// Checking if a UI scale change is performed
+	static int oldBigText = gBigText;
+	if (oldBigText != gBigText) {
+		ImGui::GetIO().Fonts->Clear();
+		ImGui_ImplVitaGL_InvalidateDeviceObjects();
+		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE);
+		oldBigText = gBigText;
+	}
+	
 	ImGui_ImplVitaGL_NewFrame();
 	
 	if (ImGui::BeginMainMenuBar()){
@@ -654,6 +661,15 @@ void DrawInGameMenuBar() {
 			cached_saveslots[i] = IO::File::Exists(save_path);
 		}
 		has_cached_saveslots = true;
+	}
+	
+	// Checking if a UI scale change is performed
+	static int oldBigText = gBigText;
+	if (oldBigText != gBigText) {
+		ImGui::GetIO().Fonts->Clear();
+		ImGui_ImplVitaGL_InvalidateDeviceObjects();
+		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE);
+		oldBigText = gBigText;
 	}
 	
 	ImGui_ImplVitaGL_NewFrame();

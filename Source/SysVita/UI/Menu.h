@@ -1,3 +1,4 @@
+#include <imgui_vita.h>
 #include "stdafx.h"
 
 #define FUNC_TO_NAME(x) #x
@@ -8,7 +9,7 @@
 
 #define ALERT_TIME 5000000 // Timer for alerts to disappear in microseconds
 
-#define UI_SCALE (1.5f * gBigText)
+#define UI_SCALE (gBigText ? 1.5f : 1.0f)
 
 // Auto updater passes
 enum {

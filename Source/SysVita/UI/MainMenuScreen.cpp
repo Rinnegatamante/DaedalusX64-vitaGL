@@ -3,7 +3,6 @@
 
 #include <vitasdk.h>
 #include <vitaGL.h>
-#include <imgui_vita.h>
 
 #include "BuildOptions.h"
 #include "Config/ConfigOptions.h"
@@ -364,7 +363,7 @@ char *DrawRomSelector() {
 		ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->settings.SaveType));
 		ImGui::Text("Expansion Pak: %s", ROM_GetExpansionPakUsageName(hovered->settings.ExpansionPakUsage));
 		if (hovered->status) {
-			ImGui::Text(" ");
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
 			if (!gBigText) ImGui::Text("%s:", lang_strings[STR_TAGS]);
 			if (hovered->status->playable) {
 				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "%s", lang_strings[STR_GAME_PLAYABLE]);
