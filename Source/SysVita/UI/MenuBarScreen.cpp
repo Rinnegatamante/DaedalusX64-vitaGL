@@ -51,7 +51,7 @@ extern bool has_rumblepak[4];
 extern char cur_ucode[256];
 extern char cur_audio_ucode[32];
 
-
+int gBigText = 0;
 bool show_menubar = true;
 bool gHideMenubar = true;
 bool run_emu = true;
@@ -124,6 +124,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gSkipCompatListUpdate", (int)gSkipCompatListUpdate);
 		fprintf(config, "%s=%d\n", "gAutoUpdate", (int)gAutoUpdate);
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
+		fprintf(config, "%s=%d\n", "gBigText", gBigText);
 		fclose(config);
 	}
 	
@@ -179,6 +180,11 @@ void DrawExtraMenu() {
 		if (ImGui::MenuItem(lang_strings[STR_MENU_MENUBAR], nullptr, gHideMenubar)){
 			gHideMenubar = !gHideMenubar;
 		}
+		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText)){
+			gBigText = !gBigText;
+			ImGui::GetIO().FontGlobalScale = gBigText ? UI_SCALE : 1.0f;
+		}
+		ImGui::Separator();
 		if (ImGui::MenuItem(lang_strings[STR_MENU_AUTOUPDATE], nullptr, gAutoUpdate)){
 			gAutoUpdate = !gAutoUpdate;
 		}
@@ -566,8 +572,8 @@ void DrawPendingAlert() {
 		else {
 			ImGuiStyle& style = ImGui::GetStyle();
 			style.WindowBorderSize = 0.0f;
-			ImGui::SetNextWindowPos(ImVec2(5, 515), ImGuiSetCond_Always);
-			ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH, 30), ImGuiSetCond_Always);
+			ImGui::SetNextWindowPos(ImVec2(5 * UI_SCALE, 544 - 30 * UI_SCALE), ImGuiSetCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH, 45), ImGuiSetCond_Always);
 			ImGui::SetNextWindowBgAlpha(0.0f);
 			ImGui::Begin("Alert Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav);
 			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f - (float)delta / (float)ALERT_TIME), cur_alert.msg);
@@ -614,7 +620,7 @@ void DrawMenuBar() {
 		DrawCommonMenuBar();
 		DrawExtraMenu();
 		ImGui::SameLine();
-		ImGui::SetCursorPosX(870);
+		ImGui::SetCursorPosX(960 - 90 * UI_SCALE);
 		ImGui::Text("Daedalus X64"); 
 		ImGui::EndMainMenuBar();
 	}
@@ -704,7 +710,7 @@ void DrawInGameMenuBar() {
 			}
 			DrawExtraMenu();
 			ImGui::SameLine();
-			ImGui::SetCursorPosX(870);
+			ImGui::SetCursorPosX(960 - 90 * UI_SCALE);
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate); 
 			ImGui::EndMainMenuBar();
 		}

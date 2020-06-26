@@ -35,27 +35,27 @@ void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, 
 	vglStartRendering();
 	ImGui_ImplVitaGL_NewFrame();
 	ImGui::GetIO().MouseDrawCursor = false;
-	ImGui::SetNextWindowPos(ImVec2((SCR_WIDTH / 2) - 200, (SCR_HEIGHT / 2) - 50), ImGuiSetCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiSetCond_Always);
+	ImGui::SetNextWindowPos(ImVec2((SCR_WIDTH / 2) - 200 * UI_SCALE, (SCR_HEIGHT / 2) - 50 * UI_SCALE), ImGuiSetCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(400 * UI_SCALE, 100 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::Begin("", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	char msg[512];
 	sprintf(msg, "%s (%ld / %ld)", text, index, passes);
 	ImVec2 pos = ImGui::CalcTextSize(msg);
-	ImGui::SetCursorPos(ImVec2((400 - pos.x) / 2, 20));
+	ImGui::SetCursorPos(ImVec2((400 * UI_SCALE - pos.x) / 2, 20 * UI_SCALE));
 	ImGui::Text(msg);
 	
 	if (total_bytes < 4000000000.0f) {
 		sprintf(msg, "%.2f KBs / %.2f KBs", downloaded_bytes / 1024, total_bytes / 1024);
 		pos = ImGui::CalcTextSize(msg);
-		ImGui::SetCursorPos(ImVec2((400 - pos.x) / 2, 40));
+		ImGui::SetCursorPos(ImVec2((400 * UI_SCALE - pos.x) / 2, 40 * UI_SCALE));
 		ImGui::Text(msg);
-		ImGui::SetCursorPos(ImVec2(100, 60));
-		ImGui::ProgressBar(downloaded_bytes / total_bytes, ImVec2(200, 0));
+		ImGui::SetCursorPos(ImVec2(100 * UI_SCALE, 60 * UI_SCALE));
+		ImGui::ProgressBar(downloaded_bytes / total_bytes, ImVec2(200 * UI_SCALE, 0));
 	} else {
 		sprintf(msg, "%.2f KBs", downloaded_bytes / 1024);
 		pos = ImGui::CalcTextSize(msg);
-		ImGui::SetCursorPos(ImVec2((400 - pos.x) / 2, 50));
+		ImGui::SetCursorPos(ImVec2((400 * UI_SCALE - pos.x) / 2, 50 * UI_SCALE));
 		ImGui::Text(msg);
 	}
 	

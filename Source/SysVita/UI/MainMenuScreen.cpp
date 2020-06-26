@@ -329,8 +329,8 @@ char *DrawRomSelector() {
 		sort_list(list, gSortOrder);
 	}
 
-	ImGui::SetNextWindowPos(ImVec2(0, 19), ImGuiSetCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH - 400, SCR_HEIGHT - 19), ImGuiSetCond_Always);
+	ImGui::SetNextWindowPos(ImVec2(0, 19 * UI_SCALE), ImGuiSetCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH - 400, SCR_HEIGHT - 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::Begin("Selector Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	RomSelection *hovered = nullptr;
@@ -347,8 +347,8 @@ char *DrawRomSelector() {
 
 	ImGui::End();
 	
-	ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - 400, 19), ImGuiSetCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(400, SCR_HEIGHT - 19), ImGuiSetCond_Always);
+	ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - 400, 19 * UI_SCALE), ImGuiSetCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(400, SCR_HEIGHT - 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::Begin("Info Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	
 	if (hovered) {
@@ -365,26 +365,32 @@ char *DrawRomSelector() {
 		ImGui::Text("Expansion Pak: %s", ROM_GetExpansionPakUsageName(hovered->settings.ExpansionPakUsage));
 		if (hovered->status) {
 			ImGui::Text(" ");
-			ImGui::Text("%s:", lang_strings[STR_TAGS]);
+			if (!gBigText) ImGui::Text("%s:", lang_strings[STR_TAGS]);
 			if (hovered->status->playable) {
 				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "%s", lang_strings[STR_GAME_PLAYABLE]);
-				SetTagDescription(lang_strings[STR_PLAYABLE_DESC]);
+				if (!gBigText) SetTagDescription(lang_strings[STR_PLAYABLE_DESC]);
 			}
 			if (hovered->status->ingame_plus) {
 				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "%s", lang_strings[STR_GAME_INGAME_PLUS]);
-				SetTagDescription(lang_strings[STR_INGAME_PLUS_DESC]);
+				if (gBigText) ImGui::SameLine();
+				else SetTagDescription(lang_strings[STR_INGAME_PLUS_DESC]);
 			}
 			if (hovered->status->ingame_low) {
 				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "%s", lang_strings[STR_GAME_INGAME_MINUS]);
-				SetTagDescription(lang_strings[STR_INGAME_MINUS_DESC]);
+				if (!gBigText) SetTagDescription(lang_strings[STR_INGAME_MINUS_DESC]);
 			}
 			if (hovered->status->crash) {
 				ImGui::TextColored(ImVec4(1.0f, 0, 0, 1.0f), "%s", lang_strings[STR_GAME_CRASH]);
-				SetTagDescription(lang_strings[STR_CRASH_DESC]);
+				if (!gBigText) SetTagDescription(lang_strings[STR_CRASH_DESC]);
 			}
 			if (hovered->status->slow) {
+				if (gBigText) {
+					ImGui::SameLine();
+					ImGui::Text(",");
+					ImGui::SameLine();
+				}
 				ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "%s", lang_strings[STR_GAME_SLOW]);
-				SetTagDescription(lang_strings[STR_SLOW_DESC]);
+				if (!gBigText) SetTagDescription(lang_strings[STR_SLOW_DESC]);
 			}
 		}
 	}

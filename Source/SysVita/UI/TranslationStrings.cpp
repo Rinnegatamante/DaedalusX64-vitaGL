@@ -143,5 +143,6 @@ char lang_strings[][256] = {
 	"Global settings loaded successfully!", // STR_ALERT_GLOBAL_SETTINGS_LOAD
 	"Game settings loaded successfully!", // STR_ALERT_GAME_SETTINGS_LOAD
 	"Savestate saved successfully!", // STR_ALERT_STATE_SAVE
-	"Savestate loaded successfully!" // STR_ALERT_STATE_LOAD
+	"Savestate loaded successfully!", // STR_ALERT_STATE_LOAD
+	"Scale UI Texts" // STR_BIG_TEXT
 };

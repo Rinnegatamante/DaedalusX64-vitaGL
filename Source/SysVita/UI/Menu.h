@@ -8,6 +8,8 @@
 
 #define ALERT_TIME 5000000 // Timer for alerts to disappear in microseconds
 
+#define UI_SCALE (1.5f * gBigText)
+
 // Auto updater passes
 enum {
 	UPDATER_CHECK_UPDATES,
@@ -50,7 +52,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 138
+#define LANG_STRINGS_NUM 139
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -190,7 +192,8 @@ enum {
 	FUNC(STR_ALERT_GLOBAL_SETTINGS_LOAD) \
 	FUNC(STR_ALERT_GAME_SETTINGS_LOAD) \
 	FUNC(STR_ALERT_STATE_SAVE) \
-	FUNC(STR_ALERT_STATE_LOAD)
+	FUNC(STR_ALERT_STATE_LOAD) \
+	FUNC(STR_BIG_TEXT)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -251,6 +254,7 @@ extern bool gUseRearpad;
 extern int  gSortOrder;
 extern int  gUiTheme;
 extern int  gAntiAliasing;
+extern int  gBigText;
 
 extern bool pendingDialog;
 extern bool pendingAlert;

@@ -270,12 +270,13 @@ static void Initialize()
 
 	// Initializing dear ImGui
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
 	SetupVFlux();
+	
+	ImGui::GetIO().FontGlobalScale = gBigText ? UI_SCALE : 1.0f;
 	
 	// Checking for updates
 	if (gAutoUpdate && !gSkipAutoUpdate) {
@@ -499,13 +500,12 @@ void preloadConfig()
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
+			else if (strcmp("gBigText", buffer) == 0) gBigText = value;
 		}
 		fclose(config);
 		
 		setTranslation(gLanguageIndex);
-	} else {
-		forceTranslation();
-	}
+	} else forceTranslation();
 }
 
 void loadConfig(const char *game)
@@ -557,6 +557,7 @@ void loadConfig(const char *game)
 			else if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
+			else if (strcmp("gBigText", buffer) == 0) gBigText = value;
 		}
 		fclose(config);
 		
