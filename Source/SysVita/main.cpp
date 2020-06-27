@@ -577,7 +577,7 @@ void loadConfig(const char *game)
 void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 	char *tag_start = strstr(src, tag);
 	if (tag_start != src) memcpy_neon(dst1, src, tag_start - src);
-	else dst1[0] = 0;
+	dst1[tag_start - src] = 0;
 	sprintf(dst2, &tag_start[strlen(tag)]);
 }
 
