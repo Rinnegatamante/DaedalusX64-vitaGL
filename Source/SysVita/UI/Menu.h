@@ -236,6 +236,7 @@ extern Alert cur_alert;
 
 // Language identifiers for languages not supported by PSVITA nativeely
 #define SCE_SYSTEM_PARAM_LANG_CATALAN 20
+#define SCE_SYSTEM_PARAM_LANG_GREEK   21
 
 // Config Variables
 extern bool gHideMenubar;
@@ -278,3 +279,4 @@ void setTexCacheMode(int mode);
 void stripGameName(char *name);
 void showDialog(char *text, void (*yes_func)(), void (*no_func)());
 void showAlert(char *text, int type);
+void reloadFont();

@@ -216,6 +216,21 @@ static int updaterThread(unsigned int args, void* arg){
 	return 0;
 }
 
+void reloadFont() {
+	static const ImWchar ranges[] = {
+		0x0020, 0x00FF, // Basic Latin + Latin Supplement
+		0x0100, 0x024F, // Latin Extended
+		0x0370, 0x03FF, // Greek
+		0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+		0x1E00, 0x1EFF, // Latin Extended Additional
+		0x2DE0, 0x2DFF, // Cyrillic Extended-A
+		0xA640, 0xA69F, // Cyrillic Extended-B
+		0,
+	};
+	
+	ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE, NULL, ranges);
+}
+
 static void Initialize()
 {
 	sys_initialized = true;
@@ -272,7 +287,7 @@ static void Initialize()
 
 	// Initializing dear ImGui
 	ImGui::CreateContext();
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE);
+	reloadFont();
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
@@ -451,6 +466,9 @@ void setTranslation(int idx) {
 		break;
 	case SCE_SYSTEM_PARAM_LANG_POLISH: // Polish
 		sprintf(langFile, "%sPolish.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
+	case SCE_SYSTEM_PARAM_LANG_GREEK: // Greek
+		sprintf(langFile, "%sGreek.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
 	default: // English
 		sprintf(langFile, "%sEnglish.ini", DAEDALUS_VITA_PATH("Languages/"));

@@ -449,6 +449,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Español", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_SPANISH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_SPANISH);
 		}
+		if (ImGui::MenuItem("Ελληνικά", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GREEK)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_GREEK);
+		}
 		if (ImGui::MenuItem("Français", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_FRENCH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_FRENCH);
 		}
@@ -481,7 +484,7 @@ void DrawCommonWindows() {
 	if (credits_window) {
 		ImGui::Begin(lang_strings[STR_MENU_CREDITS], &credits_window);
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Daedalus X64 v.%s (%s)", VERSION, stringify(GIT_VERSION));
-		ImGui::Text("%S: Rinnegatamante", lang_strings[STR_CREDITS_AUTHOR]);
+		ImGui::Text("%s: Rinnegatamante", lang_strings[STR_CREDITS_AUTHOR]);
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_PATRONERS]);
 		ImGui::Text("Tain Sueiras");
@@ -507,11 +510,12 @@ void DrawCommonWindows() {
 		ImGui::Text("Rinnegatamante (ITA)");
 		ImGui::Text("Samilop Cimmerian Iter (FRA)");
 		ImGui::Text("f2pwn (CAT)");
-		ImGui::Text("SamuEDL98 (ESP)");
+		ImGui::Text("SamuEDL (ESP)");
 		ImGui::Text("S1ngyy (GER)");
-		ImGui::Text("Kamui (BRA)");
+		ImGui::Text("Leonardo Lugarinho (BRA)");
 		ImGui::Text("coestergaard (DAN)");
 		ImGui::Text("Kiiro Yakumo (POL)");
+		ImGui::Text("ΧΡΗΣΤΟΣ ΜΑΝΟΥΣΗΣ (GRE)");
 		ImGui::End();
 	}
 	
@@ -605,7 +609,7 @@ void DrawMenuBar() {
 	if (oldBigText != gBigText) {
 		ImGui::GetIO().Fonts->Clear();
 		ImGui_ImplVitaGL_InvalidateDeviceObjects();
-		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE);
+		reloadFont();
 		oldBigText = gBigText;
 	}
 	
