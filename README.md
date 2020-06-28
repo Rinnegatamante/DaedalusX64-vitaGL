@@ -45,3 +45,4 @@ In order to create an HD texture pack (or adapt an existing one to Daedalus X64)
 - Inssame for some additions to the UI code
 - That One Seong & TheIronUniverse for the LiveArea assets
 - withLogic for the high-res preview assets
+- Rob Scotcher for the Daedalus X64 logo image
