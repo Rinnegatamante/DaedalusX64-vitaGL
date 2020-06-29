@@ -32,7 +32,10 @@
 
 #define MAX_SAVESLOT 9
 
-void dummy_func () {}
+void reset_ext_sampling_func () {
+	// Message Dialog sets back mode to SCE_CTRL_MODE_DIGITAL apparently
+	sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
+}
 
 bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
@@ -297,15 +300,15 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
 		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])){
 			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)){
-				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func);
 				gAntiAliasing = ANTIALIASING_DISABLED;
 			}
 			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func);
 				gAntiAliasing = ANTIALIASING_MSAA_2X;
 			}
 			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func);
+				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func);
 				gAntiAliasing = ANTIALIASING_MSAA_4X;
 			}
 			ImGui::EndMenu();
