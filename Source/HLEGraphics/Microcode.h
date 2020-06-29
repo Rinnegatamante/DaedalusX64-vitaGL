@@ -38,7 +38,8 @@ enum GBIVersion
 	GBI_SE,
 	GBI_GE,
 	GBI_CONKER,
-	GBI_PD
+	GBI_PD,
+	GBI_RS
 };
 //*****************************************************************************
 // Function

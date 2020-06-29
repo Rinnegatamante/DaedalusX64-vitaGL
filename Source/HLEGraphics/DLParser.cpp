@@ -367,10 +367,6 @@ static void DLParser_SetCustom( u32 ucode, u32 offset )
 {
 	memcpy_neon( &gCustomInstruction, &gNormalInstruction[offset], 1024 ); // sizeof(gNormalInstruction)/MAX_UCODE
 
-#if defined(DAEDALUS_DEBUG_DISPLAYLIST) || defined(DAEDALUS_ENABLE_PROFILING)
-	memcpy_neon( gCustomInstructionName, gNormalInstructionName[ offset ], 1024 );
-#endif
-
 	// Start patching to create our custom ucode table ;)
 	switch( ucode )
 	{
@@ -379,32 +375,32 @@ static void DLParser_SetCustom( u32 ucode, u32 offset )
 			break;
 		case GBI_WR:
 			SetCommand( 0x04, DLParser_GBI0_Vtx_WRUS, "G_Vtx_WRUS" );
-			SetCommand( 0xb1, DLParser_Nothing,		  "G_Nothing" ); // Just in case
+			SetCommand( 0xb1, DLParser_Nothing, "G_Nothing" ); // Just in case
 			break;
 		case GBI_SE:
 			SetCommand( 0x04, DLParser_GBI0_Vtx_SOTE, "G_Vtx_SOTE" );
 			break;
 		case GBI_LL:
-			SetCommand( 0x80, DLParser_Last_Legion_0x80,	"G_Last_Legion_0x80" );
-			SetCommand( 0x00, DLParser_Last_Legion_0x00,	"G_Last_Legion_0x00" );
+			SetCommand( 0x80, DLParser_Last_Legion_0x80, "G_Last_Legion_0x80" );
+			SetCommand( 0x00, DLParser_Last_Legion_0x00, "G_Last_Legion_0x00" );
 			SetCommand( 0xe4, DLParser_TexRect_Last_Legion,	"G_TexRect_Last_Legion" );
 			break;
 		case GBI_PD:
-			SetCommand( 0x04, DLParser_Vtx_PD,				"G_Vtx_PD" );
-			SetCommand( 0x07, DLParser_Set_Vtx_CI_PD,		"G_Set_Vtx_CI_PD" );
-			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye,	"G_RDPHalf1_GoldenEye" );
+			SetCommand( 0x04, DLParser_Vtx_PD, "G_Vtx_PD" );
+			SetCommand( 0x07, DLParser_Set_Vtx_CI_PD, "G_Set_Vtx_CI_PD" );
+			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye, "G_RDPHalf1_GoldenEye" );
 			break;
 		case GBI_DKR:
-			SetCommand( 0x01, DLParser_Mtx_DKR,		 "G_Mtx_DKR" );
+			SetCommand( 0x01, DLParser_Mtx_DKR, "G_Mtx_DKR" );
 			SetCommand( 0x04, DLParser_GBI0_Vtx_DKR, "G_Vtx_DKR" );
-			SetCommand( 0x05, DLParser_DMA_Tri_DKR,  "G_DMA_Tri_DKR" );
-			SetCommand( 0x07, DLParser_DLInMem,		 "G_DLInMem" );
+			SetCommand( 0x05, DLParser_DMA_Tri_DKR, "G_DMA_Tri_DKR" );
+			SetCommand( 0x07, DLParser_DLInMem, "G_DLInMem" );
 			SetCommand( 0xbc, DLParser_MoveWord_DKR, "G_MoveWord_DKR" );
 			SetCommand( 0xbf, DLParser_Set_Addr_DKR, "G_Set_Addr_DKR" );
 			SetCommand( 0xbb, DLParser_GBI1_Texture_DKR,"G_Texture_DKR" );
 			break;
 		case GBI_CONKER:
-			SetCommand( 0x01, DLParser_Vtx_Conker,	"G_Vtx_Conker" );
+			SetCommand( 0x01, DLParser_Vtx_Conker, "G_Vtx_Conker" );
 			SetCommand( 0x05, DLParser_Tri1_Conker, "G_Tri1_Conker" );
 			SetCommand( 0x06, DLParser_Tri2_Conker, "G_Tri2_Conker" );
 			SetCommand( 0x10, DLParser_Tri4_Conker, "G_Tri4_Conker" );
@@ -423,8 +419,11 @@ static void DLParser_SetCustom( u32 ucode, u32 offset )
 			SetCommand( 0x1d, DLParser_Tri4_Conker, "G_Tri4_Conker" );
 			SetCommand( 0x1e, DLParser_Tri4_Conker, "G_Tri4_Conker" );
 			SetCommand( 0x1f, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0xdb, DLParser_MoveWord_Conker,  "G_MoveWord_Conker");
-			SetCommand( 0xdc, DLParser_MoveMem_Conker,   "G_MoveMem_Conker" );
+			SetCommand( 0xdb, DLParser_MoveWord_Conker, "G_MoveWord_Conker");
+			SetCommand( 0xdc, DLParser_MoveMem_Conker, "G_MoveMem_Conker" );
+			break;
+		case GBI_RS:
+			// TODO: Rogue Squadron microcode
 			break;
 	}
 }
@@ -438,11 +437,6 @@ void DLParser_InitMicrocode( u32 code_base, u32 code_size, u32 data_base, u32 da
 
 	gVertexStride  = ucode_stride[ucode];
 	gUcodeFunc	   = IS_CUSTOM_UCODE(ucode) ? gCustomInstruction : gNormalInstruction[ucode];
-
-	// Used for fetching ucode names (Debug Only)
-#if defined(DAEDALUS_DEBUG_DISPLAYLIST) || defined(DAEDALUS_ENABLE_PROFILING)
-	gUcodeName = IS_CUSTOM_UCODE(ucode) ? gCustomInstructionName : gNormalInstructionName[ucode];
-#endif
 }
 
 //*****************************************************************************
