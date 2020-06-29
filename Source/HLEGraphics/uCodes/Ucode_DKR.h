@@ -135,16 +135,15 @@ void DLParser_DLInMem( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_Mtx_DKR( MicroCodeCommand command )
 {
-	u32 address		= command.inst.cmd1 + RDPSegAddr(gDKRMatrixAddr);
-	u32 mtx_command = (command.inst.cmd0 >> 16) & 0x3;
-	//u32 length      = (command.inst.cmd0      )& 0xFFFF;
+	u32 address	= command.inst.cmd1 + RDPSegAddr(gDKRMatrixAddr);
+	u32 index = (command.inst.cmd0 >> 16) & 0xF;
 
 	bool mul = false;
 
-	if (mtx_command == 0)
+	if (index == 0)
 	{
 		//DKR : no mult
-		mtx_command = (command.inst.cmd0 >> 22) & 0x3;
+		index = (command.inst.cmd0 >> 22) & 0x3;
 	}
 	else
 	{
@@ -153,7 +152,7 @@ void DLParser_Mtx_DKR( MicroCodeCommand command )
 	}
 
 	// Load matrix from address
-	gRenderer->SetDKRMat(address, mul, mtx_command);
+	gRenderer->SetDKRMat(address, mul, index);
 }
 
 //*****************************************************************************
@@ -215,24 +214,6 @@ void DLParser_DMA_Tri_DKR( MicroCodeCommand command )
 
 		gRenderer->SetCullMode( !(tri->flag & 0x40), true );
 
-		//if( info & 0x40000000 )
-		//{	// no cull
-		//	gRenderer->SetCullMode( false, false );
-		//}
-		//else
-		//{
-		//	// back culling
-		//	gRenderer->SetCullMode( true, true );
-
-		//	//if (RDP_View_Scales_X < 0)
-		//	//{   // back culling
-		//	//	gRenderer->SetCullMode( true, true );
-		//	//}
-		//	//else
-		//	//{   // front cull
-		//	//	gRenderer->SetCullMode( true, false );
-		//	//}
-		//}
 		#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 		DL_PF("    Index[%d %d %d] Cull[%s] uv_TexCoord[%0.2f|%0.2f] [%0.2f|%0.2f] [%0.2f|%0.2f]",
 			v0_idx, v1_idx, v2_idx, !(tri->flag & 0x40)? "On":"Off",
@@ -241,10 +222,6 @@ void DLParser_DMA_Tri_DKR( MicroCodeCommand command )
 			(f32)tri->s2/32.0f, (f32)tri->t2/32.0f);
 			#endif
 
-#if 1	//1->Fixes texture scaling, 0->Render as is and get some texture scaling errors
-		//
-		// This will create problem since some verts will get re-used and over-write new texture coords before previous has been rendered
-		// To fix it we copy all verts to a new location where we can have individual texture coordinates for each triangle//Corn
 		const u32 new_v0_idx = i * 3 + 32;
 		const u32 new_v1_idx = i * 3 + 33;
 		const u32 new_v2_idx = i * 3 + 34;
@@ -261,16 +238,6 @@ void DLParser_DMA_Tri_DKR( MicroCodeCommand command )
 			gRenderer->SetVtxTextureCoord( new_v1_idx, tri->s1, tri->t1 );
 			gRenderer->SetVtxTextureCoord( new_v2_idx, tri->s2, tri->t2 );
 		}
-#else
-		if( gRenderer->AddTri(v0_idx, v1_idx, v2_idx) )
-		{
-			tris_added = true;
-			// Generate texture coordinates...
-			gRenderer->SetVtxTextureCoord( v0_idx, tri->s0, tri->t0 );
-			gRenderer->SetVtxTextureCoord( v1_idx, tri->s1, tri->t1 );
-			gRenderer->SetVtxTextureCoord( v2_idx, tri->s2, tri->t2 );
-		}
-#endif
 		tri++;
 	}
 
@@ -302,7 +269,7 @@ void DLParser_GBI1_Texture_DKR( MicroCodeCommand command )
 	f32 scale_t = f32(command.texture.scaleT)  / (65535.0f * 32.0f);
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    ScaleS[%0.4f] ScaleT[%0.4f]", scale_s*32.0f, scale_t*32.0f);
-	#endif
+#endif
 	gRenderer->SetTextureScale( scale_s, scale_t );
 }
 
