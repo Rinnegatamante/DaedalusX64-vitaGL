@@ -122,6 +122,15 @@ struct N64mat
 	_u16 l[4];
 };
 
+struct N64LightAcclaim
+{
+	s16 y, x;
+	u8 g, r;
+	s16 z, ca;
+	u8 pad0, b;
+	u16 qa, la;
+};
+
 struct N64Light
 {
 	u8 ca, b, g, r;					// Colour and ca (ca is different for conker)
@@ -421,6 +430,9 @@ static void DLParser_SetCustom( u32 ucode, u32 offset )
 			SetCommand( 0x1f, DLParser_Tri4_Conker, "G_Tri4_Conker" );
 			SetCommand( 0xdb, DLParser_MoveWord_Conker, "G_MoveWord_Conker");
 			SetCommand( 0xdc, DLParser_MoveMem_Conker, "G_MoveMem_Conker" );
+			break;
+		case GBI_ACCLAIM:
+			SetCommand( 0xdc, DLParser_MoveMem_Acclaim, "G_MoveMem_Acclaim" );
 			break;
 		case GBI_RS:
 			// TODO: Rogue Squadron microcode

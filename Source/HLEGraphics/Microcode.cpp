@@ -129,18 +129,19 @@ static const MicrocodeData gMicrocodeData[] =
 	//
 	//	The only games that need defining are custom ucodes
 	//
-	{ GBI_CONKER,	GBI_2,	0x60256efc, "GBI_CONKER"},	// Conker's Bad Fur Day
-	{ GBI_LL,		GBI_1,	0x6d8bec3e, "GBI_LL"    },	// Dark Rift
-	{ GBI_DKR,		GBI_0,	0x0c10181a, "GBI_DKR"   },	// Diddy Kong Racing (v1.0)
-	{ GBI_DKR,		GBI_0,	0x713311dc, "GBI_DKR"   },	// Diddy Kong Racing (v1.1)
-	{ GBI_GE,		GBI_0,	0x23f92542, "GBI_GE"    },	// GoldenEye 007
-	{ GBI_DKR,		GBI_0,	0x169dcc9d, "GBI_DKR"   },	// Jet Force Gemini
-	{ GBI_LL,		GBI_1,	0x26da8a4c, "GBI_LL"    },	// Last Legion UX
-	{ GBI_PD,		GBI_0,	0xcac47dc4, "GBI_PD"    },	// Perfect Dark
-	{ GBI_SE,		GBI_0,	0x6cbb521d, "GBI_SE"    },	// Star Wars - Shadows of the Empire
-	{ GBI_LL,		GBI_1,	0xdd560323, "GBI_LL"    },	// Toukon Road - Brave Spirits
-	{ GBI_WR,		GBI_0,	0x64cc729d, "GBI_WR"    },	// Wave Race 64
-	{ GBI_RS,		GBI_0,	0xc62a1631, "GBI_RS"    },	// Star Wars - Rogue Squadron
+	{ GBI_CONKER,	GBI_2,	0x60256efc, "GBI_CONKER" },	// Conker's Bad Fur Day
+	{ GBI_LL,		GBI_1,	0x6d8bec3e, "GBI_LL"     },	// Dark Rift
+	{ GBI_DKR,		GBI_0,	0x0c10181a, "GBI_DKR"    },	// Diddy Kong Racing (v1.0)
+	{ GBI_DKR,		GBI_0,	0x713311dc, "GBI_DKR"    },	// Diddy Kong Racing (v1.1)
+	{ GBI_GE,		GBI_0,	0x23f92542, "GBI_GE"     },	// GoldenEye 007
+	{ GBI_DKR,		GBI_0,	0x169dcc9d, "GBI_DKR"    },	// Jet Force Gemini
+	{ GBI_LL,		GBI_1,	0x26da8a4c, "GBI_LL"     },	// Last Legion UX
+	{ GBI_PD,		GBI_0,	0xcac47dc4, "GBI_PD"     },	// Perfect Dark
+	{ GBI_SE,		GBI_0,	0x6cbb521d, "GBI_SE"     },	// Star Wars - Shadows of the Empire
+	{ GBI_LL,		GBI_1,	0xdd560323, "GBI_LL"     },	// Toukon Road - Brave Spirits
+	{ GBI_WR,		GBI_0,	0x64cc729d, "GBI_WR"     },	// Wave Race 64
+	{ GBI_RS,		GBI_0,	0xc62a1631, "GBI_RS"     },	// Star Wars - Rogue Squadron
+	{ GBI_ACCLAIM,  GBI_2,  0x9abf98e4, "GBI_ACCLAIM"},	// South Park Racing
 };
 
 void GBIMicrocode_Cache(u32 index, u32 code_base, u32 data_base, u32 ucode_version)
@@ -197,7 +198,7 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 			//DBGConsole_Msg(0, "Ucode has been Detected in Array :[M\"%s\", Ucode %d]", cur_ucode, gMicrocodeData[ i ].ucode);
 			ucode_version = gMicrocodeData[i].ucode;
 			ucode_offset = gMicrocodeData[i].offset;
-			sprintf(cur_ucode, gMicrocodeData[i].name);
+			sprintf(cur_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[i].name, code_hash);
 		}
 	}
 
@@ -227,24 +228,24 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 			{
 				if( !strncmp(match, "S2DEX", 5) ) {
 					ucode_version = GBI_2_S2DEX;
-					sprintf(cur_ucode, "GBI_2_S2DEX (S2DEX2)");
+					sprintf(cur_ucode, "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
 				} else {
 					ucode_version = GBI_2;
-					sprintf(cur_ucode, "GBI_2 (F3DEX2)");
+					sprintf(cur_ucode, "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
 				}
 			}
 			else
 			{
 				if( !strncmp(match, "S2DEX", 5) ) {
 					ucode_version = GBI_1_S2DEX;
-					sprintf(cur_ucode, "GBI_1_S2DEX (S2DEX)");
+					sprintf(cur_ucode, "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
 				} else {
 					ucode_version = GBI_1;
-					sprintf(cur_ucode, "GBI_1 (F3DEX)");
+					sprintf(cur_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
 				}
 			}
 		} else {
-			sprintf(cur_ucode, "GBI_0 (F3D)");
+			sprintf(cur_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
 		}
 	}
 
