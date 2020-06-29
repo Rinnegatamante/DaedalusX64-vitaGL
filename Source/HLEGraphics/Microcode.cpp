@@ -147,9 +147,9 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, "GBI_DKR"    },   // Jet Force Gemini
 	{ GBI_LL,       GBI_1,  2, 0x26da8a4c, "GBI_LL"     },   // Last Legion UX
 	{ GBI_PD,       GBI_0, 10, 0xcac47dc4, "GBI_PD"     },   // Perfect Dark
-	{ GBI_SE,       GBI_0,  5, 0x6cbb521d, "GBI_SE"     },   // Star Wars - Shadows of the Empire
+	{ GBI_BETA,     GBI_0,  5, 0x6cbb521d, "GBI_BETA"   },   // Star Wars - Shadows of the Empire
 	{ GBI_LL,       GBI_1,  2, 0xdd560323, "GBI_LL"     },   // Toukon Road - Brave Spirits
-	{ GBI_WR,       GBI_0,  5, 0x64cc729d, "GBI_WR"     },   // Wave Race 64
+	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, "GBI_BETA"   },   // Wave Race 64 (v.1.1)
 	{ GBI_RS,       GBI_0,  2, 0xc62a1631, "GBI_RS"     },   // Star Wars - Rogue Squadron
 	{ GBI_ACCLAIM,  GBI_2,  2, 0x9abf98e4, "GBI_ACCLAIM"},   // South Park Racing
 };
@@ -283,12 +283,11 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 		case GBI_GE:
 			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);
 			break;
-		case GBI_WR:
-			SetCommand( 0x04, DLParser_GBI0_Vtx_WRUS);
-			SetCommand( 0xb1, DLParser_Nothing); // FIX ME
-			break;
-		case GBI_SE:
-			SetCommand( 0x04, DLParser_GBI0_Vtx_SOTE);
+		case GBI_BETA:
+			SetCommand( 0x04, DLParser_GBI0_Vtx_Beta);
+			SetCommand( 0xbf, DLParser_GBI0_Tri1_Beta);
+			SetCommand( 0xb1, DLParser_GBI0_Tri2_Beta);
+			SetCommand( 0xb5, DLParser_GBI0_Line3D_Beta);
 			break;
 		case GBI_LL:
 			SetCommand( 0x80, DLParser_Last_Legion_0x80);

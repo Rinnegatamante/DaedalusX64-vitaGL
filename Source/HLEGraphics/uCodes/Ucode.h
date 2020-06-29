@@ -28,7 +28,14 @@
 typedef void(*MicroCodeInstruction)(MicroCodeCommand);
 #define UcodeFunc(name)	void name(MicroCodeCommand)
 
-extern const MicroCodeInstruction gNormalInstruction[5][256];
+extern const MicroCodeInstruction gNormalInstruction[MAX_UCODE_TABLE][256];
+
+template< u32 VertexStride > 
+void DLParser_GBI1_Tri1_T( MicroCodeCommand command );
+template< u32 VertexStride > 
+void DLParser_GBI1_Tri2_T( MicroCodeCommand command );
+template< u32 VertexStride > 
+void DLParser_GBI1_Line3D_T( MicroCodeCommand command );
 
 UcodeFunc( DLParser_GBI1_CullDL );
 UcodeFunc( DLParser_GBI1_DL );
@@ -157,9 +164,10 @@ UcodeFunc( DLParser_TriRSP );
 //*****************************************************************************
 // Custom
 //*****************************************************************************
-UcodeFunc( DLParser_GBI0_Vtx_SOTE );
-//UcodeFunc( DLParser_GBI0_Line3D_SOTE );
-//UcodeFunc( DLParser_GBI0_Tri1_SOTE );
+UcodeFunc( DLParser_GBI0_Vtx_Beta );
+UcodeFunc( DLParser_GBI0_Line3D_Beta );
+UcodeFunc( DLParser_GBI0_Tri1_Beta );
+UcodeFunc( DLParser_GBI0_Tri2_Beta );
 UcodeFunc( DLParser_Last_Legion_0x80 );
 UcodeFunc( DLParser_Last_Legion_0x00 );
 UcodeFunc( DLParser_TexRect_Last_Legion );
@@ -170,7 +178,6 @@ UcodeFunc( DLParser_MoveWord_DKR );
 UcodeFunc( DLParser_Set_Addr_DKR );
 UcodeFunc( DLParser_GBI1_Texture_DKR );
 UcodeFunc( DLParser_GBI0_Vtx_DKR );
-UcodeFunc( DLParser_GBI0_Vtx_WRUS );
 UcodeFunc( DLParser_DMA_Tri_DKR );
 UcodeFunc( DLParser_Tri1_Conker );
 UcodeFunc( DLParser_Tri2_Conker );
