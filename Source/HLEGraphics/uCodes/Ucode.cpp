@@ -20,26 +20,10 @@
 #include "stdafx.h"
 
 #include "Ucode.h"
-//*************************************************************************************
-//
-//*************************************************************************************
-// This is the multiplier applied to vertex indices
-const u32 ucode_stride[] =
-{
-	10,		// Super Mario 64, Tetrisphere, Demos
-	2,		// Mario Kart, Star Fox
-	2,		// Zelda, and newer games
-	2,		// Yoshi's Story, Pokemon Puzzle League
-	2,		// Neon Evangelion, Kirby
-	5,		// Wave Racer USA
-	10,		// Diddy Kong Racing, Gemini, and Mickey
-	2,		// Last Legion, Toukon, Toukon 2
-	5,		// Shadows of the Empire (SOTE)
-	10,		// Golden Eye
-	2,		// Conker BFD
-	10,		// Perfect Dark
-	2,		// Star Wars Rogue Squadron
-};
+
+// Only the official ucode tables are defined here, 5 in total
+// Please do not add any new ucode tables here, doing so will just waste memory
+// If you want to add a custom ucode table, just patch any of official ucode tables with GBIMicrocode_SetCustomArray
 
 //*************************************************************************************
 //

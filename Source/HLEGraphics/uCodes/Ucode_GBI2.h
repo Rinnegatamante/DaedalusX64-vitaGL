@@ -277,8 +277,8 @@ void DLParser_GBI2_MoveMem( MicroCodeCommand command )
 
 	case G_GBI2_MV_LIGHT:
 		{
-			u32 offset2 = (command.inst.cmd0 >> 5) & 0x7F8;
-			u32 light_idx = offset2 / 24;
+			u32 offset = (command.inst.cmd0 >> 5) & 0x7F8;
+			u32 light_idx = offset / 24;
 			if (light_idx < 2)
 			{
 				#ifdef DAEDALUS_DEBUG_DISPLAYLIST

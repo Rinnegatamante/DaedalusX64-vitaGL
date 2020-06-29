@@ -31,6 +31,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 char cur_ucode[256] = "";
 
+//*****************************************************************************
+//
+//*****************************************************************************
+static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset );
+
+static MicroCodeInstruction gCustomInstruction[256];
+#define SetCommand( cmd, func ) gCustomInstruction[ cmd ] = func;
+
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 //                    uCode Config                      //
@@ -50,21 +58,20 @@ char cur_ucode[256] = "";
 //
 // Used to keep track of used ucode entries
 //
-struct UcodeInfo
+struct UcodeUsage
 {
+	bool ucode_set;
+	
 	u32 code_base;
 	u32 data_base;
-	u32 ucode_version;
-	bool set;
+	
+	UcodeInfo info;
 };
 
-static UcodeInfo gUcodeInfo[ MAX_UCODE_CACHE_ENTRIES ];
+static UcodeUsage gUcodeUsage[MAX_UCODE_CACHE_ENTRIES];
 extern void log2file(const char *format, ...);
 static bool	GBIMicrocode_DetectVersionString( u32 data_base, u32 data_size, char * str, u32 str_len )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( data_base < (MAX_RAM_ADDRESS + data_size),"Microcode data its out of bounds %08X", data_base );
-	#endif
 	const s8 * ram( g_ps8RamBase );
 
 	for ( u32 i = 0; i + 2 < data_size; i++ )
@@ -100,7 +107,7 @@ static u32 GBIMicrocode_MicrocodeHash(u32 code_base, u32 code_size)
 
 	const u8 * ram( g_pu8RamBase );
 
-	u32 hash {};
+	u32 hash = 0;
 	for (u32 i = 0; i < code_size; ++i)
 	{
 		hash = (hash << 4) + hash + ram[ (code_base+i) ^ U8_TWIDDLE ];   // Best hash ever!
@@ -110,7 +117,9 @@ static u32 GBIMicrocode_MicrocodeHash(u32 code_base, u32 code_size)
 
 void GBIMicrocode_Reset()
 {
-	memset(&gUcodeInfo, 0, sizeof(gUcodeInfo));
+	// Unset any previously cached ucode
+	for (u32 i = 0; i < MAX_UCODE_CACHE_ENTRIES; i++)
+ 		gUcodeUsage[i].ucode_set = false;
 }
 
 //*****************************************************************************
@@ -120,6 +129,7 @@ struct MicrocodeData
 {
 	u32	ucode;
 	u32 offset;
+	u32 stride;
 	u32	hash;
 	char name[16];
 };
@@ -127,24 +137,24 @@ struct MicrocodeData
 static const MicrocodeData gMicrocodeData[] =
 {
 	//
-	//	The only games that need defining are custom ucodes
+	//   The only games that need defining are custom ucodes  or ucodes that lack a version string in the microcode data
 	//
-	{ GBI_CONKER,	GBI_2,	0x60256efc, "GBI_CONKER" },	// Conker's Bad Fur Day
-	{ GBI_LL,		GBI_1,	0x6d8bec3e, "GBI_LL"     },	// Dark Rift
-	{ GBI_DKR,		GBI_0,	0x0c10181a, "GBI_DKR"    },	// Diddy Kong Racing (v1.0)
-	{ GBI_DKR,		GBI_0,	0x713311dc, "GBI_DKR"    },	// Diddy Kong Racing (v1.1)
-	{ GBI_GE,		GBI_0,	0x23f92542, "GBI_GE"     },	// GoldenEye 007
-	{ GBI_DKR,		GBI_0,	0x169dcc9d, "GBI_DKR"    },	// Jet Force Gemini
-	{ GBI_LL,		GBI_1,	0x26da8a4c, "GBI_LL"     },	// Last Legion UX
-	{ GBI_PD,		GBI_0,	0xcac47dc4, "GBI_PD"     },	// Perfect Dark
-	{ GBI_SE,		GBI_0,	0x6cbb521d, "GBI_SE"     },	// Star Wars - Shadows of the Empire
-	{ GBI_LL,		GBI_1,	0xdd560323, "GBI_LL"     },	// Toukon Road - Brave Spirits
-	{ GBI_WR,		GBI_0,	0x64cc729d, "GBI_WR"     },	// Wave Race 64
-	{ GBI_RS,		GBI_0,	0xc62a1631, "GBI_RS"     },	// Star Wars - Rogue Squadron
-	{ GBI_ACCLAIM,  GBI_2,  0x9abf98e4, "GBI_ACCLAIM"},	// South Park Racing
+	{ GBI_CONKER,   GBI_2,  2, 0x60256efc, "GBI_CONKER" },   // Conker's Bad Fur Day
+	{ GBI_LL,       GBI_1,  2, 0x6d8bec3e, "GBI_LL"     },   // Dark Rift
+	{ GBI_DKR,      GBI_0, 10, 0x0c10181a, "GBI_DKR"    },   // Diddy Kong Racing (v1.0)
+	{ GBI_DKR,      GBI_0, 10, 0x713311dc, "GBI_DKR"    },   // Diddy Kong Racing (v1.1)
+	{ GBI_GE,       GBI_0, 10, 0x23f92542, "GBI_GE"     },   // GoldenEye 007
+	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, "GBI_DKR"    },   // Jet Force Gemini
+	{ GBI_LL,       GBI_1,  2, 0x26da8a4c, "GBI_LL"     },   // Last Legion UX
+	{ GBI_PD,       GBI_0, 10, 0xcac47dc4, "GBI_PD"     },   // Perfect Dark
+	{ GBI_SE,       GBI_0,  5, 0x6cbb521d, "GBI_SE"     },   // Star Wars - Shadows of the Empire
+	{ GBI_LL,       GBI_1,  2, 0xdd560323, "GBI_LL"     },   // Toukon Road - Brave Spirits
+	{ GBI_WR,       GBI_0,  5, 0x64cc729d, "GBI_WR"     },   // Wave Race 64
+	{ GBI_RS,       GBI_0,  2, 0xc62a1631, "GBI_RS"     },   // Star Wars - Rogue Squadron
+	{ GBI_ACCLAIM,  GBI_2,  2, 0x9abf98e4, "GBI_ACCLAIM"},   // South Park Racing
 };
 
-void GBIMicrocode_Cache(u32 index, u32 code_base, u32 data_base, u32 ucode_version)
+UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
 {
 	//
 	// If the max of ucode entries is reached, spread it randomly
@@ -156,14 +166,17 @@ void GBIMicrocode_Cache(u32 index, u32 code_base, u32 data_base, u32 ucode_versi
 		index = FastRand() % MAX_UCODE_CACHE_ENTRIES;
 	}
 
-	UcodeInfo& used(gUcodeInfo[index]);
-	used.ucode_version = ucode_version;
+	UcodeUsage& used(gUcodeUsage[index]);
+	used.ucode_set = true;
 	used.code_base = code_base;
 	used.data_base = data_base;
-	used.set = true;
+	
+	used.info.func = ucode_function;
+	used.info.stride = ucode_stride;
+	return used.info;
 }
 
-u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32 data_size, CustomMicrocodeCallback custom_callback )
+UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32 data_size )
 {
 	// Cheap way to cache ucodes, don't check for strings (too slow!) but check last used ucode entries which is alot faster than string comparison.
 	// This only needed for GBI1/2/SDEX ucodes that use LoadUcode, else we only check when code_base changes, which usually never happens
@@ -171,48 +184,47 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 	u32 i;
 	for( i = 0; i < MAX_UCODE_CACHE_ENTRIES; i++ )
 	{
-		const UcodeInfo &used( gUcodeInfo[ i ] );
+		const UcodeUsage &used(gUcodeUsage[i]);
 
 		// If this returns false, it means this entry is free to use
-		if( used.set == false )
+		if( used.ucode_set == false )
 			break;
 
 		if( used.data_base == data_base && used.code_base == code_base)
-			return used.ucode_version;
+			return used.info; // Found a match!
 	}
-
-	u32 code_hash = GBIMicrocode_MicrocodeHash( code_base, code_size );
 	
-	if (!GBIMicrocode_DetectVersionString( data_base, data_size, cur_ucode, 256 ))
-		sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
-
 	// It wasn't the same as the last time around, we'll hash it and check if is a custom ucode.
 	//
-	u32 ucode_version = GBI_0;
-	u32 ucode_offset = ~0;
+	u32 code_hash = GBIMicrocode_MicrocodeHash( code_base, code_size );
 
 	for ( u32 i = 0; i < ARRAYSIZE(gMicrocodeData); i++ )
 	{
 		if ( code_hash == gMicrocodeData[i].hash )
 		{
 			//DBGConsole_Msg(0, "Ucode has been Detected in Array :[M\"%s\", Ucode %d]", cur_ucode, gMicrocodeData[ i ].ucode);
-			ucode_version = gMicrocodeData[i].ucode;
-			ucode_offset = gMicrocodeData[i].offset;
+			u32 ucode_version = gMicrocodeData[i].ucode;
+			u32 ucode_stride = gMicrocodeData[i].stride;
+			u32 ucode_offset = gMicrocodeData[i].offset;
+			
+			GBIMicrocode_SetCustomArray(ucode_version, ucode_offset); 
+			
 			sprintf(cur_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[i].name, code_hash);
+			return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
 		}
 	}
-
-	if( ucode_version != GBI_0 )
-	{
-		// If this a custom ucode, let's build an array based from ucode_offset
-		custom_callback( ucode_version, ucode_offset );
-	}
-	else
-	{
-		//
-		// If it wasn't a custom ucode
-		// See if we can identify it by string, if no match was found set default for Fast3D ucode
-		//
+	
+	// Select Fast3D ucode in case there's no match or if the version string its missing
+	u32 ucode_version = GBI_0;
+	u32 ucode_stride = 10;
+	
+	//
+	// If it wasn't a custom ucode. Try to detect by checking the version string in the microcode data.
+	// This is faster than calculating a CRC of the code
+	//
+	if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_ucode, 256))
+		sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
+	else {
 		const char  *ucodes[] { "F3", "L3", "S2DEX" };
 		char 		*match;
 
@@ -224,6 +236,8 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 
 		if( match )
 		{
+			ucode_stride = 2;
+			
 			if( strstr(match, "fifo") || strstr(match, "xbus") )
 			{
 				if( !strncmp(match, "S2DEX", 5) ) {
@@ -244,19 +258,84 @@ u32	GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_base, u32
 					sprintf(cur_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
 				}
 			}
-		} else {
-			sprintf(cur_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
-		}
+		} else sprintf(cur_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
 	}
+	
+	return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gNormalInstruction[ ucode_version ]);
+}
 
-	//
-	// Retain used ucode info which will be cached
-	//
-	GBIMicrocode_Cache(i, code_base, data_base, ucode_version);
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0,"Detected %s Ucode is: [M Ucode %d, 0x%08x, \"%s\", \"%s\"]",ucode_offset == u32(~0) ? "" :"Custom", ucode_version, code_hash, cur_ucode, g_ROM.settings.GameName.c_str() );
-#endif
-
-	return ucode_version;
+//****************************************************'*********************************
+// This is called after a custom ucode has been detected. This function gets cached and its only called once per custom ucode set
+// Main resaon for this function is to save memory since custom ucodes share a common table
+// USAGE:
+//		ucode:			custom ucode: (ucode>= 5), defined in GBIVersion enum
+//		offset:			offset to a normal ucode which this custom ucode is based of ex GBI0
+//*************************************************************************************
+static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
+{
+	for (u32 i = 0; i < 256; i++) {
+		gCustomInstruction[i] = gNormalInstruction[ucode_offset][i];
+	}
+	
+	// Start patching to create our custom ucode table
+		switch( ucode_version )
+	{
+		case GBI_GE:
+			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);
+			break;
+		case GBI_WR:
+			SetCommand( 0x04, DLParser_GBI0_Vtx_WRUS);
+			SetCommand( 0xb1, DLParser_Nothing); // FIX ME
+			break;
+		case GBI_SE:
+			SetCommand( 0x04, DLParser_GBI0_Vtx_SOTE);
+			break;
+		case GBI_LL:
+			SetCommand( 0x80, DLParser_Last_Legion_0x80);
+			SetCommand( 0x00, DLParser_Last_Legion_0x00);
+			SetCommand( 0xe4, DLParser_TexRect_Last_Legion);
+			break;
+		case GBI_PD:
+			SetCommand( 0x04, DLParser_Vtx_PD);
+			SetCommand( 0x07, DLParser_Set_Vtx_CI_PD);
+			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);
+			break;
+		case GBI_DKR:
+			SetCommand( 0x01, DLParser_Mtx_DKR);
+			SetCommand( 0x04, DLParser_GBI0_Vtx_DKR);
+			SetCommand( 0x05, DLParser_DMA_Tri_DKR);
+			SetCommand( 0x07, DLParser_DLInMem);
+			SetCommand( 0xbc, DLParser_MoveWord_DKR);
+			SetCommand( 0xbf, DLParser_Set_Addr_DKR);
+			SetCommand( 0xbb, DLParser_GBI1_Texture_DKR);
+			break;
+		case GBI_CONKER:
+			SetCommand( 0x01, DLParser_Vtx_Conker);
+			SetCommand( 0x05, DLParser_Tri1_Conker);
+			SetCommand( 0x06, DLParser_Tri2_Conker);
+			SetCommand( 0x10, DLParser_Tri4_Conker);
+			SetCommand( 0x11, DLParser_Tri4_Conker);
+			SetCommand( 0x12, DLParser_Tri4_Conker);
+			SetCommand( 0x13, DLParser_Tri4_Conker);
+			SetCommand( 0x14, DLParser_Tri4_Conker);
+			SetCommand( 0x15, DLParser_Tri4_Conker);
+			SetCommand( 0x16, DLParser_Tri4_Conker);
+			SetCommand( 0x17, DLParser_Tri4_Conker);
+			SetCommand( 0x18, DLParser_Tri4_Conker);
+			SetCommand( 0x19, DLParser_Tri4_Conker);
+			SetCommand( 0x1a, DLParser_Tri4_Conker);
+			SetCommand( 0x1b, DLParser_Tri4_Conker);
+			SetCommand( 0x1c, DLParser_Tri4_Conker);
+			SetCommand( 0x1d, DLParser_Tri4_Conker);
+			SetCommand( 0x1e, DLParser_Tri4_Conker);
+			SetCommand( 0x1f, DLParser_Tri4_Conker);
+			SetCommand( 0xdb, DLParser_MoveWord_Conker);
+			SetCommand( 0xdc, DLParser_MoveMem_Conker);
+			break;
+		case GBI_ACCLAIM:
+			SetCommand( 0xdc, DLParser_MoveMem_Acclaim);
+			break;
+		default:
+			break;
+	}
 }

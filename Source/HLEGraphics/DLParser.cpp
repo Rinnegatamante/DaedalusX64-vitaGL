@@ -66,15 +66,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DL_UNIMPLEMENTED_ERROR( msg )
 #endif
 
-//*****************************************************************************
-//
-//*****************************************************************************
-#if defined(DAEDALUS_DEBUG_DISPLAYLIST) || defined(DAEDALUS_ENABLE_PROFILING)
-#define SetCommand( cmd, func, name )	gCustomInstruction[ cmd ] = func;	gCustomInstructionName[ cmd ] = name;
-#else
-#define SetCommand( cmd, func, name )	gCustomInstruction[ cmd ] = func;
-#endif
-
 #define MAX_DL_STACK_SIZE	32
 
 #define N64COL_GETR( col )		(u8((col) >> 24))
@@ -190,22 +181,16 @@ static RDP_Scissor		scissors;
 static RDP_GeometryMode gGeometryMode;
 static DList			gDlistStack;
 static s32				gDlistStackPointer = -1;
-static u32				gVertexStride;
-static u32				gRDPHalf1;
+static u32				gVertexStride = 10;
+static u32				gRDPHalf1 = 0;
 
        SImageDescriptor g_TI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
 static SImageDescriptor g_CI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
 static SImageDescriptor g_DI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
 
-const MicroCodeInstruction *gUcodeFunc = nullptr;
-MicroCodeInstruction gCustomInstruction[256] {};
+const MicroCodeInstruction *gUcodeFunc = gNormalInstruction[ GBI_0 ];
 
-#if defined(DAEDALUS_DEBUG_DISPLAYLIST) || defined(DAEDALUS_ENABLE_PROFILING)
-static const char ** gUcodeName = gNormalInstructionName[ 0 ];
-static const char * gCustomInstructionName[256];
-#endif
-
-bool					gFrameskipActive {false};
+bool gFrameskipActive = false;
 
 //*****************************************************************************
 //
@@ -223,9 +208,6 @@ inline void	DLParser_FetchNextCommand( MicroCodeCommand * p_command )
 {
 	// Current PC is the last value on the stack
 	u32 & pc( gDlistStack.address[gDlistStackPointer] );
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(pc < MAX_RAM_ADDRESS, "Display list PC is out of range: 0x%08x", pc );
-	#endif
 	*p_command = *(MicroCodeCommand*)(g_pu8RamBase + pc);
 	pc+= 8;
 }
@@ -343,6 +325,8 @@ bool DLParser_Initialise()
 	
 	// Resetting number of executed frames
 	gRDPFrame = 0;
+	gAuxAddr = 0;
+	gRDPHalf1 = 0;
 	gCPURendering = true;
 
 	// Reset scissor to default
@@ -353,10 +337,11 @@ bool DLParser_Initialise()
 
 	GBIMicrocode_Reset();
 
-#ifdef DAEDALUS_FAST_TMEM
-	//Clear pointers in TMEM block //Corn
+	gVertexStride = 10;
+	gUcodeFunc = gNormalInstruction[ GBI_0 ];
+	
 	memset(gTlutLoadAddresses, 0, sizeof(gTlutLoadAddresses));
-#endif
+	
 	return true;
 }
 
@@ -365,90 +350,15 @@ bool DLParser_Initialise()
 //*****************************************************************************
 void DLParser_Finalise() {}
 
-//*************************************************************************************
-// This is called from Microcode.cpp after a custom ucode has been detected and cached
-// This function is only called once per custom ucode set
-// Main resaon for this function is to save memory since custom ucodes share a common table
-//	ucode:			custom ucode (ucode>= MAX_UCODE)
-//	offset:			offset to normal ucode this custom ucode is based of ex GBI0
-//*************************************************************************************
-static void DLParser_SetCustom( u32 ucode, u32 offset )
-{
-	memcpy_neon( &gCustomInstruction, &gNormalInstruction[offset], 1024 ); // sizeof(gNormalInstruction)/MAX_UCODE
-
-	// Start patching to create our custom ucode table ;)
-	switch( ucode )
-	{
-		case GBI_GE:
-			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye, "G_RDPHalf1_GoldenEye" );
-			break;
-		case GBI_WR:
-			SetCommand( 0x04, DLParser_GBI0_Vtx_WRUS, "G_Vtx_WRUS" );
-			SetCommand( 0xb1, DLParser_Nothing, "G_Nothing" ); // Just in case
-			break;
-		case GBI_SE:
-			SetCommand( 0x04, DLParser_GBI0_Vtx_SOTE, "G_Vtx_SOTE" );
-			break;
-		case GBI_LL:
-			SetCommand( 0x80, DLParser_Last_Legion_0x80, "G_Last_Legion_0x80" );
-			SetCommand( 0x00, DLParser_Last_Legion_0x00, "G_Last_Legion_0x00" );
-			SetCommand( 0xe4, DLParser_TexRect_Last_Legion,	"G_TexRect_Last_Legion" );
-			break;
-		case GBI_PD:
-			SetCommand( 0x04, DLParser_Vtx_PD, "G_Vtx_PD" );
-			SetCommand( 0x07, DLParser_Set_Vtx_CI_PD, "G_Set_Vtx_CI_PD" );
-			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye, "G_RDPHalf1_GoldenEye" );
-			break;
-		case GBI_DKR:
-			SetCommand( 0x01, DLParser_Mtx_DKR, "G_Mtx_DKR" );
-			SetCommand( 0x04, DLParser_GBI0_Vtx_DKR, "G_Vtx_DKR" );
-			SetCommand( 0x05, DLParser_DMA_Tri_DKR, "G_DMA_Tri_DKR" );
-			SetCommand( 0x07, DLParser_DLInMem, "G_DLInMem" );
-			SetCommand( 0xbc, DLParser_MoveWord_DKR, "G_MoveWord_DKR" );
-			SetCommand( 0xbf, DLParser_Set_Addr_DKR, "G_Set_Addr_DKR" );
-			SetCommand( 0xbb, DLParser_GBI1_Texture_DKR,"G_Texture_DKR" );
-			break;
-		case GBI_CONKER:
-			SetCommand( 0x01, DLParser_Vtx_Conker, "G_Vtx_Conker" );
-			SetCommand( 0x05, DLParser_Tri1_Conker, "G_Tri1_Conker" );
-			SetCommand( 0x06, DLParser_Tri2_Conker, "G_Tri2_Conker" );
-			SetCommand( 0x10, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x11, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x12, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x13, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x14, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x15, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x16, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x17, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x18, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x19, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x1a, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x1b, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x1c, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x1d, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x1e, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0x1f, DLParser_Tri4_Conker, "G_Tri4_Conker" );
-			SetCommand( 0xdb, DLParser_MoveWord_Conker, "G_MoveWord_Conker");
-			SetCommand( 0xdc, DLParser_MoveMem_Conker, "G_MoveMem_Conker" );
-			break;
-		case GBI_ACCLAIM:
-			SetCommand( 0xdc, DLParser_MoveMem_Acclaim, "G_MoveMem_Acclaim" );
-			break;
-		case GBI_RS:
-			// TODO: Rogue Squadron microcode
-			break;
-	}
-}
-
 //*****************************************************************************
 //
 //*****************************************************************************
 void DLParser_InitMicrocode( u32 code_base, u32 code_size, u32 data_base, u32 data_size )
 {
-	u32 ucode = GBIMicrocode_DetectVersion( code_base, code_size, data_base, data_size, &DLParser_SetCustom );
+	const UcodeInfo& ucode_info(GBIMicrocode_DetectVersion(code_base, code_size, data_base, data_size));
 
-	gVertexStride  = ucode_stride[ucode];
-	gUcodeFunc	   = IS_CUSTOM_UCODE(ucode) ? gCustomInstruction : gNormalInstruction[ucode];
+	gVertexStride = ucode_info.stride;
+	gUcodeFunc = ucode_info.func;
 }
 
 //*****************************************************************************
