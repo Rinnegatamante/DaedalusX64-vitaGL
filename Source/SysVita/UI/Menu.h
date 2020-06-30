@@ -53,7 +53,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 142
+#define LANG_STRINGS_NUM 144
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -197,7 +197,9 @@ enum {
 	FUNC(STR_BIG_TEXT) \
 	FUNC(STR_ROM_LAUNCH) \
 	FUNC(STR_CUSTOM_PATH) \
-	FUNC(STR_DLG_CUSTOM_PATH)
+	FUNC(STR_DLG_CUSTOM_PATH) \
+	FUNC(STR_SEARCH) \
+	FUNC(STR_DLG_SEARCH_ROM)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -287,3 +289,5 @@ void getDialogTextResult(char *text);
 void showAlert(char *text, int type);
 void reloadFont();
 void resetRomList();
+
+void dummy_func();

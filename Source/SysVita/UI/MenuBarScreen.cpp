@@ -669,7 +669,6 @@ void DrawMenuBar() {
 	}
 	
 	ImGui_ImplVitaGL_NewFrame();
-	
 	if (ImGui::BeginMainMenuBar()){
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
 			if (ImGui::MenuItem(custom_path_str)) {
@@ -693,7 +692,6 @@ void DrawMenuBar() {
 		ImGui::Text("Daedalus X64"); 
 		ImGui::EndMainMenuBar();
 	}
-	
 	DrawCommonWindows();
 }
 
@@ -729,7 +727,7 @@ void DrawInGameMenuBar() {
 	if (oldBigText != gBigText) {
 		ImGui::GetIO().Fonts->Clear();
 		ImGui_ImplVitaGL_InvalidateDeviceObjects();
-		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE);
+		reloadFont();
 		oldBigText = gBigText;
 	}
 	

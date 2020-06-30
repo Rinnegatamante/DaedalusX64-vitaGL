@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -41,6 +42,7 @@
 #define ROMS_FOLDERS_NUM 5
 
 char selectedRom[256];
+char rom_name_filter[128] = {0};
 
 struct CompatibilityList {
 	char name[128];
@@ -73,8 +75,11 @@ GLuint preview_icon = 0;
 
 int oldSortOrder = -1;
 
-void resetRomList()
-{
+void apply_rom_name_filter() {
+	getDialogTextResult(rom_name_filter);
+}
+
+void resetRomList() {
 	RomSelection *p = list;
 	while (p) {
 		RomSelection *old = p;
@@ -84,8 +89,7 @@ void resetRomList()
 	list = nullptr;
 }
 
-void swap(RomSelection *a, RomSelection *b) 
-{ 
+void swap(RomSelection *a, RomSelection *b) { 
 	char nametmp[128], pathtmp[256];
 	sprintf(nametmp, a->name);
 	sprintf(pathtmp, a->fullpath);
@@ -115,8 +119,7 @@ void swap(RomSelection *a, RomSelection *b)
 	b->status = statustmp; 
 } 
 
-void sort_list(RomSelection *start, int order) 
-{ 
+void sort_list(RomSelection *start, int order) { 
 	int swapped, i; 
 	RomSelection *ptr1; 
 	RomSelection *lptr = NULL; 
@@ -349,14 +352,36 @@ char *DrawRomSelector() {
 	ImGui::Begin("Selector Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	RomSelection *hovered = nullptr;
 	RomSelection *p = list;
-
-	while (p) {
-		if (ImGui::Button(p->name)){
-			sprintf(selectedRom, p->fullpath);
-			selected = true;
+	
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text(lang_strings[STR_SEARCH]);
+	ImGui::SameLine();
+	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+	if (ImGui::Button(rom_name_filter, ImVec2(400.0f, 22.0f * UI_SCALE))) {
+		showDialog(lang_strings[STR_DLG_SEARCH_ROM], apply_rom_name_filter, dummy_func, DIALOG_KEYBOARD);
+	}
+	ImGui::PopStyleVar();
+	
+	if (strlen(rom_name_filter) > 0) { // Filter results
+		while (p) {
+			if (strcasestr(p->name, rom_name_filter)) {
+				if (ImGui::Button(p->name)){
+					sprintf(selectedRom, p->fullpath);
+					selected = true;
+				}
+				if (ImGui::IsItemHovered()) hovered = p;
+			}
+			p = p->next;
 		}
-		if (ImGui::IsItemHovered()) hovered = p;
-		p = p->next;
+	} else { // No filters
+		while (p) {
+			if (ImGui::Button(p->name)){
+				sprintf(selectedRom, p->fullpath);
+				selected = true;
+			}
+			if (ImGui::IsItemHovered()) hovered = p;
+			p = p->next;
+		}
 	}
 
 	ImGui::End();

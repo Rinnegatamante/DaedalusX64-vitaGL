@@ -147,5 +147,7 @@ char lang_strings[][256] = {
 	"Scale UI Texts", // STR_BIG_TEXT
 	"Launching ?ROMNAME?", // STR_ROM_LAUNCH
 	"Custom Roms Path", // STR_CUSTOM_PATH
-	"Insert a custom Roms path to use" // STR_DLG_CUSTOM_PATH
+	"Insert a custom Roms path to use", // STR_DLG_CUSTOM_PATH
+	"Search: ", // STR_SEARCH
+	"Insert a Rom name filter", // STR_DLG_SEARCH_ROM
 };
