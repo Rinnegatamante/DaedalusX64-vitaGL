@@ -279,6 +279,8 @@ char *DrawRomSelector() {
 	DrawMenuBar();
 		
 	if (!list) {
+		oldSortOrder = -1;
+		
 		if (!comp) {
 			for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
 				char dbname[64];
