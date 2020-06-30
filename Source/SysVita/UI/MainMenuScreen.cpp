@@ -38,7 +38,7 @@
 #define PREVIEW_WIDTH  387.0f
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
 
-#define ROMS_FOLDERS_NUM 2
+#define ROMS_FOLDERS_NUM 5
 
 char selectedRom[256];
 
@@ -71,8 +71,18 @@ static int preview_width, preview_height, preview_x, preview_y;
 CRefPtr<CNativeTexture> mpPreviewTexture;
 GLuint preview_icon = 0;
 
-
 int oldSortOrder = -1;
+
+void resetRomList()
+{
+	RomSelection *p = list;
+	while (p) {
+		RomSelection *old = p;
+		p = p->next;
+		free(old);
+	}
+	list = nullptr;
+}
 
 void swap(RomSelection *a, RomSelection *b) 
 { 
@@ -283,7 +293,10 @@ char *DrawRomSelector() {
 		
 		const char *rom_folders[ROMS_FOLDERS_NUM] = {
 			DAEDALUS_VITA_PATH_EXT("ux0:" , "Roms/"),
-			DAEDALUS_VITA_PATH_EXT("uma0:", "Roms/")
+			DAEDALUS_VITA_PATH_EXT("uma0:", "Roms/"),
+			DAEDALUS_PSP_PATH_EXT("ux0:" , "Roms/"),
+			DAEDALUS_PSP_PATH_EXT("uma0:", "Roms/"),
+			gCustomRomPath
 		};
 		
 		for (int i = 0; i < ROMS_FOLDERS_NUM; i++) {
@@ -404,14 +417,6 @@ char *DrawRomSelector() {
 	vglStopRendering();
 	
 	if (selected) {
-		// NOTE: Uncomment this to make rom list to be re-built every time
-		/*p = list;
-		while (p) {
-			RomSelection *old = p;
-			p = p->next;
-			free(old);
-		}
-		list = nullptr;*/
 		CheatCodes_Read( hovered->settings.GameName.c_str(), "Daedalus.cht", hovered->id.CountryID );
 		return selectedRom;
 	}

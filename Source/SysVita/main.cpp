@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <iostream>
+#include <string>
+#include <locale>
+#include <codecvt>
+
 #include <vitasdk.h>
 #include <vitaGL.h>
 #include <imgui_vita.h>
@@ -40,6 +45,9 @@
 bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
 bool gAutoUpdate = true;
+char gCustomRomPath[256] = {0};
+
+int console_language;
 
 Dialog cur_dialog;
 Alert cur_alert;
@@ -247,7 +255,7 @@ static void Initialize()
 	// Initializing sceCommonDialog
 	SceCommonDialogConfigParam cmnDlgCfgParam;
 	sceCommonDialogConfigParamInit(&cmnDlgCfgParam);
-	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, (int *)&cmnDlgCfgParam.language);
+	cmnDlgCfgParam.language = (SceSystemParamLang)console_language;
 	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_ENTER_BUTTON, (int *)&cmnDlgCfgParam.enterButtonAssign);
 	sceCommonDialogSetConfigParam(&cmnDlgCfgParam);
 
@@ -416,25 +424,61 @@ void showAlert(char *text, int type) {
 	pendingAlert = true;
 }
 
-void showDialog(char *text, void (*yes_func)(), void (*no_func)()) {
+static uint16_t dialog_res_text[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
+void getDialogTextResult(char *text) {
+	// Converting text from UTF16 to UTF8
+	std::u16string utf16_str = (char16_t*)dialog_res_text;
+	std::string utf8_str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.to_bytes(utf16_str.data());
+	sprintf(text, utf8_str.c_str());
+}
+
+void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type) {
 	if (pendingDialog) return;
 	
-	cur_dialog.type = DIALOG_MESSAGE;
+	cur_dialog.type = type;
 	cur_dialog.yes_func = yes_func;
 	cur_dialog.no_func = no_func;
 	
-	SceMsgDialogParam params;
-	SceMsgDialogUserMessageParam msg_params;
+	switch (cur_dialog.type) {
+	case DIALOG_MESSAGE:
+		{
+			SceMsgDialogParam params;
+			SceMsgDialogUserMessageParam msg_params;
 	
-	sceMsgDialogParamInit(&params);
-	params.mode = SCE_MSG_DIALOG_MODE_USER_MSG;
-	params.userMsgParam = &msg_params;
+			sceMsgDialogParamInit(&params);
+			params.mode = SCE_MSG_DIALOG_MODE_USER_MSG;
+			params.userMsgParam = &msg_params;
 	
-	memset(&msg_params, 0, sizeof(SceMsgDialogUserMessageParam));
-	msg_params.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_YESNO;
-	msg_params.msg = (const SceChar8*)text;
+			memset(&msg_params, 0, sizeof(SceMsgDialogUserMessageParam));
+			msg_params.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_YESNO;
+			msg_params.msg = (const SceChar8*)text;
 	
-	sceMsgDialogInit(&params);
+			sceMsgDialogInit(&params);
+		}
+	case DIALOG_KEYBOARD:	
+		{
+			SceImeDialogParam params;
+	
+			sceImeDialogParamInit(&params);
+			params.type = SCE_IME_TYPE_BASIC_LATIN;
+			
+			// Converting text from UTF8 to UTF16
+			std::string utf8_str = text;
+			std::u16string utf16_str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(utf8_str.data());
+			params.title = (const SceWChar16*)utf16_str.c_str();
+			
+			memset(dialog_res_text, 0, sizeof(dialog_res_text));
+			params.initialText = dialog_res_text;
+			params.inputTextBuffer = dialog_res_text;
+			
+			params.maxTextLength = SCE_IME_DIALOG_MAX_TEXT_LENGTH;
+			
+			sceImeDialogInit(&params);
+		}
+	default:
+		break;
+	}
+	
 	pendingDialog = true;
 }
 
@@ -495,11 +539,8 @@ void setTranslation(int idx) {
 		fclose(config);
 		gLanguageIndex = idx;
 	} else if (sys_initialized) DBGConsole_Msg(0, "Cannot find language file.");
-}
-
-void forceTranslation() {
-	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &gLanguageIndex);
-	setTranslation(gLanguageIndex);
+	
+	custom_path_str_dirty = true;
 }
 
 void preloadConfig()
@@ -524,7 +565,17 @@ void preloadConfig()
 		fclose(config);
 		
 		setTranslation(gLanguageIndex);
-	} else forceTranslation();
+	} else setTranslation(console_language);
+}
+
+void loadCustomRomPath()
+{
+	FILE *f = fopen(DAEDALUS_VITA_PATH("Configs/path.ini"), "r");
+	if (f)
+	{
+		fread(gCustomRomPath,1, 256, f);
+		fclose(f);
+	}
 }
 
 void loadConfig(const char *game)
@@ -609,6 +660,7 @@ int main(int argc, char* argv[])
 	memset(&appUtilParam, 0, sizeof(SceAppUtilInitParam));
 	memset(&appUtilBootParam, 0, sizeof(SceAppUtilBootParam));
 	sceAppUtilInit(&appUtilParam, &appUtilBootParam);
+	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &console_language);
 	
 	// We need this to override the compat list update skip option
 	preloadConfig();
@@ -619,7 +671,7 @@ int main(int argc, char* argv[])
 		gSkipCompatListUpdate = true;
 		gStandaloneMode = false;
 		rom = strstr(boot_params, "&param=") + 7;
-	}
+	} else loadCustomRomPath();
 	
 	Initialize();
 

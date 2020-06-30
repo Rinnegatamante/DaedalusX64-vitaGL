@@ -32,11 +32,6 @@
 
 #define MAX_SAVESLOT 9
 
-void reset_ext_sampling_func () {
-	// Message Dialog sets back mode to SCE_CTRL_MODE_DIGITAL apparently
-	sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
-}
-
 bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
 int gUiTheme = DARK_THEME;
@@ -46,6 +41,9 @@ int gAntiAliasing = ANTIALIASING_MSAA_4X;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
+
+static char custom_path_str[512];
+bool custom_path_str_dirty = true;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
@@ -81,6 +79,18 @@ float gamma_val = 1.0f;
 
 char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
+
+void saveCustomRomPath()
+{
+	sceIoMkdir(DAEDALUS_VITA_PATH("Configs/"), 0777);
+	
+	FILE *f = fopen(DAEDALUS_VITA_PATH("Configs/path.ini"), "w+");
+	if (f)
+	{
+		fprintf(f, gCustomRomPath);
+		fclose(f);
+	}
+}
 
 void saveConfig(const char *game)
 {
@@ -138,6 +148,18 @@ void saveConfig(const char *game)
 void save_and_restart_func() {
 	saveConfig("default");
 	sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
+}
+
+void reset_ext_sampling_func () {
+	// Message Dialog sets back mode to SCE_CTRL_MODE_DIGITAL apparently
+	sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
+}
+
+void change_custom_rom_path () {
+	getDialogTextResult(gCustomRomPath);
+	saveCustomRomPath();
+	resetRomList();
+	custom_path_str_dirty = true;
 }
 
 void SetupVFlux() {
@@ -300,15 +322,15 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
 		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])){
 			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)){
-				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func);
+				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func, DIALOG_MESSAGE);
 				gAntiAliasing = ANTIALIASING_DISABLED;
 			}
 			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func);
+				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func, DIALOG_MESSAGE);
 				gAntiAliasing = ANTIALIASING_MSAA_2X;
 			}
 			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func);
+				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, reset_ext_sampling_func, DIALOG_MESSAGE);
 				gAntiAliasing = ANTIALIASING_MSAA_4X;
 			}
 			ImGui::EndMenu();
@@ -593,18 +615,41 @@ void DrawPendingAlert() {
 
 void DrawPendingDialog() {
 	if (pendingDialog) {
-		while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-			vglStopRenderingInit();
-			vglUpdateCommonDialog();
-			vglStopRenderingTerm();
-			vglStartRendering();
+		switch(cur_dialog.type) {
+		case DIALOG_MESSAGE:
+			{
+				while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+					vglStopRenderingInit();
+					vglUpdateCommonDialog();
+					vglStopRenderingTerm();
+					vglStartRendering();
+				}
+				SceMsgDialogResult res;
+				memset(&res, 0, sizeof(SceMsgDialogResult));
+				sceMsgDialogGetResult(&res);
+				if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_NO) cur_dialog.no_func();
+				else if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_YES) cur_dialog.yes_func();
+				sceMsgDialogTerm();
+			}
+		case DIALOG_KEYBOARD:
+			{
+				while (sceImeDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+					vglStopRenderingInit();
+					vglUpdateCommonDialog();
+					vglStopRenderingTerm();
+					vglStartRendering();
+				}
+				SceImeDialogResult res;
+				memset(&res, 0, sizeof(SceImeDialogResult));
+				sceImeDialogGetResult(&res);
+				if (res.button == SCE_IME_DIALOG_BUTTON_ENTER) cur_dialog.yes_func();
+				else cur_dialog.no_func();
+				sceImeDialogTerm();
+			}
+		default:
+			break;
 		}
-		SceMsgDialogResult res;
-		memset(&res, 0, sizeof(SceMsgDialogResult));
-		sceMsgDialogGetResult(&res);
-		if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_NO) cur_dialog.no_func();
-		else if (res.buttonId == SCE_MSG_DIALOG_BUTTON_ID_YES) cur_dialog.yes_func();
-		sceMsgDialogTerm();
+		
 		pendingDialog = false;
 	}
 }
@@ -618,10 +663,18 @@ void DrawMenuBar() {
 		oldBigText = gBigText;
 	}
 	
+	if (custom_path_str_dirty) {
+		sprintf(custom_path_str, "%s: %s", lang_strings[STR_CUSTOM_PATH], strlen(gCustomRomPath) > 1 ? gCustomRomPath : lang_strings[STR_UNUSED]); 
+		custom_path_str_dirty = false;
+	}
+	
 	ImGui_ImplVitaGL_NewFrame();
 	
 	if (ImGui::BeginMainMenuBar()){
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
+			if (ImGui::MenuItem(custom_path_str)) {
+				showDialog(lang_strings[STR_DLG_CUSTOM_PATH], change_custom_rom_path, reset_ext_sampling_func, DIALOG_KEYBOARD);
+			}
 			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){
 				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)){
 					gSortOrder = SORT_A_TO_Z;

@@ -53,7 +53,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 140
+#define LANG_STRINGS_NUM 142
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -195,7 +195,9 @@ enum {
 	FUNC(STR_ALERT_STATE_SAVE) \
 	FUNC(STR_ALERT_STATE_LOAD) \
 	FUNC(STR_BIG_TEXT) \
-	FUNC(STR_ROM_LAUNCH)
+	FUNC(STR_ROM_LAUNCH) \
+	FUNC(STR_CUSTOM_PATH) \
+	FUNC(STR_DLG_CUSTOM_PATH)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -211,7 +213,8 @@ extern bool show_menubar;
 
 // Dialog types
 enum {
-	DIALOG_MESSAGE
+	DIALOG_MESSAGE,
+	DIALOG_KEYBOARD
 };
 
 // Alert types
@@ -258,9 +261,11 @@ extern int  gSortOrder;
 extern int  gUiTheme;
 extern int  gAntiAliasing;
 extern bool gBigText;
+extern char gCustomRomPath[256];
 
 extern bool pendingDialog;
 extern bool pendingAlert;
+extern bool custom_path_str_dirty;
 
 char *DrawRomSelector();
 void DrawInGameMenu();
@@ -277,6 +282,8 @@ void setUiTheme(int theme);
 void setTranslation(int idx);
 void setTexCacheMode(int mode);
 void stripGameName(char *name);
-void showDialog(char *text, void (*yes_func)(), void (*no_func)());
+void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type);
+void getDialogTextResult(char *text);
 void showAlert(char *text, int type);
 void reloadFont();
+void resetRomList();
