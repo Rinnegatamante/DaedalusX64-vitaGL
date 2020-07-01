@@ -53,7 +53,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 145
+#define LANG_STRINGS_NUM 147
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -200,7 +200,9 @@ enum {
 	FUNC(STR_DLG_CUSTOM_PATH) \
 	FUNC(STR_SEARCH) \
 	FUNC(STR_DLG_SEARCH_ROM) \
-	FUNC(STR_EXTRACTING)
+	FUNC(STR_EXTRACTING) \
+	FUNC(STR_DOWNLOAD_DATA) \
+	FUNC(STR_DLG_DOWNLOAD_DATA)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -268,6 +270,7 @@ extern char gCustomRomPath[256];
 
 extern bool pendingDialog;
 extern bool pendingAlert;
+extern bool pendingDownload;
 extern bool custom_path_str_dirty;
 
 char *DrawRomSelector();
@@ -275,6 +278,7 @@ void DrawInGameMenu();
 void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
+void DrawDownloaderScreenCompat(float downloaded_bytes, float total_bytes, char *text);
 void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_bytes, float file_total_bytes, float total_bytes, char *filename, int num_files);
 void DrawPendingDialog();
 void DrawPendingAlert();
@@ -293,5 +297,6 @@ void reloadFont();
 void resetRomList();
 
 void extract_file(char *file, char *dir);
+int download_file(char *url, char *file, char *msg, float int_total_bytes);
 
 void dummy_func();

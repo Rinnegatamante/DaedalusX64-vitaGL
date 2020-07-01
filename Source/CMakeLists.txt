@@ -264,7 +264,6 @@ if (VITA_RELEASE)
 		SceAudio_stub
 		ScePower_stub
 		SceNet_stub
-		SceNetCtl_stub
 		SceAppMgr_stub
 		SceAppUtil_stub
 		c

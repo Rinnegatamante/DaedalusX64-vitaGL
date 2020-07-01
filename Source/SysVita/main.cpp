@@ -50,6 +50,8 @@ char gCustomRomPath[256] = {0};
 
 static char fname[512], ext_fname[512], read_buffer[8192];
 
+static char *net_url = nullptr;
+
 int console_language;
 
 Dialog cur_dialog;
@@ -79,6 +81,8 @@ int gUseVSync = GL_TRUE;
 bool pendingDialog = false;
 bool pendingAlert = false;
 
+void *net_memory = nullptr;
+
 char boot_params[1024];
 
 void recursive_mkdir(char *dir) {
@@ -100,7 +104,7 @@ void extract_file(char *file, char *dir) {
 	unzFile zipfile = unzOpen(file);
 	unzGetGlobalInfo(zipfile, &global_info);
 	unzGoToFirstFile(zipfile);
-	uint64_t total_extracted_bytes;
+	uint64_t total_extracted_bytes = 0;
 	uint64_t curr_extracted_bytes = 0;
 	uint64_t curr_file_bytes = 0;
 	int num_files = global_info.number_entry;
@@ -134,6 +138,7 @@ void extract_file(char *file, char *dir) {
 		if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
 	}
 	unzClose(zipfile);
+	ImGui::GetIO().MouseDrawCursor = true;
 }
 
 void log2file(const char *format, ...) {
@@ -212,7 +217,6 @@ static int compatListThread(unsigned int args, void* arg){
 	curl_handle = curl_easy_init();
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
 		downloader_pass = i;
-		sceKernelWaitSema(net_mutex, 1, NULL);
 		sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
 		sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=%ld&per_page=100", i);
 		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
@@ -237,13 +241,27 @@ static int compatListThread(unsigned int args, void* arg){
 	return 0;
 }
 
+static int downloaderThread(unsigned int args, void* arg){
+	char url[512];
+	curl_handle = curl_easy_init();
+	sprintf(url, net_url);
+	fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
+	downloaded_bytes = 0;
+	startDownload(url);
+	fclose(fh);
+	if (downloaded_bytes <= 12 * 1024)
+		sceIoRemove(TEMP_DOWNLOAD_NAME);
+	curl_easy_cleanup(curl_handle);
+	sceKernelExitDeleteThread(0);
+	return 0;
+}
+
 static int updaterThread(unsigned int args, void* arg){
 	uint8_t update_detected = 0;
 	char url[512];
 	curl_handle = curl_easy_init();
 	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 		downloader_pass = i;
-		sceKernelWaitSema(net_mutex, 1, NULL);
 		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/latest");
 		else if (!update_detected) {
 			downloaded_bytes = total_bytes;
@@ -296,6 +314,48 @@ void reloadFont() {
 	ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE, NULL, ranges);
 }
 
+void start_net() {
+	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
+	int ret = sceNetShowNetstat();
+	SceNetInitParam initparam;
+	if (ret == SCE_NET_ERROR_ENOTINIT) {
+		net_memory = malloc(NET_INIT_SIZE);
+		initparam.memory = net_memory;
+		initparam.size = NET_INIT_SIZE;
+		initparam.flags = 0;
+		sceNetInit(&initparam);
+	}
+}
+
+int download_file(char *url, char *file, char *msg, float int_total_bytes) {
+	start_net();
+	
+	SceKernelThreadInfo info;
+	info.size = sizeof(SceKernelThreadInfo);
+	int res = 0;
+	total_bytes = 0xFFFFFFFF;
+	downloaded_bytes = 0;
+	net_url = url;
+	
+	SceUID thd = sceKernelCreateThread("Net Downloader", &downloaderThread, 0x10000100, 0x100000, 0, 0, NULL);
+	sceKernelStartThread(thd, 0, NULL);
+	do {
+		DrawDownloaderScreenCompat(downloaded_bytes, downloaded_bytes > int_total_bytes ? downloaded_bytes : int_total_bytes, msg);
+		res = sceKernelGetThreadInfo(thd, &info);
+	} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
+	
+	FILE *f = fopen(TEMP_DOWNLOAD_NAME, "r");
+	if (f) {
+		fclose(f);
+		sceIoRemove(file);
+		sceIoRename(TEMP_DOWNLOAD_NAME, file);
+	}else return -1;
+	
+	ImGui::GetIO().MouseDrawCursor = true;
+	
+	return 0;
+}
+
 static void Initialize()
 {
 	sys_initialized = true;
@@ -327,21 +387,8 @@ static void Initialize()
 	uint8_t gSkipAutoUpdate = strstr(stringify(GIT_VERSION), "dirty") != nullptr;
 	
 	// Initializing net
-	void *net_memory = nullptr;
-	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
-		net_mutex = sceKernelCreateSema("Net Mutex", 0, 0, 1, NULL);
-		sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-		int ret = sceNetShowNetstat();
-		SceNetInitParam initparam;
-		if (ret == SCE_NET_ERROR_ENOTINIT) {
-			net_memory = malloc(NET_INIT_SIZE);
-			initparam.memory = net_memory;
-			initparam.size = NET_INIT_SIZE;
-			initparam.flags = 0;
-			sceNetInit(&initparam);
-		}
-		sceNetCtlInit();
-	}
+	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate)
+		start_net();
 	
 	// Initializing vitaGL
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
@@ -368,7 +415,6 @@ static void Initialize()
 		SceUID thd = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
 		sceKernelStartThread(thd, 0, NULL);
 		do {
-			sceKernelSignalSema(net_mutex, 1);
 			if (downloader_pass == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHECK_UPDATE], NUM_UPDATE_PASSES);
 			else DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_UPDATE], NUM_UPDATE_PASSES);
 			res = sceKernelGetThreadInfo(thd, &info);
@@ -393,22 +439,12 @@ static void Initialize()
 		SceUID thd = sceKernelCreateThread("Compat List Updater", &compatListThread, 0x10000100, 0x100000, 0, 0, NULL);
 		sceKernelStartThread(thd, 0, NULL);
 		do {
-			sceKernelSignalSema(net_mutex, 1);
 			DrawDownloaderScreen(downloader_pass, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_COMPAT_LIST], NUM_DB_CHUNKS);
 			res = sceKernelGetThreadInfo(thd, &info);
 		} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
 	}
-	
-	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
-		ImGui::GetIO().MouseDrawCursor = true;
 
-		// Closing net
-		sceNetCtlTerm();
-		sceNetTerm();
-		sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
-		free(net_memory);
-		sceKernelDeleteSema(net_mutex);
-	}
+	ImGui::GetIO().MouseDrawCursor = true;
 }
 
 void setCpuMode(int cpu_mode)

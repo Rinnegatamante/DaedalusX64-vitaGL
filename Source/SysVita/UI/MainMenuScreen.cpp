@@ -443,6 +443,15 @@ char *DrawRomSelector() {
 	DrawPendingDialog();
 	vglStopRendering();
 	
+	if (pendingDownload) {
+		if (download_file("https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.zip", "ux0:data/temp.zip", lang_strings[STR_DLG_DOWNLOAD_DATA], 26 * 1024 * 1024) >= 0) {
+			extract_file("ux0:data/temp.zip", "ux0:data/");
+			sceIoRemove("ux0:data/temp.zip");
+			resetRomList();
+		}
+		pendingDownload = false;
+	}
+	
 	if (selected) {
 		CheatCodes_Read( hovered->settings.GameName.c_str(), "Daedalus.cht", hovered->id.CountryID );
 		return selectedRom;

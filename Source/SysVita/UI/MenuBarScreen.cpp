@@ -32,6 +32,8 @@
 
 #define MAX_SAVESLOT 9
 
+bool pendingDownload = false;
+
 bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
 int gUiTheme = DARK_THEME;
@@ -671,6 +673,10 @@ void DrawMenuBar() {
 	ImGui_ImplVitaGL_NewFrame();
 	if (ImGui::BeginMainMenuBar()){
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
+			if (ImGui::MenuItem(lang_strings[STR_DOWNLOAD_DATA])) {
+				pendingDownload = true;
+			}
+			ImGui::Separator();
 			if (ImGui::MenuItem(custom_path_str)) {
 				showDialog(lang_strings[STR_DLG_CUSTOM_PATH], change_custom_rom_path, dummy_func, DIALOG_KEYBOARD);
 			}

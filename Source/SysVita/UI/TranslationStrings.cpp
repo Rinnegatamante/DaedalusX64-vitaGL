@@ -151,4 +151,6 @@ char lang_strings[][256] = {
 	"Search: ", // STR_SEARCH
 	"Insert a Rom name filter", // STR_DLG_SEARCH_ROM
 	"Extracting archive", // STR_EXTRACTING
+	"Download Data Files", // STR_DOWNLOAD_DATA
+	"Downloading Data Files", // STR_DLG_DOWNLOAD_DATA
 };
