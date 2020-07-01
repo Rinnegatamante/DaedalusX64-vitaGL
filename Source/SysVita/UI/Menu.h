@@ -292,4 +292,6 @@ void showAlert(char *text, int type);
 void reloadFont();
 void resetRomList();
 
+void extract_file(char *file, char *dir);
+
 void dummy_func();

@@ -67,6 +67,7 @@ extern bool kUpdateTexturesEveryFrame;
 static CURL *curl_handle = NULL;
 static volatile uint64_t total_bytes = 0xFFFFFFFF;
 static volatile uint64_t downloaded_bytes = 0;
+static volatile uint8_t downloader_pass = 1;
 static FILE *fh;
 char *bytes_string;
 static SceUID net_mutex;
@@ -91,6 +92,48 @@ void recursive_mkdir(char *dir) {
 			p2[0] = '/';
 		} else break;
 	}
+}
+
+void extract_file(char *file, char *dir) {
+	unz_global_info global_info;
+	unz_file_info file_info;
+	unzFile zipfile = unzOpen(file);
+	unzGetGlobalInfo(zipfile, &global_info);
+	unzGoToFirstFile(zipfile);
+	uint64_t total_extracted_bytes;
+	uint64_t curr_extracted_bytes = 0;
+	uint64_t curr_file_bytes = 0;
+	int num_files = global_info.number_entry;
+	for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
+		unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
+		total_extracted_bytes += file_info.uncompressed_size;
+		if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
+	}
+	unzGoToFirstFile(zipfile);
+	for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
+		unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
+		sprintf(ext_fname, "%s%s", dir, fname); 
+		const size_t filename_length = strlen(ext_fname);
+		if (ext_fname[filename_length - 1] != '/') {
+			curr_file_bytes = 0;
+			unzOpenCurrentFile(zipfile);
+			recursive_mkdir(ext_fname);
+			FILE *f = fopen(ext_fname, "wb");
+			while (curr_file_bytes < file_info.uncompressed_size) {
+				int rbytes = unzReadCurrentFile(zipfile, read_buffer, 8192);
+				if (rbytes > 0) {
+					fwrite(read_buffer, 1, rbytes, f);
+					curr_extracted_bytes += rbytes;
+					curr_file_bytes += rbytes;
+				}
+				DrawExtractorScreen(zip_idx + 1, curr_file_bytes, curr_extracted_bytes, file_info.uncompressed_size, total_extracted_bytes, fname, num_files);
+			}
+			fclose(f);
+			unzCloseCurrentFile(zipfile);
+		}
+		if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
+	}
+	unzClose(zipfile);
 }
 
 void log2file(const char *format, ...) {
@@ -123,6 +166,7 @@ void EnableMenuButtons(bool status) {
 static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
 {
 	downloaded_bytes += size * nmemb;
+	if (total_bytes < downloaded_bytes) total_bytes = downloaded_bytes;
 	return fwrite(ptr, size, nmemb, fh);
 }
 
@@ -167,6 +211,7 @@ static int compatListThread(unsigned int args, void* arg){
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+		downloader_pass = i;
 		sceKernelWaitSema(net_mutex, 1, NULL);
 		sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
 		sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL-Compatibility/issues?state=open&page=%ld&per_page=100", i);
@@ -197,6 +242,7 @@ static int updaterThread(unsigned int args, void* arg){
 	char url[512];
 	curl_handle = curl_easy_init();
 	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
+		downloader_pass = i;
 		sceKernelWaitSema(net_mutex, 1, NULL);
 		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/latest");
 		else if (!update_detected) {
@@ -278,7 +324,7 @@ static void Initialize()
 	sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
 	
 	// Turn off auto updater if build is marked as dirty
-	uint8_t gSkipAutoUpdate = false;//strstr(stringify(GIT_VERSION), "dirty") != nullptr;
+	uint8_t gSkipAutoUpdate = strstr(stringify(GIT_VERSION), "dirty") != nullptr;
 	
 	// Initializing net
 	void *net_memory = nullptr;
@@ -313,68 +359,30 @@ static void Initialize()
 	ImGui::StyleColorsDark();
 	SetupVFlux();
 	
+	SceKernelThreadInfo info;
+	info.size = sizeof(SceKernelThreadInfo);
+	int res = 0;
+	
 	// Checking for updates
 	if (gAutoUpdate && !gSkipAutoUpdate) {
 		SceUID thd = sceKernelCreateThread("Auto Updater", &updaterThread, 0x10000100, 0x100000, 0, 0, NULL);
 		sceKernelStartThread(thd, 0, NULL);
-		for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
+		do {
 			sceKernelSignalSema(net_mutex, 1);
-			sceKernelDelayThread(1000);
-			while (downloaded_bytes < total_bytes) {
-				if (i == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHECK_UPDATE], NUM_UPDATE_PASSES);
-				else DrawDownloaderScreen(i + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_UPDATE], NUM_UPDATE_PASSES);
-			}
-			total_bytes++;
-		}
-		sceKernelWaitThreadEnd(thd, NULL, NULL);
+			if (downloader_pass == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHECK_UPDATE], NUM_UPDATE_PASSES);
+			else DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_UPDATE], NUM_UPDATE_PASSES);
+			res = sceKernelGetThreadInfo(thd, &info);
+		} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
 		total_bytes = 0xFFFFFFFF;
 		downloaded_bytes = 0;
+		downloader_pass = 1;
 		
-		// Found an update, extracting and installing iter_swap
+		// Found an update, extracting and installing it
 		FILE *f = fopen(TEMP_DOWNLOAD_NAME, "r");
 		if (f) {
 			sceAppMgrUmount("app0:");
 			fclose(f);
-			unz_global_info global_info;
-			unz_file_info file_info;
-			unzFile zipfile = unzOpen(TEMP_DOWNLOAD_NAME);
-			unzGetGlobalInfo(zipfile, &global_info);
-			unzGoToFirstFile(zipfile);
-			uint64_t total_extracted_bytes;
-			uint64_t curr_extracted_bytes = 0;
-			uint64_t curr_file_bytes = 0;
-			int num_files = global_info.number_entry;
-			for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
-				unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
-				total_extracted_bytes += file_info.uncompressed_size;
-				if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
-			}
-			unzGoToFirstFile(zipfile);
-			for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
-				unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
-				sprintf(ext_fname, "ux0:app/DEDALOX64/%s", fname); 
-				const size_t filename_length = strlen(ext_fname);
-				if (ext_fname[filename_length - 1] == '/') sceIoMkdir(ext_fname, 0777);
-				else {
-					curr_file_bytes = 0;
-					unzOpenCurrentFile(zipfile);
-					recursive_mkdir(ext_fname);
-					f = fopen(ext_fname, "wb");
-					while (curr_file_bytes < file_info.uncompressed_size) {
-						int rbytes = unzReadCurrentFile(zipfile, read_buffer, 8192);
-						if (rbytes > 0) {
-							fwrite(read_buffer, 1, rbytes, f);
-							curr_extracted_bytes += rbytes;
-							curr_file_bytes += rbytes;
-						}
-						DrawExtractorScreen(zip_idx + 1, curr_file_bytes, curr_extracted_bytes, file_info.uncompressed_size, total_extracted_bytes, fname, num_files);
-					}
-					fclose(f);
-					unzCloseCurrentFile(zipfile);
-				}
-				if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
-			}
-			unzClose(zipfile);
+			extract_file(TEMP_DOWNLOAD_NAME, "ux0:app/DEDALOX64/");
 			sceIoRemove(TEMP_DOWNLOAD_NAME);
 			sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
 		}
@@ -384,15 +392,11 @@ static void Initialize()
 	if (!gSkipCompatListUpdate) {
 		SceUID thd = sceKernelCreateThread("Compat List Updater", &compatListThread, 0x10000100, 0x100000, 0, 0, NULL);
 		sceKernelStartThread(thd, 0, NULL);
-		for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
+		do {
 			sceKernelSignalSema(net_mutex, 1);
-			sceKernelDelayThread(1000);
-			while (downloaded_bytes < total_bytes) {
-				DrawDownloaderScreen(i, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_COMPAT_LIST], NUM_DB_CHUNKS);
-			}
-			total_bytes++;
-		}
-		sceKernelWaitThreadEnd(thd, NULL, NULL);
+			DrawDownloaderScreen(downloader_pass, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_COMPAT_LIST], NUM_DB_CHUNKS);
+			res = sceKernelGetThreadInfo(thd, &info);
+		} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
 	}
 	
 	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate) {
