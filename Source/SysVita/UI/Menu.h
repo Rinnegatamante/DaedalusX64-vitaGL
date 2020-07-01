@@ -53,7 +53,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 144
+#define LANG_STRINGS_NUM 145
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -199,7 +199,8 @@ enum {
 	FUNC(STR_CUSTOM_PATH) \
 	FUNC(STR_DLG_CUSTOM_PATH) \
 	FUNC(STR_SEARCH) \
-	FUNC(STR_DLG_SEARCH_ROM)
+	FUNC(STR_DLG_SEARCH_ROM) \
+	FUNC(STR_EXTRACTING)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -274,6 +275,7 @@ void DrawInGameMenu();
 void DrawMenuBar();
 void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
+void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_bytes, float file_total_bytes, float total_bytes, char *filename, int num_files);
 void DrawPendingDialog();
 void DrawPendingAlert();
 

@@ -150,4 +150,5 @@ char lang_strings[][256] = {
 	"Insert a custom Roms path to use", // STR_DLG_CUSTOM_PATH
 	"Search: ", // STR_SEARCH
 	"Insert a Rom name filter", // STR_DLG_SEARCH_ROM
+	"Extracting archive", // STR_EXTRACTING
 };

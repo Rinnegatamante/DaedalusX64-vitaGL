@@ -38,6 +38,7 @@
 #include "Utility/Translate.h"
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
+#include "minizip/unzip.h"
 
 #define NET_INIT_SIZE 1*1024*1024
 #define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
@@ -46,6 +47,8 @@ bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
 bool gAutoUpdate = true;
 char gCustomRomPath[256] = {0};
+
+static char fname[512], ext_fname[512], read_buffer[8192];
 
 int console_language;
 
@@ -76,6 +79,19 @@ bool pendingDialog = false;
 bool pendingAlert = false;
 
 char boot_params[1024];
+
+void recursive_mkdir(char *dir) {
+	char *p = dir;
+	while (p) {
+		char *p2 = strstr(p, "/");
+		if (p2) {
+			p2[0] = 0;
+			sceIoMkdir(dir, 0777);
+			p = p2 + 1;
+			p2[0] = '/';
+		} else break;
+	}
+}
 
 void log2file(const char *format, ...) {
 	__gnuc_va_list arg;
@@ -191,7 +207,7 @@ static int updaterThread(unsigned int args, void* arg){
 		downloaded_bytes = 0;
 
 		// FIXME: Workaround since GitHub Api does not set Content-Length
-		total_bytes = i == UPDATER_CHECK_UPDATES ? 20 * 1024 : 1572864; /* 20 KB / 1.5 MB */
+		total_bytes = i == UPDATER_CHECK_UPDATES ? 20 * 1024 : 2 * 1024 * 1024; /* 20 KB / 2 MB */
 
 		startDownload(url);
 
@@ -207,14 +223,9 @@ static int updaterThread(unsigned int args, void* arg){
 				fclose(fh);
 				sceIoRemove(TEMP_DOWNLOAD_NAME);
 				if (strncmp(strstr(buffer, "target_commitish") + 20, stringify(GIT_VERSION), 6)) {
-					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.self");
+					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.vpk");
 					update_detected = 1;
 				}
-			} else {
-				sceAppMgrUmount("app0:");
-				sceIoRemove("ux0:app/DEDALOX64/eboot.bin");
-				sceIoRename(TEMP_DOWNLOAD_NAME, "ux0:app/DEDALOX64/eboot.bin");
-				sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
 			}
 		} else sceIoRemove(TEMP_DOWNLOAD_NAME);
 		downloaded_bytes = total_bytes;
@@ -267,7 +278,7 @@ static void Initialize()
 	sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
 	
 	// Turn off auto updater if build is marked as dirty
-	uint8_t gSkipAutoUpdate = strstr(stringify(GIT_VERSION), "dirty") != nullptr;
+	uint8_t gSkipAutoUpdate = false;//strstr(stringify(GIT_VERSION), "dirty") != nullptr;
 	
 	// Initializing net
 	void *net_memory = nullptr;
@@ -318,6 +329,55 @@ static void Initialize()
 		sceKernelWaitThreadEnd(thd, NULL, NULL);
 		total_bytes = 0xFFFFFFFF;
 		downloaded_bytes = 0;
+		
+		// Found an update, extracting and installing iter_swap
+		FILE *f = fopen(TEMP_DOWNLOAD_NAME, "r");
+		if (f) {
+			sceAppMgrUmount("app0:");
+			fclose(f);
+			unz_global_info global_info;
+			unz_file_info file_info;
+			unzFile zipfile = unzOpen(TEMP_DOWNLOAD_NAME);
+			unzGetGlobalInfo(zipfile, &global_info);
+			unzGoToFirstFile(zipfile);
+			uint64_t total_extracted_bytes;
+			uint64_t curr_extracted_bytes = 0;
+			uint64_t curr_file_bytes = 0;
+			int num_files = global_info.number_entry;
+			for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
+				unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
+				total_extracted_bytes += file_info.uncompressed_size;
+				if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
+			}
+			unzGoToFirstFile(zipfile);
+			for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
+				unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
+				sprintf(ext_fname, "ux0:app/DEDALOX64/%s", fname); 
+				const size_t filename_length = strlen(ext_fname);
+				if (ext_fname[filename_length - 1] == '/') sceIoMkdir(ext_fname, 0777);
+				else {
+					curr_file_bytes = 0;
+					unzOpenCurrentFile(zipfile);
+					recursive_mkdir(ext_fname);
+					f = fopen(ext_fname, "wb");
+					while (curr_file_bytes < file_info.uncompressed_size) {
+						int rbytes = unzReadCurrentFile(zipfile, read_buffer, 8192);
+						if (rbytes > 0) {
+							fwrite(read_buffer, 1, rbytes, f);
+							curr_extracted_bytes += rbytes;
+							curr_file_bytes += rbytes;
+						}
+						DrawExtractorScreen(zip_idx + 1, curr_file_bytes, curr_extracted_bytes, file_info.uncompressed_size, total_extracted_bytes, fname, num_files);
+					}
+					fclose(f);
+					unzCloseCurrentFile(zipfile);
+				}
+				if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
+			}
+			unzClose(zipfile);
+			sceIoRemove(TEMP_DOWNLOAD_NAME);
+			sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
+		}
 	}
 
 	// Downloading compatibility databases
