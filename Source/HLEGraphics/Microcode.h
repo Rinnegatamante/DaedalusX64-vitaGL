@@ -39,7 +39,6 @@ enum GBIVersion
 	GBI_GE,
 	GBI_CONKER,
 	GBI_PD,
-	GBI_RS,
 	GBI_ACCLAIM,
 	GBI_AM
 };

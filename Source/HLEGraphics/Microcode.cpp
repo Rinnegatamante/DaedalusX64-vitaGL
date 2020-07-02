@@ -131,28 +131,28 @@ struct MicrocodeData
 	u32 offset;
 	u32 stride;
 	u32	hash;
+	bool beta_persp;
 	char name[16];
 };
 
+// NOTE: GBI_Acclaim not yet populated due to games using it not properly booting
 static const MicrocodeData gMicrocodeData[] =
 {
 	//
 	//   The only games that need defining are custom ucodes  or ucodes that lack a version string in the microcode data
 	//
-	{ GBI_CONKER,   GBI_2,  2, 0x60256efc, "GBI_CONKER" },   // Conker's Bad Fur Day
-	{ GBI_LL,       GBI_1,  2, 0x6d8bec3e, "GBI_LL"     },   // Dark Rift
-	{ GBI_DKR,      GBI_0, 10, 0x0c10181a, "GBI_DKR"    },   // Diddy Kong Racing (v1.0)
-	{ GBI_DKR,      GBI_0, 10, 0x713311dc, "GBI_DKR"    },   // Diddy Kong Racing (v1.1)
-	{ GBI_GE,       GBI_0, 10, 0x23f92542, "GBI_GE"     },   // GoldenEye 007
-	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, "GBI_DKR"    },   // Jet Force Gemini
-	{ GBI_LL,       GBI_1,  2, 0x26da8a4c, "GBI_LL"     },   // Last Legion UX
-	{ GBI_PD,       GBI_0, 10, 0xcac47dc4, "GBI_PD"     },   // Perfect Dark
-	{ GBI_BETA,     GBI_0,  5, 0x6cbb521d, "GBI_BETA"   },   // Star Wars - Shadows of the Empire
-	{ GBI_LL,       GBI_1,  2, 0xdd560323, "GBI_LL"     },   // Toukon Road - Brave Spirits
-	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, "GBI_BETA"   },   // Wave Race 64 (v.1.1)
-	{ GBI_RS,       GBI_0,  2, 0xc62a1631, "GBI_RS"     },   // Star Wars - Rogue Squadron
-	{ GBI_ACCLAIM,  GBI_2,  2, 0x9abf98e4, "GBI_ACCLAIM"},   // South Park Racing
-	{ GBI_AM,       GBI_2,  2, 0x4e896a4a, "GBI_AM"     },   // Hey You, Pikachu
+	{ GBI_CONKER,   GBI_2,  2, 0x60256efc, false, "GBI_CONKER"    },   // Conker's Bad Fur Day
+	{ GBI_LL,       GBI_1,  2, 0x6d8bec3e, true,  "GBI_LL"        },   // Dark Rift
+	{ GBI_DKR,      GBI_0, 10, 0x0c10181a, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.0)
+	{ GBI_DKR,      GBI_0, 10, 0x713311dc, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.1)
+	{ GBI_GE,       GBI_0, 10, 0x23f92542, false, "GBI_GE"        },   // GoldenEye 007
+	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, true,  "GBI_DKR"       },   // Jet Force Gemini
+	{ GBI_LL,       GBI_1,  2, 0x26da8a4c, false, "GBI_LL"        },   // Last Legion UX
+	{ GBI_PD,       GBI_0, 10, 0xcac47dc4, false, "GBI_PD"        },   // Perfect Dark
+	{ GBI_BETA,     GBI_0,  5, 0x6cbb521d, true,  "GBI_BETA"      },   // Star Wars - Shadows of the Empire
+	{ GBI_LL,       GBI_1,  2, 0xdd560323, false, "GBI_LL"        },   // Toukon Road - Brave Spirits
+	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, true,  "GBI_BETA"      },   // Wave Race 64 (v.1.1)
+	{ GBI_1,  		GBI_1,  2, 0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
 };
 
 UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
@@ -198,71 +198,115 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	// It wasn't the same as the last time around, we'll hash it and check if is a custom ucode.
 	//
 	u32 code_hash = GBIMicrocode_MicrocodeHash( code_base, code_size );
-
-	for ( u32 i = 0; i < ARRAYSIZE(gMicrocodeData); i++ )
-	{
-		if ( code_hash == gMicrocodeData[i].hash )
-		{
-			//DBGConsole_Msg(0, "Ucode has been Detected in Array :[M\"%s\", Ucode %d]", cur_ucode, gMicrocodeData[ i ].ucode);
-			u32 ucode_version = gMicrocodeData[i].ucode;
-			u32 ucode_stride = gMicrocodeData[i].stride;
-			u32 ucode_offset = gMicrocodeData[i].offset;
-			
-			GBIMicrocode_SetCustomArray(ucode_version, ucode_offset); 
-			
-			sprintf(cur_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[i].name, code_hash);
-			return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
-		}
-	}
+	bool is_custom_ucode = false;
 	
 	// Select Fast3D ucode in case there's no match or if the version string its missing
 	u32 ucode_version = GBI_0;
+	u32 ucode_offset = GBI_0;
 	u32 ucode_stride = 10;
+	bool ucode_beta_persp = false;
+	
+	for ( u32 index = 0; index < ARRAYSIZE(gMicrocodeData); index++ )
+	{
+		if ( code_hash == gMicrocodeData[index].hash )
+		{
+			is_custom_ucode = true;
+			sprintf(cur_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[index].name, code_hash);
+			
+			ucode_version = gMicrocodeData[index].ucode;
+			ucode_stride = gMicrocodeData[index].stride;
+			ucode_offset = gMicrocodeData[index].offset;
+			ucode_beta_persp = gMicrocodeData[index].beta_persp;
+			
+			break;
+		}
+	}
 	
 	//
 	// If it wasn't a custom ucode. Try to detect by checking the version string in the microcode data.
 	// This is faster than calculating a CRC of the code
 	//
-	if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_ucode, 256))
-		sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
-	else {
-		const char  *ucodes[] { "F3", "L3", "S2DEX" };
-		char 		*match;
-
-		for(u32 j = 0; j < 3; j++)
-		{
-			if( (match = strstr(cur_ucode, ucodes[j])) )
-				break;
-		}
-
-		if( match )
-		{
+	if (!is_custom_ucode) {
+		if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_ucode, 256)) {
+			sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
+			DBGConsole_Msg(0, "Unknown GFX microcode, falling back to F3D");
+		} else {
+			const char  *ucodes[] { "F3D", "L3D", "S2D" };
+			char 		*match;
+			u32 match_idx = 3;
+		
+			for(u32 j = 0; j < match_idx; j++)
+			{
+				if( (match = strstr(cur_ucode, ucodes[j])) ) {
+					match_idx = j;
+					break;
+				}
+			}
+		
 			ucode_stride = 2;
-			
-			if( strstr(match, "fifo") || strstr(match, "xbus") )
-			{
-				if( !strncmp(match, "S2DEX", 5) ) {
-					ucode_version = GBI_2_S2DEX;
-					sprintf(cur_ucode, "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
-				} else {
-					ucode_version = GBI_2;
-					sprintf(cur_ucode, "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
+		
+			switch (match_idx) {
+			case 0: // F3D
+				{
+					if (!strncmp(match, "F3DAM", 5)) {
+						ucode_version = GBI_AM;
+						ucode_offset = GBI_2;
+					} else if (!strncmp(match, "F3DFLX", 6)) {
+						ucode_version = ucode_offset = GBI_2;
+						sprintf(cur_ucode, "GBI_2 (F3DFLX) [Hash: 0x%08x]", code_hash);
+					} else if (!strncmp(match, "F3DZEX", 6)) {
+						ucode_version = ucode_offset = GBI_2;
+						sprintf(cur_ucode, "GBI_2 (F3DZEX2) [Hash: 0x%08x]", code_hash);
+					} else if( strstr(match, "fifo") || strstr(match, "xbus") ) {
+						ucode_version = ucode_offset = GBI_2;
+						sprintf(cur_ucode, "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
+					} else {
+						ucode_version = ucode_offset = GBI_1;
+						sprintf(cur_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
+					}
 				}
-			}
-			else
-			{
-				if( !strncmp(match, "S2DEX", 5) ) {
-					ucode_version = GBI_1_S2DEX;
-					sprintf(cur_ucode, "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
-				} else {
-					ucode_version = GBI_1;
-					sprintf(cur_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
+				break;
+			break;
+			case 1: // L3D
+				{
+					if ( strstr(match, "fifo") || strstr(match, "xbus") ) {
+						ucode_version = ucode_offset = GBI_2;
+						sprintf(cur_ucode, "GBI_2 (L3DEX2) [Hash: 0x%08x]", code_hash);
+					} else {
+						ucode_version = ucode_offset = GBI_1;
+						sprintf(cur_ucode, "GBI_2 (L3DEX) [Hash: 0x%08x]", code_hash);
+					}
 				}
+				break;
+			case 2: // S2DEX
+				{
+					if( strstr(match, "fifo") || strstr(match, "xbus") ) {
+						ucode_version = ucode_offset = GBI_2_S2DEX;
+						sprintf(cur_ucode, "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
+					} else {
+						ucode_version = ucode_offset = GBI_1_S2DEX;
+						sprintf(cur_ucode, "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
+					}
+				}
+				break;
+			default:
+				{
+					ucode_stride = 10;
+					sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
+					DBGConsole_Msg(0, "Unknown GFX microcode, falling back to F3D");
+				}
+				break;
 			}
-		} else sprintf(cur_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
+		}
 	}
 	
-	return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gNormalInstruction[ ucode_version ]);
+	GBIMicrocode_SetCustomArray(ucode_version, ucode_offset);
+	if (ucode_beta_persp) {
+		SetCommand(0xb2, DLParser_GBI1_RDPHalf_1);
+		SetCommand(0xb3, DLParser_GBI1_RDPHalf_2);
+		SetCommand(0xb4, DLParser_GBI0_PerspNorm_Beta);
+	}
+	return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
 }
 
 //****************************************************'*********************************
@@ -279,7 +323,7 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 	}
 	
 	// Start patching to create our custom ucode table
-		switch( ucode_version )
+	switch( ucode_version )
 	{
 		case GBI_GE:
 			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);

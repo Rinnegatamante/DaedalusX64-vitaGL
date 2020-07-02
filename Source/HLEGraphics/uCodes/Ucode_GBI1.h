@@ -542,7 +542,6 @@ void DLParser_GBI1_RDPHalf_Cont( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_GBI1_RDPHalf_2( MicroCodeCommand command )
 {
-//	DBGConsole_Msg( 0, "Unexpected RDPHalf_2: %08x %08x", command.inst.cmd0, command.inst.cmd1 );
 }
 
 //*****************************************************************************

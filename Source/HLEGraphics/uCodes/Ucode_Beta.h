@@ -75,4 +75,11 @@ void DLParser_GBI0_Line3D_Beta( MicroCodeCommand command )
 	DLParser_GBI1_Line3D_T< 5 >(command);
 }
 
+//*****************************************************************************
+//
+//*****************************************************************************
+void DLParser_GBI0_PerspNorm_Beta( MicroCodeCommand command )
+{
+}
+
 #endif // HLEGRAPHICS_UCODES_UCODE_BETA_H_

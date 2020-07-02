@@ -168,6 +168,7 @@ UcodeFunc( DLParser_GBI0_Vtx_Beta );
 UcodeFunc( DLParser_GBI0_Line3D_Beta );
 UcodeFunc( DLParser_GBI0_Tri1_Beta );
 UcodeFunc( DLParser_GBI0_Tri2_Beta );
+UcodeFunc( DLParser_GBI0_PerspNorm_Beta );
 UcodeFunc( DLParser_Last_Legion_0x80 );
 UcodeFunc( DLParser_Last_Legion_0x00 );
 UcodeFunc( DLParser_TexRect_Last_Legion );
