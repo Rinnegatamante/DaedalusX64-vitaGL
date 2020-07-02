@@ -152,7 +152,7 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_BETA,     GBI_0,  5, 0x6cbb521d, true,  "GBI_BETA"      },   // Star Wars - Shadows of the Empire
 	{ GBI_LL,       GBI_1,  2, 0xdd560323, false, "GBI_LL"        },   // Toukon Road - Brave Spirits
 	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, true,  "GBI_BETA"      },   // Wave Race 64 (v.1.1)
-	{ GBI_1,  		GBI_1,  2, 0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
+	{ GBI_1,        GBI_1,  2, 0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
 };
 
 UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
@@ -251,6 +251,8 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 					if (!strncmp(match, "F3DAM", 5)) {
 						ucode_version = GBI_AM;
 						ucode_offset = GBI_2;
+						is_custom_ucode = true;
+						sprintf(cur_ucode, "GBI_2 (F3DAM) [Hash: 0x%08x]", code_hash);
 					} else if (!strncmp(match, "F3DFLX", 6)) {
 						ucode_version = ucode_offset = GBI_2;
 						sprintf(cur_ucode, "GBI_2 (F3DFLX) [Hash: 0x%08x]", code_hash);
@@ -300,13 +302,17 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 		}
 	}
 	
-	GBIMicrocode_SetCustomArray(ucode_version, ucode_offset);
-	if (ucode_beta_persp) {
-		SetCommand(0xb2, DLParser_GBI1_RDPHalf_1);
-		SetCommand(0xb3, DLParser_GBI1_RDPHalf_2);
-		SetCommand(0xb4, DLParser_GBI0_PerspNorm_Beta);
+	if (is_custom_ucode) {
+		GBIMicrocode_SetCustomArray(ucode_version, ucode_offset);
+		if (ucode_beta_persp) {
+			SetCommand(0xb2, DLParser_GBI1_RDPHalf_1);
+			SetCommand(0xb3, DLParser_GBI1_RDPHalf_2);
+			SetCommand(0xb4, DLParser_GBI0_PerspNorm_Beta);
+		}
+		return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
 	}
-	return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
+	
+	return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gNormalInstruction[ucode_version]);
 }
 
 //****************************************************'*********************************
@@ -327,6 +333,7 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 	{
 		case GBI_GE:
 			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);
+			SetCommand( 0xbd, DLParser_GBI1_MoveWord);
 			break;
 		case GBI_BETA:
 			SetCommand( 0x04, DLParser_GBI0_Vtx_Beta);
