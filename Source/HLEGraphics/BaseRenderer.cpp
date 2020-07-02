@@ -1167,7 +1167,7 @@ v3 BaseRenderer::LightVert( const v3 & norm ) const
 	const v3 & col {mTnL.Lights[mTnL.NumLights].Colour};
 	v3 result( col.x, col.y, col.z );
 
-	for ( u32 l {}; l < mTnL.NumLights; l++ )
+	for ( u32 l = 0; l < mTnL.NumLights; l++ )
 	{
 		f32 fCosT {norm.Dot( mTnL.Lights[l].Direction )};
 		if (fCosT > 0.0f)

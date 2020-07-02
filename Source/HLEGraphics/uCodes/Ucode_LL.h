@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //*****************************************************************************
 
-//IS called Last Legion, but is used for several other games like: Dark Rift, Toukon Road, Toukon Road 2.
+//Is called Last Legion, but is used for several other games like: Dark Rift, Toukon Road, Toukon Road 2.
 
 //*****************************************************************************
 // Only thing I can't figure out why are the characters on those games invisble?

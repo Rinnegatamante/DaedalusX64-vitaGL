@@ -24,60 +24,6 @@ u32 gDKRMatrixAddr = 0;
 u32 gDKRVtxCount = 0;
 bool gDKRBillBoard = false;
 
-// DKR verts are 10 bytes
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-//*****************************************************************************
-//
-//*****************************************************************************
-void DLParser_DumpVtxInfoDKR(u32 address, u32 v0_idx, u32 num_verts)
-{
-	if (DLDebug_IsActive())
-	{
-		u32 psSrc = (u32)(g_pu8RamBase + address);
-
-		for ( u32 idx = v0_idx; idx < v0_idx + num_verts; idx++ )
-		{
-			f32 x = *(s16*)((psSrc + 0) ^ 2);
-			f32 y = *(s16*)((psSrc + 2) ^ 2);
-			f32 z = *(s16*)((psSrc + 4) ^ 2);
-
-			//u16 wFlags = gRenderer->GetVtxFlags( idx ); //(u16)psSrc[3^0x1];
-
-			u8 a = *(u8*)((psSrc + 6) ^ 3);	//R
-			u8 b = *(u8*)((psSrc + 7) ^ 3);	//G
-			u8 c = *(u8*)((psSrc + 8) ^ 3);	//B
-			u8 d = *(u8*)((psSrc + 9) ^ 3);	//A
-
-			const v4 & t = gRenderer->GetTransformedVtxPos( idx );
-			const v4 & p = gRenderer->GetProjectedVtxPos( idx );
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-			DL_PF("    #%02d Pos:{% 0.1f,% 0.1f,% 0.1f}->{% 0.1f,% 0.1f,% 0.1f} Proj:{% 6f,% 6f,% 6f,% 6f} RGBA:{%02x%02x%02x%02x}",
-				idx, x, y, z, t.x, t.y, t.z, p.x/p.w, p.y/p.w, p.z/p.w, p.w, a, b, c, d );
-				#endif
-
-			psSrc+=10;
-		}
-
-		/*
-		u16 * pwSrc = (u16 *)(g_pu8RamBase + address);
-		i = 0;
-		for( u32 idx = v0_idx; idx < v0_idx + num_verts; idx++ )
-		{
-			DL_PF(" #%02d %04x %04x %04x %04x %04x",
-				idx, pwSrc[(i + 0) ^ 1],
-				pwSrc[(i + 1) ^ 1],
-				pwSrc[(i + 2) ^ 1],
-				pwSrc[(i + 3) ^ 1],
-				pwSrc[(i + 4) ^ 1]);
-
-			i += 5;
-		}
-		*/
-
-	}
-}
-#endif
-
 //*****************************************************************************
 //
 //*****************************************************************************
@@ -256,14 +202,12 @@ void DLParser_GBI1_Texture_DKR( MicroCodeCommand command )
 {
 	u32 tile    = command.texture.tile;
 
-	// Seems to use 0x01
 	// Force enable texture in DKR Ucode, fixes static texture bug etc
-    bool enable = true;
 #ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    Level[%d] Tile[%d] %s", command.texture.level, tile, enable? "enable":"disable");
 #endif
-	gRenderer->SetTextureTile( tile);
-	gRenderer->SetTextureEnable( enable);
+	gRenderer->SetTextureTile(tile);
+	gRenderer->SetTextureEnable(true);
 
 	f32 scale_s = f32(command.texture.scaleS)  / (65535.0f * 32.0f);
 	f32 scale_t = f32(command.texture.scaleT)  / (65535.0f * 32.0f);

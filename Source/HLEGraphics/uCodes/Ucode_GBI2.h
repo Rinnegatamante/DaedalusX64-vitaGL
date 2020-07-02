@@ -48,7 +48,7 @@ void DLParser_GBI2_Vtx( MicroCodeCommand command )
 //*****************************************************************************
 //
 //*****************************************************************************
-void DLParser_GBI2_Vtx_DAM( MicroCodeCommand command )
+void DLParser_GBI2_Vtx_AM( MicroCodeCommand command )
 {
 	u32 address = RDPSegAddr(command.vtx2.addr);
 
@@ -111,7 +111,7 @@ void DLParser_GBI2_PopMtx( MicroCodeCommand command )
 //*****************************************************************************
 //
 //*****************************************************************************
-void DLParser_GBI2_MoveWord_DAM( MicroCodeCommand command )
+void DLParser_GBI2_MoveWord_AM( MicroCodeCommand command )
 {
 	static f32 old_fog_mult;
 	static f32 old_fog_offs;
@@ -602,7 +602,7 @@ void DLParser_GBI2_Texture( MicroCodeCommand command )
 //*****************************************************************************
 //
 //*****************************************************************************
-void DLParser_GBI2_Texture_DAM( MicroCodeCommand command )
+void DLParser_GBI2_Texture_AM( MicroCodeCommand command )
 {
 	#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DL_PF("    Level[%d] Tile[%d] %s", command.texture.level, command.texture.tile, command.texture.enable_gbi2 ? "enable":"disable");
