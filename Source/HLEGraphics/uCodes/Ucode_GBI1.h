@@ -373,25 +373,17 @@ void DLParser_GBI1_EndDL( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_GBI1_BranchZ( MicroCodeCommand command )
 {
-	//Always branching will usually just waste a bit of fillrate (PSP got plenty)
-	//Games seem not to bother if we branch less than Z all the time
-
-	//Penny racers (cars)
-	//Aerogauge (skips rendering ship shadows and exaust plumes from afar)
-	//OOT : Death Mountain and MM : Clock Town
-
-	//Seems to work differently for non Zelda games as if Z axis is inverted... //Corn
-
-	//printf("VtxDepth[%d] Zval[%d] Vtx[%d]\n", gRenderer->GetVtxDepth(command.branchz.vtx), (s32)command.branchz.value, command.branchz.vtx);
-	//DL_PF("BranchZ VtxDepth[%d] Zval[%d] Vtx[%d]", gRenderer->GetVtxDepth(command.branchz.vtx), (s32)command.branchz.value, command.branchz.vtx);
-
-	if( gRenderer->GetVtxDepth(command.branchz.vtx) <= (s32)command.branchz.value )
-	{
-		u32 address = RDPSegAddr(gRDPHalf1);
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("    Jump -> DisplayList 0x%08x", address);
-#endif
-		gDlistStack.address[gDlistStackPointer] = address;
+	if (g_ROM.ZELDA_HACK) { // Zelda games do W checking instead of Z
+		if (gRenderer->GetVtxWeight(command.branchw.vtx) < (float)command.branchw.value) {
+			u32 address = RDPSegAddr(gRDPHalf1);
+			gDlistStack.address[gDlistStackPointer] = address;
+		}
+	} else {
+		u32 zTest = u32((gRenderer->GetVtxDepth(command.branchz.vtx) / gRenderer->GetVtxWeight(command.branchz.vtx)) * 1023.0f);
+		if (zTest > 0x3FF || zTest <= (u32)command.branchz.value) {
+			u32 address = RDPSegAddr(gRDPHalf1);
+			gDlistStack.address[gDlistStackPointer] = address;
+		}
 	}
 }
 
