@@ -190,5 +190,8 @@ UcodeFunc( DLParser_Vtx_PD );
 //UcodeFunc( DLParser_Tri4_PD );
 UcodeFunc( DLParser_SetTImg_SOTE );
 UcodeFunc( DLParser_MoveMem_Acclaim );
+UcodeFunc( DLParser_GBI2_Texture_DAM );
+UcodeFunc( DLParser_GBI2_Vtx_DAM );
+UcodeFunc( DLParser_GBI2_MoveWord_DAM );
 
 #endif // HLEGRAPHICS_UCODES_UCODE_H___

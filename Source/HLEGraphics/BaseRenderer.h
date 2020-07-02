@@ -275,6 +275,9 @@ public:
 	inline void			SetMux( u64 mux )						{ mMux = mux; }
 
 	inline void			SetTextureScale(float fScaleX, float fScaleY)	{ mTnL.TextureScaleX = fScaleX; mTnL.TextureScaleY = fScaleY; }
+	inline void			SetTextureScaleX(u32 ScaleX)	{ mTextureScaleX = ScaleX; }
+	inline void			SetTextureScaleY(u32 ScaleY)	{ mTextureScaleY = ScaleY; }
+	inline void			SetTextureScaleDAM(u32 scale)	{ mDAMTexScale = scale; }
 
 	// TextRect stuff
 	virtual void		TexRect( u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1 ) = 0;
@@ -312,6 +315,7 @@ public:
 
 	// Vertex stuff
 	void				SetNewVertexInfo(u32 address, u32 v0, u32 n);	// Assumes dwAddress has already been checked!
+	void 				SetNewVertexInfoDAM(u32 address, u32 v0, u32 n); // For Hey You, Pikachu
 	void				SetNewVertexInfoConker(u32 address, u32 v0, u32 n);	// For conker..
 	void				SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboard);	// Assumes dwAddress has already been checked!
 	void				SetNewVertexInfoPD(u32 address, u32 v0, u32 n);	// Assumes dwAddress has already been checked!
@@ -483,6 +487,8 @@ protected:
 
 	float				mScreenWidth;
 	float				mScreenHeight;
+	u32					mDAMTexScale;
+	u32					mTextureScaleX, mTextureScaleY;
 
 #if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 	Matrix4x4			mScreenToDevice;					// Used by OSX renderer - scales screen coords (0..640 etc) to device coords (-1..+1)

@@ -1158,83 +1158,6 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 	}
 }
 
-
-//
-
-/*void BaseRenderer::TestVFPUVerts( u32 v0, u32 num, const FiddledVtx * verts, const Matrix4x4 & mat_world )
-{
-	bool	env_map( (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) == (TNL_LIGHT|TNL_TEXGEN) );
-
-	u32 vend( v0 + num );
-	for (u32 i = v0; i < vend; i++)
-	{
-		const FiddledVtx & vert = verts[i - v0];
-		const v4 &	projected( mVtxProjected[i].ProjectedPos );
-
-		if (mTnL.Flags.Fog)
-		{
-			float eyespace_z = projected.z / projected.w;
-			float fog_coeff = (eyespace_z * mTnL.FogMult) + mTnL.FogOffset;
-
-			// Set the alpha
-			f32 value = Clamp< f32 >( fog_coeff, 0.0f, 1.0f );
-
-			if( Abs( value - mVtxProjected[i].Colour.w ) > 0.01f )
-			{
-				printf( "Fog wrong: %f != %f\n", mVtxProjected[i].Colour.w, value );
-			}
-		}
-
-		if (mTnL.Flags.Texture)
-		{
-			// Update texture coords n.b. need to divide tu/tv by bogus scale on addition to buffer
-
-			// If the vert is already lit, then there is no normal (and hence we
-			// can't generate tex coord)
-			float tx, ty;
-			if (env_map)
-			{
-				v3 vecTransformedNormal;		// Used only when TNL_LIGHT set
-				v3	model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
-
-				vecTransformedNormal = mat_world.TransformNormal( model_normal );
-				vecTransformedNormal.Normalise();
-
-				const v3 & norm = vecTransformedNormal;
-
-				// Assign the spheremap's texture coordinates
-				tx = (0.5f * ( 1.0f + ( norm.x*mat_world.m11 +
-										norm.y*mat_world.m21 +
-										norm.z*mat_world.m31 ) ));
-
-				ty = (0.5f * ( 1.0f - ( norm.x*mat_world.m12 +
-										norm.y*mat_world.m22 +
-										norm.z*mat_world.m32 ) ));
-			}
-			else
-			{
-				tx = (float)vert.tu * mTnL.TextureScaleX;
-				ty = (float)vert.tv * mTnL.TextureScaleY;
-			}
-
-			if( Abs(tx - mVtxProjected[i].Texture.x ) > 0.0001f ||
-				Abs(ty - mVtxProjected[i].Texture.y ) > 0.0001f )
-			{
-				printf( "tx/y wrong : %f,%f != %f,%f (%s)\n", mVtxProjected[i].Texture.x, mVtxProjected[i].Texture.y, tx, ty, env_map ? "env" : "scale" );
-			}
-		}
-
-		//
-		//	Initialise the clipping flags (always done on the VFPU, so skip here)
-		//
-		//u32 flags = CalcClipFlags( projected );
-		//if( flags != mVtxProjected[i].ClipFlags )
-		//{
-		//	printf( "flags wrong: %02x != %02x\n", mVtxProjected[i].ClipFlags, flags );
-		//}
-	}
-}*/
-
 #else	//Transform using VFPU(fast) or FPU/CPU(slow)
 
 //
@@ -1311,10 +1234,6 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 	const Matrix4x4 & mat_world_project = mWorldProject;
 	const Matrix4x4 & mat_world = mModelViewStack[mModelViewTop];
 
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	DL_PF( "    Ambient color RGB[%f][%f][%f] Texture scale X[%f] Texture scale Y[%f]", mTnL.Lights[mTnL.NumLights].Colour.x, mTnL.Lights[mTnL.NumLights].Colour.y, mTnL.Lights[mTnL.NumLights].Colour.z, mTnL.TextureScaleX, mTnL.TextureScaleY);
-	DL_PF( "    Light[%d %s] Texture[%s] EnvMap[%s] Fog[%s]", mTnL.NumLights, (mTnL.Flags.Light)? (mTnL.Flags.PointLight)? "Point":"Normal":"Off", (mTnL.Flags.Texture)? "On":"Off", (mTnL.Flags.TexGen)? (mTnL.Flags.TexGenLin)? "Linear":"Spherical":"Off", (mTnL.Flags.Fog)? "On":"Off");
-#endif
 	// Transform and Project + Lighting or Transform and Project with Colour
 	//
 	for (u32 i = v0; i < v0 + n; i++)
@@ -1331,7 +1250,7 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 
 		//	Initialise the clipping flags
 		//
-		u32 clip_flags {};
+		u32 clip_flags = 0;
 		if		(projected.x < -projected.w)	clip_flags |= X_POS;
 		else if (projected.x > projected.w)		clip_flags |= X_NEG;
 
@@ -1347,11 +1266,10 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 		if ( mTnL.Flags.Light )
 		{
 			v3 model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
-			v3 vecTransformedNormal {};
-			vecTransformedNormal = mat_world.TransformNormal( model_normal );
+			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
 			vecTransformedNormal.Normalise();
 
-			v3 col {};
+			v3 col;
 
 			if ( mTnL.Flags.PointLight )
 			{//POINT LIGHT
@@ -1416,24 +1334,131 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 			mVtxProjected[i].Texture.x = (float)vert.tu * mTnL.TextureScaleX;
 			mVtxProjected[i].Texture.y = (float)vert.tv * mTnL.TextureScaleY;
 		}
+	}
+}
 
-#ifdef DAEDALUS_PSP
-		//Fog
-		if ( mTnL.Flags.Fog )
+void BaseRenderer::SetNewVertexInfoDAM(u32 address, u32 v0, u32 n)
+{
+	const FiddledVtx * pVtxBase = (const FiddledVtx*)(g_pu8RamBase + address);
+	UpdateWorldProject();
+	PokeWorldProject();
+
+	const Matrix4x4 & mat_world_project = mWorldProject;
+	const Matrix4x4 & mat_world = mModelViewStack[mModelViewTop];
+
+	// Transform and Project + Lighting or Transform and Project with Colour
+	//
+	for (u32 i = v0; i < v0 + n; i++)
+	{
+		const FiddledVtx & vert = pVtxBase[i - v0];
+
+		// VTX Transform
+		//
+		v4 w( f32( vert.x ), f32( vert.y ), f32( vert.z ), 1.0f );
+
+		v4 & projected( mVtxProjected[i].ProjectedPos );
+		projected = mat_world_project.Transform( w );
+		mVtxProjected[i].TransformedPos = mat_world.Transform( w );
+
+		//	Initialise the clipping flags
+		//
+		u32 clip_flags = 0;
+		if		(projected.x < -projected.w)	clip_flags |= X_POS;
+		else if (projected.x > projected.w)		clip_flags |= X_NEG;
+
+		if		(projected.y < -projected.w)	clip_flags |= Y_POS;
+		else if (projected.y > projected.w)		clip_flags |= Y_NEG;
+
+		if		(projected.z < -projected.w)	clip_flags |= Z_POS;
+		else if (projected.z > projected.w)		clip_flags |= Z_NEG;
+		mVtxProjected[i].ClipFlags = clip_flags;
+
+		// LIGHTING OR COLOR
+		//
+		if ( mTnL.Flags.Light )
 		{
-			if(projected.w > 0.0f)	//checking for positive w fixes near plane fog errors //Corn
+			v3 model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
+			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
+			vecTransformedNormal.Normalise();
+
+			v3 col;
+
+			if ( mTnL.Flags.PointLight )
+			{//POINT LIGHT
+				col = LightPointVert(w); // Majora's Mask uses this
+			}
+			else
+			{//NORMAL LIGHT
+				col = LightVert(vecTransformedNormal);
+			}
+			mVtxProjected[i].Colour.x = col.x;
+			mVtxProjected[i].Colour.y = col.y;
+			mVtxProjected[i].Colour.z = col.z;
+			mVtxProjected[i].Colour.w = vert.rgba_a * (1.0f / 255.0f);
+
+			// ENV MAPPING
+			//
+			if ( mTnL.Flags.TexGen )
 			{
-				f32 eye_z {projected.z / projected.w};
-				f32 fog_alpha {eye_z * mTnL.FogMult + mTnL.FogOffs};
-				//f32 fog_alpha = eye_z * 20.0f - 19.0f;	//Fog test line
-				mVtxProjected[i].Colour.w = Clamp< f32 >( fog_alpha, 0.0f, 1.0f );
+				// Update texture coords n.b. need to divide tu/tv by bogus scale on addition to buffer
+				// If the vert is already lit, then there is no normal (and hence we can't generate tex coord)
+#if 1			// 1->Lets use mat_world_project instead of mat_world for nicer effect (see SSV space ship) //Corn
+				vecTransformedNormal = mat_world_project.TransformNormal( model_normal );
+				vecTransformedNormal.Normalise();
+#endif
+
+				const v3 & norm {vecTransformedNormal};
+
+				if( mTnL.Flags.TexGenLin )
+				{
+					mVtxProjected[i].Texture.x = 0.5f * ( 1.0f + norm.x );
+					mVtxProjected[i].Texture.y = 0.5f * ( 1.0f + norm.y );
+				}
+				else
+				{
+					//Cheap way to do Acos(x)/Pi (abs() fixes star in SM64, sort of) //Corn
+					f32 NormX = fabsf( norm.x );
+					f32 NormY = fabsf( norm.y );
+					mVtxProjected[i].Texture.x =  0.5f - 0.25f * NormX - 0.25f * NormX * NormX * NormX;
+					mVtxProjected[i].Texture.y =  0.5f - 0.25f * NormY - 0.25f * NormY * NormY * NormY;
+				}
 			}
 			else
 			{
-				mVtxProjected[i].Colour.w = 0.0f;
+				//Set Texture coordinates
+				const u32 s0 = (u32)vert.tu;
+				const u32 t0 = (u32)vert.tv;
+				const u32 acum_0 = (((mDAMTexScale & 0xFFFF) * t0) << 1) + 0x8000;
+				const u32 acum_1 = (((mTextureScaleY & 0xFFFF) * t0) << 1) + 0x8000;
+				const u32 sres = ((((mDAMTexScale >> 16) & 0xFFFF) * s0) << 1) + acum_0;
+				const u32 tres = ((((mTextureScaleY >> 16) & 0xFFFF) * s0) << 1) + acum_1;
+				const s16 s = ((sres >> 16) & 0xFFFF) + ((mTextureScaleX >> 16) & 0xFFFF);
+				const s16 t = ((tres >> 16) & 0xFFFF) + (mTextureScaleX & 0xFFFF);
+				
+				mVtxProjected[i].Texture.x = (float)s * mTnL.TextureScaleX;
+				mVtxProjected[i].Texture.y = (float)t * mTnL.TextureScaleY;
 			}
 		}
-#endif
+		else
+		{
+			//if( mTnL.Flags.Shade )
+			{// FLAT shade
+				mVtxProjected[i].Colour = v4( vert.rgba_r * (1.0f / 255.0f), vert.rgba_g * (1.0f / 255.0f), vert.rgba_b * (1.0f / 255.0f), vert.rgba_a * (1.0f / 255.0f) );
+			}
+
+			//Set Texture coordinates
+				const u32 s0 = (u32)vert.tu;
+				const u32 t0 = (u32)vert.tv;
+				const u32 acum_0 = (((mDAMTexScale & 0xFFFF) * t0) << 1) + 0x8000;
+				const u32 acum_1 = (((mTextureScaleY & 0xFFFF) * t0) << 1) + 0x8000;
+				const u32 sres = ((((mDAMTexScale >> 16) & 0xFFFF) * s0) << 1) + acum_0;
+				const u32 tres = ((((mTextureScaleY >> 16) & 0xFFFF) * s0) << 1) + acum_1;
+				const s16 s = ((sres >> 16) & 0xFFFF) + ((mTextureScaleX >> 16) & 0xFFFF);
+				const s16 t = ((tres >> 16) & 0xFFFF) + (mTextureScaleX & 0xFFFF);
+				
+				mVtxProjected[i].Texture.x = (float)s * mTnL.TextureScaleX;
+				mVtxProjected[i].Texture.y = (float)t * mTnL.TextureScaleY;
+		}
 	}
 }
 

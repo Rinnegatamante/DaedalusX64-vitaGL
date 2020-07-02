@@ -40,7 +40,8 @@ enum GBIVersion
 	GBI_CONKER,
 	GBI_PD,
 	GBI_RS,
-	GBI_ACCLAIM
+	GBI_ACCLAIM,
+	GBI_DAM
 };
 
 struct UcodeInfo

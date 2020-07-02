@@ -152,6 +152,7 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, "GBI_BETA"   },   // Wave Race 64 (v.1.1)
 	{ GBI_RS,       GBI_0,  2, 0xc62a1631, "GBI_RS"     },   // Star Wars - Rogue Squadron
 	{ GBI_ACCLAIM,  GBI_2,  2, 0x9abf98e4, "GBI_ACCLAIM"},   // South Park Racing
+	{ GBI_DAM,      GBI_2,  2, 0x4e896a4a, "GBI_DAM"    },   // Hey You, Pikachu
 };
 
 UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
@@ -334,6 +335,10 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 		case GBI_ACCLAIM:
 			SetCommand( 0xdc, DLParser_MoveMem_Acclaim);
 			break;
+		case GBI_DAM:
+			SetCommand( 0x01, DLParser_GBI2_Vtx_DAM);
+			SetCommand( 0xd7, DLParser_GBI2_Texture_DAM);
+			SetCommand( 0xdb, DLParser_GBI2_MoveWord_DAM);
 		default:
 			break;
 	}
