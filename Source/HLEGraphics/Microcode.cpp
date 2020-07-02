@@ -146,13 +146,15 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_DKR,      GBI_0, 10, 0x0c10181a, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.0)
 	{ GBI_DKR,      GBI_0, 10, 0x713311dc, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.1)
 	{ GBI_GE,       GBI_0, 10, 0x23f92542, false, "GBI_GE"        },   // GoldenEye 007
-	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, true,  "GBI_DKR"       },   // Jet Force Gemini
+	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, true,  "GBI_JFG"       },   // Jet Force Gemini
 	{ GBI_LL,       GBI_1,  2, 0x26da8a4c, false, "GBI_LL"        },   // Last Legion UX
 	{ GBI_PD,       GBI_0, 10, 0xcac47dc4, false, "GBI_PD"        },   // Perfect Dark
 	{ GBI_BETA,     GBI_0,  5, 0x6cbb521d, true,  "GBI_BETA"      },   // Star Wars - Shadows of the Empire
 	{ GBI_LL,       GBI_1,  2, 0xdd560323, false, "GBI_LL"        },   // Toukon Road - Brave Spirits
 	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, true,  "GBI_BETA"      },   // Wave Race 64 (v.1.1)
 	{ GBI_1,        GBI_1,  2, 0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
+	{ GBI_0,        GBI_0, 10, 0xf4c3491b, true,  "GBI_SM (F3DEX)"},   // Super Mario 64
+	{ GBI_0,        GBI_0, 10, 0xe908848d, true,  "GBI_CU (F3DEX)"},   // Cruise'n USA
 };
 
 UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
@@ -294,8 +296,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 			default:
 				{
 					ucode_stride = 10;
-					sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
-					DBGConsole_Msg(0, "Unknown GFX microcode, falling back to F3D");
+					sprintf(cur_ucode, "F3D [Hash: 0x%08x]", code_hash);
 				}
 				break;
 			}
