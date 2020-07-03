@@ -30,9 +30,6 @@ void DLParser_Vtx_Conker( MicroCodeCommand command )
 {
 	if( g_CI.Format != G_IM_FMT_RGBA || (gRDPOtherMode.L == CONKER_SHADOW) )
 	{
-		#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("    Skipping Conker TnL (Vtx -> Off-Screen/Shadow)");
-		#endif
 		return;
 	}
 
@@ -40,17 +37,8 @@ void DLParser_Vtx_Conker( MicroCodeCommand command )
 	u32 len    = ((command.inst.cmd0 >> 1 )& 0x7F) ;
 	u32 n      = ((command.inst.cmd0 >> 12)& 0xFF);
 	u32 v0		= len - n;
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	DL_PF("    Address[0x%08x] Len[%d] v0[%d] Num[%d]", address, len, v0, n);
-	#endif
 
 	gRenderer->SetNewVertexInfoConker( address, v0, n );
-
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	  gNumVertices += n;
-	  DLParser_DumpVtxInfo( address, v0, n );
-#endif
-
 }
 
 //*****************************************************************************
@@ -69,9 +57,6 @@ void DLParser_Tri1_Conker( MicroCodeCommand command )
 	{
 		do
 		{
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-			DL_PF("    Tri1 (Culled -> Off-Screen/Shadow)");
-			#endif
 			command.inst.cmd0 = *pCmdBase++;
 			command.inst.cmd1 = *pCmdBase++;
 			pc += 8;
@@ -120,9 +105,6 @@ void DLParser_Tri2_Conker( MicroCodeCommand command )
 	{
 		do
 		{
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-			DL_PF("    Tri2 (Culled -> Off-Screen/Shadow)");
-			#endif
 			command.inst.cmd0 = *pCmdBase++;
 			command.inst.cmd1 = *pCmdBase++;
 			pc += 8;
@@ -176,9 +158,6 @@ void DLParser_Tri4_Conker( MicroCodeCommand command )
 	{
 		do
 		{
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-			DL_PF("    Tri4 (Culled -> Off-Screen)");
-			#endif
 			command.inst.cmd0 = *(u32 *)(g_pu8RamBase + pc+0);
 			command.inst.cmd1 = *(u32 *)(g_pu8RamBase + pc+4);
 			pc += 8;
@@ -261,9 +240,6 @@ void DLParser_MoveMem_Conker( MicroCodeCommand command )
 			u32 light_idx = (offset2 / 48);
 			if (light_idx < 2)
 			{
-				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-				DL_PF("    G_MV_LOOKAT" );
-				#endif
 				return;
 			}
 
@@ -276,9 +252,6 @@ void DLParser_MoveMem_Conker( MicroCodeCommand command )
 		}
 		break;
 	default:
-		#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("    GBI2 MoveMem Type: Unknown");
-		#endif
 		break;
 	}
 }
@@ -288,7 +261,6 @@ void DLParser_MoveMem_Conker( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_MoveWord_Conker( MicroCodeCommand command )
 {
-#if 1
 	u8 index = (u8)(( command.inst.cmd0 >> 16) & 0xFF);
 	switch (index)
 	{
@@ -314,58 +286,35 @@ void DLParser_MoveWord_Conker( MicroCodeCommand command )
 		break;
 
 	case 0x10:  // moveword coord mod
-	{
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("     G_MoveWord_Conker: coord mod");
-		#endif
-		if ( (command.inst.cmd0 & 8) == 0 )
 		{
-			u32 idx = (command.inst.cmd0 >> 1) & 3;
-			u32 pos = command.inst.cmd0 & 0x30;
-
-			switch(pos)
+			if ( (command.inst.cmd0 & 8) == 0 )
 			{
-			case 0:
-				gRenderer->SetCoordMod( 0+idx, (s16)(command.inst.cmd1 >> 16) );
-				gRenderer->SetCoordMod( 1+idx, (s16)(command.inst.cmd1 & 0xFFFF) );
-				break;
-			case 0x10:
-				gRenderer->SetCoordMod( 4+idx, (command.inst.cmd1 >> 16) / 65536.0f );
-				gRenderer->SetCoordMod( 5+idx, (command.inst.cmd1 & 0xFFFF) / 65536.0f );
-				gRenderer->SetCoordMod( 12+idx, gRenderer->GetCoordMod(0+idx) + gRenderer->GetCoordMod(4+idx) );
-				gRenderer->SetCoordMod( 13+idx, gRenderer->GetCoordMod(1+idx) + gRenderer->GetCoordMod(5+idx) );
-				break;
-			case 0x20:
-				gRenderer->SetCoordMod( 8+idx, (s16)(command.inst.cmd1 >> 16) );
-				gRenderer->SetCoordMod( 9+idx, (s16)(command.inst.cmd1 & 0xFFFF) );
-				break;
+				u32 idx = (command.inst.cmd0 >> 1) & 3;
+				u32 pos = command.inst.cmd0 & 0x30;
+
+				switch(pos)
+				{
+				case 0:
+					gRenderer->SetCoordMod( 0+idx, (s16)(command.inst.cmd1 >> 16) );
+					gRenderer->SetCoordMod( 1+idx, (s16)(command.inst.cmd1 & 0xFFFF) );
+					break;
+				case 0x10:
+					gRenderer->SetCoordMod( 4+idx, (command.inst.cmd1 >> 16) / 65536.0f );
+					gRenderer->SetCoordMod( 5+idx, (command.inst.cmd1 & 0xFFFF) / 65536.0f );
+					gRenderer->SetCoordMod( 12+idx, gRenderer->GetCoordMod(0+idx) + gRenderer->GetCoordMod(4+idx) );
+					gRenderer->SetCoordMod( 13+idx, gRenderer->GetCoordMod(1+idx) + gRenderer->GetCoordMod(5+idx) );
+					break;
+				case 0x20:
+					gRenderer->SetCoordMod( 8+idx, (s16)(command.inst.cmd1 >> 16) );
+					gRenderer->SetCoordMod( 9+idx, (s16)(command.inst.cmd1 & 0xFFFF) );
+					break;
+				}
 			}
 		}
-	}
-	break;
-	default:
-		#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("     G_MoveWord_Conker: Unknown");
-		#endif
 		break;
-  }
-
-#else
-	u32 type = (command.inst.cmd0 >> 16) & 0xFF;
-
-	if( type != G_MW_NUMLIGHT )
-	{
-		DLParser_GBI2_MoveWord( command );
+	default:
+		break;
 	}
-	else
-	{
-		u32 num_lights = command.inst.cmd1 / 48;
-			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("    G_MW_NUMLIGHT: %d", num_lights);
-#endif
-		gRenderer->SetNumLights(num_lights);
-	}
-#endif
 }
 
 

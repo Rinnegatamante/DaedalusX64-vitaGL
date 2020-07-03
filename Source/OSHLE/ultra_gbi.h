@@ -56,16 +56,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //*****************************************************************************
 // GBI1
 //*****************************************************************************
-#define	G_GBI1_SPNOOP			0
-#define	G_GBI1_MTX				1
-#define G_GBI1_RESERVED0		2
-#define G_GBI1_MOVEMEM			3
-#define	G_GBI1_VTX				4
-#define G_GBI1_RESERVED1		5
-#define	G_GBI1_DL				6
-#define G_GBI1_RESERVED2		7
-#define G_GBI1_RESERVED3		8
-#define G_GBI1_SPRITE2D_BASE	9
+#define	G_GBI1_SPNOOP			0x00
+#define	G_GBI1_MTX				0x01
+#define G_GBI1_RESERVED0		0x02
+#define G_GBI1_MOVEMEM			0x03
+#define	G_GBI1_VTX				0x04
+#define G_GBI1_RESERVED1		0x05
+#define	G_GBI1_DL				0x06
+#define G_GBI1_RESERVED2		0x07
+#define G_GBI1_RESERVED3		0x08
+#define G_GBI1_SPRITE2D_BASE	0x09
 
 #define	G_GBI1_NOOP				0xc0	/*   0 */
 #define	G_GBI1_TRI1				0xbf
@@ -81,14 +81,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define G_GBI1_LINE3D			0xb5
 #define G_GBI1_RDPHALF_1		0xb4
 #define G_GBI1_RDPHALF_2		0xb3
-//#if (defined(F3DEX_GBI)||defined(F3DLP_GBI))
-#  define G_GBI1_MODIFYVTX		0xb2
-#  define G_GBI1_TRI2			0xb1
-#  define G_GBI1_BRANCH_Z		0xb0
-#  define G_GBI1_LOAD_UCODE		0xaf
-//#else
-#  define G_GBI1_RDPHALF_CONT	0xb2
-//#endif
+#define G_GBI1_MODIFYVTX		0xb2
+#define G_GBI1_TRI2			0xb1
+#define G_GBI1_BRANCH_Z		0xb0
+#define G_GBI1_LOAD_UCODE		0xaf
+#define G_GBI1_RDPHALF_CONT	0xb2
 
 // Overloaded for sprite microcode
 #define G_GBI1_SPRITE2D_SCALEFLIP    0xbe

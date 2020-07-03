@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Debug/DBGConsole.h"
 #include "Utility/AuxFunc.h"
 
+#include "OSHLE/ultra_gbi.h"
+
 // Limit cache ucode entries to 6
 // In theory we should never reach this max
 #define MAX_UCODE_CACHE_ENTRIES 6
@@ -153,8 +155,8 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_LL,       GBI_1,  2, 0xdd560323, false, "GBI_LL"        },   // Toukon Road - Brave Spirits
 	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, true,  "GBI_BETA"      },   // Wave Race 64 (v.1.1)
 	{ GBI_1,        GBI_1,  2, 0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
-	{ GBI_0,        GBI_0, 10, 0xf4c3491b, true,  "GBI_SM (F3DEX)"},   // Super Mario 64
-	{ GBI_0,        GBI_0, 10, 0xe908848d, true,  "GBI_CU (F3DEX)"},   // Cruise'n USA
+	{ GBI_0,        GBI_0, 10, 0xf4c3491b, true,  "GBI_SM (F3D)  "},   // Super Mario 64
+	{ GBI_0,        GBI_0, 10, 0xe908848d, true,  "GBI_CU (F3D)  "},   // Cruise'n USA
 };
 
 UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
@@ -296,7 +298,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 			default:
 				{
 					ucode_stride = 10;
-					sprintf(cur_ucode, "F3D [Hash: 0x%08x]", code_hash);
+					sprintf(cur_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
 				}
 				break;
 			}
@@ -306,9 +308,9 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	if (is_custom_ucode) {
 		GBIMicrocode_SetCustomArray(ucode_version, ucode_offset);
 		if (ucode_beta_persp) {
-			SetCommand(0xb2, DLParser_GBI1_RDPHalf_1);
-			SetCommand(0xb3, DLParser_GBI1_RDPHalf_2);
-			SetCommand(0xb4, DLParser_GBI0_PerspNorm_Beta);
+			SetCommand(G_GBI1_RDPHALF_CONT, DLParser_GBI1_RDPHalf_1);
+			SetCommand(G_GBI1_RDPHALF_2, DLParser_GBI1_RDPHalf_2);
+			SetCommand(G_GBI1_RDPHALF_1, DLParser_GBI0_PerspNorm_Beta);
 		}
 		return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
 	}
@@ -333,38 +335,38 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 	switch( ucode_version )
 	{
 		case GBI_GE:
-			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);
-			SetCommand( 0xbd, DLParser_GBI1_MoveWord);
+			SetCommand( G_GBI1_RDPHALF_1, DLParser_RDPHalf1_GoldenEye);
+			SetCommand( G_GBI1_POPMTX, DLParser_GBI1_MoveWord);
 			break;
 		case GBI_BETA:
-			SetCommand( 0x04, DLParser_GBI0_Vtx_Beta);
-			SetCommand( 0xbf, DLParser_GBI0_Tri1_Beta);
-			SetCommand( 0xb1, DLParser_GBI0_Tri2_Beta);
-			SetCommand( 0xb5, DLParser_GBI0_Line3D_Beta);
+			SetCommand( G_GBI1_VTX, DLParser_GBI0_Vtx_Beta);
+			SetCommand( G_GBI1_TRI1, DLParser_GBI0_Tri1_Beta);
+			SetCommand( G_GBI1_TRI2, DLParser_GBI0_Tri2_Beta);
+			SetCommand( G_GBI1_LINE3D, DLParser_GBI0_Line3D_Beta);
 			break;
 		case GBI_LL:
 			SetCommand( 0x80, DLParser_Last_Legion_0x80);
-			SetCommand( 0x00, DLParser_Last_Legion_0x00);
-			SetCommand( 0xe4, DLParser_TexRect_Last_Legion);
+			SetCommand( G_GBI1_SPNOOP, DLParser_Last_Legion_0x00);
+			SetCommand( G_RDP_TEXRECT, DLParser_TexRect_Last_Legion);
 			break;
 		case GBI_PD:
-			SetCommand( 0x04, DLParser_Vtx_PD);
-			SetCommand( 0x07, DLParser_Set_Vtx_CI_PD);
-			SetCommand( 0xb4, DLParser_RDPHalf1_GoldenEye);
+			SetCommand( G_GBI1_VTX, DLParser_Vtx_PD);
+			SetCommand( G_GBI1_RESERVED2, DLParser_Set_Vtx_CI_PD);
+			SetCommand( G_GBI1_RDPHALF_1, DLParser_RDPHalf1_GoldenEye);
 			break;
 		case GBI_DKR:
-			SetCommand( 0x01, DLParser_Mtx_DKR);
-			SetCommand( 0x04, DLParser_GBI0_Vtx_DKR);
-			SetCommand( 0x05, DLParser_DMA_Tri_DKR);
-			SetCommand( 0x07, DLParser_DLInMem);
-			SetCommand( 0xbc, DLParser_MoveWord_DKR);
-			SetCommand( 0xbf, DLParser_Set_Addr_DKR);
-			SetCommand( 0xbb, DLParser_GBI1_Texture_DKR);
+			SetCommand( G_GBI1_MTX, DLParser_Mtx_DKR);
+			SetCommand( G_GBI1_VTX, DLParser_GBI0_Vtx_DKR);
+			SetCommand( G_GBI1_RESERVED1, DLParser_DMA_Tri_DKR);
+			SetCommand( G_GBI1_RESERVED2, DLParser_DLInMem);
+			SetCommand( G_GBI1_MOVEWORD, DLParser_MoveWord_DKR);
+			SetCommand( G_GBI1_TRI1, DLParser_Set_Addr_DKR);
+			SetCommand( G_GBI1_TEXTURE, DLParser_GBI1_Texture_DKR);
 			break;
 		case GBI_CONKER:
-			SetCommand( 0x01, DLParser_Vtx_Conker);
-			SetCommand( 0x05, DLParser_Tri1_Conker);
-			SetCommand( 0x06, DLParser_Tri2_Conker);
+			SetCommand( G_GBI2_VTX, DLParser_Vtx_Conker);
+			SetCommand( G_GBI2_TRI1, DLParser_Tri1_Conker);
+			SetCommand( G_GBI2_TRI2, DLParser_Tri2_Conker);
 			SetCommand( 0x10, DLParser_Tri4_Conker);
 			SetCommand( 0x11, DLParser_Tri4_Conker);
 			SetCommand( 0x12, DLParser_Tri4_Conker);
@@ -381,16 +383,16 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 			SetCommand( 0x1d, DLParser_Tri4_Conker);
 			SetCommand( 0x1e, DLParser_Tri4_Conker);
 			SetCommand( 0x1f, DLParser_Tri4_Conker);
-			SetCommand( 0xdb, DLParser_MoveWord_Conker);
-			SetCommand( 0xdc, DLParser_MoveMem_Conker);
+			SetCommand( G_GBI2_MOVEWORD, DLParser_MoveWord_Conker);
+			SetCommand( G_GBI2_MOVEMEM, DLParser_MoveMem_Conker);
 			break;
 		case GBI_ACCLAIM:
-			SetCommand( 0xdc, DLParser_MoveMem_Acclaim);
+			SetCommand( G_GBI2_MOVEMEM, DLParser_MoveMem_Acclaim);
 			break;
 		case GBI_AM:
-			SetCommand( 0x01, DLParser_GBI2_Vtx_AM);
-			SetCommand( 0xd7, DLParser_GBI2_Texture_AM);
-			SetCommand( 0xdb, DLParser_GBI2_MoveWord_AM);
+			SetCommand( G_GBI2_VTX, DLParser_GBI2_Vtx_AM);
+			SetCommand( G_GBI2_TEXTURE, DLParser_GBI2_Texture_AM);
+			SetCommand( G_GBI2_MOVEWORD, DLParser_GBI2_MoveWord_AM);
 			break;
 		default:
 			break;

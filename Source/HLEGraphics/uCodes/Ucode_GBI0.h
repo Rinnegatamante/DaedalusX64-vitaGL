@@ -28,22 +28,42 @@ void DLParser_GBI0_Vtx( MicroCodeCommand command )
 	u32 addr = RDPSegAddr(command.vtx0.addr);
 	u32 v0   = command.vtx0.v0;
 	u32 n    = command.vtx0.n + 1;
-		#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	DL_PF("    Address[0x%08x] v0[%d] Num[%d] Len[0x%04x]", addr, v0, n, command.vtx0.len);
-#endif
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	// Never seen or should happen, but just in case..
-	DAEDALUS_ASSERT( (v0 + n) < 80, "Warning, attempting to load into invalid vertex positions");
-	DAEDALUS_ASSERT( (addr + (n*16)) < MAX_RAM_ADDRESS, "Address out of range (0x%08x)", addr );
-	#endif
+
 	gRenderer->SetNewVertexInfo( addr, v0, n );
-
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	gNumVertices += n;
-	DLParser_DumpVtxInfo( addr, v0, n );
-#endif
-
 }
+
+//*****************************************************************************
+//
+//*****************************************************************************
+void DLParser_GBI0_CullDL( MicroCodeCommand command )
+{
+	u32 first = (command.inst.cmd0 & 0x00FFFFFF) / 40;
+	u32 last = (command.inst.cmd1 / 40) - 1;
+
+	if( gRenderer->TestVerts( first, last ) )
+	{
+		return;
+	}
+
+	DLParser_PopDL();
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+void DLParser_GBI0_Tri1( MicroCodeCommand command )
+{
+	DLParser_GBI1_Tri1_T< 10 >(command);
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+void DLParser_GBI0_Line3D( MicroCodeCommand command )
+{
+	DLParser_GBI1_Line3D_T< 10 >(command);
+}
+
 //*****************************************************************************
 //
 //*****************************************************************************
@@ -53,9 +73,6 @@ inline bool AddTri4( u32 v0, u32 v1, u32 v2 )
 {
 	if( v0 == v1 )
 	{
-				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		DL_PF("    Tri: %d,%d,%d (Culled -> Empty?)", v0, v1, v2);
-		#endif
 		return false;
 	}
 	else
@@ -118,15 +135,5 @@ void DLParser_GBI0_Tri4( MicroCodeCommand command )
 		gRenderer->FlushTris();
 	}
 }
-
-//*****************************************************************************
-// Actually line3d, not supported I think.
-//*****************************************************************************
-/*
-void DLParser_GBI0_Quad( MicroCodeCommand command )
-{
-	DAEDALUS_ERROR("GBI0_Quad : Not supported in ucode0 ? ( Ignored )");
-}
-*/
 
 #endif // HLEGRAPHICS_UCODES_UCODE_GBI0_H_
