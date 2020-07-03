@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 #include "ROMImage.h"
+#include "SysVita/UI/Menu.h"
 
 // Find out the CIC type
 ECicType ROM_GenerateCICType( const u8 * p_rom_base )
@@ -61,6 +62,6 @@ const char * ROM_GetCicName( ECicType cic_type )
 	case CIC_8303:	return "CIC-8303";
 	case CIC_DDUS:	return "CIC-DDUS";
 	case CIC_DDTL:	return "CIC-DDTL";
-	default:		return "Unknown";
+	default:		return lang_strings[STR_UNKNOWN];
 	}
 }

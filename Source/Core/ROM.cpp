@@ -631,7 +631,7 @@ struct CountryIDInfo
 static const CountryIDInfo g_CountryCodeInfo[] =
 {
 #ifdef DAEDALUS_VITA
-	{  0,  "0",								OS_TV_NTSC },
+	{  0,  lang_strings[STR_UNKNOWN],		OS_TV_NTSC },
 	{ '7', "Beta",							OS_TV_NTSC },
 	{ 'A', "NTSC",							OS_TV_NTSC },
 	{ 'D', lang_strings[STR_REGION_GER],	OS_TV_PAL },
@@ -672,7 +672,7 @@ const char * ROM_GetCountryNameFromID( u8 country_id )
 		}
 	}
 
-	return "?";
+	return lang_strings[STR_UNKNOWN];
 }
 
 u32 ROM_GetTvTypeFromID( u8 country_id )
