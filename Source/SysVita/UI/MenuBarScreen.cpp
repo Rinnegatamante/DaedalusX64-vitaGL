@@ -51,7 +51,8 @@ static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
 extern bool has_rumblepak[4];
-extern char cur_ucode[256];
+extern char cur_gfx_ucode[32];
+extern char cur_gfx_ucode_str[256];
 extern char cur_audio_ucode[32];
 
 bool gBigText = false;
@@ -548,7 +549,7 @@ void DrawCommonWindows() {
 	if (debug_window) {
 		ImGui::Begin(lang_strings[STR_MENU_DEBUGGER], &debug_window);
 		ImGui::Text("%s: 0x%04X", lang_strings[STR_CART_ID], g_ROM.rh.CartID);
-		ImGui::Text("%s: %s", lang_strings[STR_GFX_UCODE], cur_ucode);
+		ImGui::Text("%s: %s (%s)", lang_strings[STR_GFX_UCODE], cur_gfx_ucode, strlen(cur_gfx_ucode_str) > 0 ? cur_gfx_ucode_str : lang_strings[STR_UNUSED]);
 		ImGui::Text("%s: %s", lang_strings[STR_AUDIO_UCODE], cur_audio_ucode);
 		ImGui::End();
 	}

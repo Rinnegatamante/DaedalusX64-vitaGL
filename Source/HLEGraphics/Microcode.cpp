@@ -31,7 +31,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // In theory we should never reach this max
 #define MAX_UCODE_CACHE_ENTRIES 6
 
-char cur_ucode[256] = "";
+char cur_gfx_ucode_str[256] = "";
+char cur_gfx_ucode[32] = "";
 
 //*****************************************************************************
 //
@@ -215,7 +216,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 		if ( code_hash == gMicrocodeData[index].hash )
 		{
 			is_custom_ucode = true;
-			sprintf(cur_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[index].name, code_hash);
+			sprintf(cur_gfx_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[index].name, code_hash);
 			
 			ucode_version = gMicrocodeData[index].ucode;
 			ucode_stride = gMicrocodeData[index].stride;
@@ -231,8 +232,8 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	// This is faster than calculating a CRC of the code
 	//
 	if (!is_custom_ucode) {
-		if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_ucode, 256)) {
-			sprintf(cur_ucode, "Unknown [Hash: 0x%08x]", code_hash);
+		if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_gfx_ucode_str, 256)) {
+			sprintf(cur_gfx_ucode, "Unknown [Hash: 0x%08x]", code_hash);
 			DBGConsole_Msg(0, "Unknown GFX microcode, falling back to F3D");
 		} else {
 			const char  *ucodes[] { "F3D", "L3D", "S2D" };
@@ -241,7 +242,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 		
 			for(u32 j = 0; j < match_idx; j++)
 			{
-				if( (match = strstr(cur_ucode, ucodes[j])) ) {
+				if( (match = strstr(cur_gfx_ucode_str, ucodes[j])) ) {
 					match_idx = j;
 					break;
 				}
@@ -256,19 +257,19 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 						ucode_version = GBI_AM;
 						ucode_offset = GBI_2;
 						is_custom_ucode = true;
-						sprintf(cur_ucode, "GBI_2 (F3DAM) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2 (F3DAM) [Hash: 0x%08x]", code_hash);
 					} else if (!strncmp(match, "F3DFLX", 6)) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_ucode, "GBI_2 (F3DFLX) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2 (F3DFLX) [Hash: 0x%08x]", code_hash);
 					} else if (!strncmp(match, "F3DZEX", 6)) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_ucode, "GBI_2 (F3DZEX2) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2 (F3DZEX2) [Hash: 0x%08x]", code_hash);
 					} else if( strstr(match, "fifo") || strstr(match, "xbus") ) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_ucode, "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
 					} else {
 						ucode_version = ucode_offset = GBI_1;
-						sprintf(cur_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
 					}
 				}
 				break;
@@ -277,10 +278,10 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 				{
 					if ( strstr(match, "fifo") || strstr(match, "xbus") ) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_ucode, "GBI_2 (L3DEX2) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2 (L3DEX2) [Hash: 0x%08x]", code_hash);
 					} else {
 						ucode_version = ucode_offset = GBI_1;
-						sprintf(cur_ucode, "GBI_2 (L3DEX) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2 (L3DEX) [Hash: 0x%08x]", code_hash);
 					}
 				}
 				break;
@@ -288,17 +289,17 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 				{
 					if( strstr(match, "fifo") || strstr(match, "xbus") ) {
 						ucode_version = ucode_offset = GBI_2_S2DEX;
-						sprintf(cur_ucode, "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
 					} else {
 						ucode_version = ucode_offset = GBI_1_S2DEX;
-						sprintf(cur_ucode, "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
+						sprintf(cur_gfx_ucode, "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
 					}
 				}
 				break;
 			default:
 				{
 					ucode_stride = 10;
-					sprintf(cur_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
+					sprintf(cur_gfx_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
 				}
 				break;
 			}
