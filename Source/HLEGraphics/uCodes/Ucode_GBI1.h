@@ -159,7 +159,6 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 			gRenderer->InsertMatrix(command.inst.cmd0, command.inst.cmd1);
 		}
 		break;
-
 	case G_MW_NUMLIGHT:
 		{
 			u32 num_lights = ((value - 0x80000000) >> 5) - 1;
@@ -167,13 +166,6 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 
 		}
 		break;
-/*
-	case G_MW_CLIP:	// Seems to be unused?
-		{
-			DL_PF("    G_MW_CLIP  ?   : 0x%08x", value);
-		}
-		break;
-*/
 	case G_MW_SEGMENT:
 		{
 			u32 segment = (offset >> 2) & 0xF;
@@ -200,7 +192,6 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 			}
 		}
 		break;
-
 	case G_MW_LIGHTCOL:
 		{
 			u32 field_offset = (offset & 0x7);
@@ -216,7 +207,6 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 			}
 		}
 		break;
-
 	case G_MW_POINTS:	// Used in FIFA 98
 		{
 			gRenderer->ModifyVertexInfo( (offset % 40), (offset / 40), value);

@@ -1657,7 +1657,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 		v4 & BaseVec( mVtxProjected[0].TransformedPos );
 
 		//Hack to worldproj matrix to scale and rotate billbords //Corn
-		Matrix4x4 mat( mModelViewStack[0]);
+		Matrix4x4 mat(mModelViewStack[0]);
 		mat.mRaw[0] *= mModelViewStack[2].mRaw[0] * 0.5f;
 		mat.mRaw[4] *= mModelViewStack[2].mRaw[0] * 0.5f;
 		mat.mRaw[8] *= mModelViewStack[2].mRaw[0] * 0.5f;
@@ -1733,8 +1733,8 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			mVtxProjected[i].ClipFlags = clip_flags;
 
 			// Assign true vert colour
-			const u32 WL {*(u16*)((pVtxBase + 6) ^ 2)};
-			const u32 WH {*(u16*)((pVtxBase + 8) ^ 2)};
+			const u32 WL = *(u16*)((pVtxBase + 6) ^ 2);
+			const u32 WH = *(u16*)((pVtxBase + 8) ^ 2);
 
 			mVtxProjected[i].Colour.x = (1.0f / 255.0f) * (WL >> 8);
 			mVtxProjected[i].Colour.y = (1.0f / 255.0f) * (WL & 0xFF);
