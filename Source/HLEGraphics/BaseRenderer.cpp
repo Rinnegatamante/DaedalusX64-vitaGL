@@ -1126,7 +1126,7 @@ v3 BaseRenderer::LightPointVert( const v4 & w ) const
 			f32 at = mTnL.Lights[l].ca + mTnL.Lights[l].la * light_llen + mTnL.Lights[l].qa * light_qlen;
 			if (at > 0.0f)
 			{
-				f32 fCosT = 1.0f/at;
+				f32 fCosT = 1.0f / at;
 				result.x += mTnL.Lights[l].Colour.x * fCosT;
 				result.y += mTnL.Lights[l].Colour.y * fCosT;
 				result.z += mTnL.Lights[l].Colour.z * fCosT;
@@ -1184,20 +1184,18 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 		//
 		if ( mTnL.Flags.Light )
 		{
-			v3 model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
-			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
-			vecTransformedNormal.Normalise();
-
+			v3 model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ));
 			v3 col;
-
-			if ( mTnL.Flags.PointLight )
-			{//POINT LIGHT
+			v3 vecTransformedNormal;
+			
+			if ( mTnL.Flags.PointLight ) //POINT LIGHT
 				col = LightPointVert(w); // Majora's Mask uses this
-			}
-			else
-			{//NORMAL LIGHT
+			else { //NORMAL LIGHT
+				vecTransformedNormal = mat_world.TransformNormal( model_normal );
+				vecTransformedNormal.Normalise();
 				col = LightVert(vecTransformedNormal);
 			}
+			
 			mVtxProjected[i].Colour.x = col.x;
 			mVtxProjected[i].Colour.y = col.y;
 			mVtxProjected[i].Colour.z = col.z;
@@ -1214,7 +1212,7 @@ void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
 				vecTransformedNormal.Normalise();
 #endif
 
-				const v3 & norm {vecTransformedNormal};
+				const v3 & norm = vecTransformedNormal;
 
 				if( mTnL.Flags.TexGenLin )
 				{
@@ -1296,19 +1294,18 @@ void BaseRenderer::SetNewVertexInfoDAM(u32 address, u32 v0, u32 n)
 		if ( mTnL.Flags.Light )
 		{
 			v3 model_normal(f32( vert.norm_x ), f32( vert.norm_y ), f32( vert.norm_z ) );
-			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
-			vecTransformedNormal.Normalise();
+			v3 vecTransformedNormal;
 
 			v3 col;
 
-			if ( mTnL.Flags.PointLight )
-			{//POINT LIGHT
+			if ( mTnL.Flags.PointLight ) //POINT LIGHT
 				col = LightPointVert(w); // Majora's Mask uses this
-			}
-			else
-			{//NORMAL LIGHT
+			else { //NORMAL LIGHT
+				vecTransformedNormal = mat_world.TransformNormal( model_normal );
+				vecTransformedNormal.Normalise();
 				col = LightVert(vecTransformedNormal);
 			}
+			
 			mVtxProjected[i].Colour.x = col.x;
 			mVtxProjected[i].Colour.y = col.y;
 			mVtxProjected[i].Colour.z = col.z;
@@ -1447,9 +1444,15 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 		//
 		if ( mTnL.Flags.Light )
 		{
-			v3 model_normal( mn[((i<<1)+0)^3], mn[((i<<1)+1)^3], vert.normz );
-			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
-			vecTransformedNormal.Normalise();
+			v3 vecTransformedNormal;
+			
+			// Calculating normals only when required
+			if ( mTnL.Flags.PointLight || mTnL.Flags.TexGen) {
+				v3 model_normal( mn[((i<<1)+0)^3], mn[((i<<1)+1)^3], vert.normz );
+				vecTransformedNormal = mat_world.TransformNormal( model_normal );
+				vecTransformedNormal.Normalise();
+			}
+			
 			const v3 & norm = vecTransformedNormal;
 			const v3 & col = mTnL.Lights[mTnL.NumLights].Colour;
 
@@ -1707,11 +1710,10 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 		{
 			v3	model_normal((f32)mn[vert.cidx+3], (f32)mn[vert.cidx+2], (f32)mn[vert.cidx+1] );
 
-			v3 vecTransformedNormal {};
-			vecTransformedNormal = mat_world.TransformNormal( model_normal );
+			v3 vecTransformedNormal = mat_world.TransformNormal( model_normal );
 			vecTransformedNormal.Normalise();
 
-			const v3 col {LightVert(vecTransformedNormal)};
+			const v3 col = LightVert(vecTransformedNormal);
 			mVtxProjected[i].Colour.x = col.x;
 			mVtxProjected[i].Colour.y = col.y;
 			mVtxProjected[i].Colour.z = col.z;
@@ -1719,7 +1721,7 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 
 			if ( mTnL.Flags.TexGen )
 			{
-				const v3 & norm {vecTransformedNormal};
+				const v3 & norm = vecTransformedNormal;
 
 				//Env mapping
 				if( mTnL.Flags.TexGenLin )
