@@ -225,7 +225,6 @@ void DLParser_GBI1_CullDL( MicroCodeCommand command )
 {
 	u32 first = command.culldl.first;
 	u32 last = command.culldl.end;
-	if( last < first ) return;
 	if( gRenderer->TestVerts( first, last ) )
 	{
 		return;

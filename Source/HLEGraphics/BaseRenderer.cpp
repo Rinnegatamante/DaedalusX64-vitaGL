@@ -537,6 +537,31 @@ void BaseRenderer::SetPositiveViewport()
 }
 #endif
 
+bool BaseRenderer::TestVerts(u32 v0, u32 vn) const
+{
+	if ((vn + v0) > kMaxN64Vertices) {
+		return false;
+	}
+	
+	if (vn < v0) {
+		u32 flags =  mVtxProjected[vn].ClipFlags;
+		for (u32 i = (vn+1); i <= v0; i++) {
+			flags &= mVtxProjected[i].ClipFlags;
+			if ((flags & CLIP_TEST_FLAGS) == 0)
+				return true;
+		}
+	} else {
+		u32 flags =  mVtxProjected[v0].ClipFlags;
+		for (u32 i = (v0+1); i <= vn; i++) {
+			flags &= mVtxProjected[i].ClipFlags;
+			if ((flags & CLIP_TEST_FLAGS) == 0)
+				return true;
+		}
+	}
+	
+	return false;
+}
+
 // Returns true if triangle visible and rendered, false otherwise
 
 bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
