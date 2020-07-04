@@ -383,7 +383,7 @@ static void Initialize()
 	sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
 	
 	// Turn off auto updater if build is marked as dirty
-	uint8_t gSkipAutoUpdate = strstr(stringify(GIT_VERSION), "dirty") != nullptr;
+	bool gSkipAutoUpdate = !gStandaloneMode || (strstr(stringify(GIT_VERSION), "dirty") != nullptr);
 	
 	// Initializing net
 	if ((gAutoUpdate && !gSkipAutoUpdate) || !gSkipCompatListUpdate)
