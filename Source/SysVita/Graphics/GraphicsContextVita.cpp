@@ -12,7 +12,6 @@
 #include "Debug/Dump.h"
 #include "Graphics/ColourValue.h"
 #include "Graphics/PngUtil.h"
-#include "SysPSP/Graphics/VideoMemoryManager.h"
 #include "Utility/IO.h"
 #include "Utility/Preferences.h"
 #include "Utility/Profiler.h"

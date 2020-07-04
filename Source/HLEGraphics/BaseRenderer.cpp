@@ -45,7 +45,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <vector>
 
-#ifdef DAEDALUS_VITA
 struct ScePspFMatrix4
 {
 	float m[16];
@@ -58,47 +57,6 @@ extern float *gTexCoordBuffer;
 #include <vitaGL.h>
 extern void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx);
 #define GU_PROJECTION GL_PROJECTION
-#endif
-
-#ifndef DAEDALUS_VITA
-// Vertex allocation.
-// AllocVerts/FreeVerts:
-//   Allocate vertices whose lifetime must extend beyond the current scope.
-//   On OSX we just use malloc, though we could use a scratch allocator to simplify.
-//   On PSP we again use sceGuGetMemory.
-struct TempVerts
-{
-	TempVerts()
-	:	Verts(nullptr)
-	,	Count(0)
-	{
-	}
-
-	~TempVerts()
-	{
-#if defined(DAEDALUS_GL)
-		free(Verts);
-#endif
-	}
-
-	DaedalusVtx * Alloc(u32 count)
-	{
-		u32 bytes {count * sizeof(DaedalusVtx)};
-#ifdef DAEDALUS_PSP
-		Verts = static_cast<DaedalusVtx*>(sceGuGetMemory(bytes));
-#endif
-#if defined(DAEDALUS_GL)
-		Verts = static_cast<DaedalusVtx*>(malloc(bytes));
-#endif
-
-		Count = count;
-		return Verts;
-	}
-
-	DaedalusVtx *	Verts;
-	u32				Count {};
-};
-#endif
 
 extern "C"
 {
@@ -287,23 +245,12 @@ void BaseRenderer::ForceViewport(float w, float h)
 		oldfViWidth = fViWidth;
 		oldfViHeight = fViHeight;
 
-#ifdef DAEDALUS_PSP
-		// Centralise the viewport in the display.
-		u32 frame_width  = (u32)(gGlobalPreferences.TVEnable ? 720 : 480);
-		u32 frame_height = (u32)(gGlobalPreferences.TVEnable ? 480 : 272);
-
-		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
-		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
-#elif defined(DAEDALUS_VITA)
 		// Centralise the viewport in the display.
 		u32 frame_width  = SCR_WIDTH;
 		u32 frame_height = SCR_HEIGHT;
 
 		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
 		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
-#else
-		f32 display_x = 0, display_y = 0;
-#endif
 
 		mN64ToScreenScale.x = mScreenWidth  / fViWidth;
 		mN64ToScreenScale.y = mScreenHeight / fViHeight;
@@ -311,15 +258,6 @@ void BaseRenderer::ForceViewport(float w, float h)
 		mN64ToScreenTranslate.x  = display_x;
 		mN64ToScreenTranslate.y  = display_y;
 
-#ifndef DAEDALUS_VITA
-		if (gRumblePakActive)
-		{
-			mN64ToScreenTranslate.x += (FastRand() & 3);
-			mN64ToScreenTranslate.y += (FastRand() & 3);
-		}
-#endif
-
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 		f32 w = mScreenWidth;
 		f32 h = mScreenHeight;
 
@@ -329,7 +267,6 @@ void BaseRenderer::ForceViewport(float w, float h)
 				0.f,       0.f,     1.f,     0.f,
 			  -1.0f,       1.f,     0.f,     1.f
 		);
-#endif
 	}
 	
 	UpdateViewport();
@@ -358,23 +295,12 @@ void BaseRenderer::InitViewport()
 		oldfViWidth = fViWidth;
 		oldfViHeight = fViHeight;
 
-#ifdef DAEDALUS_PSP
-		// Centralise the viewport in the display.
-		u32 frame_width  = (u32)(gGlobalPreferences.TVEnable ? 720 : 480);
-		u32 frame_height = (u32)(gGlobalPreferences.TVEnable ? 480 : 272);
-
-		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
-		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
-#elif defined(DAEDALUS_VITA)
 		// Centralise the viewport in the display.
 		u32 frame_width  = SCR_WIDTH;
 		u32 frame_height = SCR_HEIGHT;
 
 		f32 display_x = (frame_width  - (f32)display_width)  / 2.0f;
 		f32 display_y = (frame_height - (f32)display_height) / 2.0f;
-#else
-		f32 display_x = 0, display_y = 0;
-#endif
 
 		mN64ToScreenScale.x = mScreenWidth  / fViWidth;
 		mN64ToScreenScale.y = mScreenHeight / fViHeight;
@@ -382,15 +308,6 @@ void BaseRenderer::InitViewport()
 		mN64ToScreenTranslate.x  = display_x;
 		mN64ToScreenTranslate.y  = display_y;
 
-#ifndef DAEDALUS_VITA
-		if (gRumblePakActive)
-		{
-			mN64ToScreenTranslate.x += (FastRand() & 3);
-			mN64ToScreenTranslate.y += (FastRand() & 3);
-		}
-#endif
-
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
 		f32 w = mScreenWidth;
 		f32 h = mScreenHeight;
 
@@ -400,7 +317,6 @@ void BaseRenderer::InitViewport()
 				0.f,       0.f,     1.f,     0.f,
 			  -1.0f,       1.f,     0.f,     1.f
 		);
-#endif
 	}
 	
 	UpdateViewport();
@@ -438,24 +354,9 @@ bool is_negative_x = false;
 bool is_negative_y = false;
 
 void inline SetInternalViewport() {
-	//DBGConsole_Msg(0, "InternalViewport: %ld, %ld, %ld, %ld", vp_x, vp_y, vp_w, vp_h);
-#ifdef DAEDALUS_PSP
-	const u32 vx = 2048;
-	const u32 vy = 2048;
-
-	sceGuOffset(vx - (vp_w/2),vy - (vp_h/2));
-	sceGuViewport(vx + vp_x, vy + vp_y, vp_w, vp_h);
-#elif defined(DAEDALUS_VITA)
 	// NOTE: If disabled, Tarzan in game HUD is not rendered and Fighting Force 64 floor is not rendered
 	if (!g_ROM.SCISSOR_HACK) glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 	glViewport(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
-#elif defined(DAEDALUS_GL)
-	glViewport(vp_x, (s32)mScreenHeight - (vp_h + vp_y), vp_w, vp_h);
-#else
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR("Code to set viewport not implemented on this platform");
-#endif
-#endif
 }
 
 void BaseRenderer::UpdateViewport()
@@ -479,7 +380,6 @@ void BaseRenderer::UpdateViewport()
 	SetInternalViewport();
 }
 
-#ifdef DAEDALUS_VITA
 void BaseRenderer::SetNegativeViewport()
 {
 	if ((vp_w < 0) || (vp_h < 0) || (vp_x < 0) || (vp_y < 0)) {
@@ -535,7 +435,6 @@ void BaseRenderer::SetPositiveViewport()
 		SetInternalViewport();
 	}
 }
-#endif
 
 bool BaseRenderer::TestVerts(u32 v0, u32 vn) const
 {
@@ -580,10 +479,6 @@ bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
 	//
 	if( mTnL.Flags.TriCull )
 	{
-#ifdef DAEDALUS_PSP_USE_VFPU
-		const s32 NSign = vfpu_TriNormSign((u8*)&mVtxProjected[0], v0, v1, v2);
-		if( NSign <= 0 )
-#else
 		const v4 & A = mVtxProjected[v0].ProjectedPos;
 		const v4 & B = mVtxProjected[v1].ProjectedPos;
 		const v4 & C = mVtxProjected[v2].ProjectedPos;
@@ -597,7 +492,6 @@ bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
 		const f32 AyBC = A.y*BCw;
 		const f32 NSign = (((B.x*ACw - AxBC)*(C.y*ABw - AyBC) - (C.x*ABw - AxBC)*(B.y*ACw - AyBC)) * ABw * C.w);
 		if( NSign <= 0.0f )
-#endif
 		{
 			if( mTnL.Flags.CullBack )
 			{
@@ -619,31 +513,17 @@ bool BaseRenderer::AddTri(u32 v0, u32 v1, u32 v2)
 	return true;
 }
 
-
 //
 
 void BaseRenderer::FlushTris()
 {
-	DAEDALUS_PROFILE( "BaseRenderer::FlushTris" );
-	/*
-	if ( mNumIndices == 0 )
-	{
-		DAEDALUS_ERROR("Call to FlushTris() with nothing to render");
-		mVtxClipFlagsUnion = 0; // Reset software clipping detector
-		return;
-	}
-	*/
-
-	#ifdef DAEDALUS_VITA
 	float *vtx;
 	float *tex;
 	uint32_t *clr;
 	uint32_t count = 0;
-	#else
-	TempVerts temp_verts;
-	#endif
+	
 	// If any bit is set here it means we have to clip the trianlges since PSP HW clipping sux!
-#ifdef DAEDALUS_PSP
+#ifndef DAEDALUS_VITA
 	if(mVtxClipFlagsUnion != 0)
 	{
 		PrepareTrisClipped( &temp_verts );
@@ -651,19 +531,11 @@ void BaseRenderer::FlushTris()
 	else
 #endif
 	{
-		#ifdef DAEDALUS_VITA
 		count = PrepareTrisUnclipped( &clr );
-		#else
-		PrepareTrisUnclipped( &temp_verts );
-		#endif
 	}
 
 	// No vertices to render? //Corn
-#ifdef DAEDALUS_VITA
 	if( count == 0 )
-#else
-	if( temp_verts.Count == 0 )
-#endif
 	{
 		mNumIndices = 0;
 		mVtxClipFlagsUnion = 0;
@@ -692,17 +564,9 @@ void BaseRenderer::FlushTris()
 	}*/
 
 	//
-	// Check for depth source, this is for Nascar games, hopefully won't mess up anything
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !gRDPOtherMode.depth_source, " Warning : Using depth source in flushtris" );
-	#endif
-	//
 	//	Render out our vertices
-#ifdef DAEDALUS_VITA
+
 	RenderTriangles( clr, count, gRDPOtherMode.depth_source ? true : false );
-#else
-	RenderTriangles( temp_verts.Verts, temp_verts.Count, gRDPOtherMode.depth_source ? true : false );
-#endif
 	mNumIndices = 0;
 	mVtxClipFlagsUnion = 0;
 }
@@ -725,27 +589,6 @@ const v4 NDCPlane[6] =
 	v4(  0.f,  1.f,  0.f, -1.f ),	// bottom
 	v4(  0.f, -1.f,  0.f, -1.f )	// top
 };
-
-
-//VFPU tris clip(fast)
-
-#ifdef DAEDALUS_PSP_USE_VFPU
-u32 clip_tri_to_frustum( DaedalusVtx4 * v0, DaedalusVtx4 * v1 )
-{
-	u32 vOut( 3 );
-
-	vOut = _ClipToHyperPlane( v1, v0, &NDCPlane[0], vOut ); if( vOut < 3 ) return vOut;		// near
-	vOut = _ClipToHyperPlane( v0, v1, &NDCPlane[1], vOut ); if( vOut < 3 ) return vOut;		// far
-	vOut = _ClipToHyperPlane( v1, v0, &NDCPlane[2], vOut ); if( vOut < 3 ) return vOut;		// left
-	vOut = _ClipToHyperPlane( v0, v1, &NDCPlane[3], vOut ); if( vOut < 3 ) return vOut;		// right
-	vOut = _ClipToHyperPlane( v1, v0, &NDCPlane[4], vOut ); if( vOut < 3 ) return vOut;		// bottom
-	vOut = _ClipToHyperPlane( v0, v1, &NDCPlane[5], vOut );									// top
-
-	return vOut;
-}
-
-#else	// FPU/CPU(slower)
-
 
 //CPU interpolate line parameters
 
@@ -833,8 +676,6 @@ u32 clip_tri_to_frustum( DaedalusVtx4 * v0, DaedalusVtx4 * v1 )
 
 	return vOut;
 }
-#endif // CPU clip
-
 
 //
 
@@ -887,21 +728,10 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 
 			// Retesselate
 			u32 new_num_vertices( num_vertices + (out - 3) * 3 );
-						#ifdef DAEDALUS_DEBUG_CONSOLE
-			if( new_num_vertices > MAX_CLIPPED_VERTS )
-			{
-				DAEDALUS_ERROR( "Too many clipped verts: %d", new_num_vertices );
-				break;
-			}
-					#endif
+
 			//Make new triangles from the vertices we got back from clipping the original triangle
-			for( u32 j {}; j <= out - 3; ++j)
+			for( u32 j = 0; j <= out - 3; ++j)
 			{
-#ifdef DAEDALUS_PSP_USE_VFPU
-				_ConvertVertice( &clip_vtx[ num_vertices++ ], &temp_a[ 0 ]);
-				_ConvertVertice( &clip_vtx[ num_vertices++ ], &temp_a[ j + 1 ]);
-				_ConvertVertice( &clip_vtx[ num_vertices++ ], &temp_a[ j + 2 ]);
-#else
 				clip_vtx[ num_vertices ].Texture = temp_a[ 0 ].Texture;
 				clip_vtx[ num_vertices ].Colour = c32( temp_a[ 0 ].Colour );
 				clip_vtx[ num_vertices ].Position.x = temp_a[ 0 ].TransformedPos.x;
@@ -919,25 +749,10 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 				clip_vtx[ num_vertices ].Position.x = temp_a[ j + 2 ].TransformedPos.x;
 				clip_vtx[ num_vertices ].Position.y = temp_a[ j + 2 ].TransformedPos.y;
 				clip_vtx[ num_vertices++ ].Position.z = temp_a[ j + 2 ].TransformedPos.z;
-#endif
 			}
 		}
 		else	//Triangle is inside the clipbox so we just add it as it is.
 		{
-					#ifdef DAEDALUS_DEBUG_CONSOLE
-			if( num_vertices > (MAX_CLIPPED_VERTS - 3) )
-			{
-
-				DAEDALUS_ERROR( "Too many clipped verts: %d", num_vertices + 3 );
-				break;
-			}
-					#endif
-
-#ifdef DAEDALUS_PSP_USE_VFPU
-			_ConvertVertice( &clip_vtx[ num_vertices++ ], &mVtxProjected[ idx0 ]);
-			_ConvertVertice( &clip_vtx[ num_vertices++ ], &mVtxProjected[ idx1 ]);
-			_ConvertVertice( &clip_vtx[ num_vertices++ ], &mVtxProjected[ idx2 ]);
-#else
 			clip_vtx[ num_vertices ].Texture = mVtxProjected[ idx0 ].Texture;
 			clip_vtx[ num_vertices ].Colour = c32( mVtxProjected[ idx0 ].Colour );
 			clip_vtx[ num_vertices ].Position.x = mVtxProjected[ idx0 ].TransformedPos.x;
@@ -955,7 +770,6 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 			clip_vtx[ num_vertices ].Position.x = mVtxProjected[ idx2 ].TransformedPos.x;
 			clip_vtx[ num_vertices ].Position.y = mVtxProjected[ idx2 ].TransformedPos.y;
 			clip_vtx[ num_vertices++ ].Position.z = mVtxProjected[ idx2 ].TransformedPos.z;
-#endif
 		}
 	}
 
@@ -972,32 +786,13 @@ void BaseRenderer::PrepareTrisClipped( TempVerts * temp_verts ) const
 #endif
 
 //
-#ifdef DAEDALUS_VITA
 uint32_t BaseRenderer::PrepareTrisUnclipped( uint32_t **clr )
-#else
-void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
-#endif
 {
 	const u32		num_vertices = mNumIndices;
-#ifndef DAEDALUS_VITA
-	DaedalusVtx *	p_vertices   = temp_verts->Alloc(num_vertices);
-#endif
-	//
-	//	Previously this code set up an index buffer to avoid processing the
-	//	same vertices more than once - we avoid this now as there is apparently
-	//	quite a large performance penalty associated with using these on the PSP.
-	//
-	//	http://forums.ps2dev.org/viewtopic.php?t=4703
-	//
-	//DAEDALUS_STATIC_ASSERT( MAX_CLIPPED_VERTS > ARRAYSIZE(mIndexBuffer) );
 
-#ifdef DAEDALUS_PSP_USE_VFPU
-	_ConvertVerticesIndexed( p_vertices, mVtxProjected, num_vertices, mIndexBuffer );
-#else
 	//
 	//	Now we just shuffle all the data across directly (potentially duplicating verts)
 	//
-#ifdef DAEDALUS_VITA
 	vglVertexPointerMapped(gVertexBuffer);
 	*clr = gColorBuffer;
 	if (mTnL.Flags.Texture) {
@@ -1065,47 +860,10 @@ void BaseRenderer::PrepareTrisUnclipped( TempVerts * temp_verts ) const
 	}
 	gColorBuffer += num_vertices;
 	return num_vertices;
-#else
-	for( u32 i = 0; i < num_vertices; ++i )
-	{
-		u32 index = mIndexBuffer[ i ];
-
-		p_vertices[ i ].Texture = mVtxProjected[ index ].Texture;
-		p_vertices[ i ].Colour = c32( mVtxProjected[ index ].Colour );
-		p_vertices[ i ].Position.x = mVtxProjected[ index ].TransformedPos.x;
-		p_vertices[ i ].Position.y = mVtxProjected[ index ].TransformedPos.y;
-		p_vertices[ i ].Position.z = mVtxProjected[ index ].TransformedPos.z;
-	}
-#endif
-#endif
 }
 
 
-// Standard rendering pipeline using VFPU(fast)
-
-#ifdef DAEDALUS_PSP_USE_VFPU
-void BaseRenderer::SetNewVertexInfo(u32 address, u32 v0, u32 n)
-{
-	const FiddledVtx * const pVtxBase( (const FiddledVtx*)(g_pu8RamBase + address) );
-
-	UpdateWorldProject();
-
-	const Matrix4x4 & mat_world_project {mWorldProject};
-	const Matrix4x4 & mat_world {mModelViewStack[mModelViewTop]};
-
-	if ( !mTnL.Flags.PointLight )
-	{	//Normal rendering
-		_TnLVFPU( &mat_world, &mat_world_project, pVtxBase, &mVtxProjected[v0], n, &mTnL );
-	}
-	else
-	{	//Point light for Zelda MM
-		_TnLVFPU_Plight( &mat_world, &mat_world_project, pVtxBase, &mVtxProjected[v0], n, &mTnL );
-	}
-}
-
-#else	//Transform using VFPU(fast) or FPU/CPU(slow)
-
-//
+// Standard rendering pipeline
 
 v3 BaseRenderer::LightVert( const v3 & norm ) const
 {
@@ -1402,24 +1160,7 @@ void BaseRenderer::SetNewVertexInfoDAM(u32 address, u32 v0, u32 n)
 	}
 }
 
-#endif // Transform VFPU/FPU
-
-
 // Conker Bad Fur Day rendering pipeline
-
-#ifdef DAEDALUS_PSP_USE_VFPU
-void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
-{
-	const FiddledVtx * const pVtxBase( (const FiddledVtx*)(g_pu8RamBase + address) );
-	const Matrix4x4 & mat_project = mProjectionMat;
-	const Matrix4x4 & mat_world = mModelViewStack[mModelViewTop];
-
-	const s8 *mn = (s8*)(g_pu8RamBase + gAuxAddr);
-	_TnLVFPUCBFD( &mat_world, &mat_project, pVtxBase, &mVtxProjected[v0], n, &mTnL, mn, v0<<1 );
-}
-
-#else
-//FPU/CPU version //Corn
 
 void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 {
@@ -1566,7 +1307,6 @@ void BaseRenderer::SetNewVertexInfoConker(u32 address, u32 v0, u32 n)
 		}
 	}
 }
-#endif
 
 
 // Assumes address has already been checked!
@@ -1581,9 +1321,6 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 	{	//Copy vertices adding base vector and the color data
 		mWPmodified = false;
 
-#ifdef DAEDALUS_PSP_USE_VFPU
-		_TnLVFPUDKRB( n, &mModelViewStack[0], (const FiddledVtx*)pVtxBase, &mVtxProjected[v0] );
-#else
 		v4 & BaseVec( mVtxProjected[0].TransformedPos );
 
 		//Hack to worldproj matrix to scale and rotate billbords //Corn
@@ -1627,7 +1364,6 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 
 			pVtxBase += 10;
 		}
-#endif
 	}
 	else
 	{	//Normal path for transform of triangles
@@ -1636,9 +1372,7 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 			mWPmodified = false;
 			sceGuSetMatrix( GU_PROJECTION, reinterpret_cast< const ScePspFMatrix4 * >( &mat_world_project) );
 		}
-#ifdef DAEDALUS_PSP_USE_VFPU
-		_TnLVFPUDKR( n, &mat_world_project, (const FiddledVtx*)pVtxBase, &mVtxProjected[v0] );
-#else
+
 		for (u32 i = v0; i < v0 + n; i++)
 		{
 			v4 & transformed( mVtxProjected[i].TransformedPos );
@@ -1673,28 +1407,12 @@ void BaseRenderer::SetNewVertexInfoDKR(u32 address, u32 v0, u32 n, bool billboar
 
 			pVtxBase += 10;
 		}
-#endif
 	}
 }
 
 
 // Perfect Dark rendering pipeline
 
-#ifdef DAEDALUS_PSP_USE_VFPU
-void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
-{
-	const FiddledVtxPD * const pVtxBase {(const FiddledVtxPD*)(g_pu8RamBase + address)};
-
-	const Matrix4x4 & mat_world {mModelViewStack[mModelViewTop]};
-	const Matrix4x4 & mat_project {mProjectionMat};
-
-	//Model & Color base vector
-	const u8 *mn {(u8*)(g_pu8RamBase + gAuxAddr)};
-
-	_TnLVFPUPD( &mat_world, &mat_project, pVtxBase, &mVtxProjected[v0], n, &mTnL, mn );
-}
-
-#else
 void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 {
 	const FiddledVtxPD * const pVtxBase {(const FiddledVtxPD*)(g_pu8RamBase + address)};
@@ -1703,7 +1421,7 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 	const Matrix4x4 & mat_project {mProjectionMat};
 
 	//Model normal and color base vector
-	const u8 *mn {(u8*)(g_pu8RamBase + gAuxAddr)};
+	const u8 *mn = (u8*)(g_pu8RamBase + gAuxAddr);
 
 	for (u32 i {v0}; i < v0 + n; i++)
 	{
@@ -1779,8 +1497,6 @@ void BaseRenderer::SetNewVertexInfoPD(u32 address, u32 v0, u32 n)
 		}
 	}
 }
-#endif
-
 
 //
 
@@ -1835,10 +1551,6 @@ void BaseRenderer::ModifyVertexInfo(u32 whered, u32 vert, u32 val)
 		case G_MWO_POINT_ZSCREEN:
 			{
 				//s32 z = val >> 16;
-				//DL_PF( "      Setting ZScreen to 0x%08x", z );
-				#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-				DL_PF( "    Setting ZScreen");
-				#endif
 				//Not sure about the scaling here //Corn
 				//SetVtxZ( vert, (( (f32)z / 0x03FF ) + 0.5f ) / 2.0f );
 				//SetVtxZ( vert, (( (f32)z ) + 0.5f ) / 2.0f );
@@ -1940,48 +1652,6 @@ void BaseRenderer::UpdateTileSnapshots( u32 tile_idx )
 #endif
 }
 
-#ifdef DAEDALUS_PSP
-static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
-				   const TextureInfo & ti1, CNativeTexture * texture1)
-{
-	if((ti0.GetFormat() == G_IM_FMT_RGBA) &&
-	   (ti1.GetFormat() == G_IM_FMT_I) &&
-	   (ti1.GetWidth()  == ti0.GetWidth()) &&
-	   (ti1.GetHeight() == ti0.GetHeight()))
-	{
-		if( g_ROM.T1_HACK )
-		{
-			const u32 * src = static_cast<const u32*>(texture0->GetData());
-			u32 * dst       = static_cast<      u32*>(texture1->GetData());
-
-			//Merge RGB + I -> RGBA in texture 1
-			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
-			u32 size = texture1->GetWidth() * texture1->GetHeight() >> 1;
-			for(u32 i = 0; i < size ; i++)
-			{
-				*dst = (*dst & 0xF000F000) | (*src & 0x0FFF0FFF);
-				dst++;
-				src++;
-			}
-		}
-		else
-		{
-			const u32* src = static_cast<const u32*>(texture1->GetData());
-			u32* dst      = static_cast<      u32*>(texture0->GetData());
-
-			//Merge RGB + I -> RGBA in texture 0
-			//We do two pixels in one go since its 16bit (RGBA_4444) //Corn
-			u32 size = texture1->GetWidth() * texture1->GetHeight() >> 1;
-			for(u32 i = 0; i < size ; i++)
-			{
-				*dst = (*dst & 0x0FFF0FFF) | (*src & 0xF000F000);
-				dst++;
-				src++;
-			}
-		}
-	}
-}
-#else
 static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 				   const TextureInfo & ti1, CNativeTexture * texture1)
 {
@@ -2022,8 +1692,6 @@ static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 		}
 	}
 }
-#endif // DAEDALUS_PSP
-
 
 // This captures the state of the RDP tiles in:
 //   mTexWrap
@@ -2070,13 +1738,9 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 
 	// Initialise the clamping state. When the mask is 0, it forces clamp mode.
 	//
-#ifdef DAEDALUS_PSP
-	u32 mode_u = (u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GU_CLAMP : GU_REPEAT);
-	u32 mode_v = (u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GU_CLAMP : GU_REPEAT);
-#else
 	u32 mode_u = (u32)((rdp_tile.clamp_s || (rdp_tile.mask_s == 0)) ? GL_CLAMP : GL_REPEAT);
 	u32 mode_v = (u32)((rdp_tile.clamp_t || (rdp_tile.mask_t == 0)) ? GL_CLAMP : GL_REPEAT);
-#endif
+	
 	//	In CRDPStateManager::GetTextureDescriptor, we limit the maximum dimension of a
 	//	texture to that define by the mask_s/mask_t value.
 	//	It this happens, the tile size can be larger than the truncated width/height
@@ -2093,19 +1757,12 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 		// ToDo : Find a proper workaround for this, if this disabled the castle in Link's stage in SSB is broken :/
 		// Do a hack just for Zelda for now..
 		//
-#ifdef DAEDALUS_PSP
-		mode_u = g_ROM.ZELDA_HACK ? GU_CLAMP : GU_REPEAT;
-#else
 		mode_u = g_ROM.ZELDA_HACK ? GL_CLAMP : (rdp_tile.mirror_s ? GL_MIRRORED_REPEAT : GL_REPEAT);
-#endif
 	}
 
 	if( tile_size.GetHeight() > ti.GetHeight() )
-#ifdef DAEDALUS_PSP
-		mode_v = GU_REPEAT;
-#else
 		mode_v = rdp_tile.mirror_t ? GL_MIRRORED_REPEAT : GL_REPEAT;
-#endif
+
 	mTexWrap[ index ].u = mode_u;
 	mTexWrap[ index ].v = mode_v;
 
@@ -2133,20 +1790,13 @@ void BaseRenderer::UpdateTileSnapshot( u32 index, u32 tile_idx )
 // and everything works correctly.
 inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 {
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(size > 0, "Texture has crazy width/height");
-#endif
 	s32 offset_10_5 = offset << 3;
 
 	s32 c0 = *c0_ - offset_10_5;
 	s32 c1 = *c1_ - offset_10_5;
 
 	// Many texrects already have GU_CLAMP set, so avoid some work.
-#ifdef DAEDALUS_PSP
-	if (*wrap != GU_CLAMP && size > 0)
-#else
 	if (*wrap != GL_CLAMP && size > 0)
-#endif
 	{
 		// Check if the coord is negative - if so, offset to the range [0,size]
 		if (c0 < 0)
@@ -2166,11 +1816,7 @@ inline void FixUV(u32 * wrap, s16 * c0_, s16 * c1_, s16 offset, s32 size)
 		if ((u16)c0 <= size &&
 			(u16)c1 <= size)
 		{
-#ifdef DAEDALUS_PSP
-			*wrap = GU_CLAMP;
-#else
 			*wrap = GL_CLAMP;
-#endif
 		}
 	}
 
@@ -2244,23 +1890,10 @@ void BaseRenderer::SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 )
 	s32 r =           s32(screen_br.x);
 	s32 b =           s32(screen_br.y);
 
-#if defined(DAEDALUS_PSP)
-	// N.B. Think the arguments are x0,y0,x1,y1, and not x,y,w,h as the docs describe
-	//printf("%d %d %d %d\n", s32(screen_tl.x),s32(screen_tl.y),s32(screen_br.x),s32(screen_br.y));
-	sceGuScissor( l, t, r, b );
-#elif defined(DAEDALUS_GL)
-	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
-	s32 w = Max<s32>( r - l, 0 );
-	s32 h = Max<s32>( b - t, 0 );
-	glScissor( l, (s32)mScreenHeight - (t + h), w, h );
-#elif defined(DAEDALUS_VITA)
 	// NB: OpenGL is x,y,w,h. Errors if width or height is negative, so clamp this.
 	s32 w = Max<s32>( r - l, 0 );
 	s32 h = Max<s32>( b - t, 0 );
 	if (g_ROM.GameHacks != POKEMON_STADIUM) glScissor( l, (s32)SCR_HEIGHT - (t + h), w, h );
-#else
-	DAEDALUS_ERROR("Need to implement scissor for this platform.");
-#endif
 }
 
 extern void MatrixFromN64FixedPoint( Matrix4x4 & mat, u32 address );
@@ -2281,11 +1914,8 @@ void BaseRenderer::SetProjection(const u32 address, bool bReplace)
 		//
 		if( g_ROM.ZELDA_HACK )
 			mProjectionMat.mRaw[14] += 0.4f;
-#ifdef DAEDALUS_VITA
+
 		if( gAspectRatio == RATIO_16_9_HACK )
-#else		
-		if( gGlobalPreferences.ViewportType == VT_FULLSCREEN_HD )
-#endif
 			mProjectionMat.mRaw[0] *= HD_SCALE;	//proper 16:9 scale
 	}
 	else
@@ -2378,11 +2008,8 @@ inline void BaseRenderer::UpdateWorldProject()
 	{
 		mWPmodified = false;
 		mReloadProj = true;
-#ifdef DAEDALUS_VITA
+
 		if( gAspectRatio == RATIO_16_9_HACK )
-#else		
-		if( gGlobalPreferences.ViewportType == VT_FULLSCREEN_HD )
-#endif
 		{	//proper 16:9 scale
 			mWorldProject.mRaw[0] *= HD_SCALE;
 			mWorldProject.mRaw[4] *= HD_SCALE;

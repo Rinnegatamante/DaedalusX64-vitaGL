@@ -25,7 +25,6 @@
 #include "Utility/Preferences.h"
 #include "Utility/Profiler.h"
 #include "Utility/Thread.h"
-#include "Utility/Translate.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"

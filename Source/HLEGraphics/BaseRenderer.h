@@ -346,16 +346,6 @@ public:
 	inline c32			GetBlendColour() const					{ return mBlendColour; }
 	inline u32			GetFillColour() const					{ return mFillColour; }
 
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	// Rendering stats
-	inline u32			GetNumTrisRendered() const				{ return mNumTrisRendered; }
-	inline u32			GetNumTrisClipped() const				{ return mNumTrisClipped; }
-	inline u32			GetNumRect() const						{ return mNumRect; }
-
-
-	virtual void 		ResetDebugState()						{}
-#endif
-
 	inline float		LightN64ToScreenX(float x) const		{ return x * mN64ToScreenScale.x; }
 	inline float		LightN64ToScreenY(float y) const		{ return y * mN64ToScreenScale.y; }
 	
@@ -500,19 +490,6 @@ protected:
 	// Processed vertices waiting for output...
 	DaedalusVtx4		mVtxProjected[kMaxN64Vertices];		// Transformed and projected vertices (suitable for clipping etc)
 	u32					mVtxClipFlagsUnion;					// Bitwise OR of all the vertex flags added to the current batch. If this is 0, we can trivially accept everything without clipping
-
-
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	//
-	// Stats
-	//
-	u32					mNumTrisRendered;
-	u32					mNumTrisClipped;
-	u32					mNumRect;
-
-	// Debugging
-	bool				mNastyTexture;
-#endif
 };
 
 bool CreateRenderer();

@@ -35,7 +35,6 @@
 #include "Utility/Preferences.h"
 #include "Utility/Profiler.h"
 #include "Utility/Thread.h"
-#include "Utility/Translate.h"
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
 #include "minizip/unzip.h"
