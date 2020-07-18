@@ -708,7 +708,6 @@ void loadConfig(const char *game)
 			else if (strcmp("gUseMipmaps", buffer) == 0) gUseMipmaps = value;
 			else if (strcmp("gUseVSync", buffer) == 0) gUseVSync = value;
 			else if (strcmp("gUseCdram", buffer) == 0) gUseCdram = value;
-			else if (strcmp("gClearDepthFrameBuffer", buffer) == 0) gClearDepthFrameBuffer = value;
 			else if (strcmp("gWaitRendering", buffer) == 0) gWaitRendering = value;
 			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
 			

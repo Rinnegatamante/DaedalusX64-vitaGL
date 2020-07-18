@@ -860,7 +860,7 @@ void DLParser_FillRect( MicroCodeCommand command )
 	{
 		CGraphicsContext::Get()->ClearZBuffer();
 
-		if(gClearDepthFrameBuffer)
+		if(g_ROM.CLEAR_DEPTH_HACK)
 		{
 			Clear_N64DepthBuffer(command);
 		}

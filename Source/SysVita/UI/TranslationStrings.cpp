@@ -63,7 +63,6 @@ char lang_strings[][256] = {
 	"Mipmaps", // STR_MENU_MIPMAPS
 	"High-Res Textures", // STR_MENU_HIRES_TEX
 	"Use VRAM", // STR_MENU_VRAM
-	"Clear Depth Buffer", // STR_MENU_DEPTH_BUFFER
 	"Wait Rendering Done", // STR_MENU_WAIT_REND
 	"Files", // STR_MENU_FILES
 	"Cheats", // STR_MENU_CHEATS
@@ -108,7 +107,6 @@ char lang_strings[][256] = {
 	"Emulates L1/R1/L3/R3 through rearpad inputs.", // STR_DESC_REARPAD
 	"Blends a color filter on screen depending on daytime.", // STR_DESC_VFLUX
 	"Enables VRAM usage for textures storing.", // STR_DESC_VRAM
-	"Enables depth buffer clear at every frame. May solve some glitches.", // STR_DESC_DEPTH_BUFFER
 	"Makes CPU wait GPU rendering end before elaborating the next frame.\nReduces artifacting at the cost of performances.", // STR_DESC_WAIT_REND
 	"Enables external high-res textures packs usage.", // STR_DESC_HIRES_TEX
 	"Forces mipmaps generation for 3D rendering.", // STR_DESC_MIPMAPS

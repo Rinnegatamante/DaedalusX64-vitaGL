@@ -413,15 +413,18 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x4c5a:	//ZELDA_OOT
 		g_ROM.ZELDA_HACK = true;
 		g_ROM.SKIP_MSG_SEND_HACK = true;
+		g_ROM.CLEAR_DEPTH_HACK = true;
 		g_ROM.GameHacks = ZELDA_OOT;
 		break;
 	case 0x4F44:	//DK64
 		g_ROM.SET_ROUND_MODE = true;
+		g_ROM.CLEAR_DEPTH_HACK = true;
 		g_ROM.GameHacks = DK64;
 		break;
 	case 0x535a:	//ZELDA_MM
 		g_ROM.TLUT_HACK = true;
 		g_ROM.ZELDA_HACK = true;
+		g_ROM.CLEAR_DEPTH_HACK = true;
 		g_ROM.GameHacks = ZELDA_MM;
 		break;
 	case 0x5653:	//SSV

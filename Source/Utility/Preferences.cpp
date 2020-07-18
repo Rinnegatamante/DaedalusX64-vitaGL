@@ -480,7 +480,6 @@ void SRomPreferences::Apply() const
 	gDynarecDoublesOptimisation	= DynarecDoublesOptimisation;
 	gDoubleDisplayEnabled       = DoubleDisplayEnabled; // I don't know why DD won't disabled if we set ||
 	gCleanSceneEnabled          = CleanSceneEnabled;
-	gClearDepthFrameBuffer      = ClearDepthFrameBuffer;
 	gAudioRateMatch             = AudioRateMatch;
 	gVideoRateMatch             = VideoRateMatch;
 	gFogEnabled                 = FogEnabled;

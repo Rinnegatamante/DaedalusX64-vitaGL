@@ -152,7 +152,7 @@ struct RomInfo
 			u32			SKIP_MSG_SEND_HACK:1;	//Dummies osSendMesg
 			u32			KEEP_MODE_H_HACK:1;		//Hack to prevent RDP OtherMode H reset
 			u32			PROJ_HACK:1;			//Hack to vertically flip projection matrix for 3D rendering
-			u32			PadE:1;	//free
+			u32			CLEAR_DEPTH_HACK:1;		//Hack to clear depth framebuffer at the beginning of a frame
 			u32			PadF:1;	//free
 		};
 	};

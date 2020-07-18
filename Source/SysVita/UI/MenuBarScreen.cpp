@@ -120,7 +120,6 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gUseMipmaps", gUseMipmaps);
 		fprintf(config, "%s=%d\n", "gUseVSync", gUseVSync);
 		fprintf(config, "%s=%d\n", "gUseCdram", gUseCdram);
-		fprintf(config, "%s=%d\n", "gClearDepthFrameBuffer", gClearDepthFrameBuffer);
 		fprintf(config, "%s=%d\n", "gWaitRendering", gWaitRendering);
 		fprintf(config, "%s=%d\n", "gAntiAliasing", gAntiAliasing);
 		
@@ -362,10 +361,6 @@ void DrawCommonMenuBar() {
 			vglUseVram(gUseCdram);
 		}
 		SetDescription(lang_strings[STR_DESC_VRAM]);
-		if (ImGui::MenuItem(lang_strings[STR_MENU_DEPTH_BUFFER], nullptr, gClearDepthFrameBuffer)){
-			gClearDepthFrameBuffer = !gClearDepthFrameBuffer;
-		}
-		SetDescription(lang_strings[STR_DESC_DEPTH_BUFFER]);
 		if (ImGui::MenuItem(lang_strings[STR_MENU_WAIT_REND], nullptr, gWaitRendering)){
 			gWaitRendering = !gWaitRendering;
 		}
