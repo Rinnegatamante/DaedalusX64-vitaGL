@@ -26,10 +26,23 @@ steps:
   displayName: 'Build libmathneon'
 
 - script: |
+    git clone https://github.com/Rinnegatamante/vitaShaRK
+    cd vitaShaRK
+    vita-libs-gen SceShaccCg.yml shaccg
+    cd shaccg
+    make
+    sudo -E make install
+    cd ..
+    sudo -E cp shacccg.h $VITASDK/arm-vita-eabi/include/psp2/shacccg.h
+    make
+    sudo -E make install
+  displayName: 'Build vitaShaRK'
+
+- script: |
     git clone https://github.com/Rinnegatamante/vitaGL
     cd vitaGL
-    make HAVE_SBRK=1 NO_DEBUG=1
-    sudo -E make HAVE_SBRK=1 NO_DEBUG=1 install
+    make HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1
+    sudo -E make HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1 install
   displayName: 'Build vitaGL'
 
 - script: |

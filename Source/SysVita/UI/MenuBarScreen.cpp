@@ -156,9 +156,10 @@ void dummy_func () {}
 
 void change_custom_rom_path () {
 	getDialogTextResult(gCustomRomPath);
-	if (gCustomRomPath[strlen(gCustomRomPath) - 1] != '/') {
-		gCustomRomPath[strlen(gCustomRomPath)] = '/';
-		gCustomRomPath[strlen(gCustomRomPath) + 1] = 0;
+	uint32_t path_len = strlen(gCustomRomPath);
+	if (gCustomRomPath[path_len - 1] != '/') {
+		gCustomRomPath[path_len] = '/';
+		gCustomRomPath[path_len + 1] = 0;
 	}
 	saveCustomRomPath();
 	resetRomList();

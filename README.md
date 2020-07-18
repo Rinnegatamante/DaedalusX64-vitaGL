@@ -4,11 +4,7 @@ Daedalus X64 is a Nintendo 64 emulator originally for Linux and PSP. This reposi
 
 ## Build Instructions
 
-In order to compile this, you'll first need to install [libmathneon](https://github.com/Rinnegatamante/math-neon), [vitaGL](https://github.com/Rinnegatamante/vitaGL) and [dear ImGui](https://github.com/Rinnegatamante/imgui-vita).
-
-When installing vitaGL, be sure to use this command when compiling it: `make HAVE_SBRK=1 NO_DEBUG=1 install`.
-
-Once you've satisfied those dependencies requirements, you can compile DaedalusX64-vitaGL with:
+You can compile DaedalusX64-vitaGL with:
 ```
 mkdir daedbuild
 cd daedbuild

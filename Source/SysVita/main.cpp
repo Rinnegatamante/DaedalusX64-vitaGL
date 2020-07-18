@@ -390,6 +390,7 @@ static void Initialize()
 		start_net();
 	
 	// Initializing vitaGL
+	vglEnableRuntimeShaderCompiler(GL_FALSE);
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
 	vglUseVram(gUseCdram);
 	vglWaitVblankStart(gUseVSync);

@@ -97,6 +97,7 @@ if (VITA_RELEASE)
 
 	target_link_libraries(${PROJECT_NAME}.elf
 		daedalus
+		vitashark
 		SceDisplay_stub
 		SceGxm_stub
 		ScePgf_stub
@@ -111,6 +112,7 @@ if (VITA_RELEASE)
 		SceNet_stub
 		SceAppMgr_stub
 		SceAppUtil_stub
+		SceShaccCg_stub
 		c
 		stdc++
 		m
