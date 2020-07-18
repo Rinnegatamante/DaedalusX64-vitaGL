@@ -38,39 +38,12 @@ enum ESaveType
 };
 const u32 NUM_SAVE_TYPES = SAVE_TYPE_FLASH + 1;
 
-enum EExpansionPakUsage
-{
-	PAK_STATUS_UNKNOWN = 0,
-	PAK_UNUSED,
-	PAK_USED,
-	PAK_REQUIRED,
-};
-const u32 NUM_EXPANSIONPAK_USAGE_TYPES = PAK_REQUIRED + 1;
-
-
 struct RomSettings
 {
 	CFixedString<128>	GameName;
-	CFixedString<128>	Comment;
-	CFixedString<128>	Info;
 	CFixedString<128>	Preview;
 
-	EExpansionPakUsage	ExpansionPakUsage;
 	ESaveType			SaveType;
-
-	bool				PatchesEnabled;
-	u32					SpeedSyncEnabled;
-	bool				DynarecSupported;
-	bool				DynarecLoopOptimisation;
-	bool				DynarecDoublesOptimisation;
-	bool				DoubleDisplayEnabled;
-	bool				CleanSceneEnabled;
-	bool				ClearDepthFrameBuffer;
-	bool				AudioRateMatch;
-	bool				VideoRateMatch;
-	bool				FogEnabled;
-	bool                MemoryAccessOptimisation;
-	bool				CheatsEnabled;
 
 	RomSettings();
 
@@ -101,7 +74,6 @@ class CRomSettingsDB : public CSingleton< CRomSettingsDB >
 		virtual void			SetSettings( const RomID & id, const RomSettings & settings ) = 0;
 };
 
-const char * ROM_GetExpansionPakUsageName( EExpansionPakUsage pak_usage );
 const char *	ROM_GetSaveTypeName( ESaveType save_type );
 
 

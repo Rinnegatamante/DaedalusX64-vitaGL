@@ -44,21 +44,6 @@ namespace
 
 //
 
-EExpansionPakUsage	ExpansionPakUsageFromString( const char * str )
-{
-	for( u32 i {}; i < NUM_EXPANSIONPAK_USAGE_TYPES; ++i )
-	{
-		EExpansionPakUsage	pak_usage = EExpansionPakUsage( i );
-
-		if( _strcmpi( str, ROM_GetExpansionPakUsageName( pak_usage ) ) == 0 )
-		{
-			return pak_usage;
-		}
-	}
-
-	return PAK_STATUS_UNKNOWN;
-}
-
 ESaveType	SaveTypeFromString( const char * str )
 {
 	for( u32 i {}; i < NUM_SAVE_TYPES; ++i )
@@ -75,33 +60,6 @@ ESaveType	SaveTypeFromString( const char * str )
 }
 
 }
-
-
-//
-
-const char * ROM_GetExpansionPakUsageName( EExpansionPakUsage pak_usage )
-{
-	switch( pak_usage )
-	{
-#ifdef DAEDALUS_VITA
-		case PAK_STATUS_UNKNOWN:	return lang_strings[STR_UNKNOWN];
-		case PAK_UNUSED:			return lang_strings[STR_UNUSED];
-		case PAK_USED:				return lang_strings[STR_USED];
-		case PAK_REQUIRED:			return lang_strings[STR_REQUIRED];
-#else
-		case PAK_STATUS_UNKNOWN:	return "Unknown";
-		case PAK_UNUSED:			return "Unused";
-		case PAK_USED:				return "Used";
-		case PAK_REQUIRED:			return "Required";
-#endif
-	}
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR( "Unknown expansion pak type" );
-	#endif
-	return "?";
-}
-
 
 // Get the name of a save type from an ESaveType enum
 
@@ -256,14 +214,6 @@ bool IRomSettingsDB::OpenSettingsFile( const char * filename )
 		RomSettings	settings;
 
 		const CIniFileProperty * p_property;
-		if( p_section->FindProperty( "Comment", &p_property ) )
-		{
-			settings.Comment = p_property->GetValue();
-		}
-		if( p_section->FindProperty( "Info", &p_property ) )
-		{
-			settings.Info = p_property->GetValue();
-		}
 		if( p_section->FindProperty( "Name", &p_property ) )
 		{
 			settings.GameName = p_property->GetValue();
@@ -272,65 +222,9 @@ bool IRomSettingsDB::OpenSettingsFile( const char * filename )
 		{
 			settings.Preview = p_property->GetValue();
 		}
-		if( p_section->FindProperty( "ExpansionPakUsage", &p_property ) )
-		{
-			settings.ExpansionPakUsage = ExpansionPakUsageFromString( p_property->GetValue() );
-		}
 		if( p_section->FindProperty( "SaveType", &p_property ) )
 		{
 			settings.SaveType = SaveTypeFromString( p_property->GetValue() );
-		}
-		if( p_section->FindProperty( "PatchesEnabled", &p_property ) )
-		{
-			settings.PatchesEnabled = p_property->GetBooleanValue( true );
-		}
-		if( p_section->FindProperty( "SpeedSyncEnabled", &p_property ) )
-		{
-			settings.SpeedSyncEnabled = atoi( p_property->GetValue() );
-		}
-		if( p_section->FindProperty( "DynarecSupported", &p_property ) )
-		{
-			settings.DynarecSupported = p_property->GetBooleanValue( true );
-		}
-		if( p_section->FindProperty( "DynarecLoopOptimisation", &p_property ) )
-		{
-			settings.DynarecLoopOptimisation = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "DynarecDoublesOptimisation", &p_property ) )
-		{
-			settings.DynarecDoublesOptimisation = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "DoubleDisplayEnabled", &p_property ) )
-		{
-			settings.DoubleDisplayEnabled = p_property->GetBooleanValue( true );
-		}
-		if( p_section->FindProperty( "CleanSceneEnabled", &p_property ) )
-		{
-			settings.CleanSceneEnabled = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "ClearDepthFrameBuffer", &p_property ) )
-		{
-			settings.ClearDepthFrameBuffer = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "AudioRateMatch", &p_property ) )
-		{
-			settings.AudioRateMatch = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "VideoRateMatch", &p_property ) )
-		{
-			settings.VideoRateMatch = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "FogEnabled", &p_property ) )
-		{
-			settings.FogEnabled = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "MemoryAccessOptimisation", &p_property ) )
-		{
-			settings.MemoryAccessOptimisation = p_property->GetBooleanValue( false );
-		}
-		if( p_section->FindProperty( "CheatsEnabled", &p_property ) )
-		{
-			settings.CheatsEnabled = p_property->GetBooleanValue( false );
 		}
 		SetSettings( id, settings );
 	}
@@ -440,24 +334,8 @@ void IRomSettingsDB::OutputSectionDetails( const RomID & id, const RomSettings &
 
 	fprintf(fh, "Name=%s\n", settings.GameName.c_str());
 
-	if( !settings.Comment.empty() )				fprintf(fh, "Comment=%s\n", settings.Comment.c_str());
-	if( !settings.Info.empty() )				fprintf(fh, "Info=%s\n", settings.Info.c_str());
 	if( !settings.Preview.empty() )				fprintf(fh, "Preview=%s\n", settings.Preview.c_str());
-	if( !settings.PatchesEnabled )				fprintf(fh, "PatchesEnabled=no\n");
-	if( !settings.SpeedSyncEnabled )			fprintf(fh, "SpeedSyncEnabled=%d\n", settings.SpeedSyncEnabled);
-	if( !settings.DynarecSupported )			fprintf(fh, "DynarecSupported=no\n");
-	if( !settings.DynarecLoopOptimisation )		fprintf(fh, "DynarecLoopOptimisation=yes\n");
-	if( !settings.DynarecDoublesOptimisation )	fprintf(fh, "DynarecDoublesOptimisation=yes\n");
-	if( !settings.DoubleDisplayEnabled )		fprintf(fh, "DoubleDisplayEnabled=no\n");
-	if( settings.CleanSceneEnabled )			fprintf(fh, "CleanSceneEnabled=yes\n");
-	if( settings.ClearDepthFrameBuffer )		fprintf(fh, "ClearDepthFrameBuffer=yes\n");
-	if( settings.AudioRateMatch )				fprintf(fh, "AudioRateMatch=yes\n");
-	if( settings.VideoRateMatch )				fprintf(fh, "VideoRateMatch=yes\n");
-	if( settings.FogEnabled )					fprintf(fh, "FogEnabled=yes\n");
-	if( settings.MemoryAccessOptimisation )		fprintf(fh, "MemoryAccessOptimisation=yes\n");
-	if( settings.CheatsEnabled )				fprintf(fh, "CheatsEnabled=yes\n");
 
-	if ( settings.ExpansionPakUsage != PAK_STATUS_UNKNOWN )	fprintf(fh, "ExpansionPakUsage=%s\n", ROM_GetExpansionPakUsageName( settings.ExpansionPakUsage ) );
 	if ( settings.SaveType != SAVE_TYPE_UNKNOWN )			fprintf(fh, "SaveType=%s\n", ROM_GetSaveTypeName( settings.SaveType ) );
 
 	fprintf(fh, "\n");			// Spacer
@@ -503,21 +381,7 @@ void	IRomSettingsDB::SetSettings( const RomID & id, const RomSettings & settings
 //
 
 RomSettings::RomSettings()
-:	ExpansionPakUsage( PAK_STATUS_UNKNOWN )
-,	SaveType( SAVE_TYPE_UNKNOWN )
-,	PatchesEnabled( true )
-,	SpeedSyncEnabled( 1 )
-,	DynarecSupported( true )
-,	DynarecLoopOptimisation( false )
-,	DynarecDoublesOptimisation( false )
-,	DoubleDisplayEnabled( true )
-,	CleanSceneEnabled( false )
-,	ClearDepthFrameBuffer( false )
-,	AudioRateMatch( false )
-,	VideoRateMatch( false )
-,	FogEnabled( false )
-,   MemoryAccessOptimisation( false )
-,   CheatsEnabled( false )
+:	SaveType( SAVE_TYPE_UNKNOWN )
 {
 }
 
@@ -529,21 +393,5 @@ RomSettings::~RomSettings() {}
 void	RomSettings::Reset()
 {
 	GameName = "";
-	Comment = "";
-	Info = "";
-	ExpansionPakUsage = PAK_STATUS_UNKNOWN;
 	SaveType = SAVE_TYPE_UNKNOWN;
-	PatchesEnabled = true;
-	SpeedSyncEnabled = 0;
-	DynarecSupported = true;
-	DynarecLoopOptimisation = false;
-	DynarecDoublesOptimisation = false;
-	DoubleDisplayEnabled = true;
-	CleanSceneEnabled = false;
-	ClearDepthFrameBuffer = false;
-	AudioRateMatch = false;
-	VideoRateMatch = false;
-	FogEnabled = false;
-	CheatsEnabled = false;
-	MemoryAccessOptimisation = false;
 }

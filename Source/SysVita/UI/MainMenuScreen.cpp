@@ -320,7 +320,6 @@ char *DrawRomSelector() {
 							node->size = node->size / (1024 * 1024);
 							if (!CRomSettingsDB::Get()->GetSettings(node->id, &node->settings )) {
 								node->settings.Reset();
-								node->settings.Comment = lang_strings[STR_UNKNOWN];
 								std::string game_name;
 								if (!ROM_GetRomName(full_path.c_str(), game_name )) game_name = full_path;
 								game_name = game_name.substr(0, 63);
@@ -399,7 +398,6 @@ char *DrawRomSelector() {
 		ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
 		ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
 		ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->settings.SaveType));
-		ImGui::Text("Expansion Pak: %s", ROM_GetExpansionPakUsageName(hovered->settings.ExpansionPakUsage));
 		if (hovered->status) {
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
 			if (!gBigText) ImGui::Text("%s:", lang_strings[STR_TAGS]);
