@@ -46,7 +46,7 @@ namespace
 
 ESaveType	SaveTypeFromString( const char * str )
 {
-	for( u32 i {}; i < NUM_SAVE_TYPES; ++i )
+	for( u32 i = 0; i < NUM_SAVE_TYPES; ++i )
 	{
 		ESaveType	save_type = ESaveType( i );
 
@@ -79,8 +79,12 @@ const char * ROM_GetSaveTypeName( ESaveType save_type )
 	}
 #ifdef DAEDALUS_DEBUG_CONSOLE
 	DAEDALUS_ERROR( "Unknown save type" );
-	#endif
+#endif
+#ifdef DEADALUS_VITA
+	return lang_strings[STR_UNKNOWN];
+#else
 	return "?";
+#endif
 }
 
 
@@ -347,16 +351,16 @@ void IRomSettingsDB::OutputSectionDetails( const RomID & id, const RomSettings &
 
 bool	IRomSettingsDB::GetSettings( const RomID & id, RomSettings * p_settings ) const
 {
-	SettingsMap::const_iterator	it( mSettings.find( id ) );
-	if ( it != mSettings.end() )
+	for ( SettingsMap::const_iterator it = mSettings.begin(); it != mSettings.end(); ++it )
 	{
-		*p_settings = it->second;
-		return true;
+		if ( it->first == id )
+		{
+			*p_settings = it->second;
+			return true;
+		}
 	}
-	else
-	{
-		return false;
-	}
+	
+	return false;
 }
 
 
@@ -364,17 +368,16 @@ bool	IRomSettingsDB::GetSettings( const RomID & id, RomSettings * p_settings ) c
 
 void	IRomSettingsDB::SetSettings( const RomID & id, const RomSettings & settings )
 {
-	SettingsMap::iterator	it( mSettings.find( id ) );
-	if ( it != mSettings.end() )
+	for ( SettingsMap::const_iterator it = mSettings.begin(); it != mSettings.end(); ++it )
 	{
-		it->second = settings;
-	}
-	else
-	{
-		mSettings[ id ] = settings;
+		if ( it->first == id )
+		{
+			it->second = settings;
+			return;
+		}
 	}
 
-	mDirty = true;
+	mSettings[id] = settings;
 }
 
 
