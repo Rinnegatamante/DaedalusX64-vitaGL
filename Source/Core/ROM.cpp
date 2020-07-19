@@ -431,6 +431,9 @@ void SpecificGameHacks( const ROMHeader & id )
 		g_ROM.LOAD_T1_HACK = true;
 		g_ROM.TLUT_HACK = true;
 		break;
+	case 0x5A46:	//F-Zero X
+		g_ROM.CLEAR_SCENE_HACK = true;
+		break;
 	case 0x5546:	//Conker's Bad Fur Day
 		g_ROM.SKIP_CPU_REND_HACK = true;
 		break;

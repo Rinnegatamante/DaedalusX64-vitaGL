@@ -155,6 +155,7 @@ void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 void IGraphicsContext::BeginFrame()
 {
 	vglStartRendering();
+	if (g_ROM.CLEAR_SCENE_HACK) ClearColBuffer( c32(0xff000000) );
 	glEnableClientState(GL_VERTEX_ARRAY);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
