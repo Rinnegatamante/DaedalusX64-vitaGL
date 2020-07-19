@@ -97,6 +97,8 @@ if (VITA_RELEASE)
 
 	target_link_libraries(${PROJECT_NAME}.elf
 		daedalus
+		imgui
+		vitaGL
 		vitashark
 		SceDisplay_stub
 		SceGxm_stub
@@ -116,14 +118,11 @@ if (VITA_RELEASE)
 		c
 		stdc++
 		m
-		vitaGL
 		mathneon
-		imgui
 		curl
 		ssl
 		crypto
 		speexdsp
-		-Wl,--whole-archive pthread -Wl,--no-whole-archive
 	)
 
 	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
