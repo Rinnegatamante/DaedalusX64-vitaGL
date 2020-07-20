@@ -21,7 +21,7 @@ steps:
 - script: |
     git clone https://github.com/Rinnegatamante/math-neon
     cd math-neon
-    make
+    make -j$(nproc)
     sudo -E make install
   displayName: 'Build libmathneon'
 
@@ -30,18 +30,18 @@ steps:
     cd vitaShaRK
     vita-libs-gen SceShaccCg.yml shaccg
     cd shaccg
-    make
+    make -j$(nproc)
     sudo -E make install
     cd ..
     sudo -E cp shacccg.h $VITASDK/arm-vita-eabi/include/psp2/shacccg.h
-    make
+    make -j$(nproc)
     sudo -E make install
   displayName: 'Build vitaShaRK'
 
 - script: |
     git clone https://github.com/Rinnegatamante/vitaGL
     cd vitaGL
-    make HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1
+    make -j$(nproc) HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1
     sudo -E make HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1 install
   displayName: 'Build vitaGL'
 
@@ -53,6 +53,7 @@ steps:
   displayName: 'Build dear ImGui'
 
 - script: |
+    echo "$(cat $VITASDK/version_info.txt)"
     mkdir daedbuild
     cd daedbuild
     cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake
@@ -60,7 +61,7 @@ steps:
     cd ../Data
     zip -9 -r DaedalusX64.zip DaedalusX64
     cd ../Launcher
-    make
+    make -j$(nproc)
     cp ../Source/sce_sys/icon0.png builder/assets/icon0.png
     cp ../Source/sce_sys/livearea/contents/bg.png builder/assets/bg.png
     cp ../Source/sce_sys/livearea/contents/startup.png builder/assets/startup.png
