@@ -151,4 +151,7 @@ char lang_strings[][256] = {
 	"Extracting archive", // STR_EXTRACTING
 	"Download Data Files", // STR_DOWNLOAD_DATA
 	"Downloading Data Files", // STR_DLG_DOWNLOAD_DATA
+	"Filter by: ", // STR_FILTER_BY
+	"No Filter", // STR_NO_FILTER
+	"No Tags", // STR_NO_TAGS
 };

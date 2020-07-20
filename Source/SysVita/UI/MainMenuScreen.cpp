@@ -39,6 +39,7 @@
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
 
 #define ROMS_FOLDERS_NUM 5
+#define FILTER_MODES_NUM 6
 
 char selectedRom[256];
 char rom_name_filter[128] = {0};
@@ -73,6 +74,26 @@ CRefPtr<CNativeTexture> mpPreviewTexture;
 GLuint preview_icon = 0;
 
 int oldSortOrder = -1;
+
+int filter_idx = 0;
+const char *filter_modes[] = {
+	lang_strings[STR_NO_FILTER],
+	lang_strings[STR_GAME_PLAYABLE],
+	lang_strings[STR_GAME_INGAME_PLUS],
+	lang_strings[STR_GAME_INGAME_MINUS],
+	lang_strings[STR_GAME_CRASH],
+	lang_strings[STR_NO_TAGS]
+};
+
+// Filter modes enum
+enum {
+	FILTER_DISABLED,
+	FILTER_PLAYABLE,
+	FILTER_INGAME_PLUS,
+	FILTER_INGAME_MINUS,
+	FILTER_CRASH,
+	FILTER_NO_TAGS
+};
 
 void apply_rom_name_filter() {
 	getDialogTextResult(rom_name_filter);
@@ -274,6 +295,20 @@ void SetTagDescription(const char *text) {
 	ImGui::TextWrapped(": %s", text);
 }
 
+bool filterRoms(RomSelection *p) {
+	if (!p->status) return filter_idx != FILTER_NO_TAGS;
+	else {
+		if (filter_idx == FILTER_NO_TAGS) return true;
+		else if ((!p->status->playable && filter_idx == FILTER_PLAYABLE) ||
+			(!p->status->ingame_plus && filter_idx == FILTER_INGAME_PLUS) ||
+			(!p->status->ingame_low && filter_idx == FILTER_INGAME_MINUS) ||
+			(!p->status->crash && filter_idx == FILTER_CRASH)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 char *DrawRomSelector() {
 	bool selected = false;
 	
@@ -359,10 +394,30 @@ char *DrawRomSelector() {
 		showDialog(lang_strings[STR_DLG_SEARCH_ROM], apply_rom_name_filter, dummy_func, DIALOG_KEYBOARD, rom_name_filter);
 	}
 	ImGui::PopStyleVar();
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text(lang_strings[STR_FILTER_BY]);
+	ImGui::SameLine();
+	if (ImGui::BeginCombo("##combo", filter_modes[filter_idx])) {
+		for (int n = 0; n < FILTER_MODES_NUM; n++) {
+			bool is_selected = filter_idx == n;
+			if (ImGui::Selectable(filter_modes[n], is_selected))
+				filter_idx = n;
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::Separator();
 	
-	if (strlen(rom_name_filter) > 0) { // Filter results
+	if (strlen(rom_name_filter) > 0) { // Filter results with searchbox
 		while (p) {
 			if (strcasestr(p->name, rom_name_filter)) {
+				if (filter_idx > 0) { // Apply filters
+					if (filterRoms(p)) {
+						p = p->next;
+						continue;
+					}
+				}
 				if (ImGui::Button(p->name)){
 					sprintf(selectedRom, p->fullpath);
 					selected = true;
@@ -373,6 +428,12 @@ char *DrawRomSelector() {
 		}
 	} else { // No filters
 		while (p) {
+			if (filter_idx > 0) { // Apply filters
+				if (filterRoms(p)) {
+					p = p->next;
+					continue;
+				}
+			}
 			if (ImGui::Button(p->name)){
 				sprintf(selectedRom, p->fullpath);
 				selected = true;
