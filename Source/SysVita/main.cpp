@@ -532,7 +532,7 @@ void getDialogTextResult(char *text) {
 	sprintf(text, utf8_str.c_str());
 }
 
-void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type) {
+void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, char *args) {
 	if (pendingDialog) return;
 	
 	cur_dialog.type = type;
@@ -562,12 +562,15 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type) {
 			sceImeDialogParamInit(&params);
 			params.type = SCE_IME_TYPE_BASIC_LATIN;
 			
-			// Converting text from UTF8 to UTF16
+			// Converting texts from UTF8 to UTF16
 			std::string utf8_str = text;
 			std::u16string utf16_str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(utf8_str.data());
-			params.title = (const SceWChar16*)utf16_str.c_str();
+			std::string utf8_arg = args;
+			std::u16string utf16_arg = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(utf8_arg.data());
 			
+			params.title = (const SceWChar16*)utf16_str.c_str();
 			memset(dialog_res_text, 0, sizeof(dialog_res_text));
+			memcpy_neon(dialog_res_text, utf16_arg.c_str(), utf16_arg.length() * 2);
 			params.initialText = dialog_res_text;
 			params.inputTextBuffer = dialog_res_text;
 			

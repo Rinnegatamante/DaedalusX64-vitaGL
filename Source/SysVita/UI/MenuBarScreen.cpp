@@ -325,15 +325,15 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
 		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])){
 			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)){
-				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE);
+				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE, NULL);
 				gAntiAliasing = ANTIALIASING_DISABLED;
 			}
 			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE);
+				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE, NULL);
 				gAntiAliasing = ANTIALIASING_MSAA_2X;
 			}
 			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)){
-				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE);
+				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE, NULL);
 				gAntiAliasing = ANTIALIASING_MSAA_4X;
 			}
 			ImGui::EndMenu();
@@ -678,7 +678,7 @@ void DrawMenuBar() {
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem(custom_path_str)) {
-				showDialog(lang_strings[STR_DLG_CUSTOM_PATH], change_custom_rom_path, dummy_func, DIALOG_KEYBOARD);
+				showDialog(lang_strings[STR_DLG_CUSTOM_PATH], change_custom_rom_path, dummy_func, DIALOG_KEYBOARD, gCustomRomPath);
 			}
 			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){
 				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)){

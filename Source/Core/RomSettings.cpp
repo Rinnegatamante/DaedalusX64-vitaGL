@@ -368,7 +368,7 @@ bool	IRomSettingsDB::GetSettings( const RomID & id, RomSettings * p_settings ) c
 
 void	IRomSettingsDB::SetSettings( const RomID & id, const RomSettings & settings )
 {
-	for ( SettingsMap::const_iterator it = mSettings.begin(); it != mSettings.end(); ++it )
+	for ( SettingsMap::iterator it = mSettings.begin(); it != mSettings.end(); ++it )
 	{
 		if ( it->first == id )
 		{

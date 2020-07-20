@@ -356,7 +356,7 @@ char *DrawRomSelector() {
 	ImGui::SameLine();
 	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
 	if (ImGui::Button(rom_name_filter, ImVec2(400.0f, 22.0f * UI_SCALE))) {
-		showDialog(lang_strings[STR_DLG_SEARCH_ROM], apply_rom_name_filter, dummy_func, DIALOG_KEYBOARD);
+		showDialog(lang_strings[STR_DLG_SEARCH_ROM], apply_rom_name_filter, dummy_func, DIALOG_KEYBOARD, rom_name_filter);
 	}
 	ImGui::PopStyleVar();
 	

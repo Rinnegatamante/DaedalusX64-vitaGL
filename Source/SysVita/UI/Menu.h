@@ -288,7 +288,7 @@ void setUiTheme(int theme);
 void setTranslation(int idx);
 void setTexCacheMode(int mode);
 void stripGameName(char *name);
-void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type);
+void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, char *args);
 void getDialogTextResult(char *text);
 void showAlert(char *text, int type);
 void reloadFont();
