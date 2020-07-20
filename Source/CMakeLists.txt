@@ -96,7 +96,7 @@ if (VITA_RELEASE)
 	)
 
 	target_link_libraries(${PROJECT_NAME}.elf
-		daedalus
+		-Wl,--whole-archive daedalus -Wl,--no-whole-archive
 		imgui
 		vitaGL
 		vitashark
