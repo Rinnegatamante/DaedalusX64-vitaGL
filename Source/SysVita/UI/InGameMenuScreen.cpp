@@ -29,6 +29,8 @@
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"
 
+#define MENU_TIMEOUT 3000000
+
 static uint64_t tmr1;
 static uint32_t oldpad;
 bool pause_emu = false;
@@ -41,14 +43,12 @@ void DrawInGameMenu() {
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
 	
 	// Handling menubar disappear
-	SceTouchData touch;
-	sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	
-	uint64_t delta_touch = sceKernelGetProcessTimeWide() - tmr1;
-	if (touch.reportNum > 0 || pause_emu){
+	uint64_t delta_pause = sceKernelGetProcessTimeWide() - tmr1;
+	if (pause_emu){
 		ImGui::GetIO().MouseDrawCursor = true;
 		show_menubar = true;
 		tmr1 = sceKernelGetProcessTimeWide();
-	}else if (delta_touch > 3000000){
+	}else if (delta_pause > MENU_TIMEOUT){
 		ImGui::GetIO().MouseDrawCursor = false;
 		show_menubar = !gHideMenubar;
 	}
