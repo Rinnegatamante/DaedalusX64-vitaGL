@@ -390,7 +390,6 @@ static void Initialize()
 		start_net();
 	
 	// Initializing vitaGL
-	vglEnableRuntimeShaderCompiler(GL_FALSE);
 	vglInitExtended(0x100000, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
 	vglUseVram(gUseCdram);
 	vglWaitVblankStart(gUseVSync);
@@ -643,6 +642,7 @@ void setTranslation(int idx) {
 		gLanguageIndex = idx;
 	} else if (sys_initialized) DBGConsole_Msg(0, "Cannot find language file.");
 	
+	if (effects_list) sprintf(effects_list->name, lang_strings[STR_UNUSED]);
 	custom_path_str_dirty = true;
 }
 

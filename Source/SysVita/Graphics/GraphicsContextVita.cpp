@@ -35,6 +35,8 @@ bool new_frame = true;
 
 extern float gamma_val;
 
+static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex;
+
 class IGraphicsContext : public CGraphicsContext
 {
 public:
@@ -154,7 +156,18 @@ void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 
 void IGraphicsContext::BeginFrame()
 {
+	if (gPostProcessing) {
+		if (emu_fb == 0xDEADBEEF) {
+			glGenTextures(1, &emu_fb_tex);
+			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glGenFramebuffers(1, &emu_fb);
+			glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, emu_fb_tex, 0);
+		} else glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
+	}
 	vglStartRendering();
+	glUseProgram(0);
 	if (g_ROM.CLEAR_SCENE_HACK) ClearColBuffer( c32(0xff000000) );
 	glEnableClientState(GL_VERTEX_ARRAY);
 	gVertexBuffer = gVertexBufferPtr;
@@ -181,6 +194,24 @@ void IGraphicsContext::EndFrame()
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
 	vglStopRendering();
+	if (gPostProcessing) {
+		if (emu_fb != 0xDEADBEEF) {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, 960, 544, 0, -1, 1);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			vglStartRendering();
+			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glUseProgram(program);
+			vglVertexAttribPointerMapped(0, vflux_vertices);
+			vglVertexAttribPointerMapped(1, vflux_texcoords);
+			vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
+			vglStopRendering();
+		}
+	}
 	new_frame = true;
 	if (pause_emu) {
 		BeginFrame();

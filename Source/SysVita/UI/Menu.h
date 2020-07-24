@@ -1,3 +1,4 @@
+#include <vitaGL.h>
 #include <imgui_vita.h>
 #include "stdafx.h"
 
@@ -53,7 +54,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 148
+#define LANG_STRINGS_NUM 150
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -203,10 +204,16 @@ enum {
 	FUNC(STR_DLG_DOWNLOAD_DATA) \
 	FUNC(STR_FILTER_BY) \
 	FUNC(STR_NO_FILTER) \
-	FUNC(STR_NO_TAGS)
+	FUNC(STR_NO_TAGS) \
+	FUNC(STR_MENU_POST_PROCESSING) \
+	FUNC(STR_DESC_POST_PROCESSING)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
+
+extern GLuint program;
+extern float *vflux_vertices;
+extern float *vflux_texcoords;
 
 enum {
 	FOREACH_STR(GET_VALUE)
@@ -240,8 +247,15 @@ struct Alert {
 	uint8_t type;
 };
 
+struct PostProcessingEffect {
+	char name[32];
+	PostProcessingEffect *next;
+};
+
 extern Dialog cur_dialog;
 extern Alert cur_alert;
+
+extern PostProcessingEffect *effects_list;
 
 // Language identifiers for languages not supported by PSVITA nativeely
 #define SCE_SYSTEM_PARAM_LANG_CATALAN 20
@@ -263,6 +277,7 @@ extern bool gUseMipmaps;
 extern bool gSkipCompatListUpdate;
 extern bool gAutoUpdate;
 extern bool gUseRearpad;
+extern int gPostProcessing;
 extern int  gSortOrder;
 extern int  gUiTheme;
 extern int  gAntiAliasing;

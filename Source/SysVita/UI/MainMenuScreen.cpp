@@ -312,6 +312,7 @@ bool filterRoms(RomSelection *p) {
 char *DrawRomSelector() {
 	bool selected = false;
 	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	vglStartRendering();
 	DrawMenuBar();
 		

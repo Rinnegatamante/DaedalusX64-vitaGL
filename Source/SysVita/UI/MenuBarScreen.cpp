@@ -42,6 +42,10 @@ int gAntiAliasing = ANTIALIASING_MSAA_4X;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
+int gPostProcessing = 0;
+
+GLuint shaders[2];
+GLuint program = 0xDEADBEEF;
 
 static char custom_path_str[512];
 bool custom_path_str_dirty = true;
@@ -75,12 +79,32 @@ extern bool kUpdateTexturesEveryFrame;
 static float vcolors[3];
 
 static float *colors;
-static float *vertices;
+float *vflux_vertices;
+float *vflux_texcoords;
 
 float gamma_val = 1.0f;
 
 char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
+
+PostProcessingEffect *effects_list = nullptr;
+
+void loadShader(int idx, char *file)
+{
+	SceIoStat st;
+	sceIoGetstat(file, &st);
+	char *code = (char*)malloc(st.st_size);
+	
+	FILE *f = fopen(file, "rb");
+	fread(code, 1, st.st_size, f);
+	fclose(f);
+	
+	GLint len = st.st_size - 1;
+	glShaderSource(shaders[idx], 1, &code, &len);
+	glCompileShader(shaders[idx]);
+	
+	free(code);
+}
 
 void saveCustomRomPath()
 {
@@ -167,19 +191,28 @@ void change_custom_rom_path () {
 
 void SetupVFlux() {
 	colors = (float*)malloc(sizeof(float)*4*4);
-	vertices = (float*)malloc(sizeof(float)*3*4);
-	vertices[0] =   0.0f;
-	vertices[1] =   0.0f;
-	vertices[2] =   0.0f;
-	vertices[3] = 960.0f;
-	vertices[4] =   0.0f;
-	vertices[5] =   0.0f;
-	vertices[6] = 960.0f;
-	vertices[7] = 544.0f;
-	vertices[8] =   0.0f;
-	vertices[9] =   0.0f;
-	vertices[10]= 544.0f;
-	vertices[11]=   0.0f;
+	vflux_vertices = (float*)malloc(sizeof(float)*3*4);
+	vflux_texcoords = (float*)malloc(sizeof(float)*2*4);
+	vflux_vertices[0] =   0.0f;
+	vflux_vertices[1] =   0.0f;
+	vflux_vertices[2] =   0.0f;
+	vflux_vertices[3] = 960.0f;
+	vflux_vertices[4] =   0.0f;
+	vflux_vertices[5] =   0.0f;
+	vflux_vertices[6] = 960.0f;
+	vflux_vertices[7] = 544.0f;
+	vflux_vertices[8] =   0.0f;
+	vflux_vertices[9] =   0.0f;
+	vflux_vertices[10]= 544.0f;
+	vflux_vertices[11]=   0.0f;
+	vflux_texcoords[0] =  0.0f;
+	vflux_texcoords[1] =  0.0f;
+	vflux_texcoords[2] =  1.0f;
+	vflux_texcoords[3] =  0.0f;
+	vflux_texcoords[4] =  1.0f;
+	vflux_texcoords[5] =  1.0f;
+	vflux_texcoords[6] =  0.0f;
+	vflux_texcoords[7] =  1.0f;
 }
 
 void SetDescription(const char *text) {
@@ -338,6 +371,65 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_POST_PROCESSING], vglHasRuntimeShaderCompiler())){
+			PostProcessingEffect *p;
+			if (effects_list == nullptr) {
+				effects_list = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+				sprintf(effects_list->name, lang_strings[STR_UNUSED]);
+				effects_list->next = nullptr;
+				
+				IO::FindHandleT		find_handle;
+				IO::FindDataT		find_data;
+				
+				if (IO::FindFileOpen(DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), &find_handle, find_data )) {
+					p = effects_list;
+					do {
+						const char *filename( find_data.Name );
+						if (strstr(filename, "_f.cg")) {
+							p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+							p = p->next;
+							snprintf(p->name, strlen(filename) - 4, filename);
+							p->next = nullptr;
+						}
+					} while(IO::FindFileNext( find_handle, find_data ));
+				}
+			}
+			p = effects_list;
+			int i = 0;
+			while (p) {
+				if (ImGui::MenuItem(p->name, nullptr, gPostProcessing == i)){
+					gPostProcessing = i;
+					if (gPostProcessing) {
+						if (program != 0xDEADBEEF) {
+							glDeleteProgram(program);
+							glDeleteShader(shaders[0]);
+							glDeleteShader(shaders[1]);
+						}
+						shaders[0] = glCreateShader(GL_VERTEX_SHADER);
+						shaders[1] = glCreateShader(GL_FRAGMENT_SHADER);
+						program = glCreateProgram();
+						
+						char fpath[128];
+						sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+						loadShader(0, fpath);
+						sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+						loadShader(1, fpath);
+						
+						glAttachShader(program, shaders[0]);
+						glAttachShader(program, shaders[1]);
+						
+						vglBindAttribLocation(program, 0, "position", 3, GL_FLOAT);
+						vglBindAttribLocation(program, 1, "texcoord", 2, GL_FLOAT);
+						
+						glLinkProgram(program);
+					}
+				}
+				i++;
+				p = p->next;
+			}
+			ImGui::EndMenu();
+		}
+		SetDescription(lang_strings[STR_DESC_POST_PROCESSING]);
 		if (ImGui::MenuItem(lang_strings[STR_MENU_MIPMAPS], nullptr, gUseMipmaps)){
 			gUseMipmaps = !gUseMipmaps;
 		}
@@ -585,7 +677,7 @@ void DrawCommonWindows() {
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
-		vglVertexPointerMapped(vertices);
+		vglVertexPointerMapped(vflux_vertices);
 		vglColorPointerMapped(GL_FLOAT, colors);
 		vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
 		glDisableClientState(GL_COLOR_ARRAY);

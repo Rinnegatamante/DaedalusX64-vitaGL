@@ -154,4 +154,6 @@ char lang_strings[][256] = {
 	"Filter by: ", // STR_FILTER_BY
 	"No Filter", // STR_NO_FILTER
 	"No Tags", // STR_NO_TAGS
+	"Post-Processing", // STR_MENU_POST_PROCESSING
+	"Allows to apply custom effects on the final rendered scene." // STR_DESC_POST_PROCESSING
 };
