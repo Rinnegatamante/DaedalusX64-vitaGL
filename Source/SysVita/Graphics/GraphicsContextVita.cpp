@@ -165,7 +165,7 @@ void IGraphicsContext::BeginFrame()
 			glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
 			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, emu_fb_tex, 0);
 		} else glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
-	}
+	} else glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	vglStartRendering();
 	glUseProgram(0);
 	if (g_ROM.CLEAR_SCENE_HACK) ClearColBuffer( c32(0xff000000) );
@@ -204,7 +204,6 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			glLoadIdentity();
 			vglStartRendering();
 			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
-			glClear(GL_COLOR_BUFFER_BIT);
 			glUseProgram(program);
 			vglVertexAttribPointerMapped(0, vflux_vertices);
 			vglVertexAttribPointerMapped(1, vflux_texcoords);
