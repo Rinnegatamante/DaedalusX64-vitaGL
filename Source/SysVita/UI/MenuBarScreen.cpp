@@ -39,10 +39,10 @@ int gUiTheme = DARK_THEME;
 int gAspectRatio = RATIO_16_9;
 int gTexCacheMode = TEX_CACHE_ACCURATE;
 int gAntiAliasing = ANTIALIASING_MSAA_4X;
+int gPostProcessing = 0;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
-int gPostProcessing = 0;
 
 GLuint shaders[2];
 GLuint program = 0xDEADBEEF;
