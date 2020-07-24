@@ -1,0 +1,43 @@
+/*
+	Author: Themaister
+	License: Public domain
+*/
+
+#define SCANLINE_BASE_BRIGHTNESS 1.0
+#define SCANLINE_SINE_COMP_A 0.1
+#define SCANLINE_SINE_COMP_B 0.15
+#define SHARP_BILINEAR_PRE_SCALE 1.25
+
+float4 main
+(
+	float4 vPosition : POSITION,
+	float2 vTexcoord : TEXCOORD0,
+	float2 texel : TEXCOORD1,
+	uniform sampler2D s0 : TEXUNIT0
+) : COLOR
+{
+
+	float2 texture_size = float2(640.0f, 480.0f);
+	float2 output_size = float2(960.0f, 544.0f); // TODO: De-hardcode this for different aspect ratios
+
+	float2 texel_floored = floor(texel);
+	float2 s = frac(texel);
+	float region_range = 0.5 - 0.5 / SHARP_BILINEAR_PRE_SCALE;
+
+	// Figure out where in the texel to sample to get correct pre-scaled bilinear.
+	// Uses the hardware bilinear interpolator to avoid having to sample 4 times manually.
+
+	float2 center_dist = s - 0.5;
+	float2 f = (center_dist - clamp(center_dist, -region_range, region_range)) * SHARP_BILINEAR_PRE_SCALE + 0.5;
+	float2 mod_texel = texel_floored + f;
+
+	float3 res = tex2D(s0, mod_texel / texture_size).rgb;
+
+	float2 sine_comp = float2(SCANLINE_SINE_COMP_A, SCANLINE_SINE_COMP_B);
+	
+	float2 omega = float2(2.0 * 3.1415 * texture_size.x, 3.1415 * texture_size.y);
+
+	float3 scanline = res * (SCANLINE_BASE_BRIGHTNESS + dot(sine_comp * sin(vTexcoord * omega), float2(1.0, 1.0)));
+
+	return float4(scanline, 1.0);
+}

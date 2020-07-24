@@ -1,6 +1,6 @@
 /*
-   Author: Gigaherz
-   License: Public domain
+	Author: Gigaherz
+	License: Public domain
 */
 
 /* configuration (higher values mean brighter image but reduced effect depth) */
@@ -11,19 +11,18 @@ static const int brighten_lcd = 4;
 static const float3 offsets = 3.141592654 * float3(1.0/2,1.0/2 - 2.0/3,1.0/2-4.0/3);
 
 float4 main (
-    float2 tex : TEXCOORD,
+	float2 tex : TEXCOORD,
 	float2 omega : TEXCOORD1, 
-    uniform sampler2D s0 : TEXUNIT0
-    ) : COLOR
+	uniform sampler2D s0 : TEXUNIT0) : COLOR
 {
-    float3 res = tex2D(s0, tex).xyz;
+	float3 res = tex2D(s0, tex).xyz;
 
-    float2 angle = tex * omega;
+	float2 angle = tex * omega;
 	
-    float yfactor = (brighten_scanlines + sin(angle.y)) / (brighten_scanlines + 1);
-    float3 xfactors = (brighten_lcd + sin(angle.x + offsets)) / (brighten_lcd + 1);
-   
-    float3 color = yfactor * xfactors * res;
-   
-    return float4(color.x, color.y, color.z, 1.0);
+	float yfactor = (brighten_scanlines + sin(angle.y)) / (brighten_scanlines + 1);
+	float3 xfactors = (brighten_lcd + sin(angle.x + offsets)) / (brighten_lcd + 1);
+	
+	float3 color = yfactor * xfactors * res;
+	
+	return float4(color.x, color.y, color.z, 1.0);
 }
