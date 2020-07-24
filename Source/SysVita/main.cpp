@@ -554,6 +554,7 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 	
 			sceMsgDialogInit(&params);
 		}
+		break;
 	case DIALOG_KEYBOARD:	
 		{
 			SceImeDialogParam params;
@@ -577,6 +578,7 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 			
 			sceImeDialogInit(&params);
 		}
+		break;
 	default:
 		break;
 	}
