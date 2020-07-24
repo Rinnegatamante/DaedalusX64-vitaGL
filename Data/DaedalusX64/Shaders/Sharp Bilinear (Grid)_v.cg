@@ -11,7 +11,7 @@ void main(
 	out float2 vTexcoord : TEXCOORD0,
 	out float2 texel : TEXCOORD1)
 {
-	float2 texture_size = float2(960.0f, 544.0f);
+	float2 texture_size = float2(640.0f, 480.0f);
 	
 	vPosition = mul(wvp,float4(position, 1.f));
 	vTexcoord = texcoord - float2(0.25 / texture_size.x, 0.0);

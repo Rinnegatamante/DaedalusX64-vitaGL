@@ -8,12 +8,8 @@ void main (
 	float2 texcoord, 
 	uniform float4x4 wvp,
 	out float4 vPosition : POSITION,
-	out float2 vTexcoord : TEXCOORD0,
-	out float2 omega : TEXCOORD1)
+	out float2 vTexcoord : TEXCOORD0)
 {
-	float2 texture_size = float2(640.0f, 480.0f);
-
 	vPosition = mul(wvp,float4(position, 1.f));
 	vTexcoord = texcoord;
-	omega = 3.141592654 * 2 * texture_size;
 }
