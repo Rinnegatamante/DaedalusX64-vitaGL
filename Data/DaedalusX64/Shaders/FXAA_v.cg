@@ -1,0 +1,27 @@
+static const float2 iResolution = float2(960.0f, 544.0f);
+
+void main(
+	float3 position,
+	float2 texcoord,
+	uniform float4x4 wvp,
+	out float4 vPosition : POSITION,
+	out float2 vUv : TEXCOORD0,
+	out float2 v_rgbNW : TEXCOORD1,
+	out float2 v_rgbNE : TEXCOORD2,
+	out float2 v_rgbSW : TEXCOORD3,
+	out float2 v_rgbSE : TEXCOORD4,
+	out float2 v_rgbM : TEXCOORD5)
+{
+	vPosition = mul(wvp,float4(position, 1.f));
+	
+	vUv = (vPosition.xy + 1.0) * 0.5;
+	vUv.y = 1.0 - vUv.y;
+	float2 fragCoord = vUv * iResolution;
+	
+	float2 inverseVP = 1.0 / iResolution.xy;
+	v_rgbNW = (fragCoord + float2(-1.0, -1.0)) * inverseVP;
+	v_rgbNE = (fragCoord + float2(1.0, -1.0)) * inverseVP;
+	v_rgbSW = (fragCoord + float2(-1.0, 1.0)) * inverseVP;
+	v_rgbSE = (fragCoord + float2(1.0, 1.0)) * inverseVP;
+	v_rgbM = float2(fragCoord * inverseVP);
+}
