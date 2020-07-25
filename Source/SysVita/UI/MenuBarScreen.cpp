@@ -93,6 +93,21 @@ int cur_dbg_line = 0;
 PostProcessingEffect *effects_list = nullptr;
 Overlay *overlays_list = nullptr;
 
+void loadCompiledShader(int idx, char *file)
+{
+	SceIoStat st;
+	sceIoGetstat(file, &st);
+	char *code = (char*)malloc(st.st_size);
+	
+	FILE *f = fopen(file, "rb");
+	fread(code, 1, st.st_size, f);
+	fclose(f);
+	
+	glShaderBinary(1, &shaders[idx], 0, code, st.st_size);
+	
+	free(code);
+}
+
 void loadShader(int idx, char *file)
 {
 	SceIoStat st;
@@ -392,7 +407,14 @@ void DrawCommonMenuBar() {
 						if (strstr(filename, "_f.cg")) {
 							p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
 							p = p->next;
+							p->compiled = false;
 							snprintf(p->name, strlen(filename) - 4, filename);
+							p->next = nullptr;
+						} else if (strstr(filename, "_f.gxp")) {
+							p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+							p = p->next;
+							p->compiled = true;
+							snprintf(p->name, strlen(filename) - 5, filename);
 							p->next = nullptr;
 						}
 					} while(IO::FindFileNext( find_handle, find_data ));
@@ -414,11 +436,17 @@ void DrawCommonMenuBar() {
 						program = glCreateProgram();
 						
 						char fpath[128];
-						sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-						loadShader(0, fpath);
-						sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-						loadShader(1, fpath);
-						
+						if (p->compiled) {
+							sprintf(fpath, "%s%s_v.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+							loadCompiledShader(0, fpath);
+							sprintf(fpath, "%s%s_f.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+							loadCompiledShader(1, fpath);
+						} else {
+							sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+							loadShader(0, fpath);
+							sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+							loadShader(1, fpath);
+						}
 						glAttachShader(program, shaders[0]);
 						glAttachShader(program, shaders[1]);
 						

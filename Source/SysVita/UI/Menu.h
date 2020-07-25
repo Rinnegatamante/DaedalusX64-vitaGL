@@ -253,6 +253,7 @@ struct Alert {
 
 struct PostProcessingEffect {
 	char name[32];
+	bool compiled;
 	PostProcessingEffect *next;
 };
 
