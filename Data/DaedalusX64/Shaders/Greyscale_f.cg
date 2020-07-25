@@ -1,0 +1,9 @@
+float4 main(
+	float2 vTexcoord : TEXCOORD0,
+	uniform sampler2D colorMap : TEXUNIT0) : COLOR
+{
+	float4 sample = tex2D(colorMap, vTexcoord);
+	float grey = 0.21 * sample.x + 0.71 * sample.y + 0.07 * sample.z;
+	
+	return float4(grey, grey, grey, 1.0);
+}
