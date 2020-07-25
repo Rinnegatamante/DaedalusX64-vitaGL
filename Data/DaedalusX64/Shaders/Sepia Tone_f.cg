@@ -1,0 +1,12 @@
+float4 main(
+	float2 vTexcoord : TEXCOORD0,
+	uniform sampler2D colorMap : TEXUNIT0) : COLOR
+{
+	float4 sample = tex2D(colorMap, vTexcoord);
+	
+	float r = dot(sample.xyz, float3(0.393, 0.769, 0.189));
+	float g = dot(sample.xyz, float3(0.349, 0.686, 0.168));
+	float b = dot(sample.xyz, float3(0.272, 0.534, 0.131));
+	
+	return float4(r, g, b, 1.0);
+}
