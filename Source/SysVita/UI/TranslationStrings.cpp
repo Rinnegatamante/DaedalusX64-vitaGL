@@ -155,5 +155,8 @@ char lang_strings[][256] = {
 	"No Filter", // STR_NO_FILTER
 	"No Tags", // STR_NO_TAGS
 	"Post-Processing", // STR_MENU_POST_PROCESSING
-	"Allows to apply custom effects on the final rendered scene." // STR_DESC_POST_PROCESSING
+	"Allows to apply custom effects on the final rendered scene.", // STR_DESC_POST_PROCESSING
+	"This feature is disabled since libshacccg.suprx is not correctly installed.", // STR_NO_POST_PROCESSING
+	"Overlays", // STR_MENU_OVERLAYS
+	"Draws an image on top of final rendered scene." // STR_DESC_OVERLAYS
 };

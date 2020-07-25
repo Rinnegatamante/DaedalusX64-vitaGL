@@ -54,7 +54,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 150
+#define LANG_STRINGS_NUM 153
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -206,12 +206,16 @@ enum {
 	FUNC(STR_NO_FILTER) \
 	FUNC(STR_NO_TAGS) \
 	FUNC(STR_MENU_POST_PROCESSING) \
-	FUNC(STR_DESC_POST_PROCESSING)
+	FUNC(STR_DESC_POST_PROCESSING) \
+	FUNC(STR_NO_POST_PROCESSING) \
+	FUNC(STR_MENU_OVERLAYS) \
+	FUNC(STR_DESC_OVERLAYS)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
 
 extern GLuint program;
+extern GLuint cur_overlay;
 extern float *vflux_vertices;
 extern float *vflux_texcoords;
 
@@ -252,9 +256,15 @@ struct PostProcessingEffect {
 	PostProcessingEffect *next;
 };
 
+struct Overlay {
+	char name[32];
+	Overlay *next;
+};
+
 extern Dialog cur_dialog;
 extern Alert cur_alert;
 
+extern Overlay *overlays_list;
 extern PostProcessingEffect *effects_list;
 
 // Language identifiers for languages not supported by PSVITA nativeely
@@ -277,7 +287,8 @@ extern bool gUseMipmaps;
 extern bool gSkipCompatListUpdate;
 extern bool gAutoUpdate;
 extern bool gUseRearpad;
-extern int gPostProcessing;
+extern int  gPostProcessing;
+extern int  gOverlay;
 extern int  gSortOrder;
 extern int  gUiTheme;
 extern int  gAntiAliasing;

@@ -298,6 +298,7 @@ public:
 	void				SetPositiveViewport();
 	
 	virtual void		DoGamma(float gamma) = 0;
+	virtual void		DrawUITexture() = 0;
 #endif
 
 	void				ResetMatrices(u32 size);

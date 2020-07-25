@@ -186,6 +186,10 @@ void IGraphicsContext::EndFrame()
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	if (gamma_val != 1.0f) gRenderer->DoGamma(gamma_val);
+	if (gOverlay) {
+		glBindTexture(GL_TEXTURE_2D, cur_overlay);
+		gRenderer->DrawUITexture();
+	}
 	DrawInGameMenu();
 	if (gWaitRendering) glFinish();
 	DrawPendingDialog();

@@ -803,6 +803,52 @@ void RendererVita::DoGamma(float gamma)
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
+void RendererVita::DrawUITexture()
+{
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+	gVertexBuffer[0] = 0.0f;
+	gVertexBuffer[1] = 0.0f;
+	gVertexBuffer[2] = 0.0f;
+	gVertexBuffer[3] = SCR_WIDTH;
+	gVertexBuffer[4] = 0.0f;
+	gVertexBuffer[5] = 0.0f;
+	gVertexBuffer[6] = 0.0f;
+	gVertexBuffer[7] = SCR_HEIGHT;
+	gVertexBuffer[8] = 0.0f;
+	gVertexBuffer[9] = SCR_WIDTH;
+	gVertexBuffer[10] = SCR_HEIGHT;
+	gVertexBuffer[11] = 0.0f;
+	vglVertexPointerMapped(gVertexBuffer);
+	gVertexBuffer += 12;
+	
+	gTexCoordBuffer[0] = 0.0f;
+	gTexCoordBuffer[1] = 0.0f;
+	gTexCoordBuffer[2] = 1.0f;
+	gTexCoordBuffer[3] = 0.0f;
+	gTexCoordBuffer[4] = 0.0f;
+	gTexCoordBuffer[5] = 1.0f;
+	gTexCoordBuffer[6] = 1.0f;
+	gTexCoordBuffer[7] = 1.0f;
+	vglTexCoordPointerMapped(gTexCoordBuffer);
+	gTexCoordBuffer += 8;
+	
+	glDisableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, 960, 544, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+}
+
 void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 								f32 u0, f32 v0, f32 u1, f32 v1,
 								const CNativeTexture * texture)

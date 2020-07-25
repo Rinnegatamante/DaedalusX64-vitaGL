@@ -27,6 +27,7 @@
 #include "Utility/Thread.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
+#include "Utility/stb_image.h"
 #include "SysVita/UI/Menu.h"
 
 #define MAX_SAVESLOT 9
@@ -40,12 +41,14 @@ int gAspectRatio = RATIO_16_9;
 int gTexCacheMode = TEX_CACHE_ACCURATE;
 int gAntiAliasing = ANTIALIASING_MSAA_4X;
 int gPostProcessing = 0;
+int gOverlay = 0;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
 
 GLuint shaders[2];
 GLuint program = 0xDEADBEEF;
+GLuint cur_overlay = 0xDEADBEEF;
 
 static char custom_path_str[512];
 bool custom_path_str_dirty = true;
@@ -88,6 +91,7 @@ char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
 
 PostProcessingEffect *effects_list = nullptr;
+Overlay *overlays_list = nullptr;
 
 void loadShader(int idx, char *file)
 {
@@ -429,7 +433,53 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
-		SetDescription(lang_strings[STR_DESC_POST_PROCESSING]);
+		SetDescription(vglHasRuntimeShaderCompiler() ? lang_strings[STR_DESC_POST_PROCESSING] : lang_strings[STR_NO_POST_PROCESSING]);
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_OVERLAYS])){
+			Overlay *p;
+			if (overlays_list == nullptr) {
+				overlays_list = (Overlay*)malloc(sizeof(Overlay));
+				sprintf(overlays_list->name, lang_strings[STR_UNUSED]);
+				overlays_list->next = nullptr;
+				
+				IO::FindHandleT		find_handle;
+				IO::FindDataT		find_data;
+				
+				if (IO::FindFileOpen(DAEDALUS_VITA_PATH_EXT("ux0:", "Overlays/"), &find_handle, find_data )) {
+					p = overlays_list;
+					do {
+						const char *filename( find_data.Name );
+						if (strstr(filename, ".png")) {
+							p->next = (Overlay*)malloc(sizeof(Overlay));
+							p = p->next;
+							snprintf(p->name, strlen(filename) - 3, filename);
+							p->next = nullptr;
+						}
+					} while(IO::FindFileNext( find_handle, find_data ));
+				}
+			}
+			p = overlays_list;
+			int i = 0;
+			while (p) {
+				if (ImGui::MenuItem(p->name, nullptr, gOverlay == i)){
+					gOverlay = i;
+					if (gOverlay) {
+						if (cur_overlay == 0xDEADBEEF) glGenTextures(1, &cur_overlay);
+						glBindTexture(GL_TEXTURE_2D, cur_overlay);
+						
+						char fpath[128];
+						sprintf(fpath, "%s%s.png", DAEDALUS_VITA_PATH_EXT("ux0:", "Overlays/"), p->name);
+						int w, h;
+						uint8_t *overlay_data = stbi_load(fpath, &w, &h, NULL, 4);
+						glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay_data);
+						free(overlay_data);
+					}
+				}
+				i++;
+				p = p->next;
+			}
+			ImGui::EndMenu();
+		}
+		SetDescription(lang_strings[STR_DESC_OVERLAYS]);
 		if (ImGui::MenuItem(lang_strings[STR_MENU_MIPMAPS], nullptr, gUseMipmaps)){
 			gUseMipmaps = !gUseMipmaps;
 		}

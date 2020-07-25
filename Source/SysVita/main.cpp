@@ -645,6 +645,7 @@ void setTranslation(int idx) {
 	} else if (sys_initialized) DBGConsole_Msg(0, "Cannot find language file.");
 	
 	if (effects_list) sprintf(effects_list->name, lang_strings[STR_UNUSED]);
+	if (overlays_list) sprintf(overlays_list->name, lang_strings[STR_UNUSED]);
 	custom_path_str_dirty = true;
 }
 
