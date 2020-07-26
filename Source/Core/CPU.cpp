@@ -673,7 +673,8 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 
 			gVerticalInterrupts++;
 
-			FramerateLimiter_Limit();
+			if(!gFastForward)
+				FramerateLimiter_Limit();
 #ifdef DAEDALUS_W32
 			if (gAudioPlugin != nullptr)
 				gAudioPlugin->Update(false);

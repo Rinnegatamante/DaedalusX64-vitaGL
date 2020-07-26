@@ -30,8 +30,37 @@
 #include "SysVita/UI/Menu.h"
 
 static uint64_t tmr1;
-static uint32_t oldpad;
 bool pause_emu = false;
+ButtonSce selectBtn {false, 0, 500000, SCE_CTRL_SELECT};
+
+int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks)
+{
+	if ((pad->buttons & btn->btn) && !btn->down){
+		btn->down = true;
+		btn->downTime = ticks;
+		return BUTTON_SHORT_HOLD;
+	} else if (!(pad->buttons & btn->btn) && btn->down){
+		btn->down = false;
+		uint32_t deltaTime = ticks - btn->downTime;
+		if(deltaTime > btn->longPressTime){
+			return BUTTON_LONG_RELEASED;
+		}
+		else {
+			return BUTTON_SHORT_RELEASED;
+		}
+	} else if ((pad->buttons & btn->btn) && btn->down){
+		uint32_t deltaTime = ticks - btn->downTime;
+		if(deltaTime > btn->longPressTime){
+			return BUTTON_LONG_HOLD;
+		}
+		else {
+			return BUTTON_SHORT_HOLD;
+		}
+	}
+	else {
+		return BUTTON_NEUTRAL;
+	}
+}
 
 void DrawInGameMenu() {
 	DrawInGameMenuBar();
@@ -53,12 +82,21 @@ void DrawInGameMenu() {
 		show_menubar = !gHideMenubar;
 	}
 	
-	// Handling emulation pause
+	// Handling select button (menu pause and fast-forward)
 	SceCtrlData pad;
 	sceCtrlPeekBufferPositive(0, &pad, 1);
-	if ((pad.buttons & SCE_CTRL_SELECT) && (!(oldpad & SCE_CTRL_SELECT))) {
+	int statusSelectBtn = update_button(&selectBtn, &pad, sceKernelGetProcessTimeWide());
+	if(statusSelectBtn == BUTTON_SHORT_RELEASED){
 		pause_emu = !pause_emu;
 		EnableMenuButtons(pause_emu);
+	} else if(statusSelectBtn == BUTTON_LONG_HOLD){
+		if(!gFastForward && !pause_emu){
+			gFastForward = true;
+			vglWaitVblankStart(GL_FALSE);
+		}
 	}
-	oldpad = pad.buttons;
+	else if(statusSelectBtn == BUTTON_LONG_RELEASED){
+		gFastForward = false;
+		vglWaitVblankStart(gUseVSync);
+	}
 }
