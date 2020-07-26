@@ -125,6 +125,12 @@ void loadShader(int idx, char *file)
 	free(code);
 }
 
+void install_data_files() {
+	extract_file(TEMP_DOWNLOAD_NAME, "ux0:data/");
+	sceIoRemove(TEMP_DOWNLOAD_NAME);
+	resetRomList();
+}
+
 void saveCustomRomPath()
 {
 	sceIoMkdir(DAEDALUS_VITA_PATH("Configs/"), 0777);
@@ -206,6 +212,11 @@ void change_custom_rom_path () {
 	saveCustomRomPath();
 	resetRomList();
 	custom_path_str_dirty = true;
+}
+
+void set_net_folder () {
+	gHasOnlineRomList = true;
+	resetRomList();
 }
 
 void SetupVFlux() {
@@ -844,12 +855,16 @@ void DrawMenuBar() {
 	if (ImGui::BeginMainMenuBar()){
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
 			if (ImGui::MenuItem(lang_strings[STR_DOWNLOAD_DATA])) {
-				pendingDownload = true;
+				queueDownload(lang_strings[STR_DLG_DOWNLOAD_DATA], "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.zip", 26 * 1024 * 1024, install_data_files, FILE_DOWNLOAD);
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem(custom_path_str)) {
 				showDialog(lang_strings[STR_DLG_CUSTOM_PATH], change_custom_rom_path, dummy_func, DIALOG_KEYBOARD, gCustomRomPath);
 			}
+			/*if (ImGui::MenuItem("Test")) { // Future net roms support, disabled for now since libcurl has no FTP protocol support
+				queueDownload(lang_strings[STR_DLG_DOWNLOAD_DATA], "TESTLINKHERE", 1024, set_net_folder, MEM_DOWNLOAD);
+			}*/
+			ImGui::Separator();
 			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){
 				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)){
 					gSortOrder = SORT_A_TO_Z;

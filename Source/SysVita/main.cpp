@@ -39,8 +39,8 @@
 #include "UI/Menu.h"
 #include "minizip/unzip.h"
 
-#define NET_INIT_SIZE 1*1024*1024
-#define TEMP_DOWNLOAD_NAME "ux0:data/DaedalusX64/tmp.bin"
+#define NET_INIT_SIZE      1*1024*1024
+#define NET_TEMP_MEM_SIZE  1*1024*1024
 
 bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
@@ -55,6 +55,7 @@ int console_language;
 
 Dialog cur_dialog;
 Alert cur_alert;
+Download cur_download;
 
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
@@ -73,6 +74,9 @@ static FILE *fh;
 char *bytes_string;
 static SceUID net_mutex;
 static bool sys_initialized = false;
+
+volatile uint8_t *temp_download_mem = nullptr;
+volatile uint32_t temp_download_size = 0;
 
 int gUseCdram = GL_TRUE;
 int gUseVSync = GL_TRUE;
@@ -167,11 +171,20 @@ void EnableMenuButtons(bool status) {
 	ImGui_ImplVitaGL_MouseStickUsage(status);
 }
 
-static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
+static size_t write_cb_file(void *ptr, size_t size, size_t nmemb, void *stream)
 {
-	downloaded_bytes += size * nmemb;
+	downloaded_bytes += nmemb;
 	if (total_bytes < downloaded_bytes) total_bytes = downloaded_bytes;
 	return fwrite(ptr, size, nmemb, fh);
+}
+
+static size_t write_cb_mem(void *ptr, size_t size, size_t nmemb, void *stream)
+{
+	volatile uint8_t *dst = &temp_download_mem[downloaded_bytes];
+	downloaded_bytes += nmemb;
+	if (total_bytes < downloaded_bytes) total_bytes = downloaded_bytes;
+	memcpy_neon(dst, ptr, nmemb);
+	return nmemb;
 }
 
 // GitHub API does not set Content-Length field
@@ -184,7 +197,7 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
 	return nitems * size;
 }*/
 
-static void startDownload(const char *url)
+static void startDownload(const char *url, bool has_temp_file)
 {
 	curl_easy_reset(curl_handle);
 	curl_easy_setopt(curl_handle, CURLOPT_URL, url);
@@ -196,7 +209,7 @@ static void startDownload(const char *url)
 	curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 10L);
 	curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_cb);
+	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, has_temp_file ? write_cb_file : write_cb_mem);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, bytes_string); // Dummy
 	/*curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_cb);
 	curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, bytes_string); // Dummy*/
@@ -226,7 +239,7 @@ static int compatListThread(unsigned int args, void* arg){
 		sceIoGetstat(dbname, &stat);
 		total_bytes = stat.st_size;
 
-		startDownload(url);
+		startDownload(url, true);
 
 		fclose(fh);
 		if (downloaded_bytes > 12 * 1024) {
@@ -240,16 +253,33 @@ static int compatListThread(unsigned int args, void* arg){
 	return 0;
 }
 
-static int downloaderThread(unsigned int args, void* arg){
+static int downloaderThread_file(unsigned int args, void* arg){
 	char url[512];
 	curl_handle = curl_easy_init();
 	sprintf(url, net_url);
 	fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
 	downloaded_bytes = 0;
-	startDownload(url);
+	startDownload(url, true);
 	fclose(fh);
 	if (downloaded_bytes <= 12 * 1024)
 		sceIoRemove(TEMP_DOWNLOAD_NAME);
+	curl_easy_cleanup(curl_handle);
+	sceKernelExitDeleteThread(0);
+	return 0;
+}
+
+static int downloaderThread_mem(unsigned int args, void* arg){
+	char url[512];
+	curl_handle = curl_easy_init();
+	sprintf(url, net_url);
+	temp_download_mem = (volatile uint8_t*)malloc(NET_TEMP_MEM_SIZE);
+	downloaded_bytes = 0;
+	startDownload(url, false);
+	fclose(fh);
+	if (downloaded_bytes <= 32) {
+		free(temp_download_mem);
+		temp_download_mem = nullptr;
+	} else temp_download_size = downloaded_bytes;
 	curl_easy_cleanup(curl_handle);
 	sceKernelExitDeleteThread(0);
 	return 0;
@@ -272,7 +302,7 @@ static int updaterThread(unsigned int args, void* arg){
 		// FIXME: Workaround since GitHub Api does not set Content-Length
 		total_bytes = i == UPDATER_CHECK_UPDATES ? 20 * 1024 : 2 * 1024 * 1024; /* 20 KB / 2 MB */
 
-		startDownload(url);
+		startDownload(url, true);
 
 		fclose(fh);
 		if (downloaded_bytes > 12 * 1024) {
@@ -326,7 +356,7 @@ void start_net() {
 	}
 }
 
-int download_file(char *url, char *file, char *msg, float int_total_bytes) {
+int download_file(char *url, char *file, char *msg, float int_total_bytes, bool use_temp_file) {
 	start_net();
 	
 	SceKernelThreadInfo info;
@@ -336,21 +366,20 @@ int download_file(char *url, char *file, char *msg, float int_total_bytes) {
 	downloaded_bytes = 0;
 	net_url = url;
 	
-	SceUID thd = sceKernelCreateThread("Net Downloader", &downloaderThread, 0x10000100, 0x100000, 0, 0, NULL);
+	SceUID thd = sceKernelCreateThread("Net Downloader", use_temp_file ? &downloaderThread_file : &downloaderThread_mem, 0x10000100, 0x100000, 0, 0, NULL);
 	sceKernelStartThread(thd, 0, NULL);
 	do {
 		DrawDownloaderScreenCompat(downloaded_bytes, downloaded_bytes > int_total_bytes ? downloaded_bytes : int_total_bytes, msg);
 		res = sceKernelGetThreadInfo(thd, &info);
 	} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
 	
-	FILE *f = fopen(TEMP_DOWNLOAD_NAME, "r");
-	if (f) {
-		fclose(f);
-		sceIoRemove(file);
-		sceIoRename(TEMP_DOWNLOAD_NAME, file);
-	}else return -1;
-	
 	ImGui::GetIO().MouseDrawCursor = true;
+	
+	if (use_temp_file) {
+		FILE *f = fopen(TEMP_DOWNLOAD_NAME, "r");
+		if (f) fclose(f);
+		else return -1;
+	} else if (!temp_download_mem) return -1;
 	
 	return 0;
 }
@@ -521,6 +550,16 @@ void showAlert(char *text, int type) {
 	cur_alert.tick = sceKernelGetProcessTimeWide();
 
 	pendingAlert = true;
+}
+
+void queueDownload(char *text, char *url, int size, void (*post_func)(), int type) {
+	cur_download.size = size;
+	sprintf(cur_download.msg, text);
+	sprintf(cur_download.url, url);
+	cur_download.post_func = post_func;
+	cur_download.type = type;
+	
+	pendingDownload = true;
 }
 
 static uint16_t dialog_res_text[SCE_IME_DIALOG_MAX_TEXT_LENGTH];

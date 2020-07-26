@@ -2,6 +2,7 @@
 #include <imgui_vita.h>
 #include "stdafx.h"
 
+#define TEMP_DOWNLOAD_NAME "ux0:data/daedalusx64.tmp"
 #define FUNC_TO_NAME(x) #x
 #define stringify(x) FUNC_TO_NAME(x)
 
@@ -239,6 +240,20 @@ enum {
 	ALERT_MESSAGE
 };
 
+// Download types
+enum {
+	FILE_DOWNLOAD,
+	MEM_DOWNLOAD
+};
+
+struct Download {
+	void (*post_func)();
+	char url[256];
+	char msg[128];
+	int size;
+	uint8_t type;
+};
+
 struct Dialog {
 	void (*yes_func)();
 	void (*no_func)();
@@ -264,6 +279,7 @@ struct Overlay {
 
 extern Dialog cur_dialog;
 extern Alert cur_alert;
+extern Download cur_download;
 
 extern Overlay *overlays_list;
 extern PostProcessingEffect *effects_list;
@@ -288,6 +304,7 @@ extern bool gUseMipmaps;
 extern bool gSkipCompatListUpdate;
 extern bool gAutoUpdate;
 extern bool gUseRearpad;
+extern bool gHasOnlineRomList;
 extern int  gPostProcessing;
 extern int  gOverlay;
 extern int  gSortOrder;
@@ -300,6 +317,9 @@ extern bool pendingDialog;
 extern bool pendingAlert;
 extern bool pendingDownload;
 extern bool custom_path_str_dirty;
+
+extern volatile uint8_t *temp_download_mem;
+extern volatile uint32_t temp_download_size;
 
 char *DrawRomSelector();
 void DrawInGameMenu();
@@ -321,10 +341,11 @@ void stripGameName(char *name);
 void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, char *args);
 void getDialogTextResult(char *text);
 void showAlert(char *text, int type);
+void queueDownload(char *text, char *url, int size, void (*post_func)(), int type);
 void reloadFont();
 void resetRomList();
 
 void extract_file(char *file, char *dir);
-int download_file(char *url, char *file, char *msg, float int_total_bytes);
+int download_file(char *url, char *file, char *msg, float int_total_bytes, bool has_temp_file);
 
 void dummy_func();

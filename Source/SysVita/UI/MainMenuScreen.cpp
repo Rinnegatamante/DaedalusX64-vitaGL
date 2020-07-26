@@ -44,6 +44,8 @@
 char selectedRom[256];
 char rom_name_filter[128] = {0};
 
+bool gHasOnlineRomList = false;
+
 struct CompatibilityList {
 	char name[128];
 	bool playable;
@@ -57,6 +59,7 @@ struct CompatibilityList {
 struct RomSelection {
 	char name[128];
 	char fullpath[256];
+	bool is_online;
 	RomSettings settings;
 	RomID id;
 	u32 size;
@@ -119,10 +122,12 @@ void swap(RomSelection *a, RomSelection *b) {
 	u32 sizetmp = a->size;
 	ECicType cictmp = a->cic;
 	CompatibilityList *statustmp = a->status;
+	bool onlinetmp = a->is_online;
 
 	sprintf(a->name, b->name);
 	sprintf(a->fullpath, b->fullpath);
 	
+	a->is_online = b->is_online;
 	a->settings = b->settings;
 	a->id = b->id;
 	a->size = b->size;
@@ -132,6 +137,7 @@ void swap(RomSelection *a, RomSelection *b) {
 	sprintf(b->name, nametmp);
 	sprintf(b->fullpath, pathtmp);
 
+	b->is_online = onlinetmp;
 	b->settings = settingstmp;
 	b->id = idtmp;
 	b->size = sizetmp;
@@ -350,6 +356,7 @@ char *DrawRomSelector() {
 						std::string full_path = rom_folders[i];
 						full_path += rom_filename;
 						RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
+						node->is_online = false;
 						sprintf(node->name, rom_filename);
 						sprintf(node->fullpath, full_path.c_str());
 						if (ROM_GetRomDetailsByFilename(full_path.c_str(), &node->id, &node->size, &node->cic)) {
@@ -371,6 +378,28 @@ char *DrawRomSelector() {
 				while(IO::FindFileNext( find_handle, find_data ));
 
 				IO::FindFileClose( find_handle );
+			}
+		}
+		
+		if (gHasOnlineRomList) {
+			char *p = (char*)temp_download_mem;
+			while (p) {
+				char *r = strstr(p, ".v64");
+				if (r) {
+					RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
+					node->is_online = true;
+					char *space = strstr(p, " ");
+					char *last_space = nullptr;
+					while (space) {
+						last_space = space;
+						space = strstr(space + 1, " ");
+					}
+					memcpy_neon(node->name, &p[49], (r - &p[49]) + 4);
+					node->name[(r - last_space) + 3] = 0;
+					node->next = list;
+					list = node;
+				} else break;
+				p = r + 1;
 			}
 		}
 	}
@@ -435,9 +464,16 @@ char *DrawRomSelector() {
 					continue;
 				}
 			}
+			if (p->is_online) {
+				ImGui::PushStyleColor(ImGuiCol_Button, 0x880015FF);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0xFF0000FF);
+			}
 			if (ImGui::Button(p->name)){
 				sprintf(selectedRom, p->fullpath);
 				selected = true;
+			}
+			if (p->is_online) {
+				ImGui::PopStyleColor(2);
 			}
 			if (ImGui::IsItemHovered()) hovered = p;
 			p = p->next;
@@ -450,44 +486,48 @@ char *DrawRomSelector() {
 	ImGui::SetNextWindowSize(ImVec2(400, SCR_HEIGHT - 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::Begin("Info Window", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	if (hovered) {
-		if (has_preview_icon = LoadPreview(hovered)) {
-			ImGui::SetCursorPos(ImVec2(preview_x + PREVIEW_PADDING, preview_y + PREVIEW_PADDING));
-			ImGui::Image((void*)preview_icon, ImVec2(preview_width, preview_height));
-		}
-		ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], hovered->settings.GameName.c_str());
-		ImGui::Text("%s: %s", lang_strings[STR_REGION], ROM_GetCountryNameFromID(hovered->id.CountryID));
-		ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
-		ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
-		ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
-		ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->settings.SaveType));
-		if (hovered->status) {
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
-			if (!gBigText) ImGui::Text("%s:", lang_strings[STR_TAGS]);
-			if (hovered->status->playable) {
-				ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "%s", lang_strings[STR_GAME_PLAYABLE]);
-				if (!gBigText) SetTagDescription(lang_strings[STR_PLAYABLE_DESC]);
+		if (hovered->is_online) {
+			ImGui::Text("No info available for net roms.");
+		} else {
+			if (has_preview_icon = LoadPreview(hovered)) {
+				ImGui::SetCursorPos(ImVec2(preview_x + PREVIEW_PADDING, preview_y + PREVIEW_PADDING));
+				ImGui::Image((void*)preview_icon, ImVec2(preview_width, preview_height));
 			}
-			if (hovered->status->ingame_plus) {
-				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "%s", lang_strings[STR_GAME_INGAME_PLUS]);
-				if (gBigText) ImGui::SameLine();
-				else SetTagDescription(lang_strings[STR_INGAME_PLUS_DESC]);
-			}
-			if (hovered->status->ingame_low) {
-				ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "%s", lang_strings[STR_GAME_INGAME_MINUS]);
-				if (!gBigText) SetTagDescription(lang_strings[STR_INGAME_MINUS_DESC]);
-			}
-			if (hovered->status->crash) {
-				ImGui::TextColored(ImVec4(1.0f, 0, 0, 1.0f), "%s", lang_strings[STR_GAME_CRASH]);
-				if (!gBigText) SetTagDescription(lang_strings[STR_CRASH_DESC]);
-			}
-			if (hovered->status->slow) {
-				if (gBigText) {
-					ImGui::SameLine();
-					ImGui::Text("&");
-					ImGui::SameLine();
+			ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], hovered->settings.GameName.c_str());
+			ImGui::Text("%s: %s", lang_strings[STR_REGION], ROM_GetCountryNameFromID(hovered->id.CountryID));
+			ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
+			ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
+			ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
+			ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->settings.SaveType));
+			if (hovered->status) {
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
+				if (!gBigText) ImGui::Text("%s:", lang_strings[STR_TAGS]);
+				if (hovered->status->playable) {
+					ImGui::TextColored(ImVec4(0, 0.75f, 0, 1.0f), "%s", lang_strings[STR_GAME_PLAYABLE]);
+					if (!gBigText) SetTagDescription(lang_strings[STR_PLAYABLE_DESC]);
 				}
-				ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "%s", lang_strings[STR_GAME_SLOW]);
-				if (!gBigText) SetTagDescription(lang_strings[STR_SLOW_DESC]);
+				if (hovered->status->ingame_plus) {
+					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0, 1.0f), "%s", lang_strings[STR_GAME_INGAME_PLUS]);
+					if (gBigText) ImGui::SameLine();
+					else SetTagDescription(lang_strings[STR_INGAME_PLUS_DESC]);
+				}
+				if (hovered->status->ingame_low) {
+					ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.25f, 1.0f), "%s", lang_strings[STR_GAME_INGAME_MINUS]);
+					if (!gBigText) SetTagDescription(lang_strings[STR_INGAME_MINUS_DESC]);
+				}
+				if (hovered->status->crash) {
+					ImGui::TextColored(ImVec4(1.0f, 0, 0, 1.0f), "%s", lang_strings[STR_GAME_CRASH]);
+					if (!gBigText) SetTagDescription(lang_strings[STR_CRASH_DESC]);
+				}
+				if (hovered->status->slow) {
+					if (gBigText) {
+						ImGui::SameLine();
+						ImGui::Text("&");
+						ImGui::SameLine();
+					}
+					ImGui::TextColored(ImVec4(0.5f, 0, 1.0f, 1.0f), "%s", lang_strings[STR_GAME_SLOW]);
+					if (!gBigText) SetTagDescription(lang_strings[STR_SLOW_DESC]);
+				}
 			}
 		}
 	}
@@ -503,10 +543,19 @@ char *DrawRomSelector() {
 	vglStopRendering();
 	
 	if (pendingDownload) {
-		if (download_file("https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.zip", "ux0:data/temp.zip", lang_strings[STR_DLG_DOWNLOAD_DATA], 26 * 1024 * 1024) >= 0) {
-			extract_file("ux0:data/temp.zip", "ux0:data/");
-			sceIoRemove("ux0:data/temp.zip");
-			resetRomList();
+		switch (cur_download.type) {
+		case FILE_DOWNLOAD:
+			{
+				if (download_file(cur_download.url, TEMP_DOWNLOAD_NAME, cur_download.msg, cur_download.size, true) >= 0)
+					cur_download.post_func();
+			}
+			break;
+		case MEM_DOWNLOAD:
+			{
+				if (download_file(cur_download.url, TEMP_DOWNLOAD_NAME, cur_download.msg, cur_download.size, false) >= 0)
+					cur_download.post_func();
+			}
+			break;
 		}
 		pendingDownload = false;
 	}
