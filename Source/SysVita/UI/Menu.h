@@ -215,7 +215,7 @@ enum {
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
 
-extern GLuint program;
+extern GLuint cur_prog;
 extern GLuint cur_overlay;
 extern float *vflux_vertices;
 extern float *vflux_texcoords;

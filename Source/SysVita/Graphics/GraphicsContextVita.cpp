@@ -210,7 +210,7 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			glLoadIdentity();
 			vglStartRendering();
 			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
-			glUseProgram(program);
+			glUseProgram(cur_prog);
 			vglVertexAttribPointerMapped(0, vflux_vertices);
 			vglVertexAttribPointerMapped(1, vflux_texcoords);
 			vglDrawObjects(GL_TRIANGLE_FAN, 4, true);

@@ -46,8 +46,11 @@ bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
 
-GLuint shaders[2];
-GLuint program = 0xDEADBEEF;
+uint8_t shader_idx = 0;
+
+GLuint shaders[4];
+GLuint program[2] = {0xDEADBEEF, 0xDEADBEEF};
+GLuint cur_prog;
 GLuint cur_overlay = 0xDEADBEEF;
 
 static char custom_path_str[512];
@@ -435,37 +438,39 @@ void DrawCommonMenuBar() {
 			int i = 0;
 			while (p) {
 				if (ImGui::MenuItem(p->name, nullptr, gPostProcessing == i)){
-					gPostProcessing = i;
-					if (gPostProcessing) {
-						if (program != 0xDEADBEEF) {
-							glDeleteProgram(program);
-							glDeleteShader(shaders[0]);
-							glDeleteShader(shaders[1]);
+					if (gPostProcessing != i && i) {
+						shader_idx = (shader_idx + 1) % 2;
+						if (program[shader_idx] != 0xDEADBEEF) {
+							glDeleteProgram(program[shader_idx]);
+							glDeleteShader(shaders[shader_idx * 2]);
+							glDeleteShader(shaders[shader_idx * 2 + 1]);
 						}
-						shaders[0] = glCreateShader(GL_VERTEX_SHADER);
-						shaders[1] = glCreateShader(GL_FRAGMENT_SHADER);
-						program = glCreateProgram();
+						shaders[shader_idx * 2] = glCreateShader(GL_VERTEX_SHADER);
+						shaders[shader_idx * 2 + 1] = glCreateShader(GL_FRAGMENT_SHADER);
+						program[shader_idx] = glCreateProgram();
 						
 						char fpath[128];
 						if (p->compiled) {
 							sprintf(fpath, "%s%s_v.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadCompiledShader(0, fpath);
+							loadCompiledShader(shader_idx * 2, fpath);
 							sprintf(fpath, "%s%s_f.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadCompiledShader(1, fpath);
+							loadCompiledShader(shader_idx * 2 + 1, fpath);
 						} else {
 							sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadShader(0, fpath);
+							loadShader(shader_idx * 2, fpath);
 							sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadShader(1, fpath);
+							loadShader(shader_idx * 2 + 1, fpath);
 						}
-						glAttachShader(program, shaders[0]);
-						glAttachShader(program, shaders[1]);
+						glAttachShader(program[shader_idx], shaders[shader_idx * 2]);
+						glAttachShader(program[shader_idx], shaders[shader_idx * 2 + 1]);
 						
-						vglBindAttribLocation(program, 0, "position", 3, GL_FLOAT);
-						vglBindAttribLocation(program, 1, "texcoord", 2, GL_FLOAT);
+						vglBindAttribLocation(program[shader_idx], 0, "position", 3, GL_FLOAT);
+						vglBindAttribLocation(program[shader_idx], 1, "texcoord", 2, GL_FLOAT);
 						
-						glLinkProgram(program);
+						glLinkProgram(program[shader_idx]);
+						cur_prog = program[shader_idx];
 					}
+					gPostProcessing = i;
 				}
 				i++;
 				p = p->next;
