@@ -61,5 +61,4 @@ void DrawInGameMenu() {
 		EnableMenuButtons(pause_emu);
 	}
 	oldpad = pad.buttons;
-	if (!pause_emu) vglStopRenderingInit();
 }

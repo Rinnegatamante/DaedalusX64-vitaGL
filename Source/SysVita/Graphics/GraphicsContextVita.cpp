@@ -186,11 +186,14 @@ void IGraphicsContext::EndFrame()
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
 	if (gamma_val != 1.0f) gRenderer->DoGamma(gamma_val);
-	if (gOverlay) {
-		glBindTexture(GL_TEXTURE_2D, cur_overlay);
-		gRenderer->DrawUITexture();
+	if (!gPostProcessing) {
+		if (gOverlay) {
+			glBindTexture(GL_TEXTURE_2D, cur_overlay);
+			gRenderer->DrawUITexture();
+		}
+		DrawInGameMenu();
 	}
-	DrawInGameMenu();
+	if (!pause_emu) vglStopRenderingInit();
 	if (gWaitRendering) glFinish();
 	DrawPendingDialog();
 }
@@ -212,6 +215,13 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			vglVertexAttribPointerMapped(0, vflux_vertices);
 			vglVertexAttribPointerMapped(1, vflux_texcoords);
 			vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
+			glUseProgram(0);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			if (gOverlay) {
+				glBindTexture(GL_TEXTURE_2D, cur_overlay);
+				gRenderer->DrawUITexture();
+			}
+			DrawInGameMenu();
 			vglStopRendering();
 		}
 	}
