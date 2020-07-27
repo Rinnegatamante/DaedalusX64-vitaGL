@@ -334,7 +334,7 @@ extern bool pendingAlert;
 extern bool pendingDownload;
 extern bool custom_path_str_dirty;
 
-extern volatile uint8_t *temp_download_mem;
+extern uint8_t *rom_mem_buffer;
 extern volatile uint32_t temp_download_size;
 
 char *DrawRomSelector();

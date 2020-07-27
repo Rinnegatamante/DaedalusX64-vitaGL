@@ -27,30 +27,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/RomSettings.h"
 
 #include "Interface/RomDB.h"
-#ifdef DAEDALUS_PSP
-#include "SysPSP/Graphics/VideoMemoryManager.h"
-#endif
 
 #include "Graphics/GraphicsContext.h"
-
-#if defined(DAEDALUS_OSX) || defined(DAEDALUS_W32)
-#include "SysOSX/Debug/WebDebug.h"
-#include "HLEGraphics/TextureCacheWebDebug.h"
-#include "HLEGraphics/DisplayListDebugger.h"
-#endif
-
-#ifdef DAEDALUS_GL
-#include "SysGL/Interface/UI.h"
-#endif
 
 #include "Utility/FramerateLimiter.h"
 #include "Utility/Synchroniser.h"
 #include "Utility/Macros.h"
 #include "Utility/Profiler.h"
 #include "Utility/Preferences.h"
-#ifdef DAEDALUS_PSP
-#include "Utility/Translate.h"
-#endif
+
 #include "Input/InputManager.h"		// CInputManager::Create/Destroy
 
 #include "Debug/DBGConsole.h"

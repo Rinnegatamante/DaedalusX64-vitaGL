@@ -23,10 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ROM.h"
 #include "DMA.h"
 
-#ifdef DAEDALUS_PSP
-#include "Graphics/GraphicsContext.h"
-#include "SysPSP/Graphics/intraFont/intraFont.h"
-#endif
+#include "SysVita/UI/Menu.h"
 
 #include "Math/MathUtil.h"
 
@@ -38,10 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/ROMFileMemory.h"
 #include "Utility/Stream.h"
 #include "Utility/IO.h"
-
-#ifdef DAEDALUS_PSP
-extern bool PSP_IS_SLIM;
-#endif
 
 namespace
 {
@@ -60,14 +53,7 @@ namespace
 
 	bool		ShouldLoadAsFixed( u32 rom_size )
 	{
-#ifdef DAEDALUS_PSP
-		if (PSP_IS_SLIM && !gGlobalPreferences.LargeROMBuffer)
-			return rom_size <= 32 * 1024 * 1024;
-		else
-			return rom_size <= 2 * 1024 * 1024;
-#else
 		return true;
-#endif
 	}
 
 #ifdef DAEDALUS_COMPRESSED_ROM_SUPPORT
@@ -206,49 +192,17 @@ bool RomBuffer::Open()
 
 	if( ShouldLoadAsFixed( sRomSize ) )
 	{
-		// Now, allocate memory for rom - round up to a 4 byte boundry
-		u32		size_aligned( AlignPow2( sRomSize, 4 ) );
-		u8 *	p_bytes( (u8*)CROMFileMemory::Get()->Alloc( size_aligned ) );
+		u8 *	p_bytes( (u8*)rom_mem_buffer );
 
-#ifndef DAEDALUS_PSP
 		if( !p_rom_file->LoadData( sRomSize, p_bytes, messages ) )
 		{
 			#ifdef DAEDALUS_DEBUG_CONSOLE
 			DBGConsole_Msg(0, "Failed to load [C%s]\n", filename);
 			#endif
-			CROMFileMemory::Get()->Free( p_bytes );
 			delete p_rom_file;
 			return false;
 		}
-#else
-		u32 offset( 0 );
-		u32 length_remaining( sRomSize );
-		const u32 TEMP_BUFFER_SIZE {128 * 1024};
 
-		intraFont* ltn8  = intraFontLoad( "flash0:/font/ltn8.pgf", INTRAFONT_CACHE_ASCII);
-		intraFontSetStyle( ltn8, 1.5f, 0xFFFFFFFF, 0, 0.f, INTRAFONT_ALIGN_CENTER );
-
-		while( offset < sRomSize )
-		{
-			u32 length_to_process( Min( length_remaining, TEMP_BUFFER_SIZE ) );
-
-			if( !p_rom_file->ReadChunk( offset, p_bytes + offset, length_to_process ) )
-			{
-				break;
-			}
-
-			offset += length_to_process;
-			length_remaining -= length_to_process;
-
-			CGraphicsContext::Get()->BeginFrame();
-			CGraphicsContext::Get()->ClearToBlack();
-			intraFontPrintf( ltn8, 480/2, (272>>1), "Buffering ROM %d%%...", offset * 100 / sRomSize );
-			CGraphicsContext::Get()->EndFrame();
-			CGraphicsContext::Get()->UpdateFrame( false );
-		}
-
-		intraFontUnload( ltn8 );
-#endif
 		spRomData = p_bytes;
 		sRomFixed = true;
 
@@ -323,7 +277,6 @@ void	RomBuffer::Close()
 {
 	if (spRomData)
 	{
-		CROMFileMemory::Get()->Free( spRomData );
 		spRomData = nullptr;
 	}
 

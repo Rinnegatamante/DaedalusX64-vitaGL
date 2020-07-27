@@ -444,7 +444,7 @@ char *DrawRomSelector() {
 		}
 		
 		if (gHasOnlineRomList) {
-			char *p = (char*)temp_download_mem;
+			char *p = (char*)rom_mem_buffer;
 			while (p) {
 				char *r = strstr(p, ".v64");
 				if (r) {
