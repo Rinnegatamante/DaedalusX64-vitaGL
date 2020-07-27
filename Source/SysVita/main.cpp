@@ -432,7 +432,10 @@ static void Initialize()
 	ImGui_ImplVitaGL_TouchUsage(true);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
 	ImGui::StyleColorsDark();
+	
+	// Initializing additional stuffs
 	SetupVFlux();
+	SetupPostProcessingLists();
 	
 	SceKernelThreadInfo info;
 	info.size = sizeof(SceKernelThreadInfo);
@@ -688,8 +691,7 @@ void setTranslation(int idx) {
 	custom_path_str_dirty = true;
 }
 
-void preloadConfig()
-{
+void preloadConfig() {
 	char configFile[512];
 	char buffer[30];
 	int value;
@@ -713,8 +715,7 @@ void preloadConfig()
 	} else setTranslation(console_language);
 }
 
-void loadCustomRomPath()
-{
+void loadCustomRomPath() {
 	FILE *f = fopen(DAEDALUS_VITA_PATH("Configs/path.ini"), "r");
 	if (f)
 	{
@@ -723,8 +724,7 @@ void loadCustomRomPath()
 	}
 }
 
-void loadConfig(const char *game)
-{
+void loadConfig(const char *game) {
 	char tmp[128];
 	sprintf(tmp, game);
 	stripGameName(tmp);
@@ -732,6 +732,8 @@ void loadConfig(const char *game)
 	char configFile[512];
 	char buffer[30];
 	int value;
+	int gTempPostProcessing = 0;
+	int gTempOverlay = 0;
 	
 	sprintf(configFile, "%s%s.ini", DAEDALUS_VITA_PATH("Configs/"), tmp);
 	FILE *config = fopen(configFile, "r");
@@ -743,28 +745,30 @@ void loadConfig(const char *game)
 			if (strcmp("gCpuMode", buffer) == 0) gCpuMode = value;
 			else if (strcmp("gOSHooksEnabled", buffer) == 0) gOSHooksEnabled = value;
 			else if (strcmp("gSpeedSyncEnabled", buffer) == 0) gSpeedSyncEnabled = value;
-			
+
 			else if (strcmp("gVideoRateMatch", buffer) == 0) gVideoRateMatch = value;
 			else if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
 			else if (strcmp("gAspectRatio", buffer) == 0) gAspectRatio = value;
 			else if (strcmp("gTexCacheMode", buffer) == 0) gTexCacheMode = value;
 			else if (strcmp("gForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
-			
+
 			else if (strcmp("gUseMipmaps", buffer) == 0) gUseMipmaps = value;
 			else if (strcmp("gUseVSync", buffer) == 0) gUseVSync = value;
 			else if (strcmp("gUseCdram", buffer) == 0) gUseCdram = value;
 			else if (strcmp("gWaitRendering", buffer) == 0) gWaitRendering = value;
 			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
-			
+
 			else if (strcmp("gAudioPluginEnabled", buffer) == 0) gAudioPluginEnabled = (EAudioPluginMode)value;
 			else if (strcmp("gUseMp3", buffer) == 0) gUseMp3 = value;
-			
+
 			else if (strcmp("gUseExpansionPak", buffer) == 0) gUseExpansionPak = value;
 			else if (strcmp("gControllerIndex", buffer) == 0) gControllerIndex = value;
-			
+
 			else if (strcmp("gTexturesDumper", buffer) == 0) gTexturesDumper = (bool)value;
 			else if (strcmp("gUseHighResTextures", buffer) == 0) gUseHighResTextures = (bool)value;
-			
+			else if (strcmp("gPostProcessing", buffer) == 0) gTempPostProcessing = value;
+			else if (strcmp("gOverlay", buffer) == 0) gTempOverlay = value;
+
 			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
 			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;
@@ -774,14 +778,16 @@ void loadConfig(const char *game)
 			else if (strcmp("gBigText", buffer) == 0) gBigText = (bool)value;
 		}
 		fclose(config);
-		
+
 		setUiTheme(gUiTheme);
 		setCpuMode(gCpuMode);
 		setTexCacheMode(gTexCacheMode);
+		setOverlay(gTempOverlay, nullptr);
+		setPostProcessingEffect(gTempPostProcessing, nullptr);
 		vglUseVram(gUseCdram);
 		vglWaitVblankStart(gUseVSync);
 		CInputManager::Get()->SetConfiguration(gControllerIndex);
-		
+
 		if (!strcmp(game, "default")) showAlert(lang_strings[STR_ALERT_GLOBAL_SETTINGS_LOAD], ALERT_MESSAGE);
 		else showAlert(lang_strings[STR_ALERT_GAME_SETTINGS_LOAD], ALERT_MESSAGE);
 	}
@@ -794,8 +800,7 @@ void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 	sprintf(dst2, &tag_start[strlen(tag)]);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	char *rom;
 	
 	// Initializing sceAppUtil

@@ -128,6 +128,83 @@ void loadShader(int idx, char *file)
 	free(code);
 }
 
+void setOverlay(int idx, Overlay *p) {
+	if (idx) {
+		// Get the required instance if not specified
+		if (!p) {
+			int i = 0;
+			p = overlays_list;
+			while (p) {
+				if (i == idx) {
+					break;
+				}
+				p = p->next;
+				i++;	
+			}
+		}
+	
+		if (cur_overlay == 0xDEADBEEF) glGenTextures(1, &cur_overlay);
+		glBindTexture(GL_TEXTURE_2D, cur_overlay);
+						
+		char fpath[128];
+		sprintf(fpath, "%s%s.png", DAEDALUS_VITA_PATH_EXT("ux0:", "Overlays/"), p->name);
+		int w, h;
+		uint8_t *overlay_data = stbi_load(fpath, &w, &h, NULL, 4);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay_data);
+		free(overlay_data);
+	}
+	gOverlay = idx;
+}
+
+void setPostProcessingEffect(int idx, PostProcessingEffect *p) {
+	if (gPostProcessing != idx && idx) {
+		// Get the required instance if not specified
+		if (!p) {
+			int i = 0;
+			p = effects_list;
+			while (p) {
+				if (i == idx) {
+					break;
+				}
+				p = p->next;
+				i++;	
+			}
+		}
+
+		shader_idx = (shader_idx + 1) % 2;
+		if (program[shader_idx] != 0xDEADBEEF) {
+			glDeleteProgram(program[shader_idx]);
+			glDeleteShader(shaders[shader_idx * 2]);
+			glDeleteShader(shaders[shader_idx * 2 + 1]);
+		}
+		shaders[shader_idx * 2] = glCreateShader(GL_VERTEX_SHADER);
+		shaders[shader_idx * 2 + 1] = glCreateShader(GL_FRAGMENT_SHADER);
+		program[shader_idx] = glCreateProgram();
+						
+		char fpath[128];
+		if (p->compiled) {
+			sprintf(fpath, "%s%s_v.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			loadCompiledShader(shader_idx * 2, fpath);
+			sprintf(fpath, "%s%s_f.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			loadCompiledShader(shader_idx * 2 + 1, fpath);
+		} else {
+			sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			loadShader(shader_idx * 2, fpath);
+			sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			loadShader(shader_idx * 2 + 1, fpath);
+		}
+		glAttachShader(program[shader_idx], shaders[shader_idx * 2]);
+		glAttachShader(program[shader_idx], shaders[shader_idx * 2 + 1]);
+						
+		vglBindAttribLocation(program[shader_idx], 0, "position", 3, GL_FLOAT);
+		vglBindAttribLocation(program[shader_idx], 1, "texcoord", 2, GL_FLOAT);
+						
+		glLinkProgram(program[shader_idx]);
+		cur_prog = program[shader_idx];
+	}
+	gPostProcessing = idx;
+}
+
 void install_data_files() {
 	extract_file(TEMP_DOWNLOAD_NAME, "ux0:data/");
 	sceIoRemove(TEMP_DOWNLOAD_NAME);
@@ -183,6 +260,8 @@ void saveConfig(const char *game)
 		
 		fprintf(config, "%s=%d\n", "gTexturesDumper", (int)gTexturesDumper);
 		fprintf(config, "%s=%d\n", "gUseHighResTextures", (int)gUseHighResTextures);
+		fprintf(config, "%s=%d\n", "gPostProcessing", gPostProcessing);
+		fprintf(config, "%s=%d\n", "gOverlay", gOverlay);
 		
 		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
@@ -246,6 +325,65 @@ void SetupVFlux() {
 	vflux_texcoords[5] =  1.0f;
 	vflux_texcoords[6] =  0.0f;
 	vflux_texcoords[7] =  1.0f;
+}
+
+void SetupPostProcessingLists() {
+	// Setting up overlays list
+	if (overlays_list == nullptr) {
+		overlays_list = (Overlay*)malloc(sizeof(Overlay));
+		sprintf(overlays_list->name, lang_strings[STR_UNUSED]);
+		overlays_list->next = nullptr;
+
+		IO::FindHandleT		find_handle;
+		IO::FindDataT		find_data;
+
+		if (IO::FindFileOpen(DAEDALUS_VITA_PATH_EXT("ux0:", "Overlays/"), &find_handle, find_data )) {
+			Overlay *p = overlays_list;
+			do {
+				const char *filename( find_data.Name );
+				if (strstr(filename, ".png")) {
+					p->next = (Overlay*)malloc(sizeof(Overlay));
+					p = p->next;
+					snprintf(p->name, strlen(filename) - 3, filename);
+					p->next = nullptr;
+				}
+			} while(IO::FindFileNext( find_handle, find_data ));
+		}
+				
+		sort_overlaylist(overlays_list->next);
+	}
+	
+	// Setting up post processing effects list
+	if (effects_list == nullptr) {
+		effects_list = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+		sprintf(effects_list->name, lang_strings[STR_UNUSED]);
+		effects_list->next = nullptr;
+
+		IO::FindHandleT		find_handle;
+		IO::FindDataT		find_data;
+
+		if (IO::FindFileOpen(DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), &find_handle, find_data )) {
+			PostProcessingEffect *p = effects_list;
+			do {
+				const char *filename( find_data.Name );
+				if (strstr(filename, "_f.cg")) {
+					p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+					p = p->next;
+					p->compiled = false;
+					snprintf(p->name, strlen(filename) - 4, filename);
+					p->next = nullptr;
+				} else if (strstr(filename, "_f.gxp")) {
+					p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+					p = p->next;
+					p->compiled = true;
+					snprintf(p->name, strlen(filename) - 5, filename);
+					p->next = nullptr;
+				}
+			} while(IO::FindFileNext( find_handle, find_data ));
+		}
+
+		sort_shaderlist(effects_list->next);
+	}
 }
 
 void SetDescription(const char *text) {
@@ -405,74 +543,11 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_POST_PROCESSING], vglHasRuntimeShaderCompiler())){
-			PostProcessingEffect *p;
-			if (effects_list == nullptr) {
-				effects_list = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
-				sprintf(effects_list->name, lang_strings[STR_UNUSED]);
-				effects_list->next = nullptr;
-				
-				IO::FindHandleT		find_handle;
-				IO::FindDataT		find_data;
-				
-				if (IO::FindFileOpen(DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), &find_handle, find_data )) {
-					p = effects_list;
-					do {
-						const char *filename( find_data.Name );
-						if (strstr(filename, "_f.cg")) {
-							p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
-							p = p->next;
-							p->compiled = false;
-							snprintf(p->name, strlen(filename) - 4, filename);
-							p->next = nullptr;
-						} else if (strstr(filename, "_f.gxp")) {
-							p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
-							p = p->next;
-							p->compiled = true;
-							snprintf(p->name, strlen(filename) - 5, filename);
-							p->next = nullptr;
-						}
-					} while(IO::FindFileNext( find_handle, find_data ));
-				}
-				
-				sort_shaderlist(effects_list->next);
-			}
-			p = effects_list;
+			PostProcessingEffect *p = effects_list;
 			int i = 0;
 			while (p) {
 				if (ImGui::MenuItem(p->name, nullptr, gPostProcessing == i)){
-					if (gPostProcessing != i && i) {
-						shader_idx = (shader_idx + 1) % 2;
-						if (program[shader_idx] != 0xDEADBEEF) {
-							glDeleteProgram(program[shader_idx]);
-							glDeleteShader(shaders[shader_idx * 2]);
-							glDeleteShader(shaders[shader_idx * 2 + 1]);
-						}
-						shaders[shader_idx * 2] = glCreateShader(GL_VERTEX_SHADER);
-						shaders[shader_idx * 2 + 1] = glCreateShader(GL_FRAGMENT_SHADER);
-						program[shader_idx] = glCreateProgram();
-						
-						char fpath[128];
-						if (p->compiled) {
-							sprintf(fpath, "%s%s_v.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadCompiledShader(shader_idx * 2, fpath);
-							sprintf(fpath, "%s%s_f.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadCompiledShader(shader_idx * 2 + 1, fpath);
-						} else {
-							sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadShader(shader_idx * 2, fpath);
-							sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
-							loadShader(shader_idx * 2 + 1, fpath);
-						}
-						glAttachShader(program[shader_idx], shaders[shader_idx * 2]);
-						glAttachShader(program[shader_idx], shaders[shader_idx * 2 + 1]);
-						
-						vglBindAttribLocation(program[shader_idx], 0, "position", 3, GL_FLOAT);
-						vglBindAttribLocation(program[shader_idx], 1, "texcoord", 2, GL_FLOAT);
-						
-						glLinkProgram(program[shader_idx]);
-						cur_prog = program[shader_idx];
-					}
-					gPostProcessing = i;
+					setPostProcessingEffect(i, p);
 				}
 				p = p->next;
 				if (!i && p) ImGui::Separator();
@@ -483,46 +558,11 @@ void DrawCommonMenuBar() {
 		}
 		SetDescription(vglHasRuntimeShaderCompiler() ? lang_strings[STR_DESC_POST_PROCESSING] : lang_strings[STR_NO_POST_PROCESSING]);
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OVERLAYS])){
-			Overlay *p;
-			if (overlays_list == nullptr) {
-				overlays_list = (Overlay*)malloc(sizeof(Overlay));
-				sprintf(overlays_list->name, lang_strings[STR_UNUSED]);
-				overlays_list->next = nullptr;
-				
-				IO::FindHandleT		find_handle;
-				IO::FindDataT		find_data;
-				
-				if (IO::FindFileOpen(DAEDALUS_VITA_PATH_EXT("ux0:", "Overlays/"), &find_handle, find_data )) {
-					p = overlays_list;
-					do {
-						const char *filename( find_data.Name );
-						if (strstr(filename, ".png")) {
-							p->next = (Overlay*)malloc(sizeof(Overlay));
-							p = p->next;
-							snprintf(p->name, strlen(filename) - 3, filename);
-							p->next = nullptr;
-						}
-					} while(IO::FindFileNext( find_handle, find_data ));
-				}
-				
-				sort_overlaylist(overlays_list->next);
-			}
-			p = overlays_list;
+			Overlay *p = overlays_list;
 			int i = 0;
 			while (p) {
 				if (ImGui::MenuItem(p->name, nullptr, gOverlay == i)){
-					gOverlay = i;
-					if (gOverlay) {
-						if (cur_overlay == 0xDEADBEEF) glGenTextures(1, &cur_overlay);
-						glBindTexture(GL_TEXTURE_2D, cur_overlay);
-						
-						char fpath[128];
-						sprintf(fpath, "%s%s.png", DAEDALUS_VITA_PATH_EXT("ux0:", "Overlays/"), p->name);
-						int w, h;
-						uint8_t *overlay_data = stbi_load(fpath, &w, &h, NULL, 4);
-						glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay_data);
-						free(overlay_data);
-					}
+					setOverlay(i, p);
 				}
 				p = p->next;
 				if (!i && p) ImGui::Separator();

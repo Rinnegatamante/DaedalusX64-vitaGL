@@ -349,10 +349,13 @@ void DrawPendingAlert();
 
 void EnableMenuButtons(bool status);
 void SetupVFlux();
+void SetupPostProcessingLists();
 void setCpuMode(int cpu_mode);
 void setUiTheme(int theme);
 void setTranslation(int idx);
 void setTexCacheMode(int mode);
+void setOverlay(int idx, Overlay *p);
+void setPostProcessingEffect(int idx, PostProcessingEffect *p);
 void stripGameName(char *name);
 void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, char *args);
 void getDialogTextResult(char *text);
