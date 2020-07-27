@@ -121,7 +121,7 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 		if( write_ptr >= mBufferEnd )
 			write_ptr = mBufferBegin;
 
-		while( write_ptr == read_ptr )
+		while( write_ptr == read_ptr && !gFastForward)
 		{
 			// The buffer is full - spin until the read pointer advances.
 			//    Note - spends a lot of time here if program is running

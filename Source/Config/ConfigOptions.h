@@ -49,6 +49,7 @@ extern bool gVideoRateMatch;
 extern bool gFogEnabled;
 extern bool gMemoryAccessOptimisation;
 extern bool gCheatsEnabled;
+extern bool gFastForward;
 //ToDo: Needs moving to Graphics plugin config
 extern bool	gCleanSceneEnabled;
 extern u32	gCheckTextureHashFrequency;

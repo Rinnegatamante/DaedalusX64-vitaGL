@@ -246,6 +246,15 @@ enum {
 	MEM_DOWNLOAD
 };
 
+// Button status types
+enum {
+	BUTTON_SHORT_HOLD,
+	BUTTON_SHORT_RELEASED,
+	BUTTON_LONG_HOLD,
+	BUTTON_LONG_RELEASED,
+	BUTTON_NEUTRAL
+};
+
 struct Download {
 	void (*post_func)();
 	char url[256];
@@ -275,6 +284,13 @@ struct PostProcessingEffect {
 struct Overlay {
 	char name[32];
 	Overlay *next;
+};
+
+struct ButtonSce {
+	bool down;
+	uint32_t downTime;
+	uint32_t longPressTime;
+	const SceCtrlButtons btn;
 };
 
 extern Dialog cur_dialog;
@@ -349,3 +365,5 @@ void extract_file(char *file, char *dir);
 int download_file(char *url, char *file, char *msg, float int_total_bytes, bool has_temp_file);
 
 void dummy_func();
+
+int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks);
