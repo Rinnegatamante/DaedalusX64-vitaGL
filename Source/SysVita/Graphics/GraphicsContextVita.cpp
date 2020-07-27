@@ -234,7 +234,6 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 
 void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)
 {
-
 }
 
 void IGraphicsContext::ViewportType(u32 *d_width, u32 *d_height) const
