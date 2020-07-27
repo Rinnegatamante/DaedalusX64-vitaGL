@@ -433,6 +433,8 @@ void DrawCommonMenuBar() {
 						}
 					} while(IO::FindFileNext( find_handle, find_data ));
 				}
+				
+				sort_shaderlist(effects_list->next);
 			}
 			p = effects_list;
 			int i = 0;
@@ -472,8 +474,10 @@ void DrawCommonMenuBar() {
 					}
 					gPostProcessing = i;
 				}
-				i++;
 				p = p->next;
+				if (!i && p) ImGui::Separator();
+				i++;
+				
 			}
 			ImGui::EndMenu();
 		}
@@ -500,6 +504,8 @@ void DrawCommonMenuBar() {
 						}
 					} while(IO::FindFileNext( find_handle, find_data ));
 				}
+				
+				sort_overlaylist(overlays_list->next);
 			}
 			p = overlays_list;
 			int i = 0;
@@ -518,8 +524,9 @@ void DrawCommonMenuBar() {
 						free(overlay_data);
 					}
 				}
-				i++;
 				p = p->next;
+				if (!i && p) ImGui::Separator();
+				i++;
 			}
 			ImGui::EndMenu();
 		}

@@ -363,6 +363,8 @@ void resetRomList();
 
 void extract_file(char *file, char *dir);
 int download_file(char *url, char *file, char *msg, float int_total_bytes, bool has_temp_file);
+void sort_overlaylist(Overlay *start);
+void sort_shaderlist(PostProcessingEffect *start);
 
 void dummy_func();
 

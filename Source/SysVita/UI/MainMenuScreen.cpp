@@ -112,7 +112,7 @@ void resetRomList() {
 	list = nullptr;
 }
 
-void swap(RomSelection *a, RomSelection *b) { 
+void swap_roms(RomSelection *a, RomSelection *b) { 
 	char nametmp[128], pathtmp[256];
 	sprintf(nametmp, a->name);
 	sprintf(pathtmp, a->fullpath);
@@ -143,9 +143,28 @@ void swap(RomSelection *a, RomSelection *b) {
 	b->size = sizetmp;
 	b->cic = cictmp;
 	b->status = statustmp; 
-} 
+}
 
-void sort_list(RomSelection *start, int order) { 
+void swap_shaders(PostProcessingEffect *a, PostProcessingEffect *b) {
+	char nametmp[32];
+	sprintf(nametmp, a->name);
+	bool compiledtmp = a->compiled;
+	
+	sprintf(a->name, b->name);
+	a->compiled = b->compiled;
+	
+	sprintf(b->name, nametmp);
+	b->compiled = compiledtmp;
+}
+
+void swap_overlays(Overlay *a, Overlay *b) {
+	char nametmp[32];
+	sprintf(nametmp, a->name);
+	sprintf(a->name, b->name);
+	sprintf(b->name, nametmp);
+}
+
+void sort_romlist(RomSelection *start, int order) { 
 	int swapped, i; 
 	RomSelection *ptr1; 
 	RomSelection *lptr = NULL; 
@@ -154,40 +173,83 @@ void sort_list(RomSelection *start, int order) {
 	if (start == NULL) 
 		return; 
   
-	do
-	{ 
+	do { 
 		swapped = 0; 
 		ptr1 = start; 
   
-		while (ptr1->next != lptr) 
-		{
+		while (ptr1->next != lptr) {
 			switch (order) {
-				case SORT_Z_TO_A:
+			case SORT_Z_TO_A:
 				{
-					if (strcasecmp(ptr1->name,ptr1->next->name) < 0)
-					{  
-						swap(ptr1, ptr1->next); 
+					if (strcasecmp(ptr1->name,ptr1->next->name) < 0) {  
+						swap_roms(ptr1, ptr1->next); 
 						swapped = 1; 
 					}
-					break;
 				}
-				case SORT_A_TO_Z:
+				break;
+			case SORT_A_TO_Z:
 				{
-					if (strcasecmp(ptr1->name,ptr1->next->name) > 0)
-					{  
-						swap(ptr1, ptr1->next); 
+					if (strcasecmp(ptr1->name,ptr1->next->name) > 0) {  
+						swap_roms(ptr1, ptr1->next); 
 						swapped = 1; 
 					}
-					break;
 				}
-				default:
-					break;
+				break;
+			default:
+				break;
 			}
 			ptr1 = ptr1->next; 
 		} 
 		lptr = ptr1; 
-	} 
-	while (swapped); 
+	} while (swapped); 
+}
+
+void sort_shaderlist(PostProcessingEffect *start) {
+	int swapped, i; 
+	PostProcessingEffect *ptr1; 
+	PostProcessingEffect *lptr = NULL;
+	
+	/* Checking for empty list */
+	if (start == NULL) 
+		return; 
+	
+	do {
+		swapped = 0;
+		ptr1 = start;
+		
+		while (ptr1->next != lptr) {
+			if (strcasecmp(ptr1->name,ptr1->next->name) > 0) {  
+				swap_shaders(ptr1, ptr1->next); 
+				swapped = 1; 
+			}
+			ptr1 = ptr1->next; 
+		} 
+		lptr = ptr1;
+	} while (swapped);
+}
+
+void sort_overlaylist(Overlay *start) {
+	int swapped, i; 
+	Overlay *ptr1; 
+	Overlay *lptr = NULL;
+	
+	/* Checking for empty list */
+	if (start == NULL) 
+		return; 
+	
+	do {
+		swapped = 0;
+		ptr1 = start;
+		
+		while (ptr1->next != lptr) {
+			if (strcasecmp(ptr1->name,ptr1->next->name) > 0) {  
+				swap_overlays(ptr1, ptr1->next); 
+				swapped = 1; 
+			}
+			ptr1 = ptr1->next; 
+		} 
+		lptr = ptr1;
+	} while (swapped);
 }
 
 bool LoadPreview(RomSelection *rom) {
@@ -406,7 +468,7 @@ char *DrawRomSelector() {
 	
 	if (oldSortOrder != gSortOrder) {
 		oldSortOrder = gSortOrder;
-		sort_list(list, gSortOrder);
+		sort_romlist(list, gSortOrder);
 	}
 
 	ImGui::SetNextWindowPos(ImVec2(0, 19 * UI_SCALE), ImGuiSetCond_Always);
