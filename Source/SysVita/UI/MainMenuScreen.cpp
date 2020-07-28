@@ -441,7 +441,11 @@ char *DrawRomSelector() {
 					char *r2 = strcasestr(r, "</a");
 					memcpy_neon(name, r + 2, (r2 - (r + 2)));
 					name[(r2 - (r + 2))] = 0;
-					if (name[0] == ' ') memmove(name, &name[1], strlen(&name[1]));
+					if (name[0] == ' ') {
+						int len = strlen(&name[1]);
+						memmove(name, &name[1], len);
+						name[len] = 0;
+					}
 					if (IsRomfilename(name) && (!strstr(name, ".zip"))) {
 						RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
 						node->is_online = true;

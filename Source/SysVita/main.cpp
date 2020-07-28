@@ -182,14 +182,12 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
 }
 
 // GitHub API does not set Content-Length field
-/*static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
+static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
 {
-	if (total_bytes == 0xFFFFFFFF) {
-		char *ptr = strcasestr(buffer, "Content-Length");
-		if (ptr != NULL) sscanf(ptr, "Content-Length: %llu", &total_bytes);
-	}
-	return nitems * size;
-}*/
+	char *ptr = strcasestr(buffer, "Content-Length");
+	if (ptr != NULL) sscanf(ptr, "Content-Length: %llu", &total_bytes);
+	return nitems;
+}
 
 static void startDownload(const char *url)
 {
@@ -205,7 +203,7 @@ static void startDownload(const char *url)
 	curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_cb);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, bytes_string); // Dummy
-	/*curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_cb);
+	curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_cb);
 	curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, bytes_string); // Dummy*/
 	curl_easy_setopt(curl_handle, CURLOPT_RESUME_FROM, downloaded_bytes);
 	curl_easy_setopt(curl_handle, CURLOPT_BUFFERSIZE, 524288);
@@ -355,6 +353,7 @@ int download_file(char *url, char *file, char *msg, float int_total_bytes, bool 
 	SceUID thd = sceKernelCreateThread("Net Downloader", use_temp_file ? &downloaderThread_file : &downloaderThread_mem, 0x10000100, 0x100000, 0, 0, NULL);
 	sceKernelStartThread(thd, 0, NULL);
 	do {
+		if (total_bytes != 0xFFFFFFFF) int_total_bytes = total_bytes;
 		DrawDownloaderScreenCompat(downloaded_bytes, downloaded_bytes > int_total_bytes ? downloaded_bytes : int_total_bytes, msg);
 		res = sceKernelGetThreadInfo(thd, &info);
 	} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
@@ -662,7 +661,9 @@ void setTranslation(int idx) {
 					char *newline = nullptr, *p = buffer;
 					while (newline = strstr(p, "\\n")) {
 						newline[0] = '\n';
-						memmove(&newline[1], &newline[2], strlen(&newline[2]));
+						int len = strlen(&newline[2]);
+						memmove(&newline[1], &newline[2], len);
+						newline[len + 1] = 0;
 						p++;
 					}
 					strcpy(lang_strings[i], buffer);
