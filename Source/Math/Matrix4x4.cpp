@@ -20,58 +20,6 @@ extern "C" {
 
 // Many of these mtx funcs should be inline since they are simple enough and called frequently - Salvy
 
-#ifdef DAEDALUS_PSP_USE_VFPU
-void MatrixMultiplyUnaligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matrix4x4 *mat_b)
-{
-	__asm__ volatile (
-
-		"ulv.q   R000, 0  + %1\n"
-		"ulv.q   R001, 16 + %1\n"
-		"ulv.q   R002, 32 + %1\n"
-		"ulv.q   R003, 48 + %1\n"
-
-		"ulv.q   R100, 0  + %2\n"
-		"ulv.q   R101, 16 + %2\n"
-		"ulv.q   R102, 32 + %2\n"
-		"ulv.q   R103, 48 + %2\n"
-
-		"vmmul.q   M200, M000, M100\n"
-
-		"usv.q   R200, 0  + %0\n"
-		"usv.q   R201, 16 + %0\n"
-		"usv.q   R202, 32 + %0\n"
-		"usv.q   R203, 48 + %0\n"
-
-		: "=m" (*m_out) : "m" (*mat_a) ,"m" (*mat_b) : "memory" );
-}
-
-void MatrixMultiplyAligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matrix4x4 *mat_b)
-{
-	__asm__ volatile (
-
-		"lv.q   R000, 0  + %1\n"
-		"lv.q   R001, 16 + %1\n"
-		"lv.q   R002, 32 + %1\n"
-		"lv.q   R003, 48 + %1\n"
-
-		"lv.q   R100, 0  + %2\n"
-		"lv.q   R101, 16 + %2\n"
-		"lv.q   R102, 32 + %2\n"
-		"lv.q   R103, 48 + %2\n"
-
-		"vmmul.q   M200, M000, M100\n"
-
-		"sv.q   R200, 0  + %0\n"
-		"sv.q   R201, 16 + %0\n"
-		"sv.q   R202, 32 + %0\n"
-		"sv.q   R203, 48 + %0\n"
-
-		: "=m" (*m_out) : "m" (*mat_a) ,"m" (*mat_b) : "memory" );
-}
-
-#else // DAEDALUS_PSP_USE_VFPU
-
-
 void MatrixMultiplyUnaligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matrix4x4 *mat_b)
 {
 #ifdef DAEDALUS_VITA
@@ -89,8 +37,6 @@ void MatrixMultiplyAligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matr
 	*m_out = *mat_a * *mat_b;
 #endif
 }
-
-#endif // DAEDALUS_PSP_USE_VFPU
 
 v3 Matrix4x4::TransformNormal( const v3 & vec ) const
 {
@@ -123,22 +69,7 @@ Matrix4x4 Matrix4x4::operator*( const Matrix4x4 & rhs ) const
 {
 	Matrix4x4 r;
 
-//VFPU
-#if defined(DAEDALUS_PSP) || defined(DAEDALUS_VITA)
 	MatrixMultiplyUnaligned( &r, this, &rhs );
-//CPU
-#else
-	for ( u32 i = 0; i < 4; ++i )
-	{
-		for ( u32 j = 0; j < 4; ++j )
-		{
-			r.m[ i ][ j ] = m[ i ][ 0 ] * rhs.m[ 0 ][ j ] +
-							m[ i ][ 1 ] * rhs.m[ 1 ][ j ] +
-							m[ i ][ 2 ] * rhs.m[ 2 ][ j ] +
-							m[ i ][ 3 ] * rhs.m[ 3 ][ j ];
-		}
-	}
-#endif
 
 	return r;
 }

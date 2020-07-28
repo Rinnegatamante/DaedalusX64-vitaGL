@@ -31,11 +31,7 @@ public:
 		float	len_sq( LengthSq() );
 		if(len_sq > 0.0001f)
 		{
-#ifdef DAEDALUS_PSP
-			float r( vfpu_invSqrt( len_sq ) );
-#else
 			float r( InvSqrt( len_sq ) );
-#endif
 			x *= r;
 			y *= r;
 			z *= r;
