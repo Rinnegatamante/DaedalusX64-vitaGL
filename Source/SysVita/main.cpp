@@ -46,6 +46,7 @@ bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
 bool gAutoUpdate = true;
 char gCustomRomPath[256] = {0};
+char gNetRomPath[256] = {0};
 
 static char fname[512], ext_fname[512], read_buffer[8192];
 
@@ -59,7 +60,7 @@ Download cur_download;
 
 extern "C" {
 	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
-	int _newlib_heap_size_user = 160 * 1024 * 1024;
+	int _newlib_heap_size_user = 256 * 1024 * 1024;
 }
 
 extern bool run_emu;
@@ -248,7 +249,7 @@ static int compatListThread(unsigned int args, void* arg){
 static int downloaderThread_file(unsigned int args, void* arg){
 	char url[512];
 	curl_handle = curl_easy_init();
-	sprintf(url, net_url);
+	strcpy(url, net_url);
 	downloaded_bytes = 0;
 	startDownload(url);
 	fclose(fh);
@@ -265,7 +266,7 @@ static int downloaderThread_file(unsigned int args, void* arg){
 static int downloaderThread_mem(unsigned int args, void* arg){
 	char url[512];
 	curl_handle = curl_easy_init();
-	sprintf(url, net_url);
+	strcpy(url, net_url);
 	downloaded_bytes = 0;
 	startDownload(url);
 	if (downloaded_bytes <= 32) temp_download_size = 0;
@@ -295,7 +296,7 @@ static int updaterThread(unsigned int args, void* arg){
 
 		if (downloaded_bytes > 12 * 1024) {
 			if (i == UPDATER_CHECK_UPDATES) {
-				if (strncmp(strstr(rom_mem_buffer, "target_commitish") + 20, stringify(GIT_VERSION), 6)) {
+				if (strncmp(strstr((char*)rom_mem_buffer, "target_commitish") + 20, stringify(GIT_VERSION), 6)) {
 					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.vpk");
 					update_detected = 1;
 				}
@@ -535,7 +536,7 @@ void stripGameName(char *name) {
 
 void showAlert(char *text, int type) {
 	cur_alert.type = type;
-	sprintf(cur_alert.msg, text);
+	strcpy(cur_alert.msg, text);
 	cur_alert.tick = sceKernelGetProcessTimeWide();
 
 	pendingAlert = true;
@@ -543,8 +544,8 @@ void showAlert(char *text, int type) {
 
 void queueDownload(char *text, char *url, int size, void (*post_func)(), int type) {
 	cur_download.size = size;
-	sprintf(cur_download.msg, text);
-	sprintf(cur_download.url, url);
+	strcpy(cur_download.msg, text);
+	strcpy(cur_download.url, url);
 	cur_download.post_func = post_func;
 	cur_download.type = type;
 	
@@ -556,7 +557,7 @@ void getDialogTextResult(char *text) {
 	// Converting text from UTF16 to UTF8
 	std::u16string utf16_str = (char16_t*)dialog_res_text;
 	std::string utf8_str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.to_bytes(utf16_str.data());
-	sprintf(text, utf8_str.c_str());
+	strcpy(text, utf8_str.c_str());
 }
 
 void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, char *args) {
@@ -661,10 +662,10 @@ void setTranslation(int idx) {
 					char *newline = nullptr, *p = buffer;
 					while (newline = strstr(p, "\\n")) {
 						newline[0] = '\n';
-						sprintf(&newline[1], &newline[2]);
+						memmove(&newline[1], &newline[2], strlen(&newline[2]));
 						p++;
 					}
-					sprintf(lang_strings[i], buffer);
+					strcpy(lang_strings[i], buffer);
 				}
 			}
 		}
@@ -672,9 +673,10 @@ void setTranslation(int idx) {
 		gLanguageIndex = idx;
 	} else if (sys_initialized) DBGConsole_Msg(0, "Cannot find language file.");
 	
-	if (effects_list) sprintf(effects_list->name, lang_strings[STR_UNUSED]);
-	if (overlays_list) sprintf(overlays_list->name, lang_strings[STR_UNUSED]);
+	if (effects_list) strcpy(effects_list->name, lang_strings[STR_UNUSED]);
+	if (overlays_list) strcpy(overlays_list->name, lang_strings[STR_UNUSED]);
 	custom_path_str_dirty = true;
+	net_path_str_dirty = true;
 }
 
 void preloadConfig() {
@@ -710,9 +712,18 @@ void loadCustomRomPath() {
 	}
 }
 
+void loadNetRomPath() {
+	FILE *f = fopen(DAEDALUS_VITA_PATH("Configs/path2.ini"), "r");
+	if (f)
+	{
+		fread(gNetRomPath,1, 256, f);
+		fclose(f);
+	}
+}
+
 void loadConfig(const char *game) {
 	char tmp[128];
-	sprintf(tmp, game);
+	strcpy(tmp, game);
 	stripGameName(tmp);
 	
 	char configFile[512];
@@ -783,7 +794,7 @@ void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 	char *tag_start = strstr(src, tag);
 	if (tag_start != src) memcpy_neon(dst1, src, tag_start - src);
 	dst1[tag_start - src] = 0;
-	sprintf(dst2, &tag_start[strlen(tag)]);
+	strcpy(dst2, &tag_start[strlen(tag)]);
 }
 
 int main(int argc, char* argv[]) {
@@ -806,7 +817,10 @@ int main(int argc, char* argv[]) {
 		gSkipCompatListUpdate = true;
 		gStandaloneMode = false;
 		rom = strstr(boot_params, "&param=") + 7;
-	} else loadCustomRomPath();
+	} else {
+		loadCustomRomPath();
+		loadNetRomPath();
+	}
 	
 	Initialize();
 

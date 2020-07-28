@@ -39,12 +39,10 @@
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
 
 #define ROMS_FOLDERS_NUM 5
-#define FILTER_MODES_NUM 6
+#define FILTER_MODES_NUM 8
 
 char selectedRom[256];
 char rom_name_filter[128] = {0};
-
-bool gHasOnlineRomList = false;
 
 struct CompatibilityList {
 	char name[128];
@@ -59,10 +57,12 @@ struct CompatibilityList {
 struct RomSelection {
 	char name[128];
 	char fullpath[256];
+	char preview[128];
+	char title[128];
 	bool is_online;
-	RomSettings settings;
 	RomID id;
 	u32 size;
+	ESaveType save;
 	ECicType cic;
 	CompatibilityList *status;
 	RomSelection *next;
@@ -85,7 +85,9 @@ const char *filter_modes[] = {
 	lang_strings[STR_GAME_INGAME_PLUS],
 	lang_strings[STR_GAME_INGAME_MINUS],
 	lang_strings[STR_GAME_CRASH],
-	lang_strings[STR_NO_TAGS]
+	lang_strings[STR_NO_TAGS],
+	lang_strings[STR_GAME_LOCAL],
+	lang_strings[STR_GAME_ONLINE]
 };
 
 // Filter modes enum
@@ -95,7 +97,9 @@ enum {
 	FILTER_INGAME_PLUS,
 	FILTER_INGAME_MINUS,
 	FILTER_CRASH,
-	FILTER_NO_TAGS
+	FILTER_NO_TAGS,
+	FILTER_LOCAL,
+	FILTER_ONLINE
 };
 
 void apply_rom_name_filter() {
@@ -112,76 +116,51 @@ void resetRomList() {
 	list = nullptr;
 }
 
-void swap_roms(RomSelection *a, RomSelection *b) { 
-	char nametmp[128], pathtmp[256];
-	sprintf(nametmp, a->name);
-	sprintf(pathtmp, a->fullpath);
-
-	RomSettings settingstmp = a->settings;
-	RomID idtmp = a->id;
-	u32 sizetmp = a->size;
-	ECicType cictmp = a->cic;
-	CompatibilityList *statustmp = a->status;
-	bool onlinetmp = a->is_online;
-
-	sprintf(a->name, b->name);
-	sprintf(a->fullpath, b->fullpath);
+void swap_roms(RomSelection *a, RomSelection *b) {
+	RomSelection tmp;
 	
-	a->is_online = b->is_online;
-	a->settings = b->settings;
-	a->id = b->id;
-	a->size = b->size;
-	a->cic = b->cic;
-	a->status = b->status;
-
-	sprintf(b->name, nametmp);
-	sprintf(b->fullpath, pathtmp);
-
-	b->is_online = onlinetmp;
-	b->settings = settingstmp;
-	b->id = idtmp;
-	b->size = sizetmp;
-	b->cic = cictmp;
-	b->status = statustmp; 
+	// Swapping everything except next leaf pointer
+	memcpy_neon(&tmp, a, sizeof(RomSelection) - 4);
+	memcpy_neon(a, b, sizeof(RomSelection) - 4);
+	memcpy_neon(b, &tmp, sizeof(RomSelection) - 4);
 }
 
 void swap_shaders(PostProcessingEffect *a, PostProcessingEffect *b) {
-	char nametmp[32];
-	sprintf(nametmp, a->name);
-	bool compiledtmp = a->compiled;
+	PostProcessingEffect tmp;
 	
-	sprintf(a->name, b->name);
-	a->compiled = b->compiled;
-	
-	sprintf(b->name, nametmp);
-	b->compiled = compiledtmp;
+	// Swapping everything except next leaf pointer
+	memcpy_neon(&tmp, a, sizeof(PostProcessingEffect) - 4);
+	memcpy_neon(a, b, sizeof(PostProcessingEffect) - 4);
+	memcpy_neon(b, &tmp, sizeof(PostProcessingEffect) - 4);
 }
 
 void swap_overlays(Overlay *a, Overlay *b) {
-	char nametmp[32];
-	sprintf(nametmp, a->name);
-	sprintf(a->name, b->name);
-	sprintf(b->name, nametmp);
+	Overlay tmp;
+	
+	// Swapping everything except next leaf pointer
+	memcpy_neon(&tmp, a, sizeof(Overlay) - 4);
+	memcpy_neon(a, b, sizeof(Overlay) - 4);
+	memcpy_neon(b, &tmp, sizeof(Overlay) - 4);
 }
 
 void sort_romlist(RomSelection *start, int order) { 
+	// Checking for empty list
+	if (start == NULL) 
+		return; 
+	
 	int swapped, i; 
 	RomSelection *ptr1; 
 	RomSelection *lptr = NULL; 
-  
-	/* Checking for empty list */
-	if (start == NULL) 
-		return; 
   
 	do { 
 		swapped = 0; 
 		ptr1 = start; 
   
-		while (ptr1->next != lptr) {
+		while (ptr1->next != lptr && ptr1->next) {
 			switch (order) {
 			case SORT_Z_TO_A:
 				{
-					if (strcasecmp(ptr1->name,ptr1->next->name) < 0) {  
+					if (strcasecmp(ptr1->name,ptr1->next->name) < 0) {
 						swap_roms(ptr1, ptr1->next); 
 						swapped = 1; 
 					}
@@ -189,7 +168,7 @@ void sort_romlist(RomSelection *start, int order) {
 				break;
 			case SORT_A_TO_Z:
 				{
-					if (strcasecmp(ptr1->name,ptr1->next->name) > 0) {  
+					if (strcasecmp(ptr1->name,ptr1->next->name) > 0) {
 						swap_roms(ptr1, ptr1->next); 
 						swapped = 1; 
 					}
@@ -257,7 +236,7 @@ bool LoadPreview(RomSelection *rom) {
 	old_hovered = rom;
 	
 	IO::Filename preview_filename;
-	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Resources/Preview/"), rom->settings.Preview.c_str() );
+	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Resources/Preview/"), rom->preview );
 	uint8_t *icon_data = stbi_load(preview_filename, &preview_width, &preview_height, NULL, 4);
 	if (icon_data) {
 		if (!preview_icon) glGenTextures(1, &preview_icon);
@@ -364,15 +343,20 @@ void SetTagDescription(const char *text) {
 }
 
 bool filterRoms(RomSelection *p) {
-	if (!p->status) return filter_idx != FILTER_NO_TAGS;
-	else {
-		if (filter_idx == FILTER_NO_TAGS) return true;
-		else if ((!p->status->playable && filter_idx == FILTER_PLAYABLE) ||
-			(!p->status->ingame_plus && filter_idx == FILTER_INGAME_PLUS) ||
-			(!p->status->ingame_low && filter_idx == FILTER_INGAME_MINUS) ||
-			(!p->status->crash && filter_idx == FILTER_CRASH)) {
-			return true;
+	if (filter_idx < FILTER_LOCAL) {
+		if (!p->status) return filter_idx != FILTER_NO_TAGS;
+		else {
+			if (filter_idx == FILTER_NO_TAGS) return true;
+			else if ((!p->status->playable && filter_idx == FILTER_PLAYABLE) ||
+				(!p->status->ingame_plus && filter_idx == FILTER_INGAME_PLUS) ||
+				(!p->status->ingame_low && filter_idx == FILTER_INGAME_MINUS) ||
+				(!p->status->crash && filter_idx == FILTER_CRASH)) {
+				return true;
+			}
 		}
+	} else {
+		if (!p->is_online && filter_idx == FILTER_ONLINE) return true;
+		else if (p->is_online && filter_idx == FILTER_LOCAL) return true;
 	}
 	return false;
 }
@@ -419,20 +403,24 @@ char *DrawRomSelector() {
 						full_path += rom_filename;
 						RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
 						node->is_online = false;
-						sprintf(node->name, rom_filename);
-						sprintf(node->fullpath, full_path.c_str());
+						strcpy(node->name, rom_filename);
+						strcpy(node->fullpath, full_path.c_str());
 						if (ROM_GetRomDetailsByFilename(full_path.c_str(), &node->id, &node->size, &node->cic)) {
 							node->size = node->size / (1024 * 1024);
-							if (!CRomSettingsDB::Get()->GetSettings(node->id, &node->settings )) {
-								node->settings.Reset();
+							RomSettings tmpsettings;
+							if (!CRomSettingsDB::Get()->GetSettings(node->id, &tmpsettings )) {
+								tmpsettings.Reset();
 								std::string game_name;
 								if (!ROM_GetRomName(full_path.c_str(), game_name )) game_name = full_path;
 								game_name = game_name.substr(0, 63);
-								node->settings.GameName = game_name.c_str();
-								CRomSettingsDB::Get()->SetSettings(node->id, node->settings);
+								tmpsettings.GameName = game_name.c_str();
+								CRomSettingsDB::Get()->SetSettings(node->id, tmpsettings);
 							}
-							node->status = SearchForCompatibilityData(node->settings.GameName.c_str());
-						} else node->settings.GameName = lang_strings[STR_UNKNOWN];
+							strcpy(node->title, tmpsettings.GameName.c_str());
+							strcpy(node->preview, tmpsettings.Preview.c_str());
+							node->save = tmpsettings.SaveType;
+							node->status = SearchForCompatibilityData(node->title);
+						}
 						node->next = list;
 						list = node;
 					}
@@ -443,25 +431,27 @@ char *DrawRomSelector() {
 			}
 		}
 		
-		if (gHasOnlineRomList) {
-			char *p = (char*)rom_mem_buffer;
+		if (raw_net_romlist) {
+			char *p = (char*)raw_net_romlist;
 			while (p) {
-				char *r = strstr(p, ".v64");
+				char *r = strcasestr(p, "a href");
 				if (r) {
-					RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
-					node->is_online = true;
-					char *space = strstr(p, " ");
-					char *last_space = nullptr;
-					while (space) {
-						last_space = space;
-						space = strstr(space + 1, " ");
+					char name[128], tmp[128];
+					r = strstr(r, "\">");
+					char *r2 = strcasestr(r, "</a");
+					memcpy_neon(name, r + 2, (r2 - (r + 2)));
+					name[(r2 - (r + 2))] = 0;
+					if (name[0] == ' ') memmove(name, &name[1], strlen(&name[1]));
+					if (IsRomfilename(name) && (!strstr(name, ".zip"))) {
+						RomSelection *node = (RomSelection*)malloc(sizeof(RomSelection));
+						node->is_online = true;
+						strcpy(node->name, name);
+						node->next = list;
+						node->status = nullptr;
+						list = node;
 					}
-					memcpy_neon(node->name, &p[49], (r - &p[49]) + 4);
-					node->name[(r - last_space) + 3] = 0;
-					node->next = list;
-					list = node;
+					p = r + 2;
 				} else break;
-				p = r + 1;
 			}
 		}
 	}
@@ -510,9 +500,22 @@ char *DrawRomSelector() {
 						continue;
 					}
 				}
+				if (p->is_online) {
+					ImGui::PushStyleColor(ImGuiCol_Button, 0x880015FF);
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0xFF0000FF);
+				}
 				if (ImGui::Button(p->name)){
-					sprintf(selectedRom, p->fullpath);
+					if (p->is_online) {
+						char url[512];
+						sprintf(url, "%s%s", gNetRomPath, p->name);
+						queueDownload(lang_strings[STR_DLG_ROM_LAUNCH], url, 8 * 1024 * 1024, dummy_func, MEM_DOWNLOAD);
+						sprintf(selectedRom, "/%s.net", p->name);
+					}
+					else strcpy(selectedRom, p->fullpath);
 					selected = true;
+				}
+				if (p->is_online) {
+					ImGui::PopStyleColor(2);
 				}
 				if (ImGui::IsItemHovered()) hovered = p;
 			}
@@ -531,7 +534,13 @@ char *DrawRomSelector() {
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0xFF0000FF);
 			}
 			if (ImGui::Button(p->name)){
-				sprintf(selectedRom, p->fullpath);
+				if (p->is_online) {
+					char url[512];
+					sprintf(url, "%s%s", gNetRomPath, p->name);
+					queueDownload(lang_strings[STR_DLG_ROM_LAUNCH], url, 8 * 1024 * 1024, dummy_func, MEM_DOWNLOAD);
+					sprintf(selectedRom, "/%s.net", p->name);
+				}
+				else strcpy(selectedRom, p->fullpath);
 				selected = true;
 			}
 			if (p->is_online) {
@@ -549,18 +558,18 @@ char *DrawRomSelector() {
 	ImGui::Begin("Info Window", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	if (hovered) {
 		if (hovered->is_online) {
-			ImGui::Text("No info available for net roms.");
+			ImGui::TextWrapped(lang_strings[STR_GAME_NET]);
 		} else {
 			if (has_preview_icon = LoadPreview(hovered)) {
 				ImGui::SetCursorPos(ImVec2(preview_x + PREVIEW_PADDING, preview_y + PREVIEW_PADDING));
 				ImGui::Image((void*)preview_icon, ImVec2(preview_width, preview_height));
 			}
-			ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], hovered->settings.GameName.c_str());
+			ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], strlen(hovered->title) > 0 ? hovered->title : lang_strings[STR_UNKNOWN]);
 			ImGui::Text("%s: %s", lang_strings[STR_REGION], ROM_GetCountryNameFromID(hovered->id.CountryID));
 			ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
 			ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
 			ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
-			ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->settings.SaveType));
+			ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->save));
 			if (hovered->status) {
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
 				if (!gBigText) ImGui::Text("%s:", lang_strings[STR_TAGS]);
@@ -623,7 +632,7 @@ char *DrawRomSelector() {
 	}
 	
 	if (selected) {
-		CheatCodes_Read( hovered->settings.GameName.c_str(), "Daedalus.cht", hovered->id.CountryID );
+		CheatCodes_Read( hovered->title, "Daedalus.cht", hovered->id.CountryID );
 		return selectedRom;
 	}
 	return nullptr;

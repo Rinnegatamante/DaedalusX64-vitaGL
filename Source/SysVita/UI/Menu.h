@@ -55,7 +55,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 153
+#define LANG_STRINGS_NUM 160
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -210,7 +210,14 @@ enum {
 	FUNC(STR_DESC_POST_PROCESSING) \
 	FUNC(STR_NO_POST_PROCESSING) \
 	FUNC(STR_MENU_OVERLAYS) \
-	FUNC(STR_DESC_OVERLAYS)
+	FUNC(STR_DESC_OVERLAYS) \
+	FUNC(STR_DLG_RETRIEVE_NET_PATH) \
+	FUNC(STR_NET_PATH) \
+	FUNC(STR_DLG_NET_PATH) \
+	FUNC(STR_DLG_ROM_LAUNCH) \
+	FUNC(STR_GAME_NET) \
+	FUNC(STR_GAME_LOCAL) \
+	FUNC(STR_GAME_ONLINE)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -320,7 +327,6 @@ extern bool gUseMipmaps;
 extern bool gSkipCompatListUpdate;
 extern bool gAutoUpdate;
 extern bool gUseRearpad;
-extern bool gHasOnlineRomList;
 extern int  gPostProcessing;
 extern int  gOverlay;
 extern int  gSortOrder;
@@ -328,12 +334,15 @@ extern int  gUiTheme;
 extern int  gAntiAliasing;
 extern bool gBigText;
 extern char gCustomRomPath[256];
+extern char gNetRomPath[256];
 
 extern bool pendingDialog;
 extern bool pendingAlert;
 extern bool pendingDownload;
 extern bool custom_path_str_dirty;
+extern bool net_path_str_dirty;
 
+extern char *raw_net_romlist;
 extern uint8_t *rom_mem_buffer;
 extern volatile uint32_t temp_download_size;
 
@@ -368,6 +377,7 @@ void extract_file(char *file, char *dir);
 int download_file(char *url, char *file, char *msg, float int_total_bytes, bool has_temp_file);
 void sort_overlaylist(Overlay *start);
 void sort_shaderlist(PostProcessingEffect *start);
+void log2file(const char *format, ...);
 
 void dummy_func();
 

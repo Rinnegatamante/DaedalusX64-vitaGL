@@ -193,76 +193,21 @@ bool RomBuffer::Open()
 	if( ShouldLoadAsFixed( sRomSize ) )
 	{
 		u8 *	p_bytes( (u8*)rom_mem_buffer );
-
-		if( !p_rom_file->LoadData( sRomSize, p_bytes, messages ) )
-		{
+		
+		if( !p_rom_file->LoadData( sRomSize, p_bytes, messages ) ) {
 			#ifdef DAEDALUS_DEBUG_CONSOLE
 			DBGConsole_Msg(0, "Failed to load [C%s]\n", filename);
 			#endif
 			delete p_rom_file;
 			return false;
 		}
-
+		
 		spRomData = p_bytes;
 		sRomFixed = true;
 
 		delete p_rom_file;
 	}
-	else
-	{
-#ifdef DAEDALUS_COMPRESSED_ROM_SUPPORT
-		if(DECOMPRESS_ROMS)
-		{
-			bool	compressed( p_rom_file->IsCompressed() );
-			bool	byteswapped( p_rom_file->RequiresSwapping() );
-			if(compressed)// || byteswapped)
-			{
-				const char * temp_filename( "daedrom.tmp" );
 
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				if(compressed && byteswapped)
-				{
-					DBGConsole_Msg( 0, "Rom is [Mcompressed] and [Mbyteswapped]" );
-				}
-				else if(compressed)
-				{
-					DBGConsole_Msg( 0, "Rom is [Mcompressed]" );
-				}
-				else
-				{
-					DBGConsole_Msg( 0, "Rom is [Mbyteswapped]" );
-				}
-				DBGConsole_Msg( 0, "Decompressing rom to [C%s] (this may take some time)", temp_filename );
-				#endif
-				CNullOutputStream		local_messages;
-
-				ROMFile * p_new_file = DecompressRom( p_rom_file, temp_filename, local_messages );
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				DBGConsole_Msg( 0, "messages:\n%s", local_messages.c_str() );
-				#endif
-				messages << local_messages;
-
-				if(p_new_file != nullptr)
-				{
-					#ifdef DAEDALUS_DEBUG_CONSOLE
-					DBGConsole_Msg( 0, "Decompression [gsuccessful]. Booting using decompressed rom" );
-					#endif
-					delete p_rom_file;
-					p_rom_file = p_new_file;
-				}
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				else
-				{
-					DBGConsole_Msg( 0, "Decompression [rfailed]. Booting using original rom" );
-				}
-				#endif
-			}
-		}
-#endif
-		spRomFileCache = new ROMFileCache();
-		spRomFileCache->Open( p_rom_file );
-		sRomFixed = false;
-	}
 	#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "Opened [C%s]\n", filename);
 	#endif
@@ -306,9 +251,9 @@ namespace
 		// Similar algorithm to below - we don't care about byte swapping though
 		while(length > 0)
 		{
-			u8 *	p_chunk_base {};
-			u32		chunk_offset {};
-			u32		chunk_size {};
+			u8 *	p_chunk_base;
+			u32		chunk_offset;
+			u32		chunk_size;
 
 			if( !p_cache->GetChunk( src_offset, &p_chunk_base, &chunk_offset, &chunk_size ) )
 			{
@@ -408,9 +353,9 @@ bool RomBuffer::CopyToRam( u8 * p_dst, u32 dst_offset, u32 dst_size, u32 src_off
 	{
 		while(length > 0)
 		{
-			u8 *	p_chunk_base {};
-			u32		chunk_offset {};
-			u32		chunk_size {};
+			u8 *	p_chunk_base;
+			u32		chunk_offset;
+			u32		chunk_size;
 
 			if( !spRomFileCache->GetChunk( src_offset, &p_chunk_base, &chunk_offset, &chunk_size ) )
 			{

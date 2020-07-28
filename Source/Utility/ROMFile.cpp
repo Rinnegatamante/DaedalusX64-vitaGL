@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ROMFile.h"
 #include "ROMFileCompressed.h"
 #include "ROMFileUncompressed.h"
+#include "ROMFileNetwork.h"
 
 #include "Debug/DBGConsole.h"
 
@@ -57,6 +58,10 @@ ROMFile * ROMFile::Create( const char * filename )
 #else
 		return NULL;
 #endif
+	}
+	else if (ext && _strcmpi(ext, ".net") == 0)
+	{
+		return new ROMFileNetwork( filename );
 	}
 	else
 	{

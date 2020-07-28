@@ -54,7 +54,9 @@ GLuint cur_prog;
 GLuint cur_overlay = 0xDEADBEEF;
 
 static char custom_path_str[512];
+static char net_path_str[512];
 bool custom_path_str_dirty = true;
+bool net_path_str_dirty = true;
 
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
@@ -92,6 +94,8 @@ float gamma_val = 1.0f;
 
 char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
+
+char *raw_net_romlist = nullptr;
 
 PostProcessingEffect *effects_list = nullptr;
 Overlay *overlays_list = nullptr;
@@ -223,10 +227,22 @@ void saveCustomRomPath()
 	}
 }
 
+void saveNetRomPath()
+{
+	sceIoMkdir(DAEDALUS_VITA_PATH("Configs/"), 0777);
+	
+	FILE *f = fopen(DAEDALUS_VITA_PATH("Configs/path2.ini"), "w+");
+	if (f)
+	{
+		fprintf(f, gNetRomPath);
+		fclose(f);
+	}
+}
+
 void saveConfig(const char *game)
 {
 	char tmp[128];
-	sprintf(tmp, game);
+	strcpy(tmp, game);
 	stripGameName(tmp);
 	
 	char configFile[512];
@@ -282,9 +298,9 @@ void save_and_restart_func() {
 	sceAppMgrLoadExec("app0:eboot.bin", NULL, NULL);
 }
 
-void dummy_func () {}
+void dummy_func() {}
 
-void change_custom_rom_path () {
+void change_custom_rom_path() {
 	getDialogTextResult(gCustomRomPath);
 	uint32_t path_len = strlen(gCustomRomPath);
 	if (gCustomRomPath[path_len - 1] != '/') {
@@ -296,9 +312,24 @@ void change_custom_rom_path () {
 	custom_path_str_dirty = true;
 }
 
-void set_net_folder () {
-	gHasOnlineRomList = true;
+void set_net_folder() {
+	if (raw_net_romlist) free(raw_net_romlist);
+	raw_net_romlist = (char*)malloc(temp_download_size + 1);
+	memcpy_neon(raw_net_romlist, rom_mem_buffer, temp_download_size);
+	raw_net_romlist[temp_download_size] = 0;
 	resetRomList();
+}
+
+void change_net_rom_path() {
+	getDialogTextResult(gNetRomPath);
+	uint32_t path_len = strlen(gNetRomPath);
+	if (gNetRomPath[path_len - 1] != '/') {
+		gNetRomPath[path_len] = '/';
+		gNetRomPath[path_len + 1] = 0;
+	}
+	saveNetRomPath();
+	queueDownload(lang_strings[STR_DLG_RETRIEVE_NET_PATH], gNetRomPath, 1024, set_net_folder, MEM_DOWNLOAD);
+	net_path_str_dirty = true;
 }
 
 void SetupVFlux() {
@@ -331,7 +362,7 @@ void SetupPostProcessingLists() {
 	// Setting up overlays list
 	if (overlays_list == nullptr) {
 		overlays_list = (Overlay*)malloc(sizeof(Overlay));
-		sprintf(overlays_list->name, lang_strings[STR_UNUSED]);
+		strcpy(overlays_list->name, lang_strings[STR_UNUSED]);
 		overlays_list->next = nullptr;
 
 		IO::FindHandleT		find_handle;
@@ -356,7 +387,7 @@ void SetupPostProcessingLists() {
 	// Setting up post processing effects list
 	if (effects_list == nullptr) {
 		effects_list = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
-		sprintf(effects_list->name, lang_strings[STR_UNUSED]);
+		strcpy(effects_list->name, lang_strings[STR_UNUSED]);
 		effects_list->next = nullptr;
 
 		IO::FindHandleT		find_handle;
@@ -903,6 +934,11 @@ void DrawMenuBar() {
 		custom_path_str_dirty = false;
 	}
 	
+	if (net_path_str_dirty) {
+		sprintf(net_path_str, "%s: %s", lang_strings[STR_NET_PATH], strlen(gNetRomPath) > 1 ? gNetRomPath : lang_strings[STR_UNUSED]); 
+		net_path_str_dirty = false;
+	}
+	
 	ImGui_ImplVitaGL_NewFrame();
 	if (ImGui::BeginMainMenuBar()){
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
@@ -913,9 +949,9 @@ void DrawMenuBar() {
 			if (ImGui::MenuItem(custom_path_str)) {
 				showDialog(lang_strings[STR_DLG_CUSTOM_PATH], change_custom_rom_path, dummy_func, DIALOG_KEYBOARD, gCustomRomPath);
 			}
-			/*if (ImGui::MenuItem("Test")) { // Future net roms support, disabled for now since libcurl has no FTP protocol support
-				queueDownload(lang_strings[STR_DLG_DOWNLOAD_DATA], "TESTLINKHERE", 1024, set_net_folder, MEM_DOWNLOAD);
-			}*/
+			if (ImGui::MenuItem(net_path_str)) {
+				showDialog(lang_strings[STR_DLG_NET_PATH], change_net_rom_path, dummy_func, DIALOG_KEYBOARD, gNetRomPath);
+			}
 			ImGui::Separator();
 			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){
 				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)){

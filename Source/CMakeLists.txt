@@ -27,7 +27,7 @@ set (OSHLE_FILES OSHLE/OS.cpp OSHLE/patch.cpp)
 set (PLUGIN_FILES Plugins/GraphicsPlugin.cpp)
 set (SYSTEM_FILES System/Paths.cpp System/System.cpp)
 set (TEST_FILES Test/BatchTest.cpp)
-set (UTILITY_FILES Utility/CRC.cpp Utility/DataSink.cpp Utility/FastMemcpy.cpp  Utility/FramerateLimiter.cpp Utility/Hash.cpp Utility/IniFile.cpp Utility/MemoryHeap.cpp Utility/Preferences.cpp Utility/PrintOpCode.cpp Utility/Profiler.cpp Utility/ROMFile.cpp Utility/ROMFileCache.cpp Utility/ROMFileCompressed.cpp Utility/ROMFileMemory.cpp Utility/ROMFileUncompressed.cpp Utility/Stream.cpp Utility/StringUtil.cpp Utility/Synchroniser.cpp Utility/Timer.cpp Utility/ZLibWrapper.cpp)
+set (UTILITY_FILES Utility/CRC.cpp Utility/DataSink.cpp Utility/FastMemcpy.cpp  Utility/FramerateLimiter.cpp Utility/Hash.cpp Utility/IniFile.cpp Utility/MemoryHeap.cpp Utility/Preferences.cpp Utility/PrintOpCode.cpp Utility/Profiler.cpp Utility/ROMFile.cpp Utility/ROMFileCache.cpp Utility/ROMFileCompressed.cpp Utility/ROMFileMemory.cpp Utility/ROMFileUncompressed.cpp Utility/ROMFileNetwork.cpp Utility/Stream.cpp Utility/StringUtil.cpp Utility/Synchroniser.cpp Utility/Timer.cpp Utility/ZLibWrapper.cpp)
 set (UNKNOWN_FILES Utility/FastMemcpy_test.cpp)
 set (DEBUG_ONLY Core/Registers.cpp)
 set (BUILD ${CONFIG_FILES} ${CORE_FILES} ${DEBUG_FILES} ${DYNAREC_FILES} ${GRAPHICS_FILES} ${HLEAUDIO_FILES} ${HLEGRAPHICS_FILES} ${INTERFACE_FILES} ${MATH_FILES} ${OSHLE_FILES} ${PLUGIN_FILES} ${SYSTEM_FILES} ${TEST_FILES} ${UTILITY_FILES})
@@ -126,6 +126,8 @@ if (VITA_RELEASE)
 	)
 
 	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
+	
+	set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 	vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
 		VERSION ${VITA_VERSION}
 		NAME ${VITA_APP_NAME}
