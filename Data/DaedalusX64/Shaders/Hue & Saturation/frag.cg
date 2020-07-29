@@ -23,11 +23,14 @@ float3 HSVtoRGB(float3 HSV)
 
 float4 main(
 	float2 vTexcoord : TEXCOORD0,
-	uniform sampler2D uTexture : TEXUNIT0) : COLOR
+	uniform sampler2D uTexture : TEXUNIT0,
+	uniform float Hue,
+	uniform float Saturation) : COLOR
 {
 	float3 color = tex2D(uTexture, vTexcoord).rgb;
 	float3 col_hsv = RGBtoHSV(color);
-	col_hsv.y *= 0.8;
+	col_hsv.x *= Hue;
+	col_hsv.y *= Saturation;
 	float3 col_rgb = HSVtoRGB(col_hsv);
 
 	return float4(col_rgb, 1.0);

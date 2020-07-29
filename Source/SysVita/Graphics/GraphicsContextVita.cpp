@@ -35,7 +35,7 @@ bool new_frame = true;
 
 extern float gamma_val;
 
-static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex;
+static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex, emu_depth_buf_tex;
 
 class IGraphicsContext : public CGraphicsContext
 {
@@ -161,6 +161,11 @@ void IGraphicsContext::BeginFrame()
 			glGenTextures(1, &emu_fb_tex);
 			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			/*glActiveTexture(GL_TEXTURE1);
+			glGenTextures(1, &emu_depth_buf_tex);
+			glBindTexture(GL_TEXTURE_2D, emu_depth_buf_tex);
+			vglTexImageDepthBuffer(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0);*/
 			glGenFramebuffers(1, &emu_fb);
 			glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
 			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, emu_fb_tex, 0);
@@ -211,6 +216,22 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			vglStartRendering();
 			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
 			glUseProgram(cur_prog);
+			
+			int i = 0;
+			while (prog_uniforms[i].idx != 0xDEADBEEF) {
+				switch (prog_uniforms[i].type) {
+				case UNIF_FLOAT:
+					glUniform1f(prog_uniforms[i].idx, prog_uniforms[i].value[0]);
+					break;
+				case UNIF_COLOR:
+					glUniform3fv(prog_uniforms[i].idx, 1, prog_uniforms[i].value);
+					break;
+				default:
+					break;
+				}
+				i++;
+			}
+			
 			vglVertexAttribPointerMapped(0, vflux_vertices);
 			vglVertexAttribPointerMapped(1, vflux_texcoords);
 			vglDrawObjects(GL_TRIANGLE_FAN, 4, true);

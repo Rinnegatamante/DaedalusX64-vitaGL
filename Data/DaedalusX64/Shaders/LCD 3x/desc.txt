@@ -1,0 +1,1 @@
+Smooth scaling algorithm with LCD screen effect.
