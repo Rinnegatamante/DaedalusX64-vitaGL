@@ -1,0 +1,10 @@
+void main(
+	float3 position,
+	float2 texcoord,
+	uniform float4x4 wvp,
+	out float4 vPosition : POSITION,
+	out float2 vTexcoord : TEXCOORD0)
+{
+	vPosition = mul(wvp,float4(position, 1.f));
+	vTexcoord = texcoord;
+}

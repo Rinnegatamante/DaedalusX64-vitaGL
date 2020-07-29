@@ -1,0 +1,34 @@
+static const float Epsilon = 1e-10;
+
+float3 RGBtoHSV(float3 RGB)
+{
+    float4 P = (RGB.g < RGB.b) ? float4(RGB.bg, -1.0, 2.0/3.0) : float4(RGB.gb, 0.0, -1.0/3.0);
+    float4 Q = (RGB.r < P.x) ? float4(P.xyw, RGB.r) : float4(RGB.r, P.yzx);
+    float C = Q.x - min(Q.w, Q.y);
+    float H = abs((Q.w - Q.y) / (6.0 * C + Epsilon) + Q.z);
+    float3 HCV = float3(H, C, Q.x);
+    float S = HCV.y / (HCV.z + Epsilon);
+    return float3(HCV.x, S, HCV.z);
+}
+
+float3 HSVtoRGB(float3 HSV)
+{
+    float H   = HSV.x;
+    float R   = abs(H * 6.0 - 3.0) - 1.0;
+    float G   = 2.0 - abs(H * 6.0 - 2.0);
+    float B   = 2.0 - abs(H * 6.0 - 4.0);
+    float3  RGB = clamp(float3(R,G,B), 0.0, 1.0 );
+    return ((RGB - 1.0) * HSV.y + 1.0) * HSV.z;
+}
+
+float4 main(
+	float2 vTexcoord : TEXCOORD0,
+	uniform sampler2D uTexture : TEXUNIT0) : COLOR
+{
+	float3 color = tex2D(uTexture, vTexcoord).rgb;
+	float3 col_hsv = RGBtoHSV(color);
+	col_hsv.y *= 1.2;
+	float3 col_rgb = HSVtoRGB(col_hsv);
+
+	return float4(col_rgb, 1.0);
+}

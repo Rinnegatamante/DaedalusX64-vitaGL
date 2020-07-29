@@ -181,7 +181,6 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
 	return nmemb;
 }
 
-// GitHub API does not set Content-Length field
 static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
 {
 	char *ptr = strcasestr(buffer, "Content-Length");
