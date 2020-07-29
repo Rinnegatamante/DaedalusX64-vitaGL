@@ -284,7 +284,9 @@ struct Alert {
 
 struct PostProcessingEffect {
 	char name[32];
+	char desc[128];
 	bool compiled;
+	bool customizable;
 	PostProcessingEffect *next;
 };
 
@@ -299,6 +301,20 @@ struct ButtonSce {
 	uint32_t longPressTime;
 	const SceCtrlButtons btn;
 };
+
+enum UnifType {
+	UNIF_FLOAT = 1,
+	UNIF_COLOR = 3
+};
+
+struct Uniform {
+	GLint idx;
+	char name[30];
+	UnifType type;
+	float value[3];
+};
+
+extern Uniform prog_uniforms[8];
 
 extern Dialog cur_dialog;
 extern Alert cur_alert;
@@ -364,7 +380,7 @@ void setUiTheme(int theme);
 void setTranslation(int idx);
 void setTexCacheMode(int mode);
 void setOverlay(int idx, Overlay *p);
-void setPostProcessingEffect(int idx, PostProcessingEffect *p);
+bool setPostProcessingEffect(int idx, PostProcessingEffect *p);
 void stripGameName(char *name);
 void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, char *args);
 void getDialogTextResult(char *text);

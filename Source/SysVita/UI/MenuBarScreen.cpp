@@ -80,6 +80,7 @@ static bool vflux_enabled = false;
 static bool credits_window = false;
 static bool debug_window = false;
 static bool logs_window = false;
+static bool post_processing_window = false;
 
 extern EFrameskipValue gFrameskipValue;
 extern bool kUpdateTexturesEveryFrame;
@@ -99,6 +100,23 @@ char *raw_net_romlist = nullptr;
 
 PostProcessingEffect *effects_list = nullptr;
 Overlay *overlays_list = nullptr;
+
+Uniform prog_uniforms[8];
+
+void loadUniformSettings(const char *path) {
+	FILE *config = fopen(path, "r");
+	int value, i = 0;
+	while (EOF != fscanf(config, "%[^=]=%d\n", prog_uniforms[i].name, &value))
+	{
+		prog_uniforms[i].idx = glGetUniformLocation(cur_prog, prog_uniforms[i].name);
+		prog_uniforms[i].type = (UnifType)value;
+		prog_uniforms[i].value[0] = prog_uniforms[i].value[1] = prog_uniforms[i].value[2] = prog_uniforms[i].value[3] = 1.0f;
+		i++;
+	}
+
+	fclose(config);
+	prog_uniforms[i].idx = 0xDEADBEEF;
+}
 
 void loadCompiledShader(int idx, char *file)
 {
@@ -160,7 +178,7 @@ void setOverlay(int idx, Overlay *p) {
 	gOverlay = idx;
 }
 
-void setPostProcessingEffect(int idx, PostProcessingEffect *p) {
+bool setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 	if (gPostProcessing != idx && idx) {
 		// Get the required instance if not specified
 		if (!p) {
@@ -187,14 +205,14 @@ void setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 						
 		char fpath[128];
 		if (p->compiled) {
-			sprintf(fpath, "%s%s_v.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			sprintf(fpath, "%s%s/vert.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
 			loadCompiledShader(shader_idx * 2, fpath);
-			sprintf(fpath, "%s%s_f.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			sprintf(fpath, "%s%s/frag.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
 			loadCompiledShader(shader_idx * 2 + 1, fpath);
 		} else {
-			sprintf(fpath, "%s%s_v.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			sprintf(fpath, "%s%s/vert.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
 			loadShader(shader_idx * 2, fpath);
-			sprintf(fpath, "%s%s_f.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			sprintf(fpath, "%s%s/frag.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
 			loadShader(shader_idx * 2 + 1, fpath);
 		}
 		glAttachShader(program[shader_idx], shaders[shader_idx * 2]);
@@ -205,8 +223,14 @@ void setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 						
 		glLinkProgram(program[shader_idx]);
 		cur_prog = program[shader_idx];
+		
+		if (p->customizable) {
+			sprintf(fpath, "%s%s/unif.txt", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);
+			loadUniformSettings(fpath);
+		} else prog_uniforms[0].idx = 0xDEADBEEF;
 	}
 	gPostProcessing = idx;
+	return p ? p->customizable : false;
 }
 
 void install_data_files() {
@@ -397,19 +421,33 @@ void SetupPostProcessingLists() {
 			PostProcessingEffect *p = effects_list;
 			do {
 				const char *filename( find_data.Name );
-				if (strstr(filename, "_f.cg")) {
+				
+				char fpath[256];
+				sprintf(fpath, "%s%s/frag.cg", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), filename);
+				SceIoStat stat;
+				if (sceIoGetstat(fpath, &stat) >= 0) {
 					p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
 					p = p->next;
 					p->compiled = false;
-					snprintf(p->name, strlen(filename) - 4, filename);
+					strcpy(p->name, filename);
 					p->next = nullptr;
-				} else if (strstr(filename, "_f.gxp")) {
-					p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
-					p = p->next;
-					p->compiled = true;
-					snprintf(p->name, strlen(filename) - 5, filename);
-					p->next = nullptr;
+				} else {
+					sprintf(fpath, "%s%s/frag.gxp", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), filename);
+					if (sceIoGetstat(fpath, &stat) >= 0) {
+						p->next = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
+						p = p->next;
+						p->compiled = true;
+						strcpy(p->name, filename);
+						p->next = nullptr;
+					} else continue;
 				}
+				sprintf(fpath, "%s%s/unif.txt", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), filename);
+				p->customizable = sceIoGetstat(fpath, &stat) >= 0;
+				sprintf(fpath, "%s%s/desc.txt", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), filename);
+				FILE *dh = fopen(fpath, "rb");
+				int len = fread(p->desc, 1, 128, dh);
+				p->desc[len] = 0;
+				fclose(dh);
 			} while(IO::FindFileNext( find_handle, find_data ));
 		}
 
@@ -578,8 +616,9 @@ void DrawCommonMenuBar() {
 			int i = 0;
 			while (p) {
 				if (ImGui::MenuItem(p->name, nullptr, gPostProcessing == i)){
-					setPostProcessingEffect(i, p);
+					if (setPostProcessingEffect(i, p)) post_processing_window = true;
 				}
+				if (i) SetDescription(p->desc);
 				p = p->next;
 				if (!i && p) ImGui::Separator();
 				i++;
@@ -806,6 +845,26 @@ void DrawCommonWindows() {
 		ImGui::Text("coestergaard (DAN)");
 		ImGui::Text("Kiiro Yakumo (POL)");
 		ImGui::Text("ΧΡΗΣΤΟΣ ΜΑΝΟΥΣΗΣ (GRE)");
+		ImGui::End();
+	}
+	
+	if (post_processing_window) {
+		ImGui::Begin(lang_strings[STR_MENU_POST_PROCESSING], &post_processing_window);
+		int i = 0;
+		while (prog_uniforms[i].idx != 0xDEADBEEF) {
+			switch (prog_uniforms[i].type) {
+			case UNIF_FLOAT:
+				ImGui::SliderFloat(prog_uniforms[i].name, &prog_uniforms[i].value[0], 0.0f, 2.0f);
+				break;
+			case UNIF_COLOR:
+				ImGui::ColorPicker3(prog_uniforms[i].name, prog_uniforms[i].value);
+				break;
+			default:
+				break;
+			}
+			i++;
+		}
+		
 		ImGui::End();
 	}
 	
