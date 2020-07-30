@@ -69,7 +69,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_DL_STACK_SIZE	32
 
 // Mask down to 0x003FFFFF?
-#define RDPSegAddr(seg) ( (gSegments[((seg)>>24)&0x0F]&0x00ffffff) + ((seg)&0x00FFFFFF) )
+#define RDPSegAddr(seg)	( (gSegments[(seg >> 24) & 0x0F] + (seg & (MAX_RAM_ADDRESS-1))) & (MAX_RAM_ADDRESS-1))
 
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -641,7 +641,7 @@ void DLParser_SetTImg( MicroCodeCommand command )
 	g_TI.Format		= command.img.fmt;
 	g_TI.Size		= command.img.siz;
 	g_TI.Width		= command.img.width + 1;
-	g_TI.Address	= RDPSegAddr(command.img.addr) & (MAX_RAM_ADDRESS-1);
+	g_TI.Address	= RDPSegAddr(command.img.addr);
 }
 
 //*****************************************************************************
@@ -920,7 +920,7 @@ void DLParser_SetCImg( MicroCodeCommand command )
 	g_CI.Format = command.img.fmt;
 	g_CI.Size   = command.img.siz;
 	g_CI.Width  = command.img.width + 1;
-	g_CI.Address = RDPSegAddr(command.img.addr) & (MAX_RAM_ADDRESS-1);
+	g_CI.Address = RDPSegAddr(command.img.addr);
 }
 
 //*****************************************************************************
