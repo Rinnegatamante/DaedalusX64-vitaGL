@@ -58,7 +58,7 @@ void DLParser_GBI0_Vtx_DKR( MicroCodeCommand command )
 void DLParser_DLInMem( MicroCodeCommand command )
 {
 	gDlistStackPointer++;
-	gDlistStack.address[gDlistStackPointer] = command.inst.cmd1;
+	gDlistStack.address[gDlistStackPointer] = RDPSegAddr(command.inst.cmd1);
 	gDlistStack.limit = (command.inst.cmd0 >> 16) & 0xFF;
 }
 

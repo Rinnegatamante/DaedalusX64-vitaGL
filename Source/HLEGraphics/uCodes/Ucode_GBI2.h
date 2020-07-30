@@ -359,7 +359,6 @@ void DLParser_MoveMem_Acclaim( MicroCodeCommand command )
 void DLParser_GBI2_DL_Count( MicroCodeCommand command )
 {
 	u32 address  = RDPSegAddr(command.inst.cmd1);
-	//u32 count	 = command.inst.cmd0 & 0xFFFF;
 
 	// For SSB and Kirby, otherwise we'll end up scrapping the pc
 	if (address == 0)
@@ -369,7 +368,7 @@ void DLParser_GBI2_DL_Count( MicroCodeCommand command )
 
 	gDlistStackPointer++;
 	gDlistStack.address[gDlistStackPointer] = address;
-	gDlistStack.limit = (command.inst.cmd0) & 0xFFFF;
+	gDlistStack.limit = command.inst.cmd0 & 0xFFFF;
 }
 
 //*****************************************************************************

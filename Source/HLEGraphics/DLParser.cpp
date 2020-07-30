@@ -68,16 +68,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_DL_STACK_SIZE	32
 
-#define N64COL_GETR( col )		(u8((col) >> 24))
-#define N64COL_GETG( col )		(u8((col) >> 16))
-#define N64COL_GETB( col )		(u8((col) >>  8))
-#define N64COL_GETA( col )		(u8((col)      ))
-
-#define N64COL_GETR_F( col )	(N64COL_GETR(col) * (1.0f/255.0f))
-#define N64COL_GETG_F( col )	(N64COL_GETG(col) * (1.0f/255.0f))
-#define N64COL_GETB_F( col )	(N64COL_GETB(col) * (1.0f/255.0f))
-#define N64COL_GETA_F( col )	(N64COL_GETA(col) * (1.0f/255.0f))
-
 // Mask down to 0x003FFFFF?
 #define RDPSegAddr(seg) ( (gSegments[((seg)>>24)&0x0F]&0x00ffffff) + ((seg)&0x00FFFFFF) )
 
@@ -209,7 +199,7 @@ inline void	DLParser_FetchNextCommand( MicroCodeCommand * p_command )
 	// Current PC is the last value on the stack
 	u32 & pc( gDlistStack.address[gDlistStackPointer] );
 	*p_command = *(MicroCodeCommand*)(g_pu8RamBase + pc);
-	pc+= 8;
+	pc += 8;
 }
 
 //*****************************************************************************
@@ -427,13 +417,14 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 		count = DLParser_ProcessDList(instruction_limit);
 		gRenderer->EndScene();
 	}
+	else
+	{
+		FinishRDPJob();
+	}
 
 	// Hack for Chameleon Twist 2, only works if screen is update at last
 	//
 	if( g_ROM.GameHacks == CHAMELEON_TWIST_2 ) gGraphicsPlugin->UpdateScreen();
-
-	// Do this regardless!
-	FinishRDPJob();
 
 	gCPURendering = false;
 
@@ -533,7 +524,6 @@ void RDP_MoveMemViewport(u32 address)
 void DLParser_Nothing( MicroCodeCommand command )
 {
 	DLParser_PopDL();
-
 }
 
 //*****************************************************************************
@@ -586,11 +576,7 @@ void DLParser_RDPTileSync( MicroCodeCommand command )	{ /*DL_PF("    TileSync: (
 //*****************************************************************************
 void DLParser_RDPFullSync( MicroCodeCommand command )
 {
-	// We now do this regardless
-	// This is done after DLIST processing anyway
-	//FinishRDPJob();
-
-	/*DL_PF("    FullSync: (Generating Interrupt)");*/
+	FinishRDPJob();
 }
 
 //*****************************************************************************
