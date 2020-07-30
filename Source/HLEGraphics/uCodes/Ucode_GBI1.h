@@ -169,7 +169,7 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 	case G_MW_SEGMENT:
 		{
 			u32 segment = (offset >> 2) & 0xF;
-			gSegments[segment] = value;
+			gSegments[segment] = value & 0x00FFFFFF;
 		}
 		break;
 
@@ -347,11 +347,15 @@ void DLParser_GBI1_SetOtherModeH( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_GBI1_Texture( MicroCodeCommand command )
 {
+	bool enabled = command.texture.enable_gbi0;
+	gRenderer->SetTextureEnable(enabled);
+	
+	if (!enabled) return;
+	
 	gRenderer->SetTextureTile( command.texture.tile);
-	gRenderer->SetTextureEnable( command.texture.enable_gbi0);
-
-	f32 scale_s = f32(command.texture.scaleS)  / (65535.0f * 32.0f);
-	f32 scale_t = f32(command.texture.scaleT)  / (65535.0f * 32.0f);
+	
+	f32 scale_s = f32(command.texture.scaleS)  / (65536.0f * 32.0f);
+	f32 scale_t = f32(command.texture.scaleT)  / (65536.0f * 32.0f);
 
 	gRenderer->SetTextureScale( scale_s, scale_t );
 

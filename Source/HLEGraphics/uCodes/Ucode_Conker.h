@@ -281,7 +281,7 @@ void DLParser_MoveWord_Conker( MicroCodeCommand command )
 			#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 			DL_PF( "    G_MW_SEGMENT Segment[%d] = 0x%08x", segment, command.inst.cmd1 );
 			#endif
-			gSegments[segment] = command.inst.cmd1;
+			gSegments[segment] = command.inst.cmd1 & 0x00FFFFFF;
 		}
 		break;
 
