@@ -432,8 +432,8 @@ void DLParser_GBI2_Texture( MicroCodeCommand command )
 	
 	gRenderer->SetTextureTile( command.texture.tile );
 
-	f32 scale_s = f32(command.texture.scaleS) / (65535.0f * 32.0f);
-	f32 scale_t = f32(command.texture.scaleT)  / (65535.0f * 32.0f);
+	f32 scale_s = f32(command.texture.scaleS) / (65536.0f * 32.0f);
+	f32 scale_t = f32(command.texture.scaleT)  / (65536.0f * 32.0f);
 
 	gRenderer->SetTextureScale( scale_s, scale_t );
 }
