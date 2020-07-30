@@ -132,7 +132,6 @@ struct MicrocodeData
 {
 	u32	ucode;
 	u32 offset;
-	u32 stride;
 	u32	hash;
 	bool beta_persp;
 	char name[16];
@@ -144,23 +143,23 @@ static const MicrocodeData gMicrocodeData[] =
 	//
 	//   The only games that need defining are custom ucodes  or ucodes that lack a version string in the microcode data
 	//
-	{ GBI_CONKER,   GBI_2,  2, 0x60256efc, false, "GBI_CONKER"    },   // Conker's Bad Fur Day
-	{ GBI_LL,       GBI_1,  2, 0x6d8bec3e, true,  "GBI_LL"        },   // Dark Rift
-	{ GBI_DKR,      GBI_0, 10, 0x0c10181a, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.0)
-	{ GBI_DKR,      GBI_0, 10, 0x713311dc, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.1)
-	{ GBI_GE,       GBI_0, 10, 0x23f92542, false, "GBI_GE"        },   // GoldenEye 007
-	{ GBI_DKR,      GBI_0, 10, 0x169dcc9d, true,  "GBI_JFG"       },   // Jet Force Gemini
-	{ GBI_LL,       GBI_1,  2, 0x26da8a4c, false, "GBI_LL"        },   // Last Legion UX
-	{ GBI_PD,       GBI_0, 10, 0xcac47dc4, false, "GBI_PD"        },   // Perfect Dark
-	{ GBI_BETA,     GBI_0,  5, 0x6cbb521d, true,  "GBI_BETA"      },   // Star Wars - Shadows of the Empire
-	{ GBI_LL,       GBI_1,  2, 0xdd560323, false, "GBI_LL"        },   // Toukon Road - Brave Spirits
-	{ GBI_BETA,     GBI_0,  5, 0x64cc729d, true,  "GBI_BETA"      },   // Wave Race 64 (v.1.1)
-	{ GBI_1,        GBI_1,  2, 0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
-	{ GBI_0,        GBI_0, 10, 0xf4c3491b, true,  "GBI_SM (F3D)  "},   // Super Mario 64
-	{ GBI_0,        GBI_0, 10, 0xe908848d, true,  "GBI_CU (F3D)  "},   // Cruise'n USA
+	{ GBI_CONKER,   GBI_2,  0x60256efc, false, "GBI_CONKER"    },   // Conker's Bad Fur Day
+	{ GBI_LL,       GBI_1,  0x6d8bec3e, true,  "GBI_LL"        },   // Dark Rift
+	{ GBI_DKR,      GBI_0,  0x0c10181a, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.0)
+	{ GBI_DKR,      GBI_0,  0x713311dc, true,  "GBI_DKR"       },   // Diddy Kong Racing (v1.1)
+	{ GBI_GE,       GBI_0,  0x23f92542, false, "GBI_GE"        },   // GoldenEye 007
+	{ GBI_DKR,      GBI_0,  0x169dcc9d, true,  "GBI_JFG"       },   // Jet Force Gemini
+	{ GBI_LL,       GBI_1,  0x26da8a4c, false, "GBI_LL"        },   // Last Legion UX
+	{ GBI_PD,       GBI_0,  0xcac47dc4, false, "GBI_PD"        },   // Perfect Dark
+	{ GBI_BETA,     GBI_0,  0x6cbb521d, true,  "GBI_BETA"      },   // Star Wars - Shadows of the Empire
+	{ GBI_LL,       GBI_1,  0xdd560323, false, "GBI_LL"        },   // Toukon Road - Brave Spirits
+	{ GBI_BETA,     GBI_0,  0x64cc729d, true,  "GBI_BETA"      },   // Wave Race 64 (v.1.1)
+	{ GBI_1,        GBI_1,  0x9fb58257, true,  "GBI_MK (F3DEX)"},   // Mario Kart 64
+	{ GBI_0,        GBI_0,  0xf4c3491b, true,  "GBI_SM (F3D)  "},   // Super Mario 64
+	{ GBI_0,        GBI_0,  0xe908848d, true,  "GBI_CU (F3D)  "},   // Cruise'n USA
 };
 
-UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 ucode_stride, u32 ucode_version, const MicroCodeInstruction * ucode_function)
+UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, const MicroCodeInstruction * ucode_function)
 {
 	//
 	// If the max of ucode entries is reached, spread it randomly
@@ -178,7 +177,6 @@ UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 uco
 	used.data_base = data_base;
 	
 	used.info.func = ucode_function;
-	used.info.stride = ucode_stride;
 	return used.info;
 }
 
@@ -208,7 +206,6 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	// Select Fast3D ucode in case there's no match or if the version string its missing
 	u32 ucode_version = GBI_0;
 	u32 ucode_offset = GBI_0;
-	u32 ucode_stride = 10;
 	bool ucode_beta_persp = false;
 	
 	for ( u32 index = 0; index < ARRAYSIZE(gMicrocodeData); index++ )
@@ -219,7 +216,6 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 			sprintf(cur_gfx_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[index].name, code_hash);
 			
 			ucode_version = gMicrocodeData[index].ucode;
-			ucode_stride = gMicrocodeData[index].stride;
 			ucode_offset = gMicrocodeData[index].offset;
 			ucode_beta_persp = gMicrocodeData[index].beta_persp;
 			
@@ -247,8 +243,6 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 					break;
 				}
 			}
-		
-			ucode_stride = 2;
 		
 			switch (match_idx) {
 			case 0: // F3D
@@ -298,7 +292,6 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 				break;
 			default:
 				{
-					ucode_stride = 10;
 					sprintf(cur_gfx_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
 				}
 				break;
@@ -313,10 +306,10 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 			SetCommand(G_GBI1_RDPHALF_2, DLParser_GBI1_RDPHalf_2);
 			SetCommand(G_GBI1_RDPHALF_1, DLParser_GBI0_PerspNorm_Beta);
 		}
-		return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gCustomInstruction);
+		return GBIMicrocode_SetCache(i, code_base, data_base, gCustomInstruction);
 	}
 	
-	return GBIMicrocode_SetCache(i, code_base, data_base, ucode_stride, ucode_version, gNormalInstruction[ucode_version]);
+	return GBIMicrocode_SetCache(i, code_base, data_base, gNormalInstruction[ucode_version]);
 }
 
 //****************************************************'*********************************
@@ -336,7 +329,8 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 	switch( ucode_version )
 	{
 		case GBI_GE:
-			SetCommand( G_GBI1_RDPHALF_1, DLParser_RDPHalf1_GoldenEye);
+			SetCommand( G_GBI1_RDPHALF_1, DLParser_RDPHalf1_GE);
+			SetCommand( G_GBI1_TRI2, DLParser_Trix_GE);
 			SetCommand( G_GBI1_POPMTX, DLParser_GBI1_MoveWord);
 			break;
 		case GBI_BETA:
@@ -353,7 +347,8 @@ static void GBIMicrocode_SetCustomArray( u32 ucode_version, u32 ucode_offset )
 		case GBI_PD:
 			SetCommand( G_GBI1_VTX, DLParser_Vtx_PD);
 			SetCommand( G_GBI1_RESERVED2, DLParser_Set_Vtx_CI_PD);
-			SetCommand( G_GBI1_RDPHALF_1, DLParser_RDPHalf1_GoldenEye);
+			SetCommand( G_GBI1_RDPHALF_1, DLParser_RDPHalf1_GE);
+			SetCommand( G_GBI1_TRI2, DLParser_Trix_GE);
 			break;
 		case GBI_DKR:
 			SetCommand( G_GBI1_MTX, DLParser_Mtx_DKR);

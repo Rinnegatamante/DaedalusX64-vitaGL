@@ -280,10 +280,7 @@ static int updaterThread(unsigned int args, void* arg){
 	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 		downloader_pass = i;
 		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/latest");
-		else if (!update_detected) {
-			downloaded_bytes = total_bytes;
-			break;
-		}
+		else if (!update_detected) break;
 		downloaded_bytes = 0;
 
 		// FIXME: Workaround since GitHub Api does not set Content-Length
@@ -299,7 +296,6 @@ static int updaterThread(unsigned int args, void* arg){
 				}
 			}
 		}
-		downloaded_bytes = total_bytes;
 	}
 	if (update_detected) {
 		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");

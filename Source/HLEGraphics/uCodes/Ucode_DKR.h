@@ -58,7 +58,7 @@ void DLParser_GBI0_Vtx_DKR( MicroCodeCommand command )
 void DLParser_DLInMem( MicroCodeCommand command )
 {
 	gDlistStackPointer++;
-	gDlistStack.address[gDlistStackPointer] = command.inst.cmd1;
+	gDlistStack.address[gDlistStackPointer] = RDPSegAddr(command.inst.cmd1);
 	gDlistStack.limit = (command.inst.cmd0 >> 16) & 0xFF;
 }
 
@@ -181,8 +181,8 @@ void DLParser_GBI1_Texture_DKR( MicroCodeCommand command )
 	u32 tile    = command.texture.tile;
 
 	// Force enable texture in DKR Ucode, fixes static texture bug etc
-	gRenderer->SetTextureTile(tile);
 	gRenderer->SetTextureEnable(true);
+	gRenderer->SetTextureTile(tile);
 
 	f32 scale_s = f32(command.texture.scaleS)  / (65535.0f * 32.0f);
 	f32 scale_t = f32(command.texture.scaleT)  / (65535.0f * 32.0f);

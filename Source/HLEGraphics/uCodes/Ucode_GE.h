@@ -20,16 +20,54 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef HLEGRAPHICS_UCODES_UCODE_GE_H_
 #define HLEGRAPHICS_UCODES_UCODE_GE_H_
 
-#undef __GE_NOTHING
+//*****************************************************************************
+// Trix implementation borrowed from GlideN64
+//*****************************************************************************
+void DLParser_Trix_GE( MicroCodeCommand command )
+{
+	// While the next command pair is TriX, add vertices
+	u32 pc = gDlistStack.address[gDlistStackPointer];
+	u32 * pCmdBase = (u32 *)(g_pu8RamBase + pc);
+
+	bool tris_added = false;
+	do
+	{
+		u32 cmd0 = command.inst.cmd0;
+		u32 cmd1 = command.inst.cmd1;
+		while(cmd1 != 0) 
+		{
+			u32 v0 = cmd1 & 0xf;
+			cmd1 >>= 4;
+			
+			u32 v1 = cmd1 & 0xf;
+			cmd1 >>= 4;
+			
+			u32 v2 = cmd0 & 0xf;
+			cmd0 >>= 4;
+			
+			tris_added |= gRenderer->AddTri(v0, v1, v2);
+		}
+
+		command.inst.cmd0 = *pCmdBase++;
+		command.inst.cmd1 = *pCmdBase++;
+		pc += 8;
+	} while ( command.inst.cmd == G_GBI1_TRI2 );
+
+	gDlistStack.address[gDlistStackPointer] = pc-8;
+
+	if (tris_added)
+	{
+		gRenderer->FlushTris();
+	}
+}
+
 //*****************************************************************************
 //
 //*****************************************************************************
-
-
-void DLParser_RDPHalf1_GoldenEye( MicroCodeCommand command )
+void DLParser_RDPHalf1_GE( MicroCodeCommand command )
 {
 	// Check for invalid address
-	if ( (command.inst.cmd1)>>24 != 0xce )
+	if ( (command.inst.cmd1) >> 24 != G_RDP_TRI_SHADE_TXTR )
 		return;
 
 	u32 pc = gDlistStack.address[gDlistStackPointer];		// This points to the next instruction
@@ -38,17 +76,6 @@ void DLParser_RDPHalf1_GoldenEye( MicroCodeCommand command )
 	// Indices
 	u32 a1 = *Cmd+8*0+4;
 	u32 a3 = *Cmd+8*2+4;
-
-	// Unused for now
-#ifdef __GE_NOTHING
-	u32 a2 = *Cmd+8*1+4;
-	u32 a4 = *Cmd+8*3+4;
-	u32 a5 = *Cmd+8*4+4;
-	u32 a6 = *Cmd+8*5+4;
-	u32 a7 = *Cmd+8*6+4;
-	u32 a8 = *Cmd+8*7+4;
-	u32 a9 = *Cmd+8*8+4;
-#endif
 
 	// Note : Color itself is handled elsewhere N.B Blendmode.cpp
 	//

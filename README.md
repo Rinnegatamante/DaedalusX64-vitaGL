@@ -29,7 +29,15 @@ In order to create an HD texture pack (or adapt an existing one to Daedalus X64)
 * Play a bit the game in order to let Daedalus X64 dump all the textures the game loads in the meantime.
 * Close Daedalus X64, if you'll now navigate in **ux0:/data/DaedalusX64/Textures** you'll find a new folder named as the Cartridge ID of the game you've run containing a lot of images.
 * Create HD replacements for those images (or use existing ones from other textures pack) without changing filenames.
- 
+
+## Network Roms Tutorial
+In order to play roms from your PC or from an online webserver, you can follow this guide made by Samilop Cimmerian iter:
+https://samilops2.gitbook.io/vita-troubleshooting-guide/daedalus-x64/load-rom-through-a-web-server
+
+## Custom Bubbles Tutorial
+In order to create custom bubbles for the Livearea to launch a game directly with Daedalus X64, you can follow this guide made by Samilop Cimmerian iter:
+https://samilops2.gitbook.io/vita-troubleshooting-guide/daedalus-x64/making-custom-bubbles
+
 ## Credits
  
 - All the original Daedalus X64 developers

@@ -125,7 +125,7 @@ void DLParser_GBI2_MoveWord_AM( MicroCodeCommand command )
 		{
 			u32 segment = offset >> 2;
 			u32 address	= value;
-			gSegments[segment] = address;
+			gSegments[segment] = address & 0x00FFFFFF;
 		}
 		break;
 	case G_MW_FOG:
@@ -359,7 +359,6 @@ void DLParser_MoveMem_Acclaim( MicroCodeCommand command )
 void DLParser_GBI2_DL_Count( MicroCodeCommand command )
 {
 	u32 address  = RDPSegAddr(command.inst.cmd1);
-	//u32 count	 = command.inst.cmd0 & 0xFFFF;
 
 	// For SSB and Kirby, otherwise we'll end up scrapping the pc
 	if (address == 0)
@@ -369,7 +368,7 @@ void DLParser_GBI2_DL_Count( MicroCodeCommand command )
 
 	gDlistStackPointer++;
 	gDlistStack.address[gDlistStackPointer] = address;
-	gDlistStack.limit = (command.inst.cmd0) & 0xFFFF;
+	gDlistStack.limit = command.inst.cmd0 & 0xFFFF;
 }
 
 //*****************************************************************************
@@ -426,11 +425,15 @@ void DLParser_GBI2_SetOtherModeH( MicroCodeCommand command )
 //*****************************************************************************
 void DLParser_GBI2_Texture( MicroCodeCommand command )
 {
+	bool enabled = command.texture.enable_gbi2;
+	gRenderer->SetTextureEnable(enabled);
+	
+	if (!enabled) return;
+	
 	gRenderer->SetTextureTile( command.texture.tile );
-	gRenderer->SetTextureEnable( command.texture.enable_gbi2 );
 
-	f32 scale_s = f32(command.texture.scaleS) / (65535.0f * 32.0f);
-	f32 scale_t = f32(command.texture.scaleT)  / (65535.0f * 32.0f);
+	f32 scale_s = f32(command.texture.scaleS) / (65536.0f * 32.0f);
+	f32 scale_t = f32(command.texture.scaleT)  / (65536.0f * 32.0f);
 
 	gRenderer->SetTextureScale( scale_s, scale_t );
 }

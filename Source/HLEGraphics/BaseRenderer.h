@@ -228,11 +228,7 @@ public:
 
 	// Various rendering states
 	// Don't think we need to updateshademodel, it breaks tiger's honey hunt
-#ifdef DAEDALUS_PSP
-	inline void			SetTnLMode(u32 mode)					{ mTnL.Flags.Modes = mode; /*UpdateFogEnable(); UpdateShadeModel();*/ }
-#else
 	inline void			SetTnLMode(u32 mode)					{ mTnL.Flags.Modes = mode; UpdateFogEnable(); /*UpdateShadeModel();*/ }
-#endif
 	inline void			SetTextureEnable(bool enable)			{ mTnL.Flags.Texture = enable; }
 	inline void			SetTextureTile(u32 tile)				{ mTextureTile = tile; }
 	inline u32			GetTextureTile() const					{ return mTextureTile; }
@@ -243,20 +239,11 @@ public:
 #endif
 	// Fog stuff
 	inline void			SetFogMultOffs(f32 Mult, f32 Offs)		{ mTnL.FogMult=Mult/255.0f; mTnL.FogOffs=Offs/255.0f;}
-#ifdef DAEDALUS_PSP
-	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ sceGuFog(fog_near, fog_far, mFogColour.GetColour()); }
-	inline void			SetFogColour( c32 colour )				{ mFogColour = colour; }
-#elif defined(DAEDALUS_VITA)
 	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ glFogf(GL_FOG_START, fog_near / 1000.0f); glFogf(GL_FOG_END, fog_far / 1000.0f); }
 	inline void			SetFogColour( c32 colour )				{ float fog_clr[4] = {colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf()}; glFogfv(GL_FOG_COLOR, &fog_clr[0]); }
-#endif
 
 	// PrimDepth will replace the z value if depth_source=1 (z range 32767-0 while PSP depthbuffer range 0-65535)//Corn
-#ifdef DAEDALUS_PSP
-	inline void			SetPrimitiveDepth( u32 z )				{ mPrimDepth = (f32)( ( ( 32767 - z ) << 1) + 1 ); }
-#else
 	inline void			SetPrimitiveDepth( u32 z )				{ mPrimDepth = (f32)((int)z - 0x4000) / 16384.0f;}
-#endif
 	inline void			SetPrimitiveLODFraction( f32 f )		{ mPrimLODFraction = f; }
 	inline void			SetPrimitiveColour( c32 colour )		{ mPrimitiveColour = colour; }
 	inline void			SetEnvColour( c32 colour )				{ mEnvColour = colour; }
@@ -274,7 +261,7 @@ public:
 	inline void			SetCoordMod( u32 idx, f32 mod )			{ mTnL.CoordMod[idx] = mod; }
 	inline void			SetMux( u64 mux )						{ mMux = mux; }
 
-	inline void			SetTextureScale(float fScaleX, float fScaleY)	{ mTnL.TextureScaleX = fScaleX; mTnL.TextureScaleY = fScaleY; }
+	inline void			SetTextureScale(float fScaleX, float fScaleY)	{ mTnL.TextureScaleX = fScaleX == 0 ? 1/32.0f : fScaleX; mTnL.TextureScaleY = fScaleY == 0 ? 1/32.0f : fScaleY; }
 	inline void			SetTextureScaleX(u32 ScaleX)	{ mTextureScaleX = ScaleX; }
 	inline void			SetTextureScaleY(u32 ScaleY)	{ mTextureScaleY = ScaleY; }
 	inline void			SetTextureScaleDAM(u32 scale)	{ mDAMTexScale = scale; }
@@ -359,10 +346,7 @@ public:
 	v2					mVpTrans;
 
 protected:
-#if defined(DAEDALUS_PSP)
-	inline void			UpdateFogEnable()						{ if(gFogEnabled) mTnL.Flags.Fog ? sceGuEnable(GU_FOG) : sceGuDisable(GU_FOG); }
-	inline void			UpdateShadeModel()						{ sceGuShadeModel( mTnL.Flags.Shade ? GU_SMOOTH : GU_FLAT ); }
-#elif defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_VITA)
 	inline void			UpdateFogEnable()						{ mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); }
 	inline void			UpdateShadeModel() {}
 #else
