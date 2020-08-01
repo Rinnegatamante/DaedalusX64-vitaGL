@@ -19,6 +19,7 @@ Copyright (C) 2001 StrmnNrmn
 
 #include "stdafx.h"
 #include "ConvertImage.h"
+#include "ConvertFormats.h"
 #include "TextureInfo.h"
 
 #include "DLDebug.h"
@@ -33,19 +34,6 @@ Copyright (C) 2001 StrmnNrmn
 #include "Math/MathUtil.h"
 
 #include "OSHLE/ultra_gbi.h"
-
-uint32_t ConvertYUV16ToRGBA8888(int Y, int U, int V)
-{
-    int R = int(Y + (1.370705f * (V-128)));
-    int G = int(Y - (0.698001f * (V-128)) - (0.337633f * (U-128)));
-    int B = int(Y + (1.732446f * (U-128)));
-
-    R = R < 0 ? 0 : (R>255 ? 255 : R);
-    G = G < 0 ? 0 : (G>255 ? 255 : G);
-    B = B < 0 ? 0 : (B>255 ? 255 : B);
-
-    return (0xFF << 24) | (B << 16) | (G << 8) | R;
-}
 
 namespace
 {
@@ -69,34 +57,6 @@ struct TextureDestInfo
 	void *				Data;			// Pointer to the top left pixel of the image
 	NativePf8888 *		Palette;
 };
-
-static const u8 OneToEight[2] =
-{
-	0x00,		// 0 -> 00 00 00 00
-	0xff		// 1 -> 11 11 11 11
-};
-
-static const u8 ThreeToEight[8] =
-{
-	0x00,		// 000 -> 00 00 00 00
-	0x24,		// 001 -> 00 10 01 00
-	0x49,		// 010 -> 01 00 10 01
-	0x6d,       // 011 -> 01 10 11 01
-	0x92,       // 100 -> 10 01 00 10
-	0xb6,		// 101 -> 10 11 01 10
-	0xdb,		// 110 -> 11 01 10 11
-	0xff		// 111 -> 11 11 11 11
-};
-
-
-static const u8 FourToEight[16] =
-{
-	0x00, 0x11, 0x22, 0x33,
-	0x44, 0x55, 0x66, 0x77,
-	0x88, 0x99, 0xaa, 0xbb,
-	0xcc, 0xdd, 0xee, 0xff
-};
-
 
 template< u32 Size >
 struct SByteswapInfo;
@@ -188,17 +148,17 @@ static void ConvertGenericYUVBlocks( const TextureDestInfo & dsti, const Texture
 	u32 *mb = (u32*)(src + src_offset);
 	
 	//yuv macro block contains 16x16 texture.
-	for (u16 h = 0; h < ti.GetHeight(); h++)
+	for (u16 h = 0; h < height; h++)
 	{
-		for (u16 w = 0; w < ti.GetWidth(); w+=2)
+		for (u16 w = 0; w < width; w+=2)
 		{
 			u32 t = *(mb++); //each u32 contains 2 pixels
 			u8 y1 = (u8)(t    )&0xFF;
 			u8 v  = (u8)(t>>8 )&0xFF;
 			u8 y0 = (u8)(t>>16)&0xFF;
 			u8 u  = (u8)(t>>24)&0xFF;
-			*(dst++) = (u32)ConvertYUV16ToRGBA8888(y0, u, v);
-			*(dst++) = (u32)ConvertYUV16ToRGBA8888(y1, u, v);
+			*(dst++) = (u32)YUV16(y0, u, v);
+			*(dst++) = (u32)YUV16(y1, u, v);
 		}
 	}
 	

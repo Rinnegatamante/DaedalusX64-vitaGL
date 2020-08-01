@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "RDP.h"
 #include "RDPStateManager.h"
 #include "TextureCache.h"
-#include "ConvertImage.h"			// Convert555ToRGBA
+#include "ConvertFormats.h"
 #include "Microcode.h"
 #include "uCodes/UcodeDefs.h"
 #include "uCodes/Ucode.h"

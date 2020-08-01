@@ -387,7 +387,6 @@ void DLParser_S2DEX_ObjRectangle( MicroCodeCommand command )
 //*****************************************************************************
 //
 //*****************************************************************************
-// Untested.. I can't find any game that uses this.. but it should work fine
 void DLParser_S2DEX_ObjRectangleR( MicroCodeCommand command )
 {
 	uObjSprite *sprite = (uObjSprite*)(g_pu8RamBase + RDPSegAddr(command.inst.cmd1));
@@ -563,26 +562,6 @@ inline void DLParser_Yoshi_MemRect( MicroCodeCommand command )
 
 }
 
-static u16 YUVtoRGBA(u8 y, u8 u, u8 v)
-{
-	f32 r = y + (1.370705f * (v-128));
-	f32 g = y - (0.698001f * (v-128)) - (0.337633f * (u-128));
-	f32 b = y + (1.732446f * (u-128));
-	r *= 0.125f;
-	g *= 0.125f;
-	b *= 0.125f;
-
-	//clipping the result
-	if (r > 31) r = 31;
-	if (g > 31) g = 31;
-	if (b > 31) b = 31;
-	if (r < 0) r = 0;
-	if (g < 0) g = 0;
-	if (b < 0) b = 0;
-	
-	return (u16)(((u16)(r) << 11) |((u16)(g) << 6) |((u16)(b) << 1) | 1);
-}
-
 //Ogre Battle needs to copy YUV texture to frame buffer
 void DLParser_OB_YUV(const uObjSprite *sprite)
 {
@@ -608,8 +587,8 @@ void DLParser_OB_YUV(const uObjSprite *sprite)
 	u32 width = 16;
 	u32 height = 16;
 
-	if (lr_x > ci_width)	width = ci_width - ul_x;
-	if (lr_y > ci_height)	height = ci_height - ul_y;
+	if (lr_x > ci_width) width = ci_width - ul_x;
+	if (lr_y > ci_height) height = ci_height - ul_y;
 
 	u32 *mb = (u32*)(g_pu8RamBase + g_TI.Address); //pointer to the first macro block
 	u16 *dst = (u16*)(g_pu8RamBase + g_CI.Address);
@@ -703,7 +682,7 @@ void DLParser_S2DEX_BgCopy( MicroCodeCommand command )
 	ti.SetHeight           (imageH);
 	ti.SetPitch			   ((((imageW << objBg->imageSiz) >> 1)>>3)<<3); //force 8-bit alignment
 
-	ti.SetSwapped          (0);
+	ti.SetSwapped          (false);
 
 	ti.SetPalette          (objBg->imagePal);
 	ti.SetTlutAddress	   (gTlutLoadAddresses[0]);
@@ -750,7 +729,7 @@ void DLParser_S2DEX_Bg1cyc( MicroCodeCommand command )
 	ti.SetHeight           (objBg->imageH/4);
 	ti.SetPitch			   ((((objBg->imageW/4 << ti.GetSize()) >> 1)>>3)<<3); //force 8-bit alignment, this what sets our correct viewport.
 
-	ti.SetSwapped          (0);
+	ti.SetSwapped          (false);
 
 	ti.SetPalette		   (objBg->imagePal);
 	ti.SetTlutAddress	   (gTlutLoadAddresses[0]);
