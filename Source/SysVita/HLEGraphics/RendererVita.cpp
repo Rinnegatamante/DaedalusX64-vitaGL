@@ -801,6 +801,7 @@ void RendererVita::DoGamma(float gamma)
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	glDisable(GL_BLEND);
 }
 
 void RendererVita::DrawUITexture()
