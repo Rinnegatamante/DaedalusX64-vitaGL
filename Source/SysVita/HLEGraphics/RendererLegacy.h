@@ -1,6 +1,6 @@
 
-#ifndef SYSVITA_HLEGRAPHICS_RENDERERVITA_H_
-#define SYSVITA_HLEGRAPHICS_RENDERERVITA_H_
+#ifndef SYSVITA_HLEGRAPHICS_RENDERERLEGACY_H_
+#define SYSVITA_HLEGRAPHICS_RENDERERLEGACY_H_
 
 #include <map>
 #include <set>
@@ -28,11 +28,11 @@ struct DebugBlendSettings
 	u32 ForceRGB;	//defaults to OFF
 };
 
-class RendererVita : public BaseRenderer
+class RendererLegacy : public BaseRenderer
 {
 public:
-	RendererVita();
-	~RendererVita();
+	RendererLegacy();
+	~RendererLegacy();
 
 	virtual void		RestoreRenderStates();
 
@@ -74,6 +74,6 @@ private:
 };
 
 // NB: this is equivalent to gRenderer, but points to the implementation class, for platform-specific functionality.
-extern RendererVita * gRendererVita;
+extern RendererLegacy * gRendererLegacy;
 
-#endif // SYSVITA_HLEGRAPHICS_RENDERERVITA_H_
+#endif // SYSVITA_HLEGRAPHICS_RENDERERLEGACY_H_

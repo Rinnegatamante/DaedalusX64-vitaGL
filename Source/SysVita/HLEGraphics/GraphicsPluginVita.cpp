@@ -59,17 +59,8 @@ namespace
 	u64					gLastFramerateCalcTime = 0;
 	u64					gTicksPerSecond = 0;
 
-#ifdef DAEDALUS_FRAMERATE_ANALYSIS
-	u32					gTotalFrames = 0;
-	u64					gFirstFrameTime = 0;
-	FILE *				gFramerateFile = nullptr;
-#endif
-
 static void	UpdateFramerate()
 {
-#ifdef DAEDALUS_FRAMERATE_ANALYSIS
-	gTotalFrames++;
-#endif
 	gFlipCount++;
 
 	u64			now {};
@@ -84,15 +75,6 @@ static void	UpdateFramerate()
 		gTicksPerSecond = freq;
 	}
 
-#ifdef DAEDALUS_FRAMERATE_ANALYSIS
-	if( gFramerateFile == nullptr )
-	{
-		gFirstFrameTime = now;
-		gFramerateFile = fopen( "ux0:data/DaedalusX64/framerate.csv", "w" );
-	}
-	fprintf( gFramerateFile, "%d,%f\n", gTotalFrames, f32(now - gFirstFrameTime) / f32(gTicksPerSecond) );
-#endif
-
 	// If 1 second has elapsed since last recalculation, do it now
 	u64		ticks_since_recalc( now - gLastFramerateCalcTime );
 	if(ticks_since_recalc > gTicksPerSecond)
@@ -103,13 +85,6 @@ static void	UpdateFramerate()
 		//gVblCount = 0;
 		gFlipCount = 0;
 		gLastFramerateCalcTime = now;
-
-#ifdef DAEDALUS_FRAMERATE_ANALYSIS
-		if( gFramerateFile != nullptr )
-		{
-			fflush( gFramerateFile );
-		}
-#endif
 	}
 
 }
@@ -145,7 +120,7 @@ CGraphicsPluginImpl::~CGraphicsPluginImpl()
 
 bool CGraphicsPluginImpl::Initialise()
 {
-	if(!CreateRenderer())
+	if(!CreateRendererLegacy())
 	{
 		return false;
 	}
@@ -165,14 +140,7 @@ bool CGraphicsPluginImpl::Initialise()
 
 EProcessResult CGraphicsPluginImpl::ProcessDList()
 {
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	if (!DLDebugger_Process())
-	{
-		DLParser_Process();
-	}
-#else
 	DLParser_Process();
-#endif
 	return PR_COMPLETED;
 }
 
@@ -256,14 +224,14 @@ void CGraphicsPluginImpl::RomClosed()
 	#endif
 	DLParser_Finalise();
 	CTextureCache::Destroy();
-	DestroyRenderer();
+	DestroyRendererLegacy();
 }
 
 CGraphicsPlugin * CreateGraphicsPlugin()
 {
 	#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg( 0, "Initialising Graphics Plugin [CVita]" );
-#endif
+	#endif
 
 	CGraphicsPluginImpl * plugin = new CGraphicsPluginImpl;
 	if( !plugin->Initialise() )

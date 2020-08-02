@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "RendererVita.h"
+#include "RendererLegacy.h"
 
 #include <vitaGL.h>
 
@@ -23,7 +23,7 @@
 #define NORMALIZE_C1842XX(x) ((x) > 16.5f ? ((x) / ((x) / 16.0f)) : (x))
 
 BaseRenderer *gRenderer    = nullptr;
-RendererVita  *gRendererVita = nullptr;
+RendererLegacy  *gRendererLegacy = nullptr;
 
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
@@ -168,7 +168,7 @@ static void InitBlenderMode()
 	}
 }
 
-RendererVita::RendererVita()
+RendererLegacy::RendererLegacy()
 {
 	//
 	//	Set up RGB = T0, A = T0
@@ -202,13 +202,13 @@ RendererVita::RendererVita()
 
 }
 
-RendererVita::~RendererVita()
+RendererLegacy::~RendererLegacy()
 {
 	delete mFillBlendStates;
 	delete mCopyBlendStates;
 }
 
-void RendererVita::RestoreRenderStates()
+void RendererLegacy::RestoreRenderStates()
 {
 	// Initialise the device to our default state
 
@@ -238,7 +238,7 @@ void RendererVita::RestoreRenderStates()
 	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 }
 
-RendererVita::SBlendStateEntry RendererVita::LookupBlendState( u64 mux, bool two_cycles )
+RendererLegacy::SBlendStateEntry RendererLegacy::LookupBlendState( u64 mux, bool two_cycles )
 {
 	#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DAEDALUS_PROFILE( "RendererPSP::LookupBlendState" );
@@ -284,7 +284,7 @@ RendererVita::SBlendStateEntry RendererVita::LookupBlendState( u64 mux, bool two
 	return entry;
 }
 
-void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool is_3d)
+void RendererLegacy::RenderUsingRenderSettings( const CBlendStates * states, u32 * p_vertices, u32 num_vertices, u32 triangle_mode, bool is_3d)
 {
 	const CAlphaRenderSettings *	alpha_settings( states->GetAlphaSettings() );
 
@@ -425,7 +425,7 @@ void RendererVita::RenderUsingRenderSettings( const CBlendStates * states, u32 *
 }
 
 
-void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer, bool is_3d)
+void RendererLegacy::RenderUsingCurrentBlendMode(const float (&mat_project)[16], uint32_t *p_vertices, u32 num_vertices, u32 triangle_mode, bool disable_zbuffer, bool is_3d)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mat_project);
@@ -575,13 +575,13 @@ void RendererVita::RenderUsingCurrentBlendMode(const float (&mat_project)[16], u
 
 }
 
-void RendererVita::RenderTriangles(uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
+void RendererLegacy::RenderTriangles(uint32_t *colors, u32 num_vertices, bool disable_zbuffer)
 {	
 	SetPositiveViewport();
 	RenderUsingCurrentBlendMode(gProjection.m, colors, num_vertices, GL_TRIANGLES, disable_zbuffer, true);
 }
 
-void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
+void RendererLegacy::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
 	if (g_ROM.GameHacks == POKEMON_STADIUM) {
 		if (aux_draws) {
@@ -670,7 +670,7 @@ void RendererVita::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoor
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
+void RendererLegacy::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
 {
 	UpdateTileSnapshots( tile_idx );
 	PrepareTexRectUVs(&st0, &st1);
@@ -726,7 +726,7 @@ void RendererVita::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, Tex
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
+void RendererLegacy::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 {
 	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "FillRect: L: 0x%08X", gRDPOtherMode.L);
 	v2 screen0;
@@ -759,7 +759,7 @@ void RendererVita::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
 
-void RendererVita::DoGamma(float gamma)
+void RendererLegacy::DoGamma(float gamma)
 {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -804,7 +804,7 @@ void RendererVita::DoGamma(float gamma)
 	glDisable(GL_BLEND);
 }
 
-void RendererVita::DrawUITexture()
+void RendererLegacy::DrawUITexture()
 {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -850,7 +850,7 @@ void RendererVita::DrawUITexture()
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
-void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
+void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 								f32 u0, f32 v0, f32 u1, f32 v1,
 								const CNativeTexture * texture)
 {
@@ -919,7 +919,7 @@ void RendererVita::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
+void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 								 f32 y2, f32 x3, f32 y3, f32 s, f32 t,
 								 const CNativeTexture * texture)
 {
@@ -982,16 +982,16 @@ void RendererVita::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-bool CreateRenderer()
+bool CreateRendererLegacy()
 {
-	gRendererVita = new RendererVita();
-	gRenderer    = gRendererVita;
+	gRendererLegacy = new RendererLegacy();
+	gRenderer    = gRendererLegacy;
 	return true;
 }
 
-void DestroyRenderer()
+void DestroyRendererLegacy()
 {
-	delete gRendererVita;
-	gRendererVita = nullptr;
+	delete gRendererLegacy;
+	gRendererLegacy = nullptr;
 	gRenderer    = nullptr;
 }
