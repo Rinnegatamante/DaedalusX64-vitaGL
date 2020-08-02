@@ -480,6 +480,9 @@ protected:
 bool CreateRendererLegacy();
 void DestroyRendererLegacy();
 
+bool CreateRendererModern();
+void DestroyRendererModern();
+
 extern BaseRenderer * gRenderer;
 
 inline s16 ApplyShift(s16 c, u8 shift)

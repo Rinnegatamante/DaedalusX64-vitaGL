@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Core/Memory.h"
 
+#include "SysVita/UI/Menu.h"
+
 //#define DAEDALUS_FRAMERATE_ANALYSIS
 
 extern bool gFrameskipActive;
@@ -120,9 +122,16 @@ CGraphicsPluginImpl::~CGraphicsPluginImpl()
 
 bool CGraphicsPluginImpl::Initialise()
 {
-	if(!CreateRendererLegacy())
-	{
-		return false;
+	if (gUseRendererLegacy) {
+		if(!CreateRendererLegacy())
+		{
+			return false;
+		}
+	} else {
+		if(!CreateRendererModern())
+		{
+			return false;
+		}
 	}
 
 	if(!CTextureCache::Create())
@@ -224,7 +233,8 @@ void CGraphicsPluginImpl::RomClosed()
 	#endif
 	DLParser_Finalise();
 	CTextureCache::Destroy();
-	DestroyRendererLegacy();
+	if (gUseRendererLegacy) DestroyRendererLegacy();
+	else DestroyRendererModern();
 }
 
 CGraphicsPlugin * CreateGraphicsPlugin()

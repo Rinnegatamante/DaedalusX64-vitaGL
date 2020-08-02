@@ -45,6 +45,7 @@ int gOverlay = 0;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
+bool gUseRendererLegacy = true;
 
 uint8_t shader_idx = 0;
 
