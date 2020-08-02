@@ -1,0 +1,3 @@
+Protanopia=1
+Deuteranopia=1
+Tritanopia=1
