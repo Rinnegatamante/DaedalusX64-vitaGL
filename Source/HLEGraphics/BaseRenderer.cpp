@@ -43,6 +43,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/Profiler.h"
 #include "Utility/AuxFunc.h"
 
+#include "SysVita/UI/Menu.h"
+
 #include <vector>
 
 struct ScePspFMatrix4
@@ -811,11 +813,14 @@ uint32_t BaseRenderer::PrepareTrisUnclipped( uint32_t **clr )
 	//
 	//	Now we just shuffle all the data across directly (potentially duplicating verts)
 	//
-	vglVertexPointerMapped(gVertexBuffer);
+	if (gUseRendererLegacy) vglVertexPointerMapped(gVertexBuffer);
+	else vglVertexAttribPointerMapped(0, gVertexBuffer);
 	*clr = gColorBuffer;
 	if (mTnL.Flags.Texture) {
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		vglTexCoordPointerMapped(gTexCoordBuffer);
+		if (gUseRendererLegacy) {
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			vglTexCoordPointerMapped(gTexCoordBuffer);
+		} else vglVertexAttribPointerMapped(1, gTexCoordBuffer);
 		
 		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
 		else UpdateTileSnapshots( mTextureTile );

@@ -16,6 +16,7 @@
 #include "Debug/DBGConsole.h"
 #include "Debug/DebugLog.h"
 #include "Graphics/GraphicsContext.h"
+#include "HLEGraphics/BaseRenderer.h"
 #include "HLEGraphics/TextureCache.h"
 #include "Input/InputManager.h"
 #include "Interface/RomDB.h"
@@ -43,6 +44,8 @@
 
 char selectedRom[256];
 char rom_name_filter[128] = {0};
+
+GLuint bg_image = 0xDEADBEEF;
 
 struct CompatibilityList {
 	char name[128];
@@ -231,6 +234,75 @@ void sort_overlaylist(Overlay *start) {
 	} while (swapped);
 }
 
+void LoadBackground() {
+	IO::Filename preview_filename;
+	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Resources/"), "bg.png" );
+	int w, h;
+	uint8_t *bg_data = stbi_load(preview_filename, &w, &h, NULL, 4);
+	if (bg_data) {
+		glGenTextures(1, &bg_image);
+		glBindTexture(GL_TEXTURE_2D, bg_image);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, bg_data);
+		free(bg_data);
+	}
+}
+
+float *bg_attributes = nullptr;
+void DrawBackground()
+{
+	if (!bg_attributes) bg_attributes = (float*)malloc(sizeof(float) * 22);
+
+	glBindTexture(GL_TEXTURE_2D, bg_image);
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+	bg_attributes[0] = 0.0f;
+	bg_attributes[1] = 0.0f;
+	bg_attributes[2] = 0.0f;
+	bg_attributes[3] = SCR_WIDTH;
+	bg_attributes[4] = 0.0f;
+	bg_attributes[5] = 0.0f;
+	bg_attributes[6] = 0.0f;
+	bg_attributes[7] = SCR_HEIGHT;
+	bg_attributes[8] = 0.0f;
+	bg_attributes[9] = SCR_WIDTH;
+	bg_attributes[10] = SCR_HEIGHT;
+	bg_attributes[11] = 0.0f;
+	vglVertexPointerMapped(bg_attributes);
+	
+	bg_attributes[12] = 0.0f;
+	bg_attributes[13] = 0.0f;
+	bg_attributes[14] = 1.0f;
+	bg_attributes[15] = 0.0f;
+	bg_attributes[16] = 0.0f;
+	bg_attributes[17] = 1.0f;
+	bg_attributes[18] = 1.0f;
+	bg_attributes[19] = 1.0f;
+	vglTexCoordPointerMapped(&bg_attributes[12]);
+	
+	uint16_t *bg_indices = (uint16_t*)&bg_attributes[20];
+	bg_indices[0] = 0;
+	bg_indices[1] = 1;
+	bg_indices[2] = 2;
+	bg_indices[3] = 3;
+	vglIndexPointerMapped(bg_indices);
+	
+	glDisableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, 960, 544, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+}
+
 bool LoadPreview(RomSelection *rom) {
 	if (old_hovered == rom) return has_preview_icon;
 	old_hovered = rom;
@@ -366,12 +438,14 @@ char *DrawRomSelector() {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	vglStartRendering();
+	if (bg_image != 0xDEADBEEF) DrawBackground();
 	DrawMenuBar();
 		
 	if (!list) {
 		oldSortOrder = -1;
 		
 		if (!comp) {
+			LoadBackground();
 			for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
 				char dbname[64];
 				sprintf(dbname, "%sdb%ld.json", DAEDALUS_VITA_MAIN_PATH, i);
@@ -464,7 +538,8 @@ char *DrawRomSelector() {
 		oldSortOrder = gSortOrder;
 		sort_romlist(list, gSortOrder);
 	}
-
+	
+	if (bg_image != 0xDEADBEEF) ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0, 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(SCR_WIDTH - 400, SCR_HEIGHT - 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -557,6 +632,7 @@ char *DrawRomSelector() {
 
 	ImGui::End();
 	
+	if (bg_image != 0xDEADBEEF) ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - 400, 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(400, SCR_HEIGHT - 19 * UI_SCALE), ImGuiSetCond_Always);
 	ImGui::Begin("Info Window", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);

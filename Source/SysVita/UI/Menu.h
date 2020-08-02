@@ -328,6 +328,7 @@ extern PostProcessingEffect *effects_list;
 #define SCE_SYSTEM_PARAM_LANG_GREEK   21
 
 // Config Variables
+extern bool gUseRendererLegacy;
 extern bool gHideMenubar;
 extern int  gLanguageIndex;
 extern int  gUseCdram;

@@ -477,8 +477,12 @@ protected:
 	u32					mVtxClipFlagsUnion;					// Bitwise OR of all the vertex flags added to the current batch. If this is 0, we can trivially accept everything without clipping
 };
 
-bool CreateRenderer();
-void DestroyRenderer();
+bool CreateRendererLegacy();
+void DestroyRendererLegacy();
+
+bool CreateRendererModern();
+void DestroyRendererModern();
+
 extern BaseRenderer * gRenderer;
 
 inline s16 ApplyShift(s16 c, u8 shift)

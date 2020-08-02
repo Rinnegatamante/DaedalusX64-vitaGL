@@ -45,6 +45,7 @@ int gOverlay = 0;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
+bool gUseRendererLegacy = true;
 
 uint8_t shader_idx = 0;
 
@@ -102,6 +103,22 @@ PostProcessingEffect *effects_list = nullptr;
 Overlay *overlays_list = nullptr;
 
 Uniform prog_uniforms[8];
+
+/*GLuint achievement_icon = 0xDEADBEEF;
+void LoadAchievementIcon() {
+	if (achievement_icon != 0xDEADBEEF) return;
+	
+	IO::Filename preview_filename;
+	int w, h;
+	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Achievements/Super Mario 64/0/"), "icon.png" );
+	uint8_t *icon_data = stbi_load(preview_filename, &w, &h, NULL, 4);
+	if (icon_data) {
+		glGenTextures(1, &achievement_icon);
+		glBindTexture(GL_TEXTURE_2D, achievement_icon);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, icon_data);
+		free(icon_data);
+	}
+}*/
 
 void loadUniformSettings(const char *path) {
 	FILE *config = fopen(path, "r");
@@ -413,6 +430,7 @@ void SetupPostProcessingLists() {
 		effects_list = (PostProcessingEffect*)malloc(sizeof(PostProcessingEffect));
 		strcpy(effects_list->name, lang_strings[STR_UNUSED]);
 		effects_list->next = nullptr;
+		effects_list->customizable = false;
 
 		IO::FindHandleT		find_handle;
 		IO::FindDataT		find_data;
@@ -885,6 +903,20 @@ void DrawCommonWindows() {
 		ImGui::End();
 	}
 	
+	/*if (achievement_window) {
+		bool dummy = true;
+		ImGui::SetNextWindowPos(ImVec2(565, 40));
+		ImGui::Begin("##achievement", &dummy, ImVec2(350, 70), -1.0f, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+		LoadAchievementIcon();
+		ImGui::SetCursorPos(ImVec2(3, 3));
+		ImGui::Image((void*)achievement_icon, ImVec2(64, 64));
+		ImGui::SetCursorPos(ImVec2(80, 19));
+		ImGui::TextColored({1.0f, 1.0f, 0.0f, 1.0f}, "The Journey Begins");
+		ImGui::SetCursorPos(ImVec2(80, 35));
+		ImGui::Text("Collected your first Star.");
+		ImGui::End();
+	}*/
+	
 	if (vflux_enabled) {
 		memcpy_neon(&colors[0], vcolors, sizeof(float) * 3);
 		memcpy_neon(&colors[4], vcolors, sizeof(float) * 3);
@@ -894,7 +926,7 @@ void DrawCommonWindows() {
 		float a;
 		SceDateTime time;
 		sceRtcGetCurrentClockLocalTime(&time);
-		if (time.hour < 6)		// Night/Early Morning
+		if (time.hour < 6) // Night/Early Morning
 			a = 0.25f;
 		else if (time.hour < 10) // Morning/Early Day
 			a = 0.1f;
