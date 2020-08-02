@@ -159,8 +159,8 @@ void log2file(const char *format, ...) {
 	}
 }
 
-void dump2file(void *ptr, uint32_t size) {
-	FILE *log = fopen("ux0:/data/DaedalusX64.dmp", "a+");
+void dump2file(void *ptr, uint32_t size, char *filename) {
+	FILE *log = fopen(filename, "w");
 	if (log != NULL) {
 		fwrite(ptr, 1, size, log);
 		fclose(log);

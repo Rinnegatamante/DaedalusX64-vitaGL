@@ -189,6 +189,7 @@ void IGraphicsContext::EndFrame()
 {
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glScissor( 0, 0, SCR_WIDTH, SCR_HEIGHT);
+	glUseProgram(0);
 	if (gamma_val != 1.0f) gRenderer->DoGamma(gamma_val);
 	if (!gPostProcessing) {
 		if (gOverlay) {

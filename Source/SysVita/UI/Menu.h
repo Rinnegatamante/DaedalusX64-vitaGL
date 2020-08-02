@@ -395,6 +395,7 @@ int download_file(char *url, char *file, char *msg, float int_total_bytes, bool 
 void sort_overlaylist(Overlay *start);
 void sort_shaderlist(PostProcessingEffect *start);
 void log2file(const char *format, ...);
+void dump2file(void *ptr, uint32_t size, char *filename);
 
 void dummy_func();
 

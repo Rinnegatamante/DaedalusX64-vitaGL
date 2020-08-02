@@ -21,6 +21,7 @@
 #include "Utility/Profiler.h"
 
 #include "SysVita/HLEGraphics/FragmentShader.h"
+#include "SysVita/UI/Menu.h"
 
 #define NORMALIZE_C1842XX(x) ((x) > 16.5f ? ((x) / ((x) / 16.0f)) : (x))
 
@@ -115,23 +116,42 @@ static std::vector<ShaderProgram *>		gShaders;
 
 /* Creates a shader object of the specified type using the specified text
  */
+static uint32_t shader_idx = 0;
 static GLuint make_shader(GLenum type, const char** lines, size_t num_lines)
 {
 	GLuint shader = glCreateShader(type);
 	if (shader != 0)
 	{
-		glShaderSource(shader, num_lines, lines, NULL);
+		int32_t body_size = 0;
+		for (int i = 0; i < num_lines; i++) {
+			body_size += strlen(lines[i]);
+		}
+		char *body = (char*)malloc(body_size + 1);
+		memset(body, 0, body_size + 1);
+		strcpy(body, lines[0]);
+		for (int i = 1; i < num_lines; i++) {
+			strcat(body, lines[i]);
+		}
+		
+		body_size = strlen(body) - 1;
+		glShaderSource(shader, 1, &body, &body_size);
 		glCompileShader(shader);
-
+		
 		GLint shader_ok;
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 		if (shader_ok != GL_TRUE)
 		{
-			DBGConsole_Msg(0, "ERROR: Failed to compile %s shader.\n", (type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex");
+			log2file("ERROR: Failed to compile %s shader (%lu).\n", (type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", shader_idx);
+			char fname[64];
+			sprintf(fname, "ux0:data/shader%d.cg", shader_idx);
+			dump2file(body, body_size, fname);
 			glDeleteShader(shader);
 			shader = 0;
 		}
+		
+		free(body);
 	}
+	shader_idx++;
 	return shader;
 }
 
@@ -227,7 +247,7 @@ static const char* default_vertex_shader =
 "{\n"
 "	v_st = in_uv;\n"
 "	v_col = in_col;\n"
-"	v_pos = wvp * float4(in_pos, 1.0);\n"
+"	v_pos = mul(wvp, float4(in_pos, 1.0));\n"
 "}\n";
 
 // FIXME(strmnnrmn): texel fetch filter changes between cycles.
