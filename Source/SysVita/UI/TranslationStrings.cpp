@@ -1,11 +1,11 @@
 #include "SysVita/UI/Menu.h"
 
-char *lang_identifiers[] = {
+char *lang_identifiers[LANG_STRINGS_NUM] = {
 	FOREACH_STR(GET_STRING)
 };
 
 // This is properly populated so that emulator won't crash if an user launches it without language INI files.
-char lang_strings[][256] = {
+char lang_strings[LANG_STRINGS_NUM][256] = {
 	"Downloading compatibility list database", // STR_DOWNLOADER_COMPAT_LIST
 	"Downloading an update", // STR_DOWNLOADER_UPDATE
 	"Checking for updates", // STR_DOWNLOADER_CHECK_UPDATE
@@ -165,5 +165,9 @@ char lang_strings[][256] = {
 	"Getting rom from network", // STR_DLG_ROM_LAUNCH
 	"No info available for net roms.", // STR_GAME_NET
 	"Local", // STR_GAME_LOCAL
-	"Online" // STR_GAME_ONLINE
+	"Online", // STR_GAME_ONLINE
+	"Legacy", // STR_MENU_LEGACY_REND
+	"Modern", // STR_MENU_MODERN_REND
+	"Original renderer based on GL1 fixed function pipeline.", // STR_DESC_LEGACY_REND
+	"Modern renderer based on GL2+ shaders. Requires libshacccg.suprx." // STR_DESC_MODERN_REND
 };

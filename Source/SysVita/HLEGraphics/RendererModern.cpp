@@ -72,11 +72,6 @@ struct ShaderConfiguration
 {
 	u64		Mux;
 	u32		CycleType : 2;
-	u32		BilerpFilter : 1;
-	u32		ClampS0 : 1;
-	u32		ClampT0 : 1;
-	u32		ClampS1 : 1;
-	u32		ClampT1 : 1;
 	u8		AlphaThreshold;
 };
 
@@ -86,11 +81,6 @@ inline bool operator==(const ShaderConfiguration & a, const ShaderConfiguration 
 	return
 		a.Mux            == b.Mux &&
 		a.CycleType      == b.CycleType &&
-		a.BilerpFilter   == b.BilerpFilter &&
-		a.ClampS0        == b.ClampS0 &&
-		a.ClampT0        == b.ClampT0 &&
-		a.ClampS1        == b.ClampS1 &&
-		a.ClampT1        == b.ClampT1 &&
 		a.AlphaThreshold == b.AlphaThreshold;
 }
 
@@ -102,21 +92,11 @@ struct ShaderProgram
 	GLint				uloc_primcol;
 	GLint				uloc_envcol;
 	GLint				uloc_primlodfrac;
-
-	GLint				uloc_tileclamp[kNumTextures];
-	GLint				uloc_tiletl[kNumTextures];
-	GLint				uloc_tilebr[kNumTextures];
-	GLint				uloc_tileshift[kNumTextures];
-	GLint				uloc_tilemask[kNumTextures];
-	GLint				uloc_tilemirror[kNumTextures];
-
-	GLint				uloc_texscale[kNumTextures];
 };
 static std::vector<ShaderProgram *>		gShaders;
 
 /* Creates a shader object of the specified type using the specified text
  */
-static uint32_t shader_idx = 0;
 static GLuint make_shader(GLenum type, const char** lines, size_t num_lines)
 {
 	GLuint shader = glCreateShader(type);
@@ -141,17 +121,13 @@ static GLuint make_shader(GLenum type, const char** lines, size_t num_lines)
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 		if (shader_ok != GL_TRUE)
 		{
-			log2file("ERROR: Failed to compile %s shader (%lu).\n", (type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", shader_idx);
-			char fname[64];
-			sprintf(fname, "ux0:data/shader%d.cg", shader_idx);
-			dump2file(body, body_size, fname);
+			DBGConsole_Msg(0, "ERROR: Failed to compile %s shader.\n", (type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex");
 			glDeleteShader(shader);
 			shader = 0;
 		}
 		
 		free(body);
 	}
-	shader_idx++;
 	return shader;
 }
 
@@ -163,7 +139,6 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 	GLuint program = 0u;
 	GLuint vertex_shader = 0u;
 	GLuint fragment_shader = 0u;
-	GLsizei log_length;
 
 	vertex_shader = make_shader(GL_VERTEX_SHADER, vertex_lines, num_vertex_lines);
 	if (vertex_shader != 0u)
@@ -180,7 +155,7 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 				glAttachShader(program, fragment_shader);
 				
 				vglBindAttribLocation(program, 0, "in_pos",  3,         GL_FLOAT);
-				vglBindAttribLocation(program, 1, "in_uv" ,  2,         GL_SHORT);
+				vglBindAttribLocation(program, 1, "in_uv" ,  2,         GL_FLOAT);
 				vglBindAttribLocation(program, 2, "in_col",  4, GL_UNSIGNED_BYTE);
 
 				glLinkProgram(program);
@@ -241,41 +216,26 @@ static const char* default_vertex_shader =
 "	float2 in_uv,\n"
 "	float4 in_col,\n"
 "	uniform float4x4 wvp,\n"
-"	float2 out v_st : TEXCOORD0,\n"
+"	float2 out sti : TEXCOORD0,\n"
 "	float4 out v_col : COLOR0,\n"
 "	float4 out v_pos : POSITION)\n"
 "{\n"
-"	v_st = in_uv;\n"
+"	sti = in_uv;\n"
 "	v_col = in_col;\n"
 "	v_pos = mul(wvp, float4(in_pos, 1.0));\n"
 "}\n";
 
 // FIXME(strmnnrmn): texel fetch filter changes between cycles.
 static const char* default_fragment_shader_fmt =
-"void main(float2 v_st : TEXCOORD0,\n"
+"void main(float2 sti : TEXCOORD0,\n"
 "	float4 v_col : COLOR0,\n"
 "	uniform sampler2D uTexture0 : TEXUNIT0,\n"
 "	uniform sampler2D uTexture1 : TEXUNIT1,\n"
-"	uniform float2 uTexScale0,\n"
-"	uniform float2 uTexScale1,\n"
 "	uniform float4 uPrimColour,\n"
 "	uniform float4 uEnvColour,\n"
 "	uniform float uPrimLODFrac,\n"
-"	uniform bool2 uTileClampEnable0,\n"
-"	uniform int2 uTileTL0,\n"
-"	uniform int2 uTileBR0,\n"
-"	uniform float2 uTileShift0,\n"
-"	uniform int2 uTileMask0,\n"
-"	uniform int2 uTileMirror0,\n"
-"	uniform bool2 uTileClampEnable1,\n"
-"	uniform int2 uTileTL1,\n"
-"	uniform int2 uTileBR1,\n"
-"	uniform float2 uTileShift1,\n"
-"	uniform int2 uTileMask1,\n"
-"	uniform int2 uTileMirror1,\n"
 "	float4 out fragcol : COLOR)\n"
 "{\n"
-"	int2 sti = int2(v_st);\n"
 "	float4 shade = v_col;\n"
 "	float4 prim  = uPrimColour;\n"
 "	float4 env   = uEnvColour;\n"
@@ -289,19 +249,6 @@ static const char* default_fragment_shader_fmt =
 "%s		// Body is injected here\n"
 "	fragcol = col;\n"
 "}\n";
-
-static inline const char * GetFilter(bool bilerp, bool clamp_s, bool clamp_t)
-{
-	if (bilerp)
-	{
-		if (clamp_s && clamp_t)	return "fetchBilinearClampedST";
-		else if (clamp_s)		return "fetchBilinearClampedS";
-		else if (clamp_t)		return "fetchBilinearClampedT";
-		else					return "fetchBilinear";
-	}
-
-	return "fetchPoint";
-}
 
 static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & config)
 {
@@ -338,35 +285,27 @@ static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & 
 	}
 	else if (cycle_type == CYCLE_COPY)
 	{
-		strcpy(body, "\tcol = fetchCopy(sti, uTileShift0, uTileMirror0, uTileMask0, uTileTL0, uTileBR0, uTileClampEnable0, uTexture0, uTexScale0);\n");
+		strcpy(body, "\tcol = fetchTexel(sti, uTexture0);\n");
 	}
 	else if (cycle_type == CYCLE_1CYCLE)
 	{
-		const char * filter0 = GetFilter(config.BilerpFilter, config.ClampS0, config.ClampT0);
-		const char * filter1 = GetFilter(config.BilerpFilter, config.ClampS1, config.ClampT1);
-
-		sprintf(body, "\tfloat4 tex0 = %s(sti, uTileShift0, uTileMirror0, uTileMask0, uTileTL0, uTileBR0, uTileClampEnable0, uTexture0, uTexScale0);\n"
-					  "\tfloat4 tex1 = %s(sti, uTileShift1, uTileMirror1, uTileMask1, uTileTL1, uTileBR1, uTileClampEnable1, uTexture1, uTexScale1);\n"
+		sprintf(body, "\tfloat4 tex0 = fetchTexel(sti, uTexture0);\n"
+					  "\tfloat4 tex1 = fetchTexel(sti, uTexture1);\n"
 					  "\tcol.rgb = (%s - %s) * %s + %s;\n"
 					  "\tcol.a   = (%s - %s) * %s + %s;\n",
-					  filter0, filter1,
 					  kRGBParams16[aRGB0], kRGBParams16[bRGB0], kRGBParams32[cRGB0], kRGBParams8[dRGB0],
 					  kAlphaParams8[aA0],  kAlphaParams8[bA0],  kAlphaParams8[cA0],  kAlphaParams8[dA0]);
 	}
 	else
 	{
-		const char * filter0 = GetFilter(config.BilerpFilter, config.ClampS0, config.ClampT0);
-		const char * filter1 = GetFilter(config.BilerpFilter, config.ClampS1, config.ClampT1);
-
-		sprintf(body, "\tfloat4 tex0 = %s(sti, uTileShift0, uTileMirror0, uTileMask0, uTileTL0, uTileBR0, uTileClampEnable0, uTexture0, uTexScale0);\n"
-					  "\tfloat4 tex1 = %s(sti, uTileShift1, uTileMirror1, uTileMask1, uTileTL1, uTileBR1, uTileClampEnable1, uTexture1, uTexScale1);\n"
+		sprintf(body, "\tfloat4 tex0 = fetchTexel(sti, uTexture0);\n"
+					  "\tfloat4 tex1 = fetchTexel(sti, uTexture1);\n"
 					  "\tcol.rgb = (%s - %s) * %s + %s;\n"
 					  "\tcol.a   = (%s - %s) * %s + %s;\n"
 					  "\tcombined = col;\n"
 					  "\ttex0 = tex1;\n"		// NB: tex0 becomes tex1 on the second cycle - see mame.
 					  "\tcol.rgb = (%s - %s) * %s + %s;\n"
 					  "\tcol.a   = (%s - %s) * %s + %s;\n",
-					  filter0, filter1,
 					  kRGBParams16[aRGB0], kRGBParams16[bRGB0], kRGBParams32[cRGB0], kRGBParams8[dRGB0],
 					  kAlphaParams8[aA0],  kAlphaParams8[bA0],  kAlphaParams8[cA0],  kAlphaParams8[dA0],
 					  kRGBParams16[aRGB1], kRGBParams16[bRGB1], kRGBParams32[cRGB1], kRGBParams8[dRGB1],
@@ -390,22 +329,6 @@ static void InitShaderProgram(ShaderProgram * program, const ShaderConfiguration
 	program->uloc_primcol      = glGetUniformLocation(shader_program, "uPrimColour");
 	program->uloc_envcol       = glGetUniformLocation(shader_program, "uEnvColour");
 	program->uloc_primlodfrac  = glGetUniformLocation(shader_program, "uPrimLODFrac");
-
-	program->uloc_tileclamp[0]  = glGetUniformLocation(shader_program, "uTileClampEnable0");
-	program->uloc_tiletl[0]     = glGetUniformLocation(shader_program, "uTileTL0");
-	program->uloc_tilebr[0]     = glGetUniformLocation(shader_program, "uTileBR0");
-	program->uloc_tileshift[0]  = glGetUniformLocation(shader_program, "uTileShift0");
-	program->uloc_tilemask[0]   = glGetUniformLocation(shader_program, "uTileMask0");
-	program->uloc_tilemirror[0] = glGetUniformLocation(shader_program, "uTileMirror0");
-	program->uloc_texscale[0]   = glGetUniformLocation(shader_program, "uTexScale0");
-
-	program->uloc_tileclamp[1]  = glGetUniformLocation(shader_program, "uTileClampEnable1");
-	program->uloc_tiletl[1]     = glGetUniformLocation(shader_program, "uTileTL1");
-	program->uloc_tilebr[1]     = glGetUniformLocation(shader_program, "uTileBR1");
-	program->uloc_tileshift[1]  = glGetUniformLocation(shader_program, "uTileShift1");
-	program->uloc_tilemask[1]   = glGetUniformLocation(shader_program, "uTileMask1");
-	program->uloc_tilemirror[1] = glGetUniformLocation(shader_program, "uTileMirror1");
-	program->uloc_texscale[1]   = glGetUniformLocation(shader_program, "uTexScale1");
 }
 
 void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * config) const
@@ -413,11 +336,6 @@ void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * conf
 	config->Mux = mMux;
 	config->CycleType = gRDPOtherMode.cycle_type;
 	config->AlphaThreshold = 0;
-	config->BilerpFilter = true;
-	config->ClampS0 = false;
-	config->ClampT0 = false;
-	config->ClampS1 = false;
-	config->ClampT1 = false;
 
 	// Initiate Alpha test
 	if( (gRDPOtherMode.alpha_compare == G_AC_THRESHOLD) && !gRDPOtherMode.alpha_cvg_sel )
@@ -446,21 +364,6 @@ void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * conf
 	// Not sure about this. Should CYCLE_FILL have alpha kill?
 	if (cycle_type == CYCLE_FILL)
 		config->AlphaThreshold = 0;
-
-	config->BilerpFilter = (gRDPOtherMode.text_filt != G_TF_POINT) || (gGlobalPreferences.ForceLinearFilter);
-
-	// If running the bilinear filter, check if we need to clamp in S or T.
-	// Really, this is checking to see how we set mTexWrap in PrepareTexRectUVs.
-	// Fixes California Speed, Mario Kart backgrounds.
-	// (NB: better fix for California Speed is just to force a point filter...)
-	if (config->BilerpFilter)
-	{
-		config->ClampS0 = mTexWrap[0].u == GL_CLAMP;
-		config->ClampT0 = mTexWrap[0].v == GL_CLAMP;
-
-		config->ClampS1 = mTexWrap[1].u == GL_CLAMP;
-		config->ClampT1 = mTexWrap[1].v == GL_CLAMP;
-	}
 }
 
 static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
@@ -717,6 +620,15 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 	{
 		InitBlenderMode();
 	}
+	else if (gRDPOtherMode.clr_on_cvg)
+	{
+		if ((cycle_mode == CYCLE_1CYCLE && gRDPOtherMode.c1_m2a == 1) ||
+		    (cycle_mode == CYCLE_2CYCLE && gRDPOtherMode.c2_m2a == 1)) {
+			glBlendFunc(GL_ZERO, GL_ONE);
+			glEnable(GL_BLEND);
+		} else
+			glDisable( GL_BLEND );
+	}
 	else
 	{
 		glDisable(GL_BLEND);
@@ -761,31 +673,7 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 
 			texture->InstallTexture();
 
-			u8 tile_idx = mActiveTile[i];
-			const RDP_Tile &     rdp_tile  = gRDPStateManager.GetTile( tile_idx );
-			const RDP_TileSize & tile_size = gRDPStateManager.GetTileSize( tile_idx );
-
-			bool clamp_s = rdp_tile.clamp_s || (rdp_tile.mask_s == 0);
-			bool clamp_t = rdp_tile.clamp_t || (rdp_tile.mask_t == 0);
-
-			u32 mirror_bits_s = MakeMirror(rdp_tile.mirror_s, rdp_tile.mask_s);
-			u32 mirror_bits_t = MakeMirror(rdp_tile.mirror_t, rdp_tile.mask_t);
-
-			u32 mask_bits_s = MakeMask(rdp_tile.mask_s);
-			u32 mask_bits_t = MakeMask(rdp_tile.mask_t);
-
-			glUniform2i(program->uloc_tileclamp[i], clamp_s, clamp_t);
-
-			glUniform2f(program->uloc_tileshift[i],  kShiftScales[rdp_tile.shift_s],  kShiftScales[rdp_tile.shift_t]);
-			glUniform2i(program->uloc_tilemask[i],   mask_bits_s,   mask_bits_t);
-			glUniform2i(program->uloc_tilemirror[i], mirror_bits_s, mirror_bits_t);
-
-			glUniform2i(program->uloc_tiletl[i], mTileTopLeft[i].s, mTileTopLeft[i].t);
-			glUniform2i(program->uloc_tilebr[i], tile_size.right,   tile_size.bottom);
-
-			glUniform2f(program->uloc_texscale[i], 1.f / texture->GetCorrectedWidth(), 1.f / texture->GetCorrectedHeight());
-
-			if( (gRDPOtherMode.text_filt != G_TF_POINT) | (gGlobalPreferences.ForceLinearFilter) )
+			if (((gRDPOtherMode.text_filt != G_TF_POINT) && cycle_mode != CYCLE_COPY) || (gGlobalPreferences.ForceLinearFilter))
 			{
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -800,6 +688,8 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mTexWrap[i].v);
 		}
 	}
+	
+	glActiveTexture(GL_TEXTURE0);
 }
 
 // FIXME(strmnnrmn): for fill/copy modes this does more work than needed.

@@ -761,6 +761,7 @@ void loadConfig(const char *game) {
 			else if (strcmp("gUseHighResTextures", buffer) == 0) gUseHighResTextures = (bool)value;
 			else if (strcmp("gPostProcessing", buffer) == 0) gTempPostProcessing = value;
 			else if (strcmp("gOverlay", buffer) == 0) gTempOverlay = value;
+			else if (strcmp("gUseRendererLegacy", buffer) == 0) gUseRendererLegacy = (bool)value;
 
 			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
@@ -844,8 +845,10 @@ int main(int argc, char* argv[]) {
 		System_Open(rom);
 		
 		loadConfig(g_ROM.settings.GameName.c_str());
+		is_main_menu = false;
 		CPU_Run();
 		System_Close();
+		is_main_menu = true;
 		
 		if (!gStandaloneMode && !restart_rom) break;
 	}

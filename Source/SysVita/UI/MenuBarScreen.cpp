@@ -33,6 +33,7 @@
 #define MAX_SAVESLOT 9
 
 bool pendingDownload = false;
+bool is_main_menu = true;
 
 bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
@@ -319,6 +320,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gUseHighResTextures", (int)gUseHighResTextures);
 		fprintf(config, "%s=%d\n", "gPostProcessing", gPostProcessing);
 		fprintf(config, "%s=%d\n", "gOverlay", gOverlay);
+		fprintf(config, "%s=%d\n", "gUseRendererLegacy", (int)gUseRendererLegacy);
 		
 		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
@@ -595,6 +597,17 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
+		if (ImGui::BeginMenu("Renderer", is_main_menu)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_LEGACY_REND], nullptr, gUseRendererLegacy)){
+				gUseRendererLegacy = true;
+			}
+			SetDescription(lang_strings[STR_DESC_LEGACY_REND]);
+			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, !gUseRendererLegacy, vglHasRuntimeShaderCompiler())){
+				gUseRendererLegacy = false;
+			}
+			SetDescription(lang_strings[STR_DESC_MODERN_REND]);
+			ImGui::EndMenu();
+		}
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_TEX_CACHE])){
 			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gTexCacheMode == TEX_CACHE_DISABLED)){
 				setTexCacheMode(TEX_CACHE_DISABLED);
