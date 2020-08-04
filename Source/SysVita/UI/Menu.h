@@ -6,7 +6,7 @@
 #define FUNC_TO_NAME(x) #x
 #define stringify(x) FUNC_TO_NAME(x)
 
-#define NUM_DB_CHUNKS     4 // Number of pages to download for the compat list
+#define NUM_DB_CHUNKS     5 // Number of pages to download for the compat list
 #define NUM_UPDATE_PASSES 2 // Number of passes required to download an update
 
 #define ALERT_TIME 5000000 // Timer for alerts to disappear in microseconds
