@@ -31,13 +31,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Graphics/ColourValue.h"
 #include "Utility/Preferences.h"
 
-#if defined(DAEDALUS_PSP)
-#include <pspgu.h>
-#elif defined(DAEDALUS_VITA)
+extern bool gUseRendererLegacy;
+
 #include <vitaGL.h>
-#else
-#include "SysGL/GL.h"
-#endif
 
 #define HD_SCALE                          0.754166f
 
@@ -131,9 +127,7 @@ ALIGNED_TYPE(struct, DaedalusLight, 16)
 	f32		qa;				// Used by MM(GBI2 point light)
 	u32		Pad0;			// Padding
 };
-#ifdef DAEDALUS_PSP
-DAEDALUS_STATIC_ASSERT( sizeof( DaedalusLight ) == 64 );	//Size=64 bytes and order is important or VFPU ASM for PSP will fail
-#endif
+
 // Order here should be the same as in TnLMode
 enum ETnLModeFlags
 {
@@ -232,15 +226,26 @@ public:
 	inline void			SetTextureEnable(bool enable)			{ mTnL.Flags.Texture = enable; }
 	inline void			SetTextureTile(u32 tile)				{ mTextureTile = tile; }
 	inline u32			GetTextureTile() const					{ return mTextureTile; }
-#ifdef DAEDALUS_VITA
 	inline void			SetCullMode(bool enable, bool mode)		{ enable ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE); mode ? glCullFace(GL_BACK) : glCullFace(GL_FRONT); }
-#else
-	inline void			SetCullMode(bool enable, bool mode)		{ mTnL.Flags.TriCull = enable; mTnL.Flags.CullBack = mode; }
-#endif
+
 	// Fog stuff
 	inline void			SetFogMultOffs(f32 Mult, f32 Offs)		{ mTnL.FogMult=Mult/255.0f; mTnL.FogOffs=Offs/255.0f;}
-	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ glFogf(GL_FOG_START, fog_near / 1000.0f); glFogf(GL_FOG_END, fog_far / 1000.0f); }
-	inline void			SetFogColour( c32 colour )				{ float fog_clr[4] = {colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf()}; glFogfv(GL_FOG_COLOR, &fog_clr[0]); }
+	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ 
+																	if (gUseRendererLegacy) {
+																		glFogf(GL_FOG_START, fog_near / 1000.0f); glFogf(GL_FOG_END, fog_far / 1000.0f);
+																	} else {
+																		mFogNear = fog_near / 1000.0f;
+																		mFogFar = fog_far / 1000.0f;
+																	}
+																}
+	inline void			SetFogColour( c32 colour )				{ 
+																	if (gUseRendererLegacy) {
+																		float fog_clr[4] = {colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf()};
+																		glFogfv(GL_FOG_COLOR, &fog_clr[0]);
+																	} else {
+																		mFogColour = colour;
+																	}
+																}
 
 	// PrimDepth will replace the z value if depth_source=1 (z range 32767-0 while PSP depthbuffer range 0-65535)//Corn
 	inline void			SetPrimitiveDepth( u32 z )				{ mPrimDepth = (f32)((int)z - 0x4000) / 16384.0f;}
@@ -280,13 +285,12 @@ public:
 	void				SetScissor( u32 x0, u32 y0, u32 x1, u32 y1 );
 	
 	void				ForceViewport(float w, float h);
-#ifdef DAEDALUS_VITA
+
 	void				SetNegativeViewport();
 	void				SetPositiveViewport();
 	
 	virtual void		DoGamma(float gamma) = 0;
 	virtual void		DrawUITexture() = 0;
-#endif
 
 	void				ResetMatrices(u32 size);
 	void				SetDKRMat(const u32 address, bool mul, u32 idx);
@@ -346,13 +350,8 @@ public:
 	v2					mVpTrans;
 
 protected:
-#if defined(DAEDALUS_VITA)
-	inline void			UpdateFogEnable()						{ mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); }
+	inline void			UpdateFogEnable()						{ if (gUseRendererLegacy) { mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); } }
 	inline void			UpdateShadeModel() {}
-#else
-	inline void			UpdateFogEnable()						{ if(gFogEnabled) mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); }
-	inline void			UpdateShadeModel()						{ glShadeModel( mTnL.Flags.Shade ? GL_SMOOTH : GL_FLAT ); }
-#endif
 	void				UpdateTileSnapshots( u32 tile_idx );
 	void				UpdateTileSnapshot( u32 index, u32 tile_idx );
 
@@ -415,7 +414,9 @@ protected:
 
 	f32					mPrimDepth;
 	f32					mPrimLODFraction;
-
+	
+	f32					mFogNear;
+	f32					mFogFar;
 	c32					mFogColour;				// Blender
 	c32					mPrimitiveColour;		// Combiner
 	c32					mEnvColour;				// Combiner

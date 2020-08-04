@@ -72,7 +72,8 @@ struct ShaderConfiguration
 {
 	u64		Mux;
 	u32		CycleType : 2;
-	u8		AlphaThreshold;
+	u32		HasFog : 1;
+	float	AlphaThreshold;
 };
 
 
@@ -81,6 +82,7 @@ inline bool operator==(const ShaderConfiguration & a, const ShaderConfiguration 
 	return
 		a.Mux            == b.Mux &&
 		a.CycleType      == b.CycleType &&
+		a.HasFog         == b.HasFog &&
 		a.AlphaThreshold == b.AlphaThreshold;
 }
 
@@ -92,6 +94,9 @@ struct ShaderProgram
 	GLint				uloc_primcol;
 	GLint				uloc_envcol;
 	GLint				uloc_primlodfrac;
+	GLint				uloc_fognear;
+	GLint				uloc_fogfar;
+	GLint				uloc_fogcolor;
 };
 static std::vector<ShaderProgram *>		gShaders;
 
@@ -229,8 +234,12 @@ static const char* default_vertex_shader =
 static const char* default_fragment_shader_fmt =
 "void main(float2 sti : TEXCOORD0,\n"
 "	float4 v_col : COLOR0,\n"
+"	float4 coords : WPOS,\n"
 "	uniform sampler2D uTexture0 : TEXUNIT0,\n"
 "	uniform sampler2D uTexture1 : TEXUNIT1,\n"
+"	uniform float fog_near,\n"
+"	uniform float fog_far,\n"
+"	uniform float4 fog_color,\n"
 "	uniform float4 uPrimColour,\n"
 "	uniform float4 uEnvColour,\n"
 "	uniform float uPrimLODFrac,\n"
@@ -275,7 +284,7 @@ static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & 
 	u32 cA1    = (mux1>>18)&0x07;	// c2 a3		// Ac1
 	u32 dA1    = (mux1    )&0x07;	// c2 a4		// Ad1
 
-	char body[1024];
+	char body[2048];
 
 	u32 cycle_type = config.CycleType;
 
@@ -315,7 +324,13 @@ static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & 
 	if (config.AlphaThreshold > 0)
 	{
 		char * p = body + strlen(body);
-		sprintf(p, "\tif(col.a < %f) discard;\n", (float)config.AlphaThreshold / 255.f);
+		sprintf(p, "\tif(col.a < %f) discard;\n", config.AlphaThreshold);
+	}
+	
+	if (config.HasFog)
+	{
+		char * p = body + strlen(body);
+		sprintf(p, "%s", "\tfloat vFog = clamp((fog_far - coords.z) / (fog_far - fog_near), 0.0, 1.0);\n\tcol.rgb = lerp(fog_color.rgb, col.rgb, vFog);\n");
 	}
 
 	sprintf(frag_shader, default_fragment_shader_fmt, body);
@@ -329,6 +344,9 @@ static void InitShaderProgram(ShaderProgram * program, const ShaderConfiguration
 	program->uloc_primcol      = glGetUniformLocation(shader_program, "uPrimColour");
 	program->uloc_envcol       = glGetUniformLocation(shader_program, "uEnvColour");
 	program->uloc_primlodfrac  = glGetUniformLocation(shader_program, "uPrimLODFrac");
+	program->uloc_fognear      = glGetUniformLocation(shader_program, "fog_near");
+	program->uloc_fogfar       = glGetUniformLocation(shader_program, "fog_far");
+	program->uloc_fogcolor     = glGetUniformLocation(shader_program, "fog_color");
 }
 
 void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * config) const
@@ -336,19 +354,17 @@ void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * conf
 	config->Mux = mMux;
 	config->CycleType = gRDPOtherMode.cycle_type;
 	config->AlphaThreshold = 0;
+	config->HasFog = mTnL.Flags.Fog;
 
 	// Initiate Alpha test
 	if( (gRDPOtherMode.alpha_compare == G_AC_THRESHOLD) && !gRDPOtherMode.alpha_cvg_sel )
 	{
-		// G_AC_THRESHOLD || G_AC_DITHER
-		// FIXME(strmnnrmn): alpha func: (mAlphaThreshold | g_ROM.ALPHA_HACK) ? GL_GEQUAL : GL_GREATER
-		config->AlphaThreshold = mBlendColour.GetA();
+		u8 alpha_threshold = mBlendColour.GetA();
+		config->AlphaThreshold = (alpha_threshold || g_ROM.ALPHA_HACK) ? mBlendColour.GetAf() - 0.001f : mBlendColour.GetAf();
 	}
 	else if (gRDPOtherMode.cvg_x_alpha)
 	{
-		// Going over 0x70 brakes OOT, but going lesser than that makes lines on games visible...ex: Paper Mario.
-		// ALso going over 0x30 breaks the birds in Tarzan :(. Need to find a better way to leverage this.
-		config->AlphaThreshold = 0x70;
+		config->AlphaThreshold = 0.4392f;
 	}
 	else
 	{
@@ -364,6 +380,7 @@ void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * conf
 	// Not sure about this. Should CYCLE_FILL have alpha kill?
 	if (cycle_type == CYCLE_FILL)
 		config->AlphaThreshold = 0;
+	
 }
 
 static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
@@ -653,7 +670,13 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 	glUniform4f(program->uloc_primcol, mPrimitiveColour.GetRf(), mPrimitiveColour.GetGf(), mPrimitiveColour.GetBf(), mPrimitiveColour.GetAf());
 	glUniform4f(program->uloc_envcol,  mEnvColour.GetRf(),       mEnvColour.GetGf(),       mEnvColour.GetBf(),       mEnvColour.GetAf());
 	glUniform1f(program->uloc_primlodfrac, mPrimLODFraction);
-
+	
+	if (mTnL.Flags.Fog) {
+		glUniform1f(program->uloc_fognear, mFogNear);
+		glUniform1f(program->uloc_fogfar, mFogFar);
+		glUniform4f(program->uloc_fogcolor, mFogColour.GetRf(), mFogColour.GetGf(), mFogColour.GetBf(), mFogColour.GetAf());
+	}
+	
 	// Second texture is sampled in 2 cycle mode if text_lod is clear (when set,
 	// gRDPOtherMode.text_lod enables mipmapping, but we just set lod_frac to 0.
 	bool use_t1 = cycle_mode == CYCLE_2CYCLE;
