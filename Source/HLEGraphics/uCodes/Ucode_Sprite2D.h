@@ -172,9 +172,15 @@ void DLParser_GBI1_Sprite2DBase( MicroCodeCommand command )
 		MicroCodeCommand command2 = *pCmdBase++;
 		MicroCodeCommand command3 = *pCmdBase++;
 		
-		if ((command.inst.cmd != G_GBI1_SPRITE2D_SCALEFLIP) || (command3.inst.cmd != G_GBI1_SPRITE2D_DRAW))
+		if (command2.inst.cmd == G_GBI1_SPRITE2D_SCALEFLIP)
 		{
-			pc += 16;
+			if (command3.inst.cmd != G_GBI1_SPRITE2D_DRAW)
+			{
+				pc += 16;
+				break;
+			}
+		} else {
+			pc += 8;
 			break;
 		}
 		
