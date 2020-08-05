@@ -374,22 +374,14 @@ protected:
 		answ.x = roundf( LightN64ToScreenX( roundf( n64_coords.x ) ) );
 		answ.y = roundf( LightN64ToScreenY( roundf( n64_coords.y ) ) );
 	}
-#ifdef DAEDALUS_VITA
 	virtual void		RenderTriangles( uint32_t *colors, u32 num_vertices, bool disable_zbuffer ) = 0;
-#else
-	virtual void		RenderTriangles( DaedalusVtx * p_vertices, u32 num_vertices, bool disable_zbuffer ) = 0;
-#endif
 	void 				TestVFPUVerts( u32 v0, u32 num, const FiddledVtx * verts, const Matrix4x4 & mat_world );
 	template< bool FogEnable, int TextureMode >
 	void ProcessVerts( u32 v0, u32 num, const FiddledVtx * verts, const Matrix4x4 & mat_world );
 
 
 	void				PrepareTrisClipped( TempVerts * temp_verts ) const;
-#ifdef DAEDALUS_VITA
 	uint32_t			PrepareTrisUnclipped( uint32_t **clr );
-#else
-	void				PrepareTrisUnclipped( TempVerts * temp_verts ) const;
-#endif
 	v3					LightVert( const v3 & norm ) const;
 	v3					LightPointVert( const v4 & w ) const;
 
@@ -465,9 +457,7 @@ protected:
 	u32					mDAMTexScale;
 	u32					mTextureScaleX, mTextureScaleY;
 
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_VITA)
-	Matrix4x4			mScreenToDevice;					// Used by OSX renderer - scales screen coords (0..640 etc) to device coords (-1..+1)
-#endif
+	Matrix4x4			mScreenToDevice;
 
 	static const u32 	kMaxIndices = 320;					// We need at least 80 verts * 3 = 240? But Flying Dragon uses more than 256 //Corn
 	u16					mIndexBuffer[kMaxIndices];

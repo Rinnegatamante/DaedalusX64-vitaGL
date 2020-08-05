@@ -359,6 +359,7 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
 	case 0x4F50: g_ROM.GameHacks = POKEMON_STADIUM;		break;
 	case 0x3350: g_ROM.GameHacks = POKEMON_STADIUM;		break; // Pokemon Stadium 2
+	case 0x3357: g_ROM.GameHacks = WCW_NITRO;			break;
 	case 0x4B51:	// Quake 64
 		g_ROM.GameHacks = QUAKE;
 		g_ROM.KEEP_MODE_H_HACK = true;
