@@ -38,7 +38,7 @@ bool is_main_menu = true;
 bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
 int gUiTheme = DARK_THEME;
-int gAspectRatio = RATIO_16_9;
+int gAspectRatio = RATIO_4_3;
 int gTexCacheMode = TEX_CACHE_ACCURATE;
 int gAntiAliasing = ANTIALIASING_MSAA_4X;
 int gPostProcessing = 0;
@@ -578,17 +578,17 @@ void DrawCommonMenuBar() {
 	}
 	if (ImGui::BeginMenu(lang_strings[STR_MENU_GRAPHICS])){
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_ASPECT_RATIO])){
-			if (ImGui::MenuItem("16:9", nullptr, gAspectRatio == RATIO_16_9)){
-				gAspectRatio = RATIO_16_9;
-			}
-			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_UNSTRETCHED], nullptr, gAspectRatio == RATIO_16_9_HACK)){
-				gAspectRatio = RATIO_16_9_HACK;
-			}
 			if (ImGui::MenuItem("4:3", nullptr, gAspectRatio == RATIO_4_3)){
 				gAspectRatio = RATIO_4_3;
 			}
 			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_ORIGINAL], nullptr, gAspectRatio == RATIO_ORIG)){
 				gAspectRatio = RATIO_ORIG;
+			}
+			if (ImGui::MenuItem("16:9", nullptr, gAspectRatio == RATIO_16_9)){
+				gAspectRatio = RATIO_16_9;
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_UNSTRETCHED], nullptr, gAspectRatio == RATIO_16_9_HACK)){
+				gAspectRatio = RATIO_16_9_HACK;
 			}
 			ImGui::EndMenu();
 		}
