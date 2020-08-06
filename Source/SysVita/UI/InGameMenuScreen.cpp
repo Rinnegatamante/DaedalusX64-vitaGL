@@ -65,6 +65,7 @@ int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks)
 void DrawInGameMenu() {
 	DrawInGameMenuBar();
 	DrawPendingAlert();
+	if (gFastForward) DrawFastForwardIcon();
 	
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());

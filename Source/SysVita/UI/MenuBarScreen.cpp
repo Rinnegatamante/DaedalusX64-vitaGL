@@ -105,6 +105,7 @@ Overlay *overlays_list = nullptr;
 
 Uniform prog_uniforms[8];
 
+GLuint ff_icon = 0xDEADBEEF;
 /*GLuint achievement_icon = 0xDEADBEEF;
 void LoadAchievementIcon() {
 	if (achievement_icon != 0xDEADBEEF) return;
@@ -120,6 +121,21 @@ void LoadAchievementIcon() {
 		free(icon_data);
 	}
 }*/
+
+void LoadFastForwardIcon() {
+	if (ff_icon != 0xDEADBEEF) return;
+	
+	IO::Filename preview_filename;
+	int w, h;
+	IO::Path::Combine(preview_filename, DAEDALUS_VITA_PATH("Resources/"), "ff.png" );
+	uint8_t *icon_data = stbi_load(preview_filename, &w, &h, NULL, 4);
+	if (icon_data) {
+		glGenTextures(1, &ff_icon);
+		glBindTexture(GL_TEXTURE_2D, ff_icon);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, icon_data);
+		free(icon_data);
+	}
+}
 
 void loadUniformSettings(const char *path) {
 	FILE *config = fopen(path, "r");
@@ -978,6 +994,19 @@ void DrawPendingAlert() {
 			style.WindowBorderSize = 1.0f;
 		}
 	}
+}
+
+void DrawFastForwardIcon() {
+	LoadFastForwardIcon();
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.WindowBorderSize = 0.0f;
+	ImGui::SetNextWindowPos(ImVec2(800, 16), ImGuiSetCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(150, 150), ImGuiSetCond_Always);
+	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::Begin("FastForward Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav);
+	ImGui::Image((void*)ff_icon, ImVec2(128, 128));
+	ImGui::End();
+	style.WindowBorderSize = 1.0f;
 }
 
 void DrawPendingDialog() {

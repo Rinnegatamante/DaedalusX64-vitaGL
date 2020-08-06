@@ -377,6 +377,7 @@ void DrawDownloaderScreenCompat(float downloaded_bytes, float total_bytes, char 
 void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_bytes, float file_total_bytes, float total_bytes, char *filename, int num_files);
 void DrawPendingDialog();
 void DrawPendingAlert();
+void DrawFastForwardIcon();
 
 void EnableMenuButtons(bool status);
 void SetupVFlux();
