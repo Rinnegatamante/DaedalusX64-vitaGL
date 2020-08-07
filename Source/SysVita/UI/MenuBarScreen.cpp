@@ -1093,6 +1093,9 @@ void DrawMenuBar() {
 				if (ImGui::MenuItem(lang_strings[STR_SORT_Z_TO_A], nullptr, gSortOrder == SORT_Z_TO_A)){
 					gSortOrder = SORT_Z_TO_A;
 				}
+				if (ImGui::MenuItem(lang_strings[STR_PLAYTIME], nullptr, gSortOrder == SORT_PLAYTIME)){
+					gSortOrder = SORT_PLAYTIME;
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenu();

@@ -29,7 +29,8 @@ enum {
 // Roms sorting modes
 enum {
 	SORT_A_TO_Z,
-	SORT_Z_TO_A
+	SORT_Z_TO_A,
+	SORT_PLAYTIME
 };
 
 // CPU emulation modes

@@ -181,6 +181,14 @@ void sort_romlist(RomSelection *start, int order) {
 					}
 				}
 				break;
+			case SORT_PLAYTIME:
+				{
+					if (ptr1->playtime < ptr1->next->playtime) {
+						swap_roms(ptr1, ptr1->next); 
+						swapped = 1; 
+					}
+				}
+				break;
 			default:
 				break;
 			}
