@@ -55,7 +55,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 164
+#define LANG_STRINGS_NUM 165
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -221,7 +221,8 @@ enum {
 	FUNC(STR_MENU_LEGACY_REND) \
 	FUNC(STR_MENU_MODERN_REND) \
 	FUNC(STR_DESC_LEGACY_REND) \
-	FUNC(STR_DESC_MODERN_REND)
+	FUNC(STR_DESC_MODERN_REND) \
+	FUNC(STR_PLAYTIME)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -364,11 +365,12 @@ extern bool custom_path_str_dirty;
 extern bool net_path_str_dirty;
 extern bool is_main_menu;
 
+extern uint64_t cur_playtime;
 extern char *raw_net_romlist;
 extern uint8_t *rom_mem_buffer;
 extern volatile uint32_t temp_download_size;
 
-char *DrawRomSelector();
+char *DrawRomSelector(bool skip_reloads);
 void DrawInGameMenu();
 void DrawMenuBar();
 void DrawInGameMenuBar();

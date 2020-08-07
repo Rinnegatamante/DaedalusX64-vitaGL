@@ -76,6 +76,7 @@ char *bytes_string;
 static SceUID net_mutex;
 static bool sys_initialized = false;
 
+uint64_t rom_start_tick = 0;
 uint8_t *rom_mem_buffer = nullptr;
 volatile uint32_t temp_download_size = 0;
 
@@ -215,7 +216,7 @@ static void startDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static int compatListThread(unsigned int args, void* arg){
+static int compatListThread(unsigned int args, void* arg) {
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
@@ -243,7 +244,7 @@ static int compatListThread(unsigned int args, void* arg){
 	return 0;
 }
 
-static int downloaderThread_file(unsigned int args, void* arg){
+static int downloaderThread_file(unsigned int args, void* arg) {
 	char url[512];
 	curl_handle = curl_easy_init();
 	strcpy(url, net_url);
@@ -260,7 +261,7 @@ static int downloaderThread_file(unsigned int args, void* arg){
 	return 0;
 }
 
-static int downloaderThread_mem(unsigned int args, void* arg){
+static int downloaderThread_mem(unsigned int args, void* arg) {
 	char url[512];
 	curl_handle = curl_easy_init();
 	strcpy(url, net_url);
@@ -273,7 +274,7 @@ static int downloaderThread_mem(unsigned int args, void* arg){
 	return 0;
 }
 
-static int updaterThread(unsigned int args, void* arg){
+static int updaterThread(unsigned int args, void* arg) {
 	uint8_t update_detected = 0;
 	char url[512];
 	curl_handle = curl_easy_init();
@@ -717,6 +718,21 @@ void loadNetRomPath() {
 	}
 }
 
+void SavePlaytimeData() {
+	char fname[64];
+	sprintf(fname, "%04x%04x-%01x.bin", g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID);
+	IO::Filename fullpath_filename;
+	IO::Path::Combine(fullpath_filename, DAEDALUS_VITA_PATH("Playtimes/"), fname );
+	FILE *f = fopen(fullpath_filename, "wb");
+	if (f) {
+		uint64_t cur_tick = sceKernelGetProcessTimeWide();
+		cur_playtime += (cur_tick - rom_start_tick) / 1000000;
+		rom_start_tick = cur_tick;
+		fprintf(f, "%llu", cur_playtime);
+		fclose(f);
+	};
+}
+
 void loadConfig(const char *game) {
 	char tmp[128];
 	strcpy(tmp, game);
@@ -794,6 +810,30 @@ void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 	strcpy(dst2, &tag_start[strlen(tag)]);
 }
 
+int power_cb(int notifyId, int notifyCount, int powerInfo, void *common) {
+	if (is_main_menu || !gStandaloneMode) return 0;
+	
+	if ((powerInfo & SCE_POWER_CB_RESUME_LIVEAREA) ||
+		(powerInfo & SCE_POWER_CB_RESUMING))
+		rom_start_tick = sceKernelGetProcessTimeWide();
+	else if ((powerInfo & SCE_POWER_CB_PS_BUTTON_PRESS) ||
+		(powerInfo & SCE_POWER_CB_SUSPENDING) ||
+		(powerInfo & SCE_POWER_CB_SHUTDOWN)) {
+		SavePlaytimeData();
+	}
+	return 0;
+}
+
+int callbacks_thread(unsigned int args, void* arg) {
+	int cbid = sceKernelCreateCallback("Power Callback", 0, power_cb, NULL);
+	scePowerRegisterCallback(cbid);
+	for (;;) {
+		sceKernelDelayThreadCB(10000000);
+	}
+	
+	return 0;
+}
+
 int main(int argc, char* argv[]) {
 	char *rom;
 	
@@ -804,6 +844,11 @@ int main(int argc, char* argv[]) {
 	memset(&appUtilBootParam, 0, sizeof(SceAppUtilBootParam));
 	sceAppUtilInit(&appUtilParam, &appUtilBootParam);
 	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &console_language);
+	
+	// Starting power callbacks handler
+	SceUID thid = sceKernelCreateThread("callbackThread", callbacks_thread, 0x10000100, 0x10000, 0, 0, NULL);
+	if (thid >= 0)
+		sceKernelStartThread(thid, 0, 0);
 	
 	// We need this to override the compat list update skip option
 	preloadConfig();
@@ -819,6 +864,7 @@ int main(int argc, char* argv[]) {
 		loadNetRomPath();
 	}
 	
+	sceIoMkdir(DAEDALUS_VITA_PATH("Playtimes/"), 0777);
 	Initialize();
 
 	while (run_emu) {
@@ -829,7 +875,7 @@ int main(int argc, char* argv[]) {
 		else if (gStandaloneMode) {
 			rom = nullptr;
 			do {
-				rom = DrawRomSelector();
+				rom = DrawRomSelector(false);
 			} while (rom == nullptr);
 			
 			char pre_launch[32], post_launch[32];
@@ -838,7 +884,7 @@ int main(int argc, char* argv[]) {
 			showAlert(boot_params, ALERT_MESSAGE);
 		
 			// We re-draw last frame two times in order to make the launching alert to show up
-			for (int i = 0; i < 2; i++) { DrawRomSelector(); } 
+			for (int i = 0; i < 2; i++) { DrawRomSelector(true); } 
 		}
 		
 		EnableMenuButtons(false);
@@ -846,7 +892,9 @@ int main(int argc, char* argv[]) {
 		
 		loadConfig(g_ROM.settings.GameName.c_str());
 		is_main_menu = false;
+		if (gStandaloneMode) rom_start_tick = sceKernelGetProcessTimeWide();
 		CPU_Run();
+		if (gStandaloneMode) SavePlaytimeData();
 		System_Close();
 		is_main_menu = true;
 		

@@ -42,6 +42,7 @@
 #define ROMS_FOLDERS_NUM 5
 #define FILTER_MODES_NUM 8
 
+char playtime_str[32];
 char selectedRom[256];
 char rom_name_filter[128] = {0};
 
@@ -67,10 +68,12 @@ struct RomSelection {
 	u32 size;
 	ESaveType save;
 	ECicType cic;
+	uint64_t playtime;
 	CompatibilityList *status;
 	RomSelection *next;
 };
 
+static RomSelection *last_launched = nullptr;
 static RomSelection *list = nullptr;
 static CompatibilityList *comp = nullptr;
 static RomSelection *old_hovered = nullptr;
@@ -78,6 +81,7 @@ static bool has_preview_icon = false;
 static int preview_width, preview_height, preview_x, preview_y;
 CRefPtr<CNativeTexture> mpPreviewTexture;
 GLuint preview_icon = 0;
+uint64_t cur_playtime = 0;
 
 int oldSortOrder = -1;
 
@@ -245,6 +249,31 @@ void LoadBackground() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, bg_data);
 		free(bg_data);
 	}
+}
+
+void LoadPlaytimeData(RomSelection *p) {
+	if (p->is_online) {
+		p->playtime = 0;
+		return;
+	}
+	char fname[64];
+	sprintf(fname, "%04x%04x-%01x.bin", p->id.CRC[0], p->id.CRC[1], p->id.CountryID);
+	IO::Filename fullpath_filename;
+	IO::Path::Combine(fullpath_filename, DAEDALUS_VITA_PATH("Playtimes/"), fname );
+	FILE *f = fopen(fullpath_filename, "rb");
+	if (f) {
+		fscanf(f, "%llu", &p->playtime);
+		fclose(f);
+	} else p->playtime = 0;
+}
+
+char *FormatPlaytime(uint64_t playtime) {
+	uint64_t seconds = playtime % 60;
+	uint64_t min_raw = (playtime / 60);
+	uint64_t minutes = min_raw % 60;
+	uint64_t hours = min_raw / 60;
+	sprintf(playtime_str, "%02llu:%02llu:%02llu", hours, minutes, seconds);
+	return playtime_str;
 }
 
 float *bg_attributes = nullptr;
@@ -433,13 +462,18 @@ bool filterRoms(RomSelection *p) {
 	return false;
 }
 
-char *DrawRomSelector() {
+char *DrawRomSelector(bool skip_reloads) {
 	bool selected = false;
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	vglStartRendering();
 	if (bg_image != 0xDEADBEEF) DrawBackground();
 	DrawMenuBar();
+	
+	if (last_launched && !skip_reloads) {
+		LoadPlaytimeData(last_launched);
+		last_launched = nullptr;
+	}
 		
 	if (!list) {
 		oldSortOrder = -1;
@@ -495,6 +529,7 @@ char *DrawRomSelector() {
 							node->save = tmpsettings.SaveType;
 							node->status = SearchForCompatibilityData(node->title);
 						}
+						LoadPlaytimeData(node);
 						node->next = list;
 						list = node;
 					}
@@ -646,6 +681,7 @@ char *DrawRomSelector() {
 			}
 			ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], strlen(hovered->title) > 0 ? hovered->title : lang_strings[STR_UNKNOWN]);
 			ImGui::Text("%s: %s", lang_strings[STR_REGION], ROM_GetCountryNameFromID(hovered->id.CountryID));
+			ImGui::Text("%s: %s", lang_strings[STR_PLAYTIME], FormatPlaytime(hovered->playtime));
 			ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
 			ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
 			ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
@@ -711,7 +747,9 @@ char *DrawRomSelector() {
 		pendingDownload = false;
 	}
 	
-	if (selected) {
+	if (selected && !skip_reloads) {
+		cur_playtime = hovered->playtime;
+		last_launched = hovered;
 		CheatCodes_Read( hovered->title, "Daedalus.cht", hovered->id.CountryID );
 		return selectedRom;
 	}

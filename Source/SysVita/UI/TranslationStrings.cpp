@@ -169,5 +169,6 @@ char lang_strings[LANG_STRINGS_NUM][256] = {
 	"Legacy", // STR_MENU_LEGACY_REND
 	"Modern", // STR_MENU_MODERN_REND
 	"Original renderer based on GL1 fixed function pipeline.", // STR_DESC_LEGACY_REND
-	"Modern renderer based on GL2+ shaders. Requires libshacccg.suprx." // STR_DESC_MODERN_REND
+	"Modern renderer based on GL2+ shaders. Requires libshacccg.suprx.", // STR_DESC_MODERN_REND
+	"Playtime" // STR_PLAYTIME
 };
