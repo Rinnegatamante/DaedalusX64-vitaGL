@@ -299,9 +299,11 @@ static int updaterThread(unsigned int args, void* arg) {
 		}
 	}
 	if (update_detected) {
-		fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
-		fwrite((const void*)rom_mem_buffer, 1, downloaded_bytes, fh);
-		fclose(fh);
+		if (downloaded_bytes > 12 * 1024) {
+			fh = fopen(TEMP_DOWNLOAD_NAME, "wb");
+			fwrite((const void*)rom_mem_buffer, 1, downloaded_bytes, fh);
+			fclose(fh);
+		}
 	}
 	curl_easy_cleanup(curl_handle);
 	sceKernelExitDeleteThread(0);
