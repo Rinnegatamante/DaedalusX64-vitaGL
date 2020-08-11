@@ -65,7 +65,7 @@ static void DLParser_Sprite2DScaleFlip( MicroCodeCommand command, Sprite2DInfo *
 //*****************************************************************************
 //
 //*****************************************************************************
-static CRefPtr<CNativeTexture> Load_Sprite2D( const Sprite2DStruct *sprite, const Sprite2DInfo info )
+static void Load_Sprite2D( const Sprite2DStruct *sprite, const Sprite2DInfo info )
 {
 	TextureInfo ti;
 	ti.SetLoadAddress(RDPSegAddr(sprite->address));
@@ -95,13 +95,13 @@ static CRefPtr<CNativeTexture> Load_Sprite2D( const Sprite2DStruct *sprite, cons
 
 	ti.SetTLutFormat(kTT_RGBA16);
 	
-	return gRenderer->LoadTextureDirectly(ti);
+	gRenderer->LoadTextureDirectly(ti);
 }
 
 //*****************************************************************************
 //
 //*****************************************************************************
-static void Draw_Sprite2D( MicroCodeCommand command, const Sprite2DStruct *sprite, const Sprite2DInfo info, const CNativeTexture * texture )
+static void Draw_Sprite2D(MicroCodeCommand command, const Sprite2DStruct *sprite, const Sprite2DInfo info)
 {
 	f32 frameX = ((s16)((command.inst.cmd1 >> 16) & 0xFFFF)) / 4.0f;
 	f32 frameY = ((s16)(command.inst.cmd1 & 0xFFFF)) / 4.0f;
@@ -130,10 +130,10 @@ static void Draw_Sprite2D( MicroCodeCommand command, const Sprite2DStruct *sprit
 		lry = frameY + frameH;
 	}
 
-	f32 uls = sprite->imageX;						//left
-	f32 ult = sprite->imageY;						//top
-	f32 lrs = sprite->imageX + sprite->imageW - 1;	//right
-	f32 lrt = sprite->imageY + sprite->imageH - 1;	//bottom
+	f32 uls = sprite->imageX;					//left
+	f32 ult = sprite->imageY;					//top
+	f32 lrs = sprite->imageX + sprite->imageW;	//right
+	f32 lrt = sprite->imageY + sprite->imageH;	//bottom
 	
 	if (g_ROM.GameHacks == WCW_NITRO)
 	{
@@ -141,7 +141,7 @@ static void Draw_Sprite2D( MicroCodeCommand command, const Sprite2DStruct *sprit
 		lrt /= info.scaleY;
 	}
 
-	gRenderer->Draw2DTexture(ulx, uly, lrx, lry, uls, ult, lrs, lrt, texture);
+	gRenderer->Draw2DTexture(ulx, uly, lrx, lry, uls, ult, lrs, lrt);
 }
 
 //*****************************************************************************
@@ -149,8 +149,8 @@ static void Draw_Sprite2D( MicroCodeCommand command, const Sprite2DStruct *sprit
 //*****************************************************************************
 static void DLParser_Sprite2DDraw( MicroCodeCommand command, const Sprite2DInfo info, const Sprite2DStruct *sprite )
 {
-	CRefPtr<CNativeTexture> texture = Load_Sprite2D( sprite, info );
-	Draw_Sprite2D( command, sprite, info, texture );
+	Load_Sprite2D( sprite, info );
+	Draw_Sprite2D( command, sprite, info);
 }
 
 //*****************************************************************************

@@ -25,12 +25,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static float fb_ratio;
 
-static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
+static bool LoadFrameBuffer(u32 origin)
 {
 	u32 width  = Memory_VI_GetRegister( VI_WIDTH_REG );
 	
 	if (width == 0 || (origin <= width*2) || g_ROM.SKIP_CPU_REND_HACK)
-		return NULL;
+		return false;
 	
 	fb_ratio = (float)FB_WIDTH / (float)width;
 	u32 height = (u32)((float)FB_HEIGHT * fb_ratio);
@@ -58,17 +58,16 @@ static inline CRefPtr<CNativeTexture> LoadFrameBuffer(u32 origin)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
 	free(pixels);
 	
-	return texture;
+	return true;
 }
 
 void RenderFrameBuffer(u32 origin)
 {
 	gRenderer->BeginScene();
 	
-	CRefPtr<CNativeTexture> texture = LoadFrameBuffer(origin);
-	if(texture != NULL) {
+	if (LoadFrameBuffer(origin)) {
 		gRenderer->ForceViewport(Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio);
-		gRenderer->Draw2DTexture(0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio, 0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), FB_HEIGHT, texture);
+		gRenderer->Draw2DTexture(0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio, 0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), FB_HEIGHT);
 	}
 
 	gRenderer->EndScene();

@@ -851,14 +851,11 @@ void RendererLegacy::DrawUITexture()
 }
 
 void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
-								f32 u0, f32 v0, f32 u1, f32 v1,
-								const CNativeTexture * texture)
+								f32 u0, f32 v0, f32 u1, f32 v1)
 {
 	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "Draw2DTexture: L: 0x%08X", gRDPOtherMode.L);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
-	
-	texture->InstallTexture();
 	
 	// Enable or Disable ZBuffer test
 	if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
@@ -877,6 +874,7 @@ void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
+	const CNativeTexture *texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 	
@@ -920,14 +918,11 @@ void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 }
 
 void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
-								 f32 y2, f32 x3, f32 y3, f32 s, f32 t,
-								 const CNativeTexture * texture)
+								 f32 y2, f32 x3, f32 y3, f32 s, f32 t)
 {
 	//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "Draw2DTextureR: L: 0x%08X", gRDPOtherMode.L);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
-	
-	texture->InstallTexture();
 	
 	// Enable or Disable ZBuffer test
 	if ((mTnL.Flags.Zbuffer && gRDPOtherMode.z_cmp) || gRDPOtherMode.z_upd)
@@ -946,6 +941,7 @@ void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
+	const CNativeTexture * texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 

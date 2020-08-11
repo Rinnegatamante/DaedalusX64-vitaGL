@@ -1833,7 +1833,7 @@ void BaseRenderer::PrepareTexRectUVs(TexCoord * puv0, TexCoord * puv1)
 
 //
 
-CRefPtr<CNativeTexture> BaseRenderer::LoadTextureDirectly( const TextureInfo & ti )
+void BaseRenderer::LoadTextureDirectly( const TextureInfo & ti )
 {
 	CRefPtr<CNativeTexture> texture = CTextureCache::Get()->GetOrCreateTexture( ti );
 
@@ -1841,8 +1841,6 @@ CRefPtr<CNativeTexture> BaseRenderer::LoadTextureDirectly( const TextureInfo & t
 
 	mBoundTexture[0] = texture;
 	mBoundTextureInfo[0] = ti;
-
-	return texture;
 }
 
 

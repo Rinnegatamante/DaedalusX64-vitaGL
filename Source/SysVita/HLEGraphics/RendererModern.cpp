@@ -990,7 +990,7 @@ void RendererModern::DrawUITexture()
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
-void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v0, f32 u1, f32 v1, const CNativeTexture * texture)
+void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v0, f32 u1, f32 v1)
 {
 	gRDPOtherMode.cycle_type = CYCLE_COPY;
 
@@ -1002,6 +1002,7 @@ void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
+	const CNativeTexture * texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 	
@@ -1047,7 +1048,7 @@ void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v
 	RenderDaedalusVtxStreams(GL_TRIANGLE_STRIP, positions, uvs, colours, 4);
 }
 
-void RendererModern::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, f32 s, f32 t, const CNativeTexture * texture)
+void RendererModern::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2, f32 y2, f32 x3, f32 y3, f32 s, f32 t)
 {
 	gRDPOtherMode.cycle_type = CYCLE_COPY;
 
@@ -1059,6 +1060,7 @@ void RendererModern::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2, f32 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
+	const CNativeTexture * texture = mBoundTexture[0];
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 
