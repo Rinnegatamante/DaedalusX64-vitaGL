@@ -150,7 +150,7 @@ namespace IO
 			}
 			else
 			{
-				return nullptr;
+				return p_path;
 			}
 		}
 
