@@ -23,13 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //*****************************************************************************
 // Needed by S2DEX
 //*****************************************************************************
-#define	S2DEX_OBJLT_TXTRBLOCK	0x00001033
-#define	S2DEX_OBJLT_TXTRTILE	0x00fc1034
-#define	S2DEX_OBJLT_TLUT		0x00000030
-#define	S2DEX_BGLT_LOADBLOCK	0x0033
-#define	S2DEX_BGLT_LOADTILE		0xfff4
-#define S2DEX_BG_FLAG_FLIPS		0x01
-#define	S2DEX_BG_FLAG_FLIPT		0x10
+#define S2DEX_OBJLT_TXTRBLOCK   0x00001033
+#define S2DEX_OBJLT_TXTRTILE    0x00fc1034
+#define S2DEX_OBJLT_TLUT        0x00000030
+#define S2DEX_BGLT_LOADBLOCK    0x0033
+#define S2DEX_BGLT_LOADTILE     0xfff4
+#define S2DEX_BG_FLAG_FLIPS     0x01
+#define S2DEX_BG_FLAG_FLIPT     0x10
 
 //*****************************************************************************
 //
