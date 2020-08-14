@@ -47,6 +47,7 @@ bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
 bool gUseRendererLegacy = true;
+bool gNetBoot = false;
 
 uint8_t shader_idx = 0;
 
@@ -345,6 +346,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gAutoUpdate", (int)gAutoUpdate);
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
 		fprintf(config, "%s=%d\n", "gBigText", (int)gBigText);
+		fprintf(config, "%s=%d\n", "gNetBoot", (int)gNetBoot);
 		fclose(config);
 	}
 	
@@ -1084,6 +1086,9 @@ void DrawMenuBar() {
 			}
 			if (ImGui::MenuItem(net_path_str)) {
 				showDialog(lang_strings[STR_DLG_NET_PATH], change_net_rom_path, dummy_func, DIALOG_KEYBOARD, gNetRomPath);
+			}
+			if (ImGui::MenuItem(lang_strings[STR_DLG_NET_BOOT], nullptr, gNetBoot)){
+				gNetBoot = !gNetBoot;
 			}
 			ImGui::Separator();
 			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){

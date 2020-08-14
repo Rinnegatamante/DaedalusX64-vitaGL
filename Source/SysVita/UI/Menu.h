@@ -56,7 +56,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 165
+#define LANG_STRINGS_NUM 166
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -223,7 +223,8 @@ enum {
 	FUNC(STR_MENU_MODERN_REND) \
 	FUNC(STR_DESC_LEGACY_REND) \
 	FUNC(STR_DESC_MODERN_REND) \
-	FUNC(STR_PLAYTIME)
+	FUNC(STR_PLAYTIME) \
+	FUNC(STR_DLG_NET_BOOT)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -350,6 +351,7 @@ extern bool gUseMipmaps;
 extern bool gSkipCompatListUpdate;
 extern bool gAutoUpdate;
 extern bool gUseRearpad;
+extern bool gNetBoot;
 extern int  gPostProcessing;
 extern int  gOverlay;
 extern int  gSortOrder;
@@ -403,6 +405,8 @@ void extract_file(char *file, char *dir);
 int download_file(char *url, char *file, char *msg, float int_total_bytes, bool has_temp_file);
 void sort_overlaylist(Overlay *start);
 void sort_shaderlist(PostProcessingEffect *start);
+void set_net_folder();
+
 void log2file(const char *format, ...);
 void dump2file(void *ptr, uint32_t size, char *filename);
 

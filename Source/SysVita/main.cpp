@@ -316,6 +316,7 @@ void reloadFont() {
 		0x0100, 0x024F, // Latin Extended
 		0x0370, 0x03FF, // Greek
 		0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+		0x0590, 0x05FF, // Hebrew
 		0x1E00, 0x1EFF, // Latin Extended Additional
 		0x2DE0, 0x2DFF, // Cyrillic Extended-A
 		0xA640, 0xA69F, // Cyrillic Extended-B
@@ -695,6 +696,7 @@ void preloadConfig() {
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
 			else if (strcmp("gBigText", buffer) == 0) gBigText = (bool)value;
+			else if (strcmp("gNetBoot", buffer) == 0) gNetBoot = (bool)value;
 		}
 		fclose(config);
 		
@@ -788,6 +790,7 @@ void loadConfig(const char *game) {
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 			else if (strcmp("gBigText", buffer) == 0) gBigText = (bool)value;
+			else if (strcmp("gNetBoot", buffer) == 0) gNetBoot = (bool)value;
 		}
 		fclose(config);
 
@@ -868,6 +871,8 @@ int main(int argc, char* argv[]) {
 	
 	sceIoMkdir(DAEDALUS_VITA_PATH("Playtimes/"), 0777);
 	Initialize();
+	
+	if (gNetBoot) queueDownload(lang_strings[STR_DLG_RETRIEVE_NET_PATH], gNetRomPath, 1024, set_net_folder, MEM_DOWNLOAD);
 
 	while (run_emu) {
 		loadConfig("default");
