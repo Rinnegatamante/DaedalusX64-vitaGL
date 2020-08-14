@@ -69,8 +69,11 @@ public:
 	{
 		return (x*x)+(y*y);
 	}
-
-	float x, y;
+	
+	union {
+		struct { float x, y; };
+		float f[2];
+	};
 };
 
 #endif // MATH_VECTOR2_H_

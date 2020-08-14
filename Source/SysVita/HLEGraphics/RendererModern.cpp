@@ -28,25 +28,6 @@
 extern BaseRenderer *gRenderer;
 RendererModern  *gRendererModern = nullptr;
 
-const float kShiftScales[] = {
-    1.f / (float)(1 << 0),
-    1.f / (float)(1 << 1),
-    1.f / (float)(1 << 2),
-    1.f / (float)(1 << 3),
-    1.f / (float)(1 << 4),
-    1.f / (float)(1 << 5),
-    1.f / (float)(1 << 6),
-    1.f / (float)(1 << 7),
-    1.f / (float)(1 << 8),
-    1.f / (float)(1 << 9),
-    1.f / (float)(1 << 10),
-    (float)(1 << 5),
-    (float)(1 << 4),
-    (float)(1 << 3),
-    (float)(1 << 2),
-    (float)(1 << 1),
-};
-
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
@@ -54,6 +35,7 @@ extern u32 aux_draws;
 extern u32 aux_discard;
 
 static const u32 kNumTextures = 2;
+static bool use_texture_scale = false;
 
 extern bool gUseMipmaps;
 
@@ -97,6 +79,8 @@ struct ShaderProgram
 	GLint				uloc_fognear;
 	GLint				uloc_fogfar;
 	GLint				uloc_fogcolor;
+	GLint				uloc_texscale_x;
+	GLint				uloc_texscale_y;
 };
 static std::vector<ShaderProgram *>		gShaders;
 
@@ -221,11 +205,13 @@ static const char* default_vertex_shader =
 "	float2 in_uv,\n"
 "	float4 in_col,\n"
 "	uniform float4x4 wvp,\n"
+"	uniform float tex_scale_x,\n"
+"	uniform float tex_scale_y,\n"
 "	float2 out sti : TEXCOORD0,\n"
 "	float4 out v_col : COLOR0,\n"
 "	float4 out v_pos : POSITION)\n"
 "{\n"
-"	sti = in_uv;\n"
+"	sti = float2(in_uv.x * tex_scale_x, in_uv.y * tex_scale_y);\n"
 "	v_col = in_col;\n"
 "	v_pos = mul(wvp, float4(in_pos, 1.0));\n"
 "}\n";
@@ -324,7 +310,7 @@ static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & 
 	if (config.AlphaThreshold > 0)
 	{
 		char * p = body + strlen(body);
-		sprintf(p, "\tif(col.a < %f) discard;\n", config.AlphaThreshold);
+		sprintf(p, "\tif (col.a < %f) discard;\n", config.AlphaThreshold);
 	}
 	
 	if (config.HasFog)
@@ -347,40 +333,49 @@ static void InitShaderProgram(ShaderProgram * program, const ShaderConfiguration
 	program->uloc_fognear      = glGetUniformLocation(shader_program, "fog_near");
 	program->uloc_fogfar       = glGetUniformLocation(shader_program, "fog_far");
 	program->uloc_fogcolor     = glGetUniformLocation(shader_program, "fog_color");
+	program->uloc_texscale_x   = glGetUniformLocation(shader_program, "tex_scale_x");
+	program->uloc_texscale_y   = glGetUniformLocation(shader_program, "tex_scale_y");
 }
 
-void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * config) const
+float RendererModern::CalculateAlphaThreshold() const
 {
-	config->Mux = mMux;
-	config->CycleType = gRDPOtherMode.cycle_type;
-	config->AlphaThreshold = 0;
-	config->HasFog = mTnL.Flags.Fog;
-
 	// Initiate Alpha test
 	if( (gRDPOtherMode.alpha_compare == G_AC_THRESHOLD) && !gRDPOtherMode.alpha_cvg_sel )
 	{
 		u8 alpha_threshold = mBlendColour.GetA();
-		config->AlphaThreshold = (alpha_threshold || g_ROM.ALPHA_HACK) ? mBlendColour.GetAf() - 0.001f : mBlendColour.GetAf();
+		return (alpha_threshold || g_ROM.ALPHA_HACK) ? mBlendColour.GetAf() - 0.001f : mBlendColour.GetAf();
 	}
 	else if (gRDPOtherMode.cvg_x_alpha)
 	{
-		config->AlphaThreshold = 0.4392f;
+		return 0.4392f;
 	}
 	else
 	{
 		// Use CVG for pixel alpha
+		return 0.0f;
+	}
+}
+
+void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * config) const
+{
+	config->CycleType = gRDPOtherMode.cycle_type;
+	
+	switch (config->CycleType) {
+	case CYCLE_FILL:
+		config->Mux = 0;
 		config->AlphaThreshold = 0;
+		break;
+	case CYCLE_COPY:
+		config->Mux = 0;
+		config->AlphaThreshold = CalculateAlphaThreshold();
+		break;
+	default:
+		config->Mux = mMux;
+		config->AlphaThreshold = CalculateAlphaThreshold();
+		break;
 	}
 
-	// In fill/cycle modes, we ignore the mux. Set it to zero so we don't create unecessary shaders.
-	u32 cycle_type = config->CycleType;
-	if (cycle_type == CYCLE_FILL || cycle_type == CYCLE_COPY)
-		config->Mux = 0;
-
-	// Not sure about this. Should CYCLE_FILL have alpha kill?
-	if (cycle_type == CYCLE_FILL)
-		config->AlphaThreshold = 0;
-	
+	config->HasFog = mTnL.Flags.Fog;
 }
 
 static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
@@ -677,6 +672,27 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 		glUniform4f(program->uloc_fogcolor, mFogColour.GetRf(), mFogColour.GetGf(), mFogColour.GetBf(), mFogColour.GetAf());
 	}
 	
+	CNativeTexture * texture = mBoundTexture[0];
+	if (use_texture_scale && texture != NULL) {
+		
+		float scale_x = texture->GetScaleX();
+		float scale_y = texture->GetScaleY();
+		
+		if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241)) { // Hack to fix the sun in Zelda OOT/MM
+			scale_x *= 0.5f;
+			scale_y *= 0.5f;
+		} else if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) { // Hack to fix texts on Rayman 2/Donald Duck Quack Attack
+			scale_x *= 0.125f;
+			scale_y *= 0.125f;
+		}
+		
+		glUniform1f(program->uloc_texscale_x, scale_x);
+		glUniform1f(program->uloc_texscale_y, scale_y);
+	} else {
+		glUniform1f(program->uloc_texscale_x, 1.0f);
+		glUniform1f(program->uloc_texscale_y, 1.0f);
+	}
+	
 	// Second texture is sampled in 2 cycle mode if text_lod is clear (when set,
 	// gRDPOtherMode.text_lod enables mipmapping, but we just set lod_frac to 0.
 	bool use_t1 = cycle_mode == CYCLE_2CYCLE;
@@ -688,7 +704,7 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 		if (!install_textures[i])
 			continue;
 
-		CNativeTexture * texture = mBoundTexture[i];
+		texture = mBoundTexture[i];
 
 		if (texture != NULL)
 		{
@@ -734,6 +750,8 @@ void RendererModern::TexRect( u32 tile_idx, const v2 & xy0, const v2 & xy1, TexC
 			SetN64Viewport( aux_scale, aux_trans );
 		}
 	}
+	
+	use_texture_scale = true;
 
 	UpdateTileSnapshots( tile_idx );
 
@@ -757,34 +775,25 @@ void RendererModern::TexRect( u32 tile_idx, const v2 & xy0, const v2 & xy1, TexC
 
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 	
-	CNativeTexture *texture = mBoundTexture[0];
-	float scale_x = texture->GetScaleX();
-	float scale_y = texture->GetScaleY();
-	
-	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
-		scale_x *= 0.125f;
-		scale_y *= 0.125f;
-	}
-	
 	float *uvs = gTexCoordBuffer;
 	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
-		gTexCoordBuffer[0] = NORMALIZE_C1842XX(uv0.x) * scale_x;
-		gTexCoordBuffer[1] = NORMALIZE_C1842XX(uv0.y) * scale_y;
-		gTexCoordBuffer[2] = NORMALIZE_C1842XX(uv1.x) * scale_x;
-		gTexCoordBuffer[3] = NORMALIZE_C1842XX(uv0.y) * scale_y;
-		gTexCoordBuffer[4] = NORMALIZE_C1842XX(uv0.x) * scale_x;
-		gTexCoordBuffer[5] = NORMALIZE_C1842XX(uv1.y) * scale_y;
-		gTexCoordBuffer[6] = NORMALIZE_C1842XX(uv1.x) * scale_x;
-		gTexCoordBuffer[7] = NORMALIZE_C1842XX(uv1.y) * scale_y;	
+		gTexCoordBuffer[0] = NORMALIZE_C1842XX(uv0.x);
+		gTexCoordBuffer[1] = NORMALIZE_C1842XX(uv0.y);
+		gTexCoordBuffer[2] = NORMALIZE_C1842XX(uv1.x);
+		gTexCoordBuffer[3] = NORMALIZE_C1842XX(uv0.y);
+		gTexCoordBuffer[4] = NORMALIZE_C1842XX(uv0.x);
+		gTexCoordBuffer[5] = NORMALIZE_C1842XX(uv1.y);
+		gTexCoordBuffer[6] = NORMALIZE_C1842XX(uv1.x);
+		gTexCoordBuffer[7] = NORMALIZE_C1842XX(uv1.y);	
 	} else {
-		gTexCoordBuffer[0] = uv0.x * scale_x;
-		gTexCoordBuffer[1] = uv0.y * scale_y;
-		gTexCoordBuffer[2] = uv1.x * scale_x;
-		gTexCoordBuffer[3] = uv0.y * scale_y;
-		gTexCoordBuffer[4] = uv0.x * scale_x;
-		gTexCoordBuffer[5] = uv1.y * scale_y;
-		gTexCoordBuffer[6] = uv1.x * scale_x;
-		gTexCoordBuffer[7] = uv1.y * scale_y;
+		gTexCoordBuffer[0] = uv0.x;
+		gTexCoordBuffer[1] = uv0.y;
+		gTexCoordBuffer[2] = uv1.x;
+		gTexCoordBuffer[3] = uv0.y;
+		gTexCoordBuffer[4] = uv0.x;
+		gTexCoordBuffer[5] = uv1.y;
+		gTexCoordBuffer[6] = uv1.x;
+		gTexCoordBuffer[7] = uv1.y;
 	}
 	gTexCoordBuffer += 8;
 	
@@ -819,6 +828,8 @@ void RendererModern::TexRectFlip( u32 tile_idx, const v2 & xy0, const v2 & xy1, 
 	
 	v2 uv0( (float)st0.s / 32.f, (float)st0.t / 32.f );
 	v2 uv1( (float)st1.s / 32.f, (float)st1.t / 32.f );
+	
+	use_texture_scale = true;
 
 	PrepareRenderState(mScreenToDevice.mRaw, gRDPOtherMode.depth_source ? false : true);
 
@@ -827,19 +838,15 @@ void RendererModern::TexRectFlip( u32 tile_idx, const v2 & xy0, const v2 & xy1, 
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
 
-	CNativeTexture *texture = mBoundTexture[0];
-	float scale_x = texture->GetScaleX();
-	float scale_y = texture->GetScaleY();
-
 	float *uvs = gTexCoordBuffer;
-	gTexCoordBuffer[0] = uv0.x * scale_x;
-	gTexCoordBuffer[1] = uv0.y * scale_y;
-	gTexCoordBuffer[2] = uv0.x * scale_x;
-	gTexCoordBuffer[3] = uv1.y * scale_y;
-	gTexCoordBuffer[4] = uv1.x * scale_x;
-	gTexCoordBuffer[5] = uv0.y * scale_y;
-	gTexCoordBuffer[6] = uv1.x * scale_x;
-	gTexCoordBuffer[7] = uv1.y * scale_y;
+	gTexCoordBuffer[0] = uv0.x;
+	gTexCoordBuffer[1] = uv0.y;
+	gTexCoordBuffer[2] = uv0.x;
+	gTexCoordBuffer[3] = uv1.y;
+	gTexCoordBuffer[4] = uv1.x;
+	gTexCoordBuffer[5] = uv0.y;
+	gTexCoordBuffer[6] = uv1.x;
+	gTexCoordBuffer[7] = uv1.y;
 	gTexCoordBuffer += 8;
 	
 	float *positions = gVertexBuffer;
@@ -874,6 +881,8 @@ void RendererModern::FillRect( const v2 & xy0, const v2 & xy1, u32 color )
 	v2 screen1;
 	ScaleN64ToScreen( xy0, screen0 );
 	ScaleN64ToScreen( xy1, screen1 );
+	
+	use_texture_scale = false;
 
 	float *positions = gVertexBuffer;
 	gVertexBuffer[0] = screen0.x;
@@ -1005,8 +1014,7 @@ void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
-	float scale_x = texture->GetScaleX();
-	float scale_y = texture->GetScaleY();
+	use_texture_scale = true;
 	
 	float sx0 = LightN64ToScreenX(x0);
 	float sy0 = LightN64ToScreenY(y0);
@@ -1030,14 +1038,14 @@ void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v
 	gVertexBuffer[9] = sx1;
 	gVertexBuffer[10] = sy1;
 	gVertexBuffer[11] = 0.0f;
-	gTexCoordBuffer[0] = u0 * scale_x;
-	gTexCoordBuffer[1] = v0 * scale_y;
-	gTexCoordBuffer[2] = u1 * scale_x;
-	gTexCoordBuffer[3] = v0 * scale_y;
-	gTexCoordBuffer[4] = u0 * scale_x;
-	gTexCoordBuffer[5] = v1 * scale_y;
-	gTexCoordBuffer[6] = u1 * scale_x;
-	gTexCoordBuffer[7] = v1 * scale_y;
+	gTexCoordBuffer[0] = u0;
+	gTexCoordBuffer[1] = v0;
+	gTexCoordBuffer[2] = u1;
+	gTexCoordBuffer[3] = v0;
+	gTexCoordBuffer[4] = u0;
+	gTexCoordBuffer[5] = v1;
+	gTexCoordBuffer[6] = u1;
+	gTexCoordBuffer[7] = v1;
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
 
@@ -1065,8 +1073,7 @@ void RendererModern::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2, f32 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
-	float scale_x = texture->GetScaleX();
-	float scale_y = texture->GetScaleY();
+	use_texture_scale = true;
 
 	float *positions = gVertexBuffer;
 	float *uvs = gTexCoordBuffer;
@@ -1084,12 +1091,12 @@ void RendererModern::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2, f32 
 	gVertexBuffer[11] = 0.0f;
 	gTexCoordBuffer[0] = 0.0f;
 	gTexCoordBuffer[1] = 0.0f;
-	gTexCoordBuffer[2] = s * scale_x;
+	gTexCoordBuffer[2] = s;
 	gTexCoordBuffer[3] = 0.0f;
-	gTexCoordBuffer[4] = s * scale_x;
-	gTexCoordBuffer[5] = t * scale_y;
+	gTexCoordBuffer[4] = s;
+	gTexCoordBuffer[5] = t;
 	gTexCoordBuffer[6] = 0.0f;
-	gTexCoordBuffer[7] = t * scale_y;
+	gTexCoordBuffer[7] = t;
 
 	uint32_t *colours = gColorBuffer;
 	gColorBuffer[0] = gColorBuffer[1] = gColorBuffer[2] = gColorBuffer[3] = 0xFFFFFFFF;
@@ -1098,6 +1105,67 @@ void RendererModern::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2, f32 
 	SetNegativeViewport();
 
 	RenderDaedalusVtxStreams(GL_TRIANGLE_FAN, positions, uvs, colours, 4);
+}
+
+uint32_t RendererModern::PrepareTrisUnclipped(uint32_t **clr)
+{
+	const u32		num_vertices = mNumIndices;
+
+	//
+	//	Now we just shuffle all the data across directly (potentially duplicating verts)
+	//
+	vglVertexAttribPointerMapped(0, gVertexBuffer);
+	*clr = gColorBuffer;
+	if (mTnL.Flags.Texture) {
+		vglVertexAttribPointerMapped(1, gTexCoordBuffer);
+		
+		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
+		else UpdateTileSnapshots( mTextureTile );
+		
+		CNativeTexture *texture = mBoundTexture[0];
+		
+		//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
+		
+		if (texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) ) {
+			use_texture_scale = true;
+
+			for( u32 i = 0; i < num_vertices; ++i )
+			{
+				u32 index = mIndexBuffer[ i ];
+				
+				memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+				gTexCoordBuffer[0] = (mVtxProjected[ index ].Texture.x - (mTileTopLeft[ 0 ].s  / 4.f));
+				gTexCoordBuffer[1] = (mVtxProjected[ index ].Texture.y - (mTileTopLeft[ 0 ].t  / 4.f));
+				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+				gVertexBuffer += 3;
+				gTexCoordBuffer += 2;
+			}
+		} else {
+			use_texture_scale = false;
+			
+			for( u32 i = 0; i < num_vertices; ++i )
+			{
+				u32 index = mIndexBuffer[ i ];
+		
+				memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+				memcpy_neon(gTexCoordBuffer, mVtxProjected[ index ].Texture.f, sizeof(float) * 2);
+				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+				gVertexBuffer += 3;
+				gTexCoordBuffer += 2;
+			}
+		}
+	} else {
+		for( u32 i = 0; i < num_vertices; ++i )
+		{
+			u32 index = mIndexBuffer[ i ];
+		
+			memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+			gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+			gVertexBuffer += 3;
+		}
+	}
+	gColorBuffer += num_vertices;
+	return num_vertices;
 }
 
 bool CreateRendererModern()

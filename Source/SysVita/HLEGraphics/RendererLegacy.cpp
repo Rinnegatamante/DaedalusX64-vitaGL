@@ -982,6 +982,75 @@ void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
+uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
+{
+	const u32		num_vertices = mNumIndices;
+
+	//
+	//	Now we just shuffle all the data across directly (potentially duplicating verts)
+	//
+	vglVertexPointerMapped(gVertexBuffer);
+	*clr = gColorBuffer;
+	if (mTnL.Flags.Texture) {
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		vglTexCoordPointerMapped(gTexCoordBuffer);
+		
+		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
+		else UpdateTileSnapshots( mTextureTile );
+		
+		CNativeTexture *texture = mBoundTexture[0];
+		
+		//if ((gRDPOtherMode.L & 0xFFFFFF00) == 0x0C184200) CDebugConsole::Get()->Msg(1, "RenderTriangles: L: 0x%08X", gRDPOtherMode.L);
+		
+		if( texture && (mTnL.Flags._u32 & (TNL_LIGHT|TNL_TEXGEN)) != (TNL_LIGHT|TNL_TEXGEN) )
+		{
+			float scale_x = texture->GetScaleX();
+			float scale_y = texture->GetScaleY();
+				
+			// Hack to fix the sun in Zelda OOT/MM
+			if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241))
+			{
+				scale_x *= 0.5f;
+				scale_y *= 0.5f;
+			}
+
+			for( u32 i = 0; i < num_vertices; ++i )
+			{
+				u32 index = mIndexBuffer[ i ];
+		
+				memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+				gTexCoordBuffer[0] = (mVtxProjected[ index ].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
+				gTexCoordBuffer[1] = (mVtxProjected[ index ].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
+				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+				gVertexBuffer += 3;
+				gTexCoordBuffer += 2;
+			}
+		} else {
+			for( u32 i = 0; i < num_vertices; ++i )
+			{
+				u32 index = mIndexBuffer[ i ];
+		
+				memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+				memcpy_neon(gTexCoordBuffer, mVtxProjected[ index ].Texture.f, sizeof(float) * 2);
+				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+				gVertexBuffer += 3;
+				gTexCoordBuffer += 2;
+			}
+		}
+	} else {
+		for( u32 i = 0; i < num_vertices; ++i )
+		{
+			u32 index = mIndexBuffer[ i ];
+		
+			memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+			gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
+			gVertexBuffer += 3;
+		}
+	}
+	gColorBuffer += num_vertices;
+	return num_vertices;
+}
+
 bool CreateRendererLegacy()
 {
 	gRendererLegacy = new RendererLegacy();

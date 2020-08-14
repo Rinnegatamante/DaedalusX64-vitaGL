@@ -381,7 +381,7 @@ protected:
 
 
 	void				PrepareTrisClipped( TempVerts * temp_verts ) const;
-	uint32_t			PrepareTrisUnclipped( uint32_t **clr );
+	virtual uint32_t	PrepareTrisUnclipped( uint32_t **clr ) = 0;
 	v3					LightVert( const v3 & norm ) const;
 	v3					LightPointVert( const v4 & w ) const;
 
