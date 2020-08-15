@@ -1,5 +1,3 @@
-#define TEST_DISABLE_SP_FUNCS DAEDALUS_PROFILE(__FUNCTION__);
-
 //*****************************************************************************
 //
 //*****************************************************************************
@@ -25,7 +23,6 @@ inline u32 SpGetStatus()
 //*****************************************************************************
 u32 Patch___osSpRawStartDma()
 {
-TEST_DISABLE_SP_FUNCS
 	u32 RWflag = gGPR[REG_a0]._u32_0;
 	u32 SPAddr = gGPR[REG_a1]._u32_0;
 	u32 VAddr  = gGPR[REG_a2]._u32_0;
@@ -37,11 +34,7 @@ TEST_DISABLE_SP_FUNCS
 		SPAddr,
 		VAddr, PAddr,
 		len);
-	*/
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !IsSpDeviceBusy(), "Sp Device is BUSY, Need to handle!");
-	#endif
-	/*
+
 	if (IsSpDeviceBusy())
 	{
 		gGPR[REG_v0]._s64 = -1;
@@ -49,11 +42,6 @@ TEST_DISABLE_SP_FUNCS
 	}
 	*/
 	u32 PAddr = ConvertToPhysics(VAddr);
-
-	//FIXME
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( PAddr,"Address Translation necessary!");
-	#endif
 
 	Memory_SP_SetRegister( SP_MEM_ADDR_REG, SPAddr);
 	Memory_SP_SetRegister( SP_DRAM_ADDR_REG, PAddr);
@@ -83,8 +71,6 @@ TEST_DISABLE_SP_FUNCS
 //*****************************************************************************
 u32 Patch___osSpDeviceBusy_Mario()
 {
-TEST_DISABLE_SP_FUNCS
-
 	gGPR[REG_v0]._s64 = (s64)IsSpDeviceBusy();
 
 	return PATCH_RET_JR_RA;
@@ -96,8 +82,6 @@ TEST_DISABLE_SP_FUNCS
 // Identical, but optimised
 u32 Patch___osSpDeviceBusy_Rugrats()
 {
-TEST_DISABLE_SP_FUNCS
-
 	gGPR[REG_v0]._s64 = (s64)IsSpDeviceBusy();
 
 	return PATCH_RET_JR_RA;
@@ -110,8 +94,6 @@ TEST_DISABLE_SP_FUNCS
 // Used in Pokemon Stadium 1
 u32 Patch___osSpGetStatus_Mario()
 {
-TEST_DISABLE_SP_FUNCS
-
 	gGPR[REG_v0]._s64 = (s64)SpGetStatus();
 
 	return PATCH_RET_JR_RA;
@@ -123,8 +105,6 @@ TEST_DISABLE_SP_FUNCS
 // Ogre Battle uses this
 u32 Patch___osSpGetStatus_Rugrats()
 {
-TEST_DISABLE_SP_FUNCS
-
 	gGPR[REG_v0]._s64 = (s64)SpGetStatus();
 
 	return PATCH_RET_JR_RA;
@@ -135,7 +115,6 @@ TEST_DISABLE_SP_FUNCS
 //*****************************************************************************
 u32 Patch___osSpSetStatus_Mario()
 {
-TEST_DISABLE_SP_FUNCS
 	u32 status = gGPR[REG_a0]._u32_0;
 
 	MemoryUpdateSPStatus( status );
@@ -147,7 +126,6 @@ TEST_DISABLE_SP_FUNCS
 //*****************************************************************************
 u32 Patch___osSpSetStatus_Rugrats()
 {
-TEST_DISABLE_SP_FUNCS
 	u32 status = gGPR[REG_a0]._u32_0;
 
 	MemoryUpdateSPStatus( status );
@@ -159,7 +137,6 @@ TEST_DISABLE_SP_FUNCS
 //*****************************************************************************
 u32 Patch___osSpSetPc()
 {
-TEST_DISABLE_SP_FUNCS
 	u32 pc = gGPR[REG_a0]._u32_0;
 
 	//DBGConsole_Msg(0, "__osSpSetPc(0x%08x)", pc);
@@ -187,7 +164,6 @@ TEST_DISABLE_SP_FUNCS
 // Translate task...
 u32 Patch_osSpTaskLoad()
 {
-TEST_DISABLE_SP_FUNCS
 	u32 task = gGPR[REG_a0]._u32_0;
 	/*u32 status = SpGetStatus();
 
@@ -278,10 +254,6 @@ TEST_DISABLE_SP_FUNCS
 //*****************************************************************************
 u32 Patch_osSpTaskStartGo()
 {
-TEST_DISABLE_SP_FUNCS
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !IsSpDeviceBusy(), "Sp Device is BUSY, Need to handle!");
-	#endif
 	/*
 	if (IsSpDeviceBusy())	// Device busy?
 	{
@@ -307,8 +279,6 @@ TEST_DISABLE_SP_FUNCS
 // It's called quiet often, it can be worth to implement it
 u32 Patch___osSpTaskLoadInitTask()
 {
-TEST_DISABLE_SP_FUNCS
-
 	return PATCH_RET_NOT_PROCESSED;
 }
 
@@ -324,8 +294,6 @@ TEST_DISABLE_SP_FUNCS
 //
 u32 Patch_osSpTaskYield_Mario()
 {
-TEST_DISABLE_SP_FUNCS
-
 	gGPR[REG_v0]._s64 = 0;
 	return PATCH_RET_JR_RA;
 }
@@ -335,8 +303,6 @@ TEST_DISABLE_SP_FUNCS
 //*****************************************************************************
 u32 Patch_osSpTaskYield_Rugrats()
 {
-TEST_DISABLE_SP_FUNCS
-
 	gGPR[REG_v0]._s64 = 0;
 	return PATCH_RET_JR_RA;
 }
@@ -347,8 +313,6 @@ TEST_DISABLE_SP_FUNCS
 // Yoshi uses this
 u32 Patch_osSpTaskYielded()
 {
-TEST_DISABLE_SP_FUNCS
-
 	OSTask * pSrcTask = (OSTask *)ReadAddress(gGPR[REG_a0]._u32_0);
 
 	gGPR[REG_v0]._s64 = (s64)(pSrcTask->t.flags & OS_TASK_YIELDED);
