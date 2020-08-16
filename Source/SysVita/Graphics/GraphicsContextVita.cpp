@@ -194,6 +194,9 @@ void IGraphicsContext::EndFrame()
 	if (!gPostProcessing) {
 		if (gOverlay) {
 			glBindTexture(GL_TEXTURE_2D, cur_overlay);
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, 960, 544, 0, -1, 1);
 			gRenderer->DrawUITexture();
 		}
 		DrawInGameMenu();
@@ -206,45 +209,41 @@ void IGraphicsContext::EndFrame()
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
 	vglStopRendering();
-	if (gPostProcessing) {
-		if (emu_fb != 0xDEADBEEF) {
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-			glOrtho(0, 960, 544, 0, -1, 1);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-			vglStartRendering();
-			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
-			glUseProgram(cur_prog);
+	if (gPostProcessing && emu_fb != 0xDEADBEEF) {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0, 960, 544, 0, -1, 1);
+		vglStartRendering();
+		glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
+		glUseProgram(cur_prog);
 			
-			int i = 0;
-			while (prog_uniforms[i].idx != 0xDEADBEEF) {
-				switch (prog_uniforms[i].type) {
-				case UNIF_FLOAT:
-					glUniform1f(prog_uniforms[i].idx, prog_uniforms[i].value[0]);
-					break;
-				case UNIF_COLOR:
-					glUniform3fv(prog_uniforms[i].idx, 1, prog_uniforms[i].value);
-					break;
-				default:
-					break;
-				}
-				i++;
+		int i = 0;
+		while (prog_uniforms[i].idx != 0xDEADBEEF) {
+			switch (prog_uniforms[i].type) {
+			case UNIF_FLOAT:
+				glUniform1f(prog_uniforms[i].idx, prog_uniforms[i].value[0]);
+				break;
+			case UNIF_COLOR:
+				glUniform3fv(prog_uniforms[i].idx, 1, prog_uniforms[i].value);
+				break;
+			default:
+				break;
 			}
-			
-			vglVertexAttribPointerMapped(0, vflux_vertices);
-			vglVertexAttribPointerMapped(1, vflux_texcoords);
-			vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
-			glUseProgram(0);
-			glEnableClientState(GL_VERTEX_ARRAY);
-			if (gOverlay) {
-				glBindTexture(GL_TEXTURE_2D, cur_overlay);
-				gRenderer->DrawUITexture();
-			}
-			DrawInGameMenu();
-			vglStopRendering();
+			i++;
 		}
+			
+		vglVertexAttribPointerMapped(0, vflux_vertices);
+		vglVertexAttribPointerMapped(1, vflux_texcoords);
+		vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
+		glUseProgram(0);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		if (gOverlay) {
+			glBindTexture(GL_TEXTURE_2D, cur_overlay);
+			gRenderer->DrawUITexture();
+		}
+		DrawInGameMenu();
+		vglStopRendering();
 	}
 	new_frame = true;
 	if (pause_emu) {
