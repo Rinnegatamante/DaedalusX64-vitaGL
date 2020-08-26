@@ -615,7 +615,7 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 
 void setTranslation(int idx) {
 	char langFile[512];
-	char identifier[64], buffer[128];
+	char identifier[64], buffer[256];
 	
 	switch (idx) {
 	case SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR: // Brazilian Portuguese
