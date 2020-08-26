@@ -758,7 +758,7 @@ char *DrawRomSelector(bool skip_reloads) {
 	if (selected && !skip_reloads) {
 		cur_playtime = hovered->playtime;
 		last_launched = hovered;
-		CheatCodes_Read( hovered->title, "Daedalus.cht", hovered->id.CountryID );
+		CheatCodes_Read(hovered->title, "Daedalus.cht", hovered->id.CountryID);
 		return selectedRom;
 	}
 	return nullptr;
