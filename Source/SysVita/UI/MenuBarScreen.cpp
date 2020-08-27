@@ -32,6 +32,9 @@
 
 #define MAX_SAVESLOT 9
 
+char ver_str[64];
+float ver_len = 0.0f;
+bool calculate_ver_len = true;
 bool pendingDownload = false;
 bool is_main_menu = true;
 
@@ -1108,8 +1111,15 @@ void DrawMenuBar() {
 		DrawCommonMenuBar();
 		DrawExtraMenu();
 		ImGui::SameLine();
-		ImGui::SetCursorPosX(960 - 90 * UI_SCALE);
-		ImGui::Text("Daedalus X64"); 
+		
+		if (calculate_ver_len) {
+			calculate_ver_len = false;
+			sprintf(ver_str, "v.%s (%s)", VERSION, stringify(GIT_VERSION));
+			ImVec2 ver_sizes = ImGui::CalcTextSize(ver_str);
+			ver_len = ver_sizes.x;
+		}
+		ImGui::SetCursorPosX(950 - ver_len * UI_SCALE);
+		ImGui::Text(ver_str); 
 		ImGui::EndMainMenuBar();
 	}
 	DrawCommonWindows();
