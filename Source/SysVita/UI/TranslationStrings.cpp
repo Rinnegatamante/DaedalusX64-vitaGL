@@ -1,11 +1,11 @@
 #include "SysVita/UI/Menu.h"
 
-char *lang_identifiers[LANG_STRINGS_NUM] = {
+char lang_identifiers[LANG_STRINGS_NUM][LANG_ID_SIZE] = {
 	FOREACH_STR(GET_STRING)
 };
 
 // This is properly populated so that emulator won't crash if an user launches it without language INI files.
-char lang_strings[LANG_STRINGS_NUM][256] = {
+char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Downloading compatibility list database", // STR_DOWNLOADER_COMPAT_LIST
 	"Downloading an update", // STR_DOWNLOADER_UPDATE
 	"Checking for updates", // STR_DOWNLOADER_CHECK_UPDATE

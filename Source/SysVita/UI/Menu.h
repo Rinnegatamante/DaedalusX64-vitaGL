@@ -238,9 +238,10 @@ enum {
 	FOREACH_STR(GET_VALUE)
 };
 
-extern char *lang_identifiers[LANG_STRINGS_NUM];
-
-extern char lang_strings[LANG_STRINGS_NUM][256];
+#define LANG_ID_SIZE   64
+#define LANG_STR_SIZE 256
+extern char lang_identifiers[LANG_STRINGS_NUM][LANG_ID_SIZE];
+extern char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE];
 extern bool show_menubar;
 
 // Dialog types
