@@ -868,13 +868,14 @@ void DrawCommonWindows() {
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_PATRONERS]);
 		ImGui::Text("Tain Sueiras");
 		ImGui::Text("drd7of14");
-		ImGui::Text("polytoad");
+		ImGui::Text("Titi Clash");
 		ImGui::Text("The Vita3K project");
 		ImGui::Text("psymu");
 		ImGui::Text("@Sarkies_Proxy");
-		ImGui::Text("JAGUAR2048");
+		ImGui::Text("Erik Smith");
 		ImGui::Text("Freddy Parra");
 		ImGui::Text("nullobject");
+		ImGui::Text("ArkSource");
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_THANKS]);
 		ImGui::Text(lang_strings[STR_CREDITS_1]);
