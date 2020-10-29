@@ -843,6 +843,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Português (BR)", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR);
 		}
+		if (ImGui::MenuItem("Pусский", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RUSSIAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_RUSSIAN);
+		}
 		ImGui::EndMenu();
 	}
 }
@@ -876,6 +879,7 @@ void DrawCommonWindows() {
 		ImGui::Text("Freddy Parra");
 		ImGui::Text("nullobject");
 		ImGui::Text("ArkSource");
+		ImGui::Text("nullobject");
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_THANKS]);
 		ImGui::Text(lang_strings[STR_CREDITS_1]);
@@ -898,6 +902,7 @@ void DrawCommonWindows() {
 		ImGui::Text("coestergaard (DAN)");
 		ImGui::Text("Kiiro Yakumo (POL)");
 		ImGui::Text("ΧΡΗΣΤΟΣ ΜΑΝΟΥΣΗΣ (GRE)");
+		ImGui::Text("nekita13 (RUS)");
 		ImGui::End();
 	}
 	
