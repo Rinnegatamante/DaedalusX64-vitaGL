@@ -863,7 +863,7 @@ int main(int argc, char* argv[]) {
 		
 	// Check if Daedalus X64 has been launched with a custom bubble
 	sceAppMgrGetAppParam(boot_params);
-	if (strstr(boot_params,"psgm:play")) {
+	if (strstr(boot_params,"psgm:play") && strstr(boot_params, "&param=")) {
 		gSkipCompatListUpdate = true;
 		gStandaloneMode = false;
 		rom = strstr(boot_params, "&param=") + 7;
