@@ -280,7 +280,11 @@ static int updaterThread(unsigned int args, void* arg) {
 	curl_handle = curl_easy_init();
 	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
 		downloader_pass = i;
-		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/latest");
+#ifdef STABLE_BUILD
+		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/tags/Stable");
+#else
+		if (i == UPDATER_CHECK_UPDATES) sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/releases/tags/Nightly");
+#endif
 		else if (!update_detected) break;
 		downloaded_bytes = 0;
 
@@ -292,7 +296,11 @@ static int updaterThread(unsigned int args, void* arg) {
 		if (downloaded_bytes > 12 * 1024) {
 			if (i == UPDATER_CHECK_UPDATES) {
 				if (strncmp(strstr((char*)rom_mem_buffer, "target_commitish") + 20, stringify(GIT_VERSION), 6)) {
+#ifdef STABLE_BUILD
+					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Stable/DaedalusX64.vpk");
+#else
 					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.vpk");
+#endif
 					update_detected = 1;
 				}
 			}
