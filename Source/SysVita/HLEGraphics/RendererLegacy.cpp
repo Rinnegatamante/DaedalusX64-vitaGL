@@ -667,7 +667,6 @@ void RendererLegacy::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCo
 	SetNegativeViewport();
 	
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 void RendererLegacy::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1)
@@ -689,7 +688,6 @@ void RendererLegacy::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, T
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 	
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	gTexCoordBuffer[0] = uv0.x * scale_x;
 	gTexCoordBuffer[1] = uv0.y * scale_y;
 	gTexCoordBuffer[2] = uv0.x * scale_x;
@@ -721,9 +719,8 @@ void RendererLegacy::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, T
 	gColorBuffer += 4;
 
 	SetNegativeViewport();
-
+	
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, gRDPOtherMode.depth_source ? false : true, false);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 void RendererLegacy::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
@@ -755,7 +752,6 @@ void RendererLegacy::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	
 	SetNegativeViewport();
 	
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	RenderUsingCurrentBlendMode(mScreenToDevice.mRaw, p_vertices, 4, GL_TRIANGLE_STRIP, true, false);
 }
 
@@ -838,10 +834,9 @@ void RendererLegacy::DrawUITexture()
 	gTexCoordBuffer[7] = 1.0f;
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gTexCoordBuffer += 8;
-	
-	glDisableClientState(GL_COLOR_ARRAY);
+
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
@@ -911,7 +906,6 @@ void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	SetNegativeViewport();
 	
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
@@ -974,7 +968,6 @@ void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	SetNegativeViewport();
 	
 	vglDrawObjects(GL_TRIANGLE_FAN, 4, GL_TRUE);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
@@ -1033,6 +1026,7 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 			}
 		}
 	} else {
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		for( u32 i = 0; i < num_vertices; ++i )
 		{
 			u32 index = mIndexBuffer[ i ];

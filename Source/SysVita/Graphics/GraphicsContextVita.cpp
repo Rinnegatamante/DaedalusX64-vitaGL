@@ -200,6 +200,8 @@ void IGraphicsContext::EndFrame()
 			gRenderer->DrawUITexture();
 		}
 		DrawInGameMenu();
+		glDisableClientState(GL_COLOR_ARRAY);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	}
 	if (!pause_emu) vglStopRenderingInit();
 	if (gWaitRendering) glFinish();
@@ -243,6 +245,8 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			gRenderer->DrawUITexture();
 		}
 		DrawInGameMenu();
+		glDisableClientState(GL_COLOR_ARRAY);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		vglStopRendering();
 	}
 	new_frame = true;

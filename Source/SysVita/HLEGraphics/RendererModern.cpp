@@ -990,7 +990,6 @@ void RendererModern::DrawUITexture()
 	
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
 	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 }
 
