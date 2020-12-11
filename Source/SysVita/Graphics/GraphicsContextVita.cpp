@@ -23,6 +23,9 @@
 extern bool pause_emu;
 bool gWaitRendering = false;
 
+static int frame_reset_counter = 0;
+#define FRAME_RESET_NUM 8
+
 #define MAX_INDEXES 0xFFFF
 uint16_t *gIndexes;
 float *gVertexBuffer;
@@ -174,9 +177,12 @@ void IGraphicsContext::BeginFrame()
 	vglStartRendering();
 	if (g_ROM.CLEAR_SCENE_HACK) ClearColBuffer( c32(0xff000000) );
 	glEnableClientState(GL_VERTEX_ARRAY);
-	gVertexBuffer = gVertexBufferPtr;
-	gColorBuffer = gColorBufferPtr;
-	gTexCoordBuffer = gTexCoordBufferPtr;
+	frame_reset_counter = (frame_reset_counter + 1) % FRAME_RESET_NUM;
+	if (!frame_reset_counter) {
+		gVertexBuffer = gVertexBufferPtr;
+		gColorBuffer = gColorBufferPtr;
+		gTexCoordBuffer = gTexCoordBufferPtr;
+	}
 	vglIndexPointerMapped(gIndexes);
 	
 	if (new_frame) {
