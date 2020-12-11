@@ -51,10 +51,7 @@ class CJumpLocation
 public:
 	CJumpLocation () : mpLocation( nullptr ) {}
 
-	explicit CJumpLocation( void * p_location )
-		:	mpLocation( p_location )
-	{
-	}
+	explicit CJumpLocation( void * p_location ) : mpLocation( p_location ) {}
 
 	bool			IsSet() const				{ return mpLocation != nullptr; }
 	s32				GetOffset( const CCodeLabel & label ) const	{ return label.GetTargetU8P() - GetTargetU8P();	}

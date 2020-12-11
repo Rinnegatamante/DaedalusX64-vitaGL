@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdlib.h>
 
-#include "DynarecTargetPSP.h"
+#include "DynarecTargetARM.h"
 
 //*************************************************************************************
 //
@@ -40,7 +40,7 @@ public:
 
 		inline bool	IsCached( EN64Reg reg, u32 lo_hi_idx ) const
 		{
-			return mRegisterCacheInfo[ reg ][ lo_hi_idx ].ArmRegister != R0;
+			return mRegisterCacheInfo[ reg ][ lo_hi_idx ].ArmRegister != NUM_ARM_REGISTERS;
 		}
 
 		inline bool	IsValid( EN64Reg reg, u32 lo_hi_idx ) const
@@ -160,6 +160,14 @@ private:
 			//bool			SignExtended;		// Is this (high) register just sign extension of low reg?
 		};
 
-		RegisterCacheInfoPSP	mRegisterCacheInfo[ NUM_N64_REGS ][ 2 ];
-		//FPRegisterCacheInfoPSP	mFPRegisterCacheInfo[ NUM_N64_FP_REGS ];
+		// ARM fp registers are stored in a 1:1 mapping with the n64 counterparts
+		struct FPRegisterCacheInfoARM
+		{
+			bool			Valid;
+			bool			Dirty;
+			bool			Sim;
+		};
+		
+		RegisterCacheInfoARM	mRegisterCacheInfo[ NUM_N64_REGS ][ 2 ];
+		FPRegisterCacheInfoARM	mFPRegisterCacheInfo[ NUM_N64_FP_REGS ];
 };

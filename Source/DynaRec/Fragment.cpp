@@ -45,8 +45,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/Profiler.h"
 #include "Utility/Synchroniser.h"
 
-#include "Config/ConfigOptions.h"
-
 #include "OSHLE/ultra_R4300.h"
 #include "OSHLE/patch.h"
 
@@ -188,7 +186,6 @@ void CFragment::Execute()
 #else
 	const void *		p( g_pu8RamBase_8000 );
 	u32					upper( 0x80000000 + gRamSize );
-
 	_EnterDynaRec( mEntryPoint.GetTarget(), &gCPUState, p, upper );
 #endif // FRAGMENT_SIMULATE_EXECUTION
 
@@ -615,6 +612,7 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 	//	Keep executing ops until we take a branch
 	//
 	std::vector< CJumpLocation >		exception_handler_jumps;
+	std::vector< RegisterSnapshotHandle >   exception_handler_snapshots;
 	std::vector< SBranchHandlerInfo >	branch_handler_info( branch_details.size() );
 //	bool								checked_cop1_usable( false );
 
@@ -710,16 +708,14 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 		CJumpLocation	branch_jump( nullptr );
  //PSP, We handle exceptions directly with _ReturnFromDynaRecIfStuffToDo
 #ifdef DAEDALUS_PSP
-		if (gUseCachedInterpreter) p_generator->GenerateInterpOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
-		else p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
+		p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
 #else
-		CJumpLocation	exception_handler_jump;
-		if (gUseCachedInterpreter) exception_handler_jump = p_generator->GenerateInterpOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
-		else exception_handler_jump = p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
+		CJumpLocation	exception_handler_jump( p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump) );
 
 		if( exception_handler_jump.IsSet() )
 		{
 			exception_handler_jumps.push_back( exception_handler_jump );
+			exception_handler_snapshots.push_back(p_generator->GetRegisterSnapshot());
 		}
 #endif
 
@@ -786,16 +782,14 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 			*/
  //PSP, We handle exceptions directly with _ReturnFromDynaRecIfStuffToDo
 #ifdef DAEDALUS_PSP
-			if (gUseCachedInterpreter) p_generator->GenerateInterpOpCode( ti, true, nullptr, nullptr);
-			else p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
+			p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
 #else
-			CJumpLocation	exception_handler_jump;
-			if (gUseCachedInterpreter) exception_handler_jump = p_generator->GenerateInterpOpCode( ti, true, nullptr, nullptr);
-			else exception_handler_jump = p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
-			
+			CJumpLocation	exception_handler_jump( p_generator->GenerateOpCode( ti, true, nullptr, nullptr) );
+
 			if( exception_handler_jump.IsSet() )
 			{
-				exception_handler_jumps.push_back( exception_handler_jump );
+				exception_handler_jumps.push_back(exception_handler_jump);
+				exception_handler_snapshots.push_back(p_generator->GetRegisterSnapshot());
 			}
 #endif
 			num_instructions_executed++;
@@ -847,7 +841,7 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 		}
 	}
 
-	p_generator->Finalise( HandleException, exception_handler_jumps );
+	p_generator->Finalise( HandleException, exception_handler_jumps, exception_handler_snapshots );
 
 	mFragmentFunctionLength = p_manager->FinaliseCurrentBlock();
 	mOutputLength = mFragmentFunctionLength - ADDITIONAL_OUTPUT_BYTES;
@@ -862,6 +856,7 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 void CFragment::Assemble( CCodeBufferManager * p_manager, CCodeLabel function_ptr)
 {
 	std::vector< CJumpLocation >		exception_handler_jumps;
+	std::vector< RegisterSnapshotHandle> exception_handler_snapshots;
 	SRegisterUsageInfo register_usage;
 
 	CCodeGenerator *p_generator = p_manager->StartNewBlock();
@@ -879,7 +874,7 @@ void CFragment::Assemble( CCodeBufferManager * p_manager, CCodeLabel function_pt
 	AssemblyUtils::PatchJumpLong(jump, p_generator->GetCurrentLocation());
 	p_generator->GenerateEretExitCode(100, mpIndirectExitMap);
 
-	p_generator->Finalise( HandleException, exception_handler_jumps );
+	p_generator->Finalise( HandleException, exception_handler_jumps, exception_handler_snapshots );
 	mFragmentFunctionLength = p_manager->FinaliseCurrentBlock();
 	mOutputLength = mFragmentFunctionLength - ADDITIONAL_OUTPUT_BYTES;
 
