@@ -875,11 +875,11 @@ void DrawCommonWindows() {
 		ImGui::Text("The Vita3K project");
 		ImGui::Text("psymu");
 		ImGui::Text("@Sarkies_Proxy");
-		ImGui::Text("Erik Smith");
+		ImGui::Text("Badmanwazzy37");
 		ImGui::Text("Freddy Parra");
-		ImGui::Text("nullobject");
+		ImGui::Text("The Libretro Team");
 		ImGui::Text("ArkSource");
-		ImGui::Text("nullobject");
+		ImGui::Text("XandridFire");
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_THANKS]);
 		ImGui::Text(lang_strings[STR_CREDITS_1]);

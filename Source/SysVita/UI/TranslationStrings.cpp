@@ -87,7 +87,7 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Special thanks to:", // STR_CREDITS_THANKS
 	"xerpi for the initial Vita port", // STR_CREDITS_1
 	"MasterFeizz for the ARM DynaRec", // STR_CREDITS_2
-	"TheFloW for his contributions to the DynaRec code", // STR_CREDITS_3
+	"TheFloW & cmf028 for their contributions to the DynaRec code", // STR_CREDITS_3
 	"m4xw for the help sanitizing PIF code", // STR_CREDITS_4
 	"Salvy & frangarcj for the help with some bugfixes", // STR_CREDITS_5
 	"Inssame for some additions to the UI code", // STR_CREDITS_6
