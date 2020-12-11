@@ -58,7 +58,8 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 		virtual void				GenerateBranchHandler( CJumpLocation branch_handler_jump, RegisterSnapshotHandle snapshot );
 
 		virtual CJumpLocation		GenerateOpCode( const STraceEntry& ti, bool branch_delay_slot, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump);
-
+		virtual CJumpLocation		GenerateInterpOpCode( const STraceEntry& ti, bool branch_delay_slot, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump);
+		
 		virtual CJumpLocation		ExecuteNativeFunction( CCodeLabel speed_hack, bool check_return );
 
 	private:

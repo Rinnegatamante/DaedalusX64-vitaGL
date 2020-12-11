@@ -48,6 +48,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "OSHLE/ultra_R4300.h"
 #include "OSHLE/patch.h"
 
+#include "Config/ConfigOptions.h"
+
 
 //#define IMMEDIATE_COUNTER_UPDATE
 //#define UPDATE_COUNTER_ON_EXCEPTION
@@ -706,18 +708,15 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 		}
 
 		CJumpLocation	branch_jump( nullptr );
- //PSP, We handle exceptions directly with _ReturnFromDynaRecIfStuffToDo
-#ifdef DAEDALUS_PSP
-		p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
-#else
-		CJumpLocation	exception_handler_jump( p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump) );
+		CJumpLocation	exception_handler_jump;
+		if (gUseCachedInterpreter) exception_handler_jump = p_generator->GenerateInterpOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
+		else exception_handler_jump = p_generator->GenerateOpCode( ti, ti.BranchDelaySlot, p_branch, &branch_jump);
 
 		if( exception_handler_jump.IsSet() )
 		{
 			exception_handler_jumps.push_back( exception_handler_jump );
 			exception_handler_snapshots.push_back(p_generator->GetRegisterSnapshot());
 		}
-#endif
 
 		// Check whether we want to invert the status of this branch
 		if( p_branch != nullptr )
@@ -780,18 +779,15 @@ void CFragment::Assemble( CCodeBufferManager * p_manager,
 				//exception_handler_jumps.push_back( handler );
 			}
 			*/
- //PSP, We handle exceptions directly with _ReturnFromDynaRecIfStuffToDo
-#ifdef DAEDALUS_PSP
-			p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
-#else
-			CJumpLocation	exception_handler_jump( p_generator->GenerateOpCode( ti, true, nullptr, nullptr) );
+			CJumpLocation	exception_handler_jump;
+			if (gUseCachedInterpreter) exception_handler_jump = p_generator->GenerateInterpOpCode( ti, true, nullptr, nullptr);
+			else exception_handler_jump = p_generator->GenerateOpCode( ti, true, nullptr, nullptr);
 
 			if( exception_handler_jump.IsSet() )
 			{
 				exception_handler_jumps.push_back(exception_handler_jump);
 				exception_handler_snapshots.push_back(p_generator->GetRegisterSnapshot());
 			}
-#endif
 			num_instructions_executed++;
 		}
 
