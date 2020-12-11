@@ -476,7 +476,7 @@ void SRomPreferences::Apply() const
 	gOSHooksEnabled             = PatchesEnabled;
 	gSpeedSyncEnabled           = SpeedSyncEnabled;
 	gDynarecEnabled             = DynarecEnabled;
-	gDynarecLoopOptimisation	= DynarecLoopOptimisation;	// && g_ROM.settings.DynarecLoopOptimisation;
+	gDynarecLoopsOptimisation	= DynarecLoopOptimisation;	// && g_ROM.settings.DynarecLoopOptimisation;
 	gDynarecDoublesOptimisation	= DynarecDoublesOptimisation;
 	gDoubleDisplayEnabled       = DoubleDisplayEnabled; // I don't know why DD won't disabled if we set ||
 	gCleanSceneEnabled          = CleanSceneEnabled;

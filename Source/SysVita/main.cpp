@@ -475,14 +475,8 @@ void setCpuMode(int cpu_mode)
 {
 	switch (cpu_mode)
 	{
-	case CPU_DYNAREC_UNSAFE:
+	case CPU_DYNAREC:
 		gDynarecEnabled = true;
-		gUnsafeDynarecOptimisations = true;
-		gUseCachedInterpreter = false;
-		break;
-	case CPU_DYNAREC_SAFE:
-		gDynarecEnabled = true;
-		gUnsafeDynarecOptimisations = false;
 		gUseCachedInterpreter = false;
 		break;
 	case CPU_CACHED_INTERPRETER:
@@ -802,6 +796,9 @@ void loadConfig(const char *game) {
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;
 			else if (strcmp("gBigText", buffer) == 0) gBigText = (bool)value;
 			else if (strcmp("gNetBoot", buffer) == 0) gNetBoot = (bool)value;
+			
+			else if (strcmp("gDynarecLoopsOptimisation", buffer) == 0) gDynarecLoopsOptimisation = (bool)value;
+			else if (strcmp("gDynarecWordsOptimisation", buffer) == 0) gDynarecWordsOptimisation = (bool)value;
 		}
 		fclose(config);
 

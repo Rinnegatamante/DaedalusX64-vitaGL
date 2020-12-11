@@ -251,11 +251,11 @@ void	CCodeGeneratorARM::SetRegisterSpanList(const SRegisterUsageInfo& register_u
 	}
 
 	// Optimization for self looping code
-	if (gDynarecLoopOptimisation && loops_to_self)
+	if (gDynarecLoopsOptimisation && loops_to_self)
 	{
 		mUseFixedRegisterAllocation = true;
 		u32		cache_reg_idx(0);
-		u32		HiLo{ 0 };
+		u32		HiLo = 0;
 		while (HiLo < 2)		// If there are still unused registers, assign to high part of reg
 		{
 			RegisterSpanList::const_iterator span_it = mRegisterSpanList.begin();
@@ -276,7 +276,7 @@ void	CCodeGeneratorARM::SetRegisterSpanList(const SRegisterUsageInfo& register_u
 		//	Pull all the cached registers into memory
 		//
 		// Skip r0
-		u32 i{ 1 };
+		u32 i = 1;
 		while (i < NUM_N64_REGS)
 		{
 			EN64Reg	n64_reg = EN64Reg(i);
@@ -1344,8 +1344,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_SH:		handled = GenerateSH(address, branch_delay_slot, rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SB:		handled = GenerateSB(address, branch_delay_slot,rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SD:		handled = GenerateSD(address, branch_delay_slot,rt, base, s16(op_code.immediate));   exception = !handled; break;
-		case OP_SWC1:	if (gUnsafeDynarecOptimisations) { handled = GenerateSWC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
-		case OP_SDC1:	if (gUnsafeDynarecOptimisations) { handled = GenerateSDC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
+		case OP_SWC1:	if (gDynarecWordsOptimisation) { handled = GenerateSWC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
+		case OP_SDC1:	if (gDynarecWordsOptimisation) { handled = GenerateSDC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
 
 		case OP_SLTIU: 	GenerateSLTI( rt, rs, s16( op_code.immediate ), true );  handled = true; break;
 		case OP_SLTI:	GenerateSLTI( rt, rs, s16( op_code.immediate ), false ); handled = true; break;
@@ -1356,8 +1356,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_LB: 	handled = GenerateLB(address, branch_delay_slot,rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_LBU:	handled = GenerateLBU(address, branch_delay_slot,rt, base, s16(op_code.immediate));  exception = !handled; break;
 		case OP_LD:		handled = GenerateLD(address, branch_delay_slot, rt, base, s16(op_code.immediate));  exception = !handled; break;
-		case OP_LWC1:	if (gUnsafeDynarecOptimisations) { handled = GenerateLWC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
-		case OP_LDC1:	if (gUnsafeDynarecOptimisations) { handled = GenerateLDC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
+		case OP_LWC1:	if (gDynarecWordsOptimisation) { handled = GenerateLWC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
+		case OP_LDC1:	if (gDynarecWordsOptimisation) { handled = GenerateLDC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
 
 		case OP_LUI:	GenerateLUI( rt, s16( op_code.immediate ) ); handled = true; break;
 

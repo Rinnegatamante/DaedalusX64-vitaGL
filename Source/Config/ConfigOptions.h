@@ -38,9 +38,9 @@ extern DaedalusConfig	g_DaedalusConfig;
 // Per-ROM config
 extern bool gDynarecEnabled;			// Use dynamic recompilation
 extern bool gUseCachedInterpreter;		// Use cached interpreter
-extern bool gDynarecLoopOptimisation;	// Enable the dynarec loop optmisation
-extern bool gDynarecDoublesOptimisation;	// Enable the dynarec loop optmisation
-extern bool	gUnsafeDynarecOptimisations;	// Enable unsafe dynarec optimisations
+extern bool gDynarecLoopsOptimisation;	// Enable the dynarec loop optimisation
+extern bool gDynarecDoublesOptimisation;	// Enable the dynarec loop optimisation
+extern bool	gDynarecWordsOptimisation;	// Enable compilation of word/double load/store instructions
 extern bool gOSHooksEnabled;			// Apply os-hooks
 extern u32	gSpeedSyncEnabled;
 extern bool gDoubleDisplayEnabled;

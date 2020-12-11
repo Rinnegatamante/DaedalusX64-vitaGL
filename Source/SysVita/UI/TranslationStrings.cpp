@@ -46,8 +46,8 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Update Compat List at Boot", // STR_MENU_COMPAT_LIST
 	"Console Logs", // STR_MENU_LOG
 	"Textures Dumper", // STR_MENU_TEX_DUMPER
-	"DynaRec (Unsafe)", // STR_MENU_UNSAFE_DYNAREC
-	"DynaRec (Safe)", // STR_MENU_SAFE_DYNAREC
+	"DynaRec", // STR_MENU_DYNAREC
+	"DynaRec Config", // STR_MENU_DYNAREC_CONFIG
 	"Cached Interpreter", // STR_MENU_CACHED_INTERP
 	"Interpreter", // STR_MENU_INTERP
 	"High Level Emulation", // STR_MENU_HLE
@@ -120,8 +120,8 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Enables high level emulation of OS functions for better performance.\nMay cause instability on some games.", // STR_DESC_HLE
 	"Enables interpreter for best compatibility.", // STR_DESC_INTERP
 	"Enables cached interpreter for decent performances and better compatibility.", // STR_DESC_CACHED_INTERP
-	"Enables safe dynamic recompilation for good performances and better compatibility.", // STR_DESC_SAFE_DYNAREC
-	"Enables full dynamic recompilation for best performances.", // STR_DESC_UNSAFE_DYNAREC
+	"Words Access Optimization", // STR_MENU_DYNAREC_WORDS_OPT
+	"Enables dynamic recompilation for best performances.", // STR_DESC_DYNAREC
 	"Enables textures dumping for high-res textures pack.", // STR_DESC_TEX_DUMPER
 	"Dark", // STR_THEME_DARK
 	"Light", // STR_THEME_LIGHT
@@ -171,5 +171,6 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Original renderer based on GL1 fixed function pipeline.", // STR_DESC_LEGACY_REND
 	"Modern renderer based on GL2+ shaders. Requires libshacccg.suprx.", // STR_DESC_MODERN_REND
 	"Playtime", // STR_PLAYTIME
-	"Retrieve webserver rom list at boot" // STR_DLG_NET_BOOT
+	"Retrieve webserver rom list at boot", // STR_DLG_NET_BOOT
+	"Loops Optimization", // STR_MENU_DYNAREC_LOOPS_OPT
 };

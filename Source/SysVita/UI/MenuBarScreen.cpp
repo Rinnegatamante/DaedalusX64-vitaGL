@@ -78,7 +78,7 @@ bool gHideMenubar = true;
 bool run_emu = true;
 bool restart_rom = false;
 
-int gCpuMode = CPU_DYNAREC_UNSAFE;
+int gCpuMode = CPU_DYNAREC;
 int gSortOrder = SORT_A_TO_Z;
 
 static bool vflux_window = false;
@@ -350,6 +350,9 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
 		fprintf(config, "%s=%d\n", "gBigText", (int)gBigText);
 		fprintf(config, "%s=%d\n", "gNetBoot", (int)gNetBoot);
+		
+		fprintf(config, "%s=%d\n", "gDynarecLoopsOptimisation", (int)gDynarecLoopsOptimisation);
+		fprintf(config, "%s=%d\n", "gDynarecWordsOptimisation", (int)gDynarecWordsOptimisation);
 		fclose(config);
 	}
 	
@@ -557,14 +560,10 @@ void DrawCommonMenuBar() {
 	sceCtrlGetControllerPortInfo(&pinfo);
 	if (ImGui::BeginMenu(lang_strings[STR_MENU_EMULATION])){
 		if (ImGui::BeginMenu("CPU")){
-			if (ImGui::MenuItem(lang_strings[STR_MENU_UNSAFE_DYNAREC], nullptr, gCpuMode == CPU_DYNAREC_UNSAFE)){
-				setCpuMode(CPU_DYNAREC_UNSAFE);
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC], nullptr, gCpuMode == CPU_DYNAREC)){
+				setCpuMode(CPU_DYNAREC);
 			}
-			SetDescription(lang_strings[STR_DESC_UNSAFE_DYNAREC]);
-			if (ImGui::MenuItem(lang_strings[STR_MENU_SAFE_DYNAREC], nullptr, gCpuMode == CPU_DYNAREC_SAFE)){
-				setCpuMode(CPU_DYNAREC_SAFE);
-			}
-			SetDescription(lang_strings[STR_DESC_SAFE_DYNAREC]);
+			SetDescription(lang_strings[STR_DESC_DYNAREC]);
 			if (ImGui::MenuItem(lang_strings[STR_MENU_CACHED_INTERP], nullptr, gCpuMode == CPU_CACHED_INTERPRETER)){
 				setCpuMode(CPU_CACHED_INTERPRETER);
 			}
@@ -573,6 +572,15 @@ void DrawCommonMenuBar() {
 				setCpuMode(CPU_INTERPRETER);
 			}
 			SetDescription(lang_strings[STR_DESC_INTERP]);
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_DYNAREC_CONFIG], gDynarecEnabled && !gUseCachedInterpreter)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_WORDS_OPT], nullptr, gDynarecWordsOptimisation)){
+				gDynarecWordsOptimisation = !gDynarecWordsOptimisation;
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_LOOPS_OPT], nullptr, gDynarecLoopsOptimisation)){
+				gDynarecLoopsOptimisation = !gDynarecLoopsOptimisation;
+			}
 			ImGui::EndMenu();
 		}
 		if (ImGui::MenuItem(lang_strings[STR_MENU_HLE], nullptr, gOSHooksEnabled)){
