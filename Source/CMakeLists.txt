@@ -35,7 +35,7 @@ set (BUILD ${CONFIG_FILES} ${CORE_FILES} ${DEBUG_FILES} ${DYNAREC_FILES} ${GRAPH
 # Vita
 set (VITA_MAIN_FILES SysVita/main.cpp)
 set (VITA_DEBUG_FILES SysVita/Debug/DaedalusAssertVita.cpp SysVita/Debug/DBGConsoleVita.cpp )
-set (VITA_DYNAREC_FILES SysVita/DynaRec/DynarecStubARM.S SysVita/DynaRec/CodeGeneratorARM.cpp SysVita/DynaRec/CodeBufferManagerARM.cpp SysVita/DynaRec/AssemblyWriterARM.cpp SysVita/DynaRec/AssemblyUtilsARM.cpp)
+set (VITA_DYNAREC_FILES SysVita/DynaRec/DynarecStubARM.S SysVita/DynaRec/CodeGeneratorARM.cpp SysVita/DynaRec/CodeBufferManagerARM.cpp SysVita/DynaRec/AssemblyWriterARM.cpp SysVita/DynaRec/AssemblyUtilsARM.cpp SysVita/DynaRec/N64RegisterCacheARM.cpp)
 set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphics/NativeTextureVita.cpp)
 set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererLegacy.cpp SysVita/HLEGraphics/RendererModern.cpp SysVita/HLEGraphics/ColourAdjuster.cpp SysVita/HLEGraphics/BlendModes.cpp SysVita/HLEGraphics/Combiner/BlendConstant.cpp SysVita/HLEGraphics/Combiner/CombinerExpression.cpp SysVita/HLEGraphics/Combiner/CombinerTree.cpp SysVita/HLEGraphics/Combiner/RenderSettings.cpp)
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp SysVita/HLEAudio/AudioOutput.cpp)

@@ -20,15 +20,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include <stdio.h>
 #include <malloc.h>
-#include <vitasdk.h>
-
-#include "Math/MathUtil.h"
 
 #include "DynaRec/CodeBufferManager.h"
 #include "Debug/DBGConsole.h"
 #include "CodeGeneratorARM.h"
 
-#define CODE_BUFFER_SIZE (16 * 1024 * 1024)
+#define CODE_BUFFER_SIZE (8 * 1024 * 1024)
 
 static SceUID dynarec_memblock;
 
@@ -86,21 +83,23 @@ CCodeBufferManager *	CCodeBufferManager::Create()
 //*****************************************************************************
 bool	CCodeBufferManagerARM::Initialise()
 {
-	// Initializing memblock for dynarec
-	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE);
+	// mpSecondBuffer is currently unused
+
+	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE*2);
 
 	sceKernelGetMemBlockBase(dynarec_memblock, (void**)&mpBuffer);
 
-	if (mpBuffer == NULL)
+	mpSecondBuffer = mpBuffer + CODE_BUFFER_SIZE;
+	if (mpBuffer == NULL || mpSecondBuffer == NULL)
 		return false;
+
+	sceKernelOpenVMDomain();
 
 	mBufferPtr = 0;
 	mBufferSize = 0;
 
 	mSecondBufferPtr = 0;
 	mSecondBufferSize = 0;
-
-	sceKernelOpenVMDomain();
 
 	return true;
 }
@@ -119,10 +118,10 @@ void	CCodeBufferManagerARM::Reset()
 //*****************************************************************************
 void	CCodeBufferManagerARM::Finalise()
 {
-	if (mpBuffer != NULL)
+	if (mpBuffer != NULL && mpSecondBuffer != NULL)
 	{
 		sceKernelFreeMemBlock(dynarec_memblock);
-		
+
 		mpBuffer = NULL;
 		mpSecondBuffer = NULL;
 	}
@@ -138,6 +137,9 @@ CCodeGenerator * CCodeBufferManagerARM::StartNewBlock()
 
 	mBufferPtr = aligned_ptr;
 
+	u32 aligned_ptr2((mSecondBufferPtr + 15) & (~15));
+	mSecondBufferPtr = aligned_ptr2;
+
 	mPrimaryBuffer.SetBuffer( mpBuffer + mBufferPtr );
 	mSecondaryBuffer.SetBuffer( mpSecondBuffer + mSecondBufferPtr );
 
@@ -149,17 +151,22 @@ CCodeGenerator * CCodeBufferManagerARM::StartNewBlock()
 //*****************************************************************************
 u32 CCodeBufferManagerARM::FinaliseCurrentBlock()
 {
-	const u32 main_block_size( mPrimaryBuffer.GetSize() );
-	const u8* p_base( mPrimaryBuffer.GetStartAddress().GetTargetU8P() );
+	const u32 primary_block_size( mPrimaryBuffer.GetSize() );
+	const u8* p_primary_base( mPrimaryBuffer.GetStartAddress().GetTargetU8P() );
 
-	mBufferPtr += main_block_size;
+	const u32 secondary_block_size( mSecondaryBuffer.GetSize() );
+	const u8* p_secondary_base( mSecondaryBuffer.GetStartAddress().GetTargetU8P() );
 
-	#if 0
+	mBufferPtr += primary_block_size;
+	mSecondBufferPtr += secondary_block_size;
+
+	#if 0 //Second buffer is currently unused
 	mSecondBufferPtr += mSecondaryBuffer.GetSize();
 	mSecondBufferPtr = ((mSecondBufferPtr - 1) & 0xfffffff0) + 0x10; // align to 16-byte boundary
 	#endif
 
-	_DaedalusICacheInvalidate(p_base, main_block_size);
+	_DaedalusICacheInvalidate(p_primary_base, primary_block_size);
+	_DaedalusICacheInvalidate(p_secondary_base, secondary_block_size);
 
-	return main_block_size;
+	return primary_block_size;
 }

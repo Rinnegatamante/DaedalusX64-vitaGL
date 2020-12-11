@@ -37,16 +37,10 @@ bool	PatchJumpLong( CJumpLocation jump, CCodeLabel target )
 
 	u32 address = target.GetTargetU32();
 
-	#ifdef DYNAREC_ARMV7
-	p_jump_addr[0] = (p_jump_addr[0] & 0xFFF0F000) | ((address & 0xf000) << 4) | (address & 0x0fff);
-	address = address >> 16;
-	p_jump_addr[1] = (p_jump_addr[1] & 0xFFF0F000) | ((address & 0xf000) << 4) | (address & 0x0fff);
-	#else
-	p_jump_addr[0] = (p_jump_addr[0] & ~0xFF) | (address & 0xFF);
-	p_jump_addr[1] = (p_jump_addr[1] & ~0xFF) | ((address >> 8) & 0xFF);
-	p_jump_addr[2] = (p_jump_addr[2] & ~0xFF) | ((address >> 16) & 0xFF);
-	p_jump_addr[3] = (p_jump_addr[3] & ~0xFF) | ((address >> 24) & 0xFF);
-	#endif
+	s32 offset = jump.GetOffset(target) - 8;
+	
+	offset >>= 2;
+	p_jump_addr[0] = (p_jump_addr[0] &0xFF000000)| (offset & 0xFFFFFF);
 	
 	// All jumps are 32 bit offsets, and so always succeed.
 	return true;
@@ -56,7 +50,7 @@ bool	PatchJumpLongAndFlush( CJumpLocation jump, CCodeLabel target )
 {
 	PatchJumpLong( jump, target );
 	
-	_DaedalusICacheInvalidate( jump.GetTargetU8P(), 8 );
+	_DaedalusICacheInvalidate( jump.GetTargetU8P(), 4 );
 
 	return true;
 }
