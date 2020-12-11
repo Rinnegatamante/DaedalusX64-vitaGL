@@ -105,9 +105,9 @@ IGraphicsContext::IGraphicsContext()
 	for (i = 0; i < MAX_INDEXES; i++){
 		gIndexes[i] = i;
 	}
-	gVertexBufferPtr = (float*)malloc(0x800000);
-	gColorBufferPtr = (uint32_t*)malloc(0x600000);
-	gTexCoordBufferPtr = (float*)malloc(0x600000);
+	gVertexBufferPtr = (float*)malloc(0x1000000);
+	gColorBufferPtr = (uint32_t*)malloc(0xC00000);
+	gTexCoordBufferPtr = (float*)malloc(0xC00000);
 	gVertexBuffer = gVertexBufferPtr;
 	gColorBuffer = gColorBufferPtr;
 	gTexCoordBuffer = gTexCoordBufferPtr;
