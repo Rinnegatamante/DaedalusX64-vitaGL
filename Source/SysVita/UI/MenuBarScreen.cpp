@@ -67,6 +67,7 @@ bool net_path_str_dirty = true;
 static bool cached_saveslots[MAX_SAVESLOT + 1];
 static bool has_cached_saveslots = false;
 
+extern bool pause_emu;
 extern bool has_rumblepak[4];
 extern char cur_gfx_ucode[32];
 extern char cur_gfx_ucode_str[256];
@@ -1203,10 +1204,12 @@ void DrawInGameMenuBar() {
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem(lang_strings[STR_MENU_RESTART_ROM])){
+					pause_emu = false;
 					restart_rom = true;
 					CPU_Halt(lang_strings[STR_MENU_RESTART_ROM]);
 				}
 				if (ImGui::MenuItem(lang_strings[STR_MENU_CLOSE_ROM])){
+					pause_emu = false;
 					has_cached_saveslots = false;
 					CPU_Halt(lang_strings[STR_MENU_CLOSE_ROM]);
 				}
