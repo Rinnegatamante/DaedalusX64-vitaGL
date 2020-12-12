@@ -425,18 +425,7 @@ protected:
 		u8 s;
 		u8 t;
 	};
-	static const u32 kNumBoundTextures = 2;
-
-	TextureInfo				mBoundTextureInfo[ kNumBoundTextures ];
-	CRefPtr<CNativeTexture>	mBoundTexture[ kNumBoundTextures ];
-
-	TexCoord				mTileTopLeft[ kNumBoundTextures ];
-	TextureWrap				mTexWrap[ kNumBoundTextures ];
-
-	// Index of the corresponding tile state.
-	u8						mActiveTile[ kNumBoundTextures ];
-
-
+	
 	//Max is 18 according to the manual //Corn
 	//I think we should make this more deep to avoid any issues //Salvy
 	static const u32 MATRIX_STACK_SIZE = 20;
@@ -466,6 +455,17 @@ protected:
 	// Processed vertices waiting for output...
 	DaedalusVtx4		mVtxProjected[kMaxN64Vertices];		// Transformed and projected vertices (suitable for clipping etc)
 	u32					mVtxClipFlagsUnion;					// Bitwise OR of all the vertex flags added to the current batch. If this is 0, we can trivially accept everything without clipping
+public:
+	static const u32 kNumBoundTextures = 2;
+
+	TextureInfo				mBoundTextureInfo[ kNumBoundTextures ];
+	CRefPtr<CNativeTexture>	mBoundTexture[ kNumBoundTextures ];
+	
+	TexCoord				mTileTopLeft[ kNumBoundTextures ];
+	TextureWrap				mTexWrap[ kNumBoundTextures ];
+
+	// Index of the corresponding tile state.
+	u8						mActiveTile[ kNumBoundTextures ];
 };
 
 bool CreateRendererLegacy();

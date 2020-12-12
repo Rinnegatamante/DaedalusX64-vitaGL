@@ -39,6 +39,7 @@ static bool LoadFrameBuffer(u32 origin)
 	u32 tex_width = texture->GetCorrectedWidth();
 	u32 tex_height = texture->GetCorrectedHeight();
 	texture->InstallTexture();
+	gRenderer->mBoundTexture[0] = texture;
 	
 	u16 *pixels = (u16*)malloc(tex_width * tex_height * sizeof(u16));
 	u32 src_offset = 0;
