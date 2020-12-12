@@ -44,7 +44,7 @@ https://samilops2.gitbook.io/vita-troubleshooting-guide/daedalus-x64/making-cust
 - xerpi for the original Vita port
 - m4xw for the help sanitizing PIF code
 - MasterFeizz for the ARM DynaRec
-- TheFloW for his contributions to the DynaRec code
+- TheFloW & cmf028 for their contributions to the DynaRec code
 - Salvy & frangarcj for several improvements and bugfixes
 - Inssame for some additions to the UI code
 - That One Seong & TheIronUniverse for the LiveArea assets
