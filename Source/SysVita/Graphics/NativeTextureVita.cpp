@@ -29,14 +29,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "Utility/stb_image_write.h"
-
 #include "Utility/stb_image.h"
-
 #include "Math/MathUtil.h"
-
 #include <png.h>
-
 #include <vitaGL.h>
+
+#define HIGHRES_TEXTURE_CACHE_SIZE 128
+static int highres_tex_cache_idx = 0;
+static int highres_tex_cache_size = 0;
+static bool highres_tex_cache_free = false;
+
+struct HighResTex {
+	u32 crc;
+	GLuint tex_id;
+};
+HighResTex highres_tex_cache[HIGHRES_TEXTURE_CACHE_SIZE];
+
+GLuint highres_cache_lookup(u32 crc) {
+	for (int i = 0; i < highres_tex_cache_size; i++) {
+		if (highres_tex_cache[i].crc == crc) return highres_tex_cache[i].tex_id;
+	}
+	return 0xDEADBEEF;
+}
+
+void highres_cache_upload(u32 crc, GLuint tex_id) {
+	highres_tex_cache_idx = (highres_tex_cache_idx + 1) % HIGHRES_TEXTURE_CACHE_SIZE;
+	if (highres_tex_cache_size < highres_tex_cache_idx) highres_tex_cache_size++;
+	else highres_tex_cache_free = true;
+	if (highres_tex_cache_free) glDeleteTextures(1, &highres_tex_cache[highres_tex_cache_idx].tex_id);
+	highres_tex_cache[highres_tex_cache_idx].crc = crc;
+	highres_tex_cache[highres_tex_cache_idx].tex_id = tex_id;
+}
 
 enum {
 	HIGH_RES_UNCHECKED,
@@ -93,7 +116,7 @@ CNativeTexture::CNativeTexture( u32 w, u32 h, ETextureFormat texture_format )
 
 CNativeTexture::~CNativeTexture()
 {
-	glDeleteTextures( 1, &mTextureId );
+	if (highResState != HIGH_RES_INSTALLED) glDeleteTextures( 1, &mTextureId );
 	if (origData) free(origData);
 }
 
@@ -104,23 +127,32 @@ bool CNativeTexture::HasData() const
 
 void CNativeTexture::InstallTexture()
 {
-	glBindTexture( GL_TEXTURE_2D, mTextureId );
+	glBindTexture(GL_TEXTURE_2D, mTextureId);
 	if (gTexturesDumper) DumpForHighRes();
 	else if (gUseHighResTextures) {
 		if (highResState == HIGH_RES_UNCHECKED) {
 			if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight);
-			char filename[128];
-			sprintf(filename, "%s%04X/%08X.png", DAEDALUS_VITA_PATH("Textures/"), g_ROM.rh.CartID, crc);
-			int hires_width, hires_height;
-			uint8_t *hires_data = stbi_load(filename, &hires_width, &hires_height, NULL, 4);
-			if (hires_data) {
-				origData = malloc(mCorrectedWidth * mCorrectedHeight * 4);
-				memcpy_neon(origData, mpData, mCorrectedWidth * mCorrectedHeight * 4);
-				mpData = origData;
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, hires_width, hires_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, hires_data);
-				free(hires_data);
+			GLuint tex_id = highres_cache_lookup(crc);
+			if (tex_id != 0xDEADBEEF) {
+				glDeleteTextures(1, &mTextureId);
+				mTextureId = tex_id;
+				glBindTexture(GL_TEXTURE_2D, mTextureId);
 				highResState = HIGH_RES_INSTALLED;
-			} else highResState = HIGH_RES_ABSENT;
+			} else {
+				char filename[128];
+				sprintf(filename, "%s%04X/%08X.png", DAEDALUS_VITA_PATH("Textures/"), g_ROM.rh.CartID, crc);
+				int hires_width, hires_height;
+				uint8_t *hires_data = stbi_load(filename, &hires_width, &hires_height, NULL, 4);
+				if (hires_data) {
+					origData = malloc(mCorrectedWidth * mCorrectedHeight * 4);
+					memcpy_neon(origData, mpData, mCorrectedWidth * mCorrectedHeight * 4);
+					mpData = origData;
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, hires_width, hires_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, hires_data);
+					free(hires_data);
+					highres_cache_upload(crc, mTextureId);
+					highResState = HIGH_RES_INSTALLED;
+				} else highResState = HIGH_RES_ABSENT;
+			}
 		}
 	}
 }
