@@ -35,8 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <vitaGL.h>
 
 #define HIGHRES_TEXTURE_CACHE_SIZE 128
-static int highres_tex_cache_idx = 0;
-static int highres_tex_cache_size = 0;
+static int highres_tex_cache_idx = -1;
+static int highres_tex_cache_size = -1;
 static bool highres_tex_cache_free = false;
 
 struct HighResTex {
@@ -127,9 +127,8 @@ bool CNativeTexture::HasData() const
 
 void CNativeTexture::InstallTexture()
 {
-	glBindTexture(GL_TEXTURE_2D, mTextureId);
 	if (gTexturesDumper) DumpForHighRes();
-	else if (gUseHighResTextures) {
+	if (gUseHighResTextures) {
 		if (highResState == HIGH_RES_UNCHECKED) {
 			if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight);
 			GLuint tex_id = highres_cache_lookup(crc);
@@ -139,6 +138,7 @@ void CNativeTexture::InstallTexture()
 				glBindTexture(GL_TEXTURE_2D, mTextureId);
 				highResState = HIGH_RES_INSTALLED;
 			} else {
+				glBindTexture(GL_TEXTURE_2D, mTextureId);
 				char filename[128];
 				sprintf(filename, "%s%04X/%08X.png", DAEDALUS_VITA_PATH("Textures/"), g_ROM.rh.CartID, crc);
 				int hires_width, hires_height;
@@ -153,8 +153,8 @@ void CNativeTexture::InstallTexture()
 					highResState = HIGH_RES_INSTALLED;
 				} else highResState = HIGH_RES_ABSENT;
 			}
-		}
-	}
+		} else glBindTexture(GL_TEXTURE_2D, mTextureId);
+	} else glBindTexture(GL_TEXTURE_2D, mTextureId);
 }
 
 void CNativeTexture::GenerateMipmaps()
@@ -285,7 +285,9 @@ void CNativeTexture::DumpForHighRes()
 		sprintf(filename, "%s/%08X.png", folder, crc);
 		sceIoMkdir(DAEDALUS_VITA_PATH("Textures/"), 0777);
 		sceIoMkdir(folder, 0777);
-		stbi_write_png(filename, mCorrectedWidth, mCorrectedHeight, 4, mpData, mCorrectedWidth * 4);
+		SceUID f = sceIoOpen(filename , SCE_O_RDONLY, 0777);
+		if (f < 0) stbi_write_png(filename, mCorrectedWidth, mCorrectedHeight, 4, mpData, mCorrectedWidth * 4);
+		else sceIoClose(f);
 		dumped = true;
 	}
 }
