@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <png.h>
 #include <vitaGL.h>
 
-#define HIGHRES_TEXTURE_CACHE_SIZE 128
+#define HIGHRES_TEXTURE_CACHE_SIZE 256
 static int highres_tex_cache_idx = -1;
 static int highres_tex_cache_size = -1;
 static bool highres_tex_cache_free = false;
@@ -130,7 +130,7 @@ void CNativeTexture::InstallTexture()
 	if (gTexturesDumper) DumpForHighRes();
 	if (gUseHighResTextures) {
 		if (highResState == HIGH_RES_UNCHECKED) {
-			if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight);
+			if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight * 4);
 			GLuint tex_id = highres_cache_lookup(crc);
 			if (tex_id != 0xDEADBEEF) {
 				glDeleteTextures(1, &mTextureId);
@@ -279,7 +279,7 @@ void CNativeTexture::Dump(const char *filename)
 void CNativeTexture::DumpForHighRes()
 {
 	if (!dumped) {
-		if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight);
+		if (!crc) crc = daedalus_crc32(0, (u8*)mpData, mCorrectedWidth * mCorrectedHeight * 4);
 		char filename[128], folder[128];
 		sprintf(folder, "%s%04X", DAEDALUS_VITA_PATH("Textures/"), g_ROM.rh.CartID);
 		sprintf(filename, "%s/%08X.png", folder, crc);
