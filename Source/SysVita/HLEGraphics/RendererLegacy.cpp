@@ -504,13 +504,12 @@ void RendererLegacy::RenderUsingCurrentBlendMode(const float (&mat_project)[16],
 	if( (gRDPOtherMode.alpha_compare == G_AC_THRESHOLD) && !gRDPOtherMode.alpha_cvg_sel )
 	{
 		u8 alpha_threshold = mBlendColour.GetA();
-		float alpha_val = mBlendColour.GetAf();
-		glAlphaFunc( (alpha_threshold || g_ROM.ALPHA_HACK) ? GL_GEQUAL : GL_GREATER, alpha_val);
+		glAlphaFunc((alpha_threshold || g_ROM.ALPHA_HACK) ? GL_GEQUAL : GL_GREATER, mBlendColour.GetAf());
 		glEnable(GL_ALPHA_TEST);
 	}
 	else if (gRDPOtherMode.cvg_x_alpha)
 	{
-		glAlphaFunc(GL_GREATER, 0.4392f);
+		glAlphaFunc(GL_GEQUAL, 0.04392f);
 		glEnable(GL_ALPHA_TEST);
 	}
 	else
