@@ -54,6 +54,7 @@ steps:
 
 - script: |
     echo "$(cat $VITASDK/version_info.txt)"
+    echo "$(git describe --abbrev=6 --dirty --always --tags)"
     mkdir daedbuild
     cd daedbuild
     cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake

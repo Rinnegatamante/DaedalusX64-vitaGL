@@ -52,7 +52,7 @@ if (VITA_RELEASE)
 
 	message("PSVita Release Build..")
 	
-	execute_process(COMMAND git describe --abbrev=6 --dirty --always --tags
+	execute_process(COMMAND git describe --abbrev=6 --dirty --always
 		OUTPUT_VARIABLE GIT_HASH
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
