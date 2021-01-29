@@ -127,27 +127,27 @@ void swap_roms(RomSelection *a, RomSelection *b) {
 	RomSelection tmp;
 	
 	// Swapping everything except next leaf pointer
-	memcpy_neon(&tmp, a, sizeof(RomSelection) - 4);
-	memcpy_neon(a, b, sizeof(RomSelection) - 4);
-	memcpy_neon(b, &tmp, sizeof(RomSelection) - 4);
+	sceClibMemcpy(&tmp, a, sizeof(RomSelection) - 4);
+	sceClibMemcpy(a, b, sizeof(RomSelection) - 4);
+	sceClibMemcpy(b, &tmp, sizeof(RomSelection) - 4);
 }
 
 void swap_shaders(PostProcessingEffect *a, PostProcessingEffect *b) {
 	PostProcessingEffect tmp;
 	
 	// Swapping everything except next leaf pointer
-	memcpy_neon(&tmp, a, sizeof(PostProcessingEffect) - 4);
-	memcpy_neon(a, b, sizeof(PostProcessingEffect) - 4);
-	memcpy_neon(b, &tmp, sizeof(PostProcessingEffect) - 4);
+	sceClibMemcpy(&tmp, a, sizeof(PostProcessingEffect) - 4);
+	sceClibMemcpy(a, b, sizeof(PostProcessingEffect) - 4);
+	sceClibMemcpy(b, &tmp, sizeof(PostProcessingEffect) - 4);
 }
 
 void swap_overlays(Overlay *a, Overlay *b) {
 	Overlay tmp;
 	
 	// Swapping everything except next leaf pointer
-	memcpy_neon(&tmp, a, sizeof(Overlay) - 4);
-	memcpy_neon(a, b, sizeof(Overlay) - 4);
-	memcpy_neon(b, &tmp, sizeof(Overlay) - 4);
+	sceClibMemcpy(&tmp, a, sizeof(Overlay) - 4);
+	sceClibMemcpy(a, b, sizeof(Overlay) - 4);
+	sceClibMemcpy(b, &tmp, sizeof(Overlay) - 4);
 }
 
 void sort_romlist(RomSelection *start, int order) { 
@@ -383,7 +383,7 @@ void AppendCompatibilityDatabase(const char *file) {
 				// Extracting title
 				ptr += 10;
 				end = strstr(ptr, "\"");
-				memcpy_neon(node->name, ptr, end - ptr);
+				sceClibMemcpy(node->name, ptr, end - ptr);
 				node->name[end - ptr] = 0;
 				
 				// Extracting tags
@@ -555,7 +555,7 @@ char *DrawRomSelector(bool skip_reloads) {
 					char name[128], tmp[128];
 					r = strstr(r, "\">");
 					char *r2 = strcasestr(r, "</a");
-					memcpy_neon(name, r + 2, (r2 - (r + 2)));
+					sceClibMemcpy(name, r + 2, (r2 - (r + 2)));
 					name[(r2 - (r + 2))] = 0;
 					if (name[0] == ' ') {
 						int len = strlen(&name[1]);

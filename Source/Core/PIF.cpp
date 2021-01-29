@@ -342,7 +342,7 @@ void IController::OnRomClose() {}
 void IController::Process()
 {
 #ifdef DAEDALUS_DEBUG_PIF
-	memcpy_neon(mpInput, mpPifRam, PIF_RAM_SIZE);
+	sceClibMemcpy(mpInput, mpPifRam, PIF_RAM_SIZE);
 	DPF_PIF("");
 	DPF_PIF("");
 	DPF_PIF("*********************************************");
@@ -599,13 +599,13 @@ bool	IController::ProcessEeprom(u8 *cmd)
 
 void	IController::CommandReadEeprom(u8* cmd)
 {
-	memcpy_neon(&cmd[4], mpEepromData + cmd[3] * 8, 8);
+	sceClibMemcpy(&cmd[4], mpEepromData + cmd[3] * 8, 8);
 }
 
 void	IController::CommandWriteEeprom(u8* cmd)
 {
 	Save_MarkSaveDirty();
-	memcpy_neon(mpEepromData + cmd[3] * 8, &cmd[4], 8);
+	sceClibMemcpy(mpEepromData + cmd[3] * 8, &cmd[4], 8);
 }
 
 
@@ -639,7 +639,7 @@ void	IController::CommandReadMemPack(u32 channel, u8 *cmd)
 
 	if (addr < 0x8000)
 	{
-		memcpy_neon(data, &mMemPack[channel][addr], 32);
+		sceClibMemcpy(data, &mMemPack[channel][addr], 32);
 	}
 	else
 	{
@@ -661,7 +661,7 @@ void	IController::CommandWriteMemPack(u32 channel, u8 *cmd)
 	if (addr < 0x8000)
     {
 		Save_MarkMempackDirty();
-		memcpy_neon(&mMemPack[channel][addr], data, 32);
+		sceClibMemcpy(&mMemPack[channel][addr], data, 32);
 	}
 
 	cmd[37] = CalculateDataCrc(data);
@@ -726,7 +726,7 @@ void	IController::CommandReadRTC(u8 *cmd)
 		struct tm curtime;
 
 		time(&curtime_time);
-		memcpy_neon(&curtime, localtime(&curtime_time), sizeof(curtime)); // fd's fix
+		sceClibMemcpy(&curtime, localtime(&curtime_time), sizeof(curtime)); // fd's fix
 
 		cmd[4]	= Byte2Bcd(curtime.tm_sec);
 		cmd[5]	= Byte2Bcd(curtime.tm_min);

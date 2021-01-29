@@ -178,7 +178,7 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
 	uint8_t *dst = &rom_mem_buffer[downloaded_bytes];
 	downloaded_bytes += nmemb;
 	if (total_bytes < downloaded_bytes) total_bytes = downloaded_bytes;
-	memcpy_neon(dst, ptr, nmemb);
+	sceClibMemcpy(dst, ptr, nmemb);
 	return nmemb;
 }
 
@@ -599,7 +599,7 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 			
 			params.title = (const SceWChar16*)utf16_str.c_str();
 			memset(dialog_res_text, 0, sizeof(dialog_res_text));
-			memcpy_neon(dialog_res_text, utf16_arg.c_str(), utf16_arg.length() * 2);
+			sceClibMemcpy(dialog_res_text, utf16_arg.c_str(), utf16_arg.length() * 2);
 			params.initialText = dialog_res_text;
 			params.inputTextBuffer = dialog_res_text;
 			
@@ -821,7 +821,7 @@ void loadConfig(const char *game) {
 
 void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 	char *tag_start = strstr(src, tag);
-	if (tag_start != src) memcpy_neon(dst1, src, tag_start - src);
+	if (tag_start != src) sceClibMemcpy(dst1, src, tag_start - src);
 	dst1[tag_start - src] = 0;
 	strcpy(dst2, &tag_start[strlen(tag)]);
 }

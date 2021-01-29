@@ -28,7 +28,7 @@ u32 Patch_guMtxIdentF()
 {
 	const u32 address = gGPR[REG_a0]._u32_0;
 	u8 *pMtxBase = (u8*)ReadAddress(address);
-	memcpy_neon(pMtxBase, s_IdentMatrixF, 0x40);
+	sceClibMemcpy(pMtxBase, s_IdentMatrixF, 0x40);
 
 	return PATCH_RET_JR_RA;
 }
@@ -39,7 +39,7 @@ u32 Patch_guMtxIdent()
 {
 	const u32 address = gGPR[REG_a0]._u32_0;
 	u8 * pMtxBase = (u8 *)ReadAddress(address);
-	memcpy_neon(pMtxBase, s_IdentMatrixL, 0x40);
+	sceClibMemcpy(pMtxBase, s_IdentMatrixL, 0x40);
 
 	return PATCH_RET_JR_RA;
 }
@@ -49,7 +49,7 @@ u32 Patch_guTranslateF()
 	const u32 address = gGPR[REG_a0]._u32_0;
 	u8 * pMtxBase = (u8 *)ReadAddress(address);
 
-	memcpy_neon(pMtxBase, s_IdentMatrixF, 0x30);
+	sceClibMemcpy(pMtxBase, s_IdentMatrixF, 0x30);
 
 	QuickWrite32Bits(pMtxBase, 0x30, gGPR[REG_a1]._u32_0);
 	QuickWrite32Bits(pMtxBase, 0x34, gGPR[REG_a2]._u32_0);
@@ -82,7 +82,7 @@ u32 Patch_guTranslate()
 	u32 z1hibits = (z & 0xFFFF0000) | (one >> 16);
 	u32 z1lobits = (z << 16) | (one & 0x0000FFFF);
 	
-	memcpy_neon(pMtxBase, s_IdentMatrixL, 0x18);
+	sceClibMemcpy(pMtxBase, s_IdentMatrixL, 0x18);
 
 	QuickWrite32Bits(pMtxBase, 0x18, xyhibits);	// xy
 	QuickWrite32Bits(pMtxBase, 0x1c, z1hibits);	// z1
@@ -105,7 +105,7 @@ u32 Patch_guScaleF()
 	QuickWrite32Bits(pMtxBase, 0x14, gGPR[REG_a2]._u32_0);
 	memset(pMtxBase + 0x18, 0, 0x10); 
 	QuickWrite32Bits(pMtxBase, 0x28, gGPR[REG_a3]._u32_0);
-	memcpy_neon(pMtxBase + 0x2C, &s_IdentMatrixF[11], 0x14);
+	sceClibMemcpy(pMtxBase + 0x2C, &s_IdentMatrixF[11], 0x14);
 
 	return PATCH_RET_JR_RA;
 }
@@ -252,7 +252,7 @@ u32 Patch_guOrthoF()
 	r._u32 = gGPR[REG_a2]._u32_0;	//Right
 	b._u32 = gGPR[REG_a3]._u32_0;	//Bottom
 	
-	memcpy_neon(tnfs, pStackBase + 0x10, 0x10);
+	sceClibMemcpy(tnfs, pStackBase + 0x10, 0x10);
 
 	f32 fRmL = r._f32 - l._f32;
 	f32 fTmB = tnfs[0]._f32 - b._f32;
@@ -296,7 +296,7 @@ u32 Patch_guOrtho()
 	l._u32 = gGPR[REG_a1]._u32_0; //Left
 	r._u32 = gGPR[REG_a2]._u32_0; //Right
 	b._u32 = gGPR[REG_a3]._u32_0; //Bottom
-	memcpy_neon(tnfs, pStackBase + 0x10, 0x10);
+	sceClibMemcpy(tnfs, pStackBase + 0x10, 0x10);
 
 	u8 *pMtxLBaseHiBits = (u8*)(pMtxBase + 0x00);
 	u8 *pMtxLBaseLoBits = (u8*)(pMtxBase + 0x20);
@@ -416,7 +416,7 @@ u32 Patch_guRotateF()
 	r._f32 = zz + c * (1.0f - zz);
 	QuickWrite32Bits(pMtxBase, 0x28, r._u32);
 	
-	memcpy_neon(pMtxBase + 0x2c, &s_IdentMatrixF[11], 0x14);
+	sceClibMemcpy(pMtxBase + 0x2c, &s_IdentMatrixF[11], 0x14);
 
 	return PATCH_RET_JR_RA;
 }

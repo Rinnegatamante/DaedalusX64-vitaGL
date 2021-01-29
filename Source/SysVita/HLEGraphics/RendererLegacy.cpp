@@ -44,7 +44,7 @@ void sceGuSetMatrix(int type, const ScePspFMatrix4 * mtx)
 {
 	if (type == GL_PROJECTION)
 	{
-		memcpy_neon(&gProjection, mtx, sizeof(gProjection));
+		sceClibMemcpy(&gProjection, mtx, sizeof(gProjection));
 	}
 }
 
@@ -297,7 +297,7 @@ void RendererLegacy::RenderUsingRenderSettings( const CBlendStates * states, u32
 	
 	if( states->GetNumStates() > 1 )
 	{
-		memcpy_neon( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
+		sceClibMemcpy( mVtx_Save, p_vertices, num_vertices * sizeof( u32 ) );
 	}
 	
 	glEnableClientState(GL_COLOR_ARRAY);
@@ -318,7 +318,7 @@ void RendererLegacy::RenderUsingRenderSettings( const CBlendStates * states, u32
 
 		if( i > 0 )
 		{
-			memcpy_neon(gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
+			sceClibMemcpy(gColorBuffer, mVtx_Save, num_vertices * sizeof( u32 ) );
 			p_vertices = gColorBuffer;
 			gColorBuffer += num_vertices;
 		}
@@ -1005,7 +1005,7 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 			{
 				u32 index = mIndexBuffer[ i ];
 		
-				memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+				sceClibMemcpy(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
 				gTexCoordBuffer[0] = (mVtxProjected[ index ].Texture.x * scale_x - (mTileTopLeft[ 0 ].s  / 4.f * scale_x));
 				gTexCoordBuffer[1] = (mVtxProjected[ index ].Texture.y * scale_y - (mTileTopLeft[ 0 ].t  / 4.f * scale_y));
 				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
@@ -1017,8 +1017,8 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 			{
 				u32 index = mIndexBuffer[ i ];
 		
-				memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
-				memcpy_neon(gTexCoordBuffer, mVtxProjected[ index ].Texture.f, sizeof(float) * 2);
+				sceClibMemcpy(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+				sceClibMemcpy(gTexCoordBuffer, mVtxProjected[ index ].Texture.f, sizeof(float) * 2);
 				gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
 				gVertexBuffer += 3;
 				gTexCoordBuffer += 2;
@@ -1030,7 +1030,7 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 		{
 			u32 index = mIndexBuffer[ i ];
 		
-			memcpy_neon(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
+			sceClibMemcpy(gVertexBuffer, mVtxProjected[ index ].TransformedPos.f, sizeof(float) * 3);
 			gColorBuffer[i] = c32(mVtxProjected[ index ].Colour).GetColour();
 			gVertexBuffer += 3;
 		}

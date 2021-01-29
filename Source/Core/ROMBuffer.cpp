@@ -270,7 +270,7 @@ namespace
 			DAEDALUS_ASSERT( s32( bytes_this_pass ) > 0, "How come we're trying to copy <= 0 bytes across?" );
 			#endif
 			// Copy this chunk across
-			memcpy_neon( p_dst + dst_offset, p_chunk_base + offset_into_chunk, bytes_this_pass );
+			sceClibMemcpy( p_dst + dst_offset, p_chunk_base + offset_into_chunk, bytes_this_pass );
 
 			// Update the src/dst pointers and reduce length by the number of copied bytes
 			dst_offset += bytes_this_pass;
@@ -287,7 +287,7 @@ void	RomBuffer::GetRomBytesRaw( void * p_dst, u32 rom_start, u32 length )
 {
 	if( sRomFixed )
 	{
-		memcpy_neon(p_dst, (const u8*)spRomData + rom_start, length );
+		sceClibMemcpy(p_dst, (const u8*)spRomData + rom_start, length );
 	}
 	else
 	{
@@ -307,7 +307,7 @@ void	RomBuffer::PutRomBytesRaw( u32 rom_start, const void * p_src, u32 length )
 	DAEDALUS_ASSERT( IsRomAddressFixed(), "Cannot put rom bytes when the data isn't fixed" );
 	#endif
 
-	memcpy_neon( (u8*)spRomData + rom_start, p_src, length );
+	sceClibMemcpy( (u8*)spRomData + rom_start, p_src, length );
 
 }
 
