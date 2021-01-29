@@ -1037,10 +1037,7 @@ void DrawPendingDialog() {
 		case DIALOG_MESSAGE:
 			{
 				while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-					vglStopRenderingInit();
-					vglUpdateCommonDialog();
-					vglStopRenderingTerm();
-					vglStartRendering();
+					vglSwapBuffers(GL_TRUE);
 				}
 				SceMsgDialogResult res;
 				memset(&res, 0, sizeof(SceMsgDialogResult));
@@ -1052,10 +1049,7 @@ void DrawPendingDialog() {
 		case DIALOG_KEYBOARD:
 			{
 				while (sceImeDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-					vglStopRenderingInit();
-					vglUpdateCommonDialog();
-					vglStopRenderingTerm();
-					vglStartRendering();
+					vglSwapBuffers(GL_TRUE);
 				}
 				SceImeDialogResult res;
 				memset(&res, 0, sizeof(SceImeDialogResult));

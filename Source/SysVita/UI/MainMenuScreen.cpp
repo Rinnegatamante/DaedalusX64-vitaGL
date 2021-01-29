@@ -474,7 +474,6 @@ char *DrawRomSelector(bool skip_reloads) {
 	bool selected = false;
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	vglStartRendering();
 	if (bg_image != 0xDEADBEEF) DrawBackground();
 	DrawMenuBar();
 	
@@ -735,7 +734,7 @@ char *DrawRomSelector(bool skip_reloads) {
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
 	DrawPendingDialog();
-	vglStopRendering();
+	vglSwapBuffers(GL_FALSE);
 	
 	if (pendingDownload) {
 		switch (cur_download.type) {
