@@ -363,7 +363,7 @@ int download_file(char *url, char *file, char *msg, float int_total_bytes, bool 
 		if (total_bytes != 0xFFFFFFFF) int_total_bytes = total_bytes;
 		DrawDownloaderScreenCompat(downloaded_bytes, downloaded_bytes > int_total_bytes ? downloaded_bytes : int_total_bytes, msg);
 		res = sceKernelGetThreadInfo(thd, &info);
-	} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
+	} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
 	
 	ImGui::GetIO().MouseDrawCursor = true;
 	
@@ -442,7 +442,7 @@ static void Initialize()
 			if (downloader_pass == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHECK_UPDATE], NUM_UPDATE_PASSES);
 			else DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_UPDATE], NUM_UPDATE_PASSES);
 			res = sceKernelGetThreadInfo(thd, &info);
-		} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
+		} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
 		total_bytes = 0xFFFFFFFF;
 		downloaded_bytes = 0;
 		downloader_pass = 1;
@@ -465,7 +465,7 @@ static void Initialize()
 		do {
 			DrawDownloaderScreen(downloader_pass, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_COMPAT_LIST], NUM_DB_CHUNKS);
 			res = sceKernelGetThreadInfo(thd, &info);
-		} while (info.status <= SCE_THREAD_STOPPED && res >= 0);
+		} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
 	}
 
 	ImGui::GetIO().MouseDrawCursor = true;
