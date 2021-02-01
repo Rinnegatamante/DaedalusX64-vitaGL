@@ -20,8 +20,8 @@ ALIGNED_TYPE(class, v4, 16)
 public:
 	v4() {}
 	v4( float _x, float _y, float _z, float _w ) : x( _x ), y( _y ), z( _z ), w( _w ) {}
-	v4( float n[4] ) {memcpy_neon(f, n, sizeof(float)*4);}
-	v4( v3 v ) : w(1.0f) {memcpy_neon(f, v.f, sizeof(float)*3);}
+	v4( float n[4] ) {sceClibMemcpy(f, n, sizeof(float)*4);}
+	v4( v3 v ) : w(1.0f) {sceClibMemcpy(f, v.f, sizeof(float)*3);}
 	
 	void Normalise()
 	{

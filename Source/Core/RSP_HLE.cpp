@@ -219,12 +219,12 @@ EProcessResult RSP_HLE_CICX105(OSTask * task)
 				u8 * src = g_pu8SpImemBase + 0x120;
 
 				/* dma_read(0x1120, 0x1e8, 0x1e8) */
-				memcpy_neon(g_pu8SpImemBase + 0x120, g_pu8RamBase + 0x1e8, 0x1f0);
+				sceClibMemcpy(g_pu8SpImemBase + 0x120, g_pu8RamBase + 0x1e8, 0x1f0);
 
 				/* dma_write(0x1120, 0x2fb1f0, 0xfe817000) */
 				for (i = 0; i < 24; ++i)
 				{
-					memcpy_neon(dst, src, 8);
+					sceClibMemcpy(dst, src, 8);
 					dst += 0xff0;
 					src += 0x8;
 

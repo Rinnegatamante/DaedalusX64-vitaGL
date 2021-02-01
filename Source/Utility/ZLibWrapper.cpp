@@ -92,7 +92,7 @@ bool	COutStream::WriteData( const void * data, u32 length )
 			//
 			if( bytes_to_process > 0 )
 			{
-				memcpy_neon( mBuffer + mBufferCount, current_ptr, bytes_to_process );
+				sceClibMemcpy( mBuffer + mBufferCount, current_ptr, bytes_to_process );
 
 				current_ptr += bytes_to_process;
 				bytes_remaining -= bytes_to_process;
@@ -200,7 +200,7 @@ bool	CInStream::ReadData( void * data, u32 length )
 				#ifdef DAEDALUS_ENABLE_ASSERTS
 				DAEDALUS_ASSERT( mBufferOffset + bytes_to_process <= u32(BUFFER_SIZE), "Reading too many bytes" );
 				#endif
-				memcpy_neon( current_ptr, mBuffer + mBufferOffset, bytes_to_process );
+				sceClibMemcpy( current_ptr, mBuffer + mBufferOffset, bytes_to_process );
 
 				current_ptr += bytes_to_process;
 				bytes_remaining -= bytes_to_process;

@@ -76,7 +76,7 @@ bool ROMFileNetwork::LoadRawData( u32 bytes_to_read, u8 *p_bytes, COutputStream 
 		return false;
 	}
 	
-	if (p_bytes != rom_mem_buffer) memcpy_neon(p_bytes, rom_mem_buffer, bytes_to_read);
+	if (p_bytes != rom_mem_buffer) sceClibMemcpy(p_bytes, rom_mem_buffer, bytes_to_read);
 
 	// Apply the bytesswapping before returning the buffer
 	CorrectSwap( p_bytes, bytes_to_read );
@@ -90,7 +90,7 @@ bool ROMFileNetwork::LoadRawData( u32 bytes_to_read, u8 *p_bytes, COutputStream 
 bool ROMFileNetwork::ReadChunk( u32 offset, u8 * p_dst, u32 length )
 {
 	// Try and read in data - reset to the specified offset
-	memcpy_neon(p_dst, &rom_mem_buffer[offset], length);
+	sceClibMemcpy(p_dst, &rom_mem_buffer[offset], length);
 
 	// Apply the bytesswapping before returning the buffer
 	CorrectSwap( p_dst, length );

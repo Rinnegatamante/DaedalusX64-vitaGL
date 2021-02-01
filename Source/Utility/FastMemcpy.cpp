@@ -43,39 +43,12 @@ void memcpy_byteswap( void* dst, const void* src, size_t size )
 			u32 src_alignment = (uintptr_t)src8&0x3;
 			if (src_alignment == 0)		// We are now both dst and src aligned and >= 4 bytes to copy 
 			{
-#if defined(DAEDALUS_POSIX) || defined(DAEDALUS_W32) || defined(DAEDALUS_VITA)
 				u32 size_aligned = (size & ~0x3);
 				
 				// memcpy is almost 50% faster for windows and linux
-				memcpy_neon(dst8, src8, size_aligned);
+				sceClibMemcpy(dst8, src8, size_aligned);
 				src8 += size_aligned;
 				dst8 += size_aligned;
-#else
-				//This is faster than the PSP's GCC memcpy
-				//TODO: Profile for other plaforms to see if memcpy is faster
-				u32* src32 = (u32*)src8;
-				u32* dst32 = (u32*)dst8;
-
-				u32 size32 = size >> 2;
-				while (size32 & 0x3)
-				{
-					*dst32++ = *src32++;
-					size32--;
-				}
-
-				u32 size128 = size32 >> 2;
-				while (size128--)
-				{
-					dst32[0] = src32[0];
-					dst32[1] = src32[1];
-					dst32[2] = src32[2];
-					dst32[3] = src32[3];
-					src32 += 4;
-					dst32 += 4;
-				}
-				src8 = (u8*)src32;
-				dst8 = (u8*)dst32;
-#endif
 			}
 			else	// We are now dst aligned and src unligned and >= 4 bytes to copy
 			{

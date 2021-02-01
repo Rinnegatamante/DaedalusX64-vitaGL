@@ -383,7 +383,7 @@ void change_custom_rom_path() {
 void set_net_folder() {
 	if (raw_net_romlist) free(raw_net_romlist);
 	raw_net_romlist = (char*)malloc(temp_download_size + 1);
-	memcpy_neon(raw_net_romlist, rom_mem_buffer, temp_download_size);
+	sceClibMemcpy(raw_net_romlist, rom_mem_buffer, temp_download_size);
 	raw_net_romlist[temp_download_size] = 0;
 	resetRomList();
 }
@@ -971,10 +971,10 @@ void DrawCommonWindows() {
 	}*/
 	
 	if (vflux_enabled) {
-		memcpy_neon(&colors[0], vcolors, sizeof(float) * 3);
-		memcpy_neon(&colors[4], vcolors, sizeof(float) * 3);
-		memcpy_neon(&colors[8], vcolors, sizeof(float) * 3);
-		memcpy_neon(&colors[12], vcolors, sizeof(float) * 3);
+		sceClibMemcpy(&colors[0], vcolors, sizeof(float) * 3);
+		sceClibMemcpy(&colors[4], vcolors, sizeof(float) * 3);
+		sceClibMemcpy(&colors[8], vcolors, sizeof(float) * 3);
+		sceClibMemcpy(&colors[12], vcolors, sizeof(float) * 3);
 		
 		float a;
 		SceDateTime time;
@@ -1037,10 +1037,7 @@ void DrawPendingDialog() {
 		case DIALOG_MESSAGE:
 			{
 				while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-					vglStopRenderingInit();
-					vglUpdateCommonDialog();
-					vglStopRenderingTerm();
-					vglStartRendering();
+					vglSwapBuffers(GL_TRUE);
 				}
 				SceMsgDialogResult res;
 				memset(&res, 0, sizeof(SceMsgDialogResult));
@@ -1052,10 +1049,7 @@ void DrawPendingDialog() {
 		case DIALOG_KEYBOARD:
 			{
 				while (sceImeDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-					vglStopRenderingInit();
-					vglUpdateCommonDialog();
-					vglStopRenderingTerm();
-					vglStartRendering();
+					vglSwapBuffers(GL_TRUE);
 				}
 				SceImeDialogResult res;
 				memset(&res, 0, sizeof(SceImeDialogResult));

@@ -51,7 +51,6 @@ static uint8_t quota(uint64_t len) {
 }
 
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes) {
-	vglStartRendering();
 	ImGui_ImplVitaGL_NewFrame();
 	
 	char msg[512];
@@ -83,11 +82,10 @@ void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, 
 	glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
-	vglStopRendering();
+	vglSwapBuffers(GL_FALSE);
 }
 
 void DrawDownloaderScreenCompat(float downloaded_bytes, float total_bytes, char *text) {
-	vglStartRendering();
 	ImGui_ImplVitaGL_NewFrame();
 	
 	ImVec2 pos = ImGui::CalcTextSize(text);
@@ -112,12 +110,11 @@ void DrawDownloaderScreenCompat(float downloaded_bytes, float total_bytes, char 
 	glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
-	vglStopRendering();
+	vglSwapBuffers(GL_FALSE);
 	sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DEFAULT);
 }
 
 void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_bytes, float file_total_bytes, float total_bytes, char *filename, int num_files) {
-	vglStartRendering();
 	ImGui_ImplVitaGL_NewFrame();
 	
 	char msg1[256], msg2[256];
@@ -141,6 +138,6 @@ void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_
 	glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
-	vglStopRendering();
+	vglSwapBuffers(GL_FALSE);
 	sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DEFAULT);
 }

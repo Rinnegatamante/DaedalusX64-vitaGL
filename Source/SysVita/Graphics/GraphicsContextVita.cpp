@@ -174,7 +174,6 @@ void IGraphicsContext::BeginFrame()
 			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, emu_fb_tex, 0);
 		} else glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
 	} else glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	vglStartRendering();
 	if (g_ROM.CLEAR_SCENE_HACK) ClearColBuffer( c32(0xff000000) );
 	glEnableClientState(GL_VERTEX_ARRAY);
 	frame_reset_counter = (frame_reset_counter + 1) % FRAME_RESET_NUM;
@@ -209,20 +208,17 @@ void IGraphicsContext::EndFrame()
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	}
-	if (!pause_emu) vglStopRenderingInit();
 	if (gWaitRendering) glFinish();
 	DrawPendingDialog();
 }
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
-	vglStopRendering();
 	if (gPostProcessing && emu_fb != 0xDEADBEEF) {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(0, 960, 544, 0, -1, 1);
-		vglStartRendering();
 		glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
 		glUseProgram(cur_prog);
 			
@@ -253,8 +249,8 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 		DrawInGameMenu();
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		vglStopRendering();
 	}
+	vglSwapBuffers(GL_FALSE);
 	new_frame = true;
 	if (pause_emu) {
 		BeginFrame();

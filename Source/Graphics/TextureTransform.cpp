@@ -118,7 +118,7 @@ static void ClampTexels( void * texels, u32 n64_width, u32 n64_height, u32 nativ
 
 		for( u32 y = n64_height; y < native_height; ++y )
 		{
-			memcpy_neon( data, last_row, native_stride );
+			sceClibMemcpy( data, last_row, native_stride );
 
 			data = AddByteOffset( data, native_stride );
 		}
@@ -177,7 +177,7 @@ void ClampTexels< NativePfCI44 >( void * texels, u32 n64_width, u32 n64_height, 
 
 		for( u32 y = n64_height; y < native_height; ++y )
 		{
-			memcpy_neon( data, last_row, native_stride );
+			sceClibMemcpy( data, last_row, native_stride );
 
 			data = AddByteOffset( data, native_stride );
 		}
@@ -204,7 +204,7 @@ void ClampTexels( void * texels, u32 n64_width, u32 n64_height, u32 native_width
 template< typename T >
 static void CopyRow( T * dst, const T * src, u32 pixels )
 {
-	memcpy_neon( dst, src, pixels * sizeof( T ) );
+	sceClibMemcpy( dst, src, pixels * sizeof( T ) );
 }
 
 template<>

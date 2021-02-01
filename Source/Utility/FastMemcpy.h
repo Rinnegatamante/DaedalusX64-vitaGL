@@ -35,7 +35,7 @@ void memcpy_vfpu_byteswap( void* dst, const void* src, size_t size );
 #else // DAEDALUS_PSP
 
 // Just use regular memcpy/memcpy_swizzle.
-#define fast_memcpy 		memcpy_neon
+#define fast_memcpy 		sceClibMemcpy
 #define fast_memcpy_swizzle memcpy_swizzle
 
 #endif // DAEDALUS_PSP
