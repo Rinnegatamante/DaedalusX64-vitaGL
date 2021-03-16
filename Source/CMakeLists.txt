@@ -11,6 +11,15 @@
 
 cmake_minimum_required(VERSION 3.7)
 set(CMAKE_CXX_STANDARD 14)
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  if(DEFINED ENV{VITASDK})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+  else()
+    message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+  endif()
+endif()
+
 project (DaedalusX64)
 
 #Default Files for build
@@ -47,111 +56,108 @@ set (VITA_BUILD ${VITA_DEBUG_FILES} ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES}
 #Handle .S files - Probably a better way to do this
 set_property(SOURCE SysVita/DynaRec/DynarecStubARM.S PROPERTY LANGUAGE C)
 
-if (VITA_RELEASE)
-	include("${VITASDK}/share/vita.cmake" REQUIRED)
+include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-	message("PSVita Release Build..")
+message("PSVita Release Build..")
 	
-	execute_process(COMMAND git describe --abbrev=6 --dirty --always
-		OUTPUT_VARIABLE GIT_HASH
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
+execute_process(COMMAND git describe --abbrev=6 --dirty --always
+	OUTPUT_VARIABLE GIT_HASH
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 	
-	set(VITA_APP_NAME "${PROJECT_NAME}")
-	set(VITA_TITLEID  "DEDALOX64")
-	set(VITA_VERSION  "01.00")
+set(VITA_APP_NAME "${PROJECT_NAME}")
+set(VITA_TITLEID  "DEDALOX64")
+set(VITA_VERSION  "01.00")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -g -O3 -mfpu=neon -fno-optimize-sibling-calls -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -Wno-write-strings")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -g -O3 -mfpu=neon -fno-optimize-sibling-calls -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive -Wno-write-strings")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -g -O3 -mfpu=neon -fno-optimize-sibling-calls -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -Wno-write-strings")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_VERSION=\"${GIT_HASH}\" -g -O3 -mfpu=neon -fno-optimize-sibling-calls -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive -Wno-write-strings")
 
-	add_definitions("-DDAEDALUS_VITA")
+add_definitions("-DDAEDALUS_VITA")
 
-	# Build Daedalus Lib
-	add_library(daedalus STATIC
-		${BUILD}
-		${DEBUG_ONLY}
-		${VITA_BUILD}
-	)
+# Build Daedalus Lib
+add_library(daedalus STATIC
+	${BUILD}
+	${DEBUG_ONLY}
+	${VITA_BUILD}
+)
 
-	target_include_directories(daedalus PRIVATE
-		${PROJECT_SOURCE_DIR}
-		${PROJECT_SOURCE_DIR}/SysVita/Include
-		${PROJECT_SOURCE_DIR}/Config/Dev
-	)
+target_include_directories(daedalus PRIVATE
+	${PROJECT_SOURCE_DIR}
+	${PROJECT_SOURCE_DIR}/SysVita/Include
+	${PROJECT_SOURCE_DIR}/Config/Dev
+)
 
-	target_link_libraries(daedalus
-		z
-	)
+target_link_libraries(daedalus
+	z
+)
 
-	# Build and Link Executable
-	add_executable(${PROJECT_NAME}.elf
-		${VITA_MAIN_FILES}
-		${VITA_INPUTMANAGER_FILES}
-	)
+# Build and Link Executable
+add_executable(${PROJECT_NAME}.elf
+	${VITA_MAIN_FILES}
+	${VITA_INPUTMANAGER_FILES}
+)
 
-	target_include_directories(${PROJECT_NAME}.elf PRIVATE
-		${PROJECT_SOURCE_DIR}
-		${PROJECT_SOURCE_DIR}/SysVita/Include
-		${PROJECT_SOURCE_DIR}/Config/Dev
-	)
+target_include_directories(${PROJECT_NAME}.elf PRIVATE
+	${PROJECT_SOURCE_DIR}
+	${PROJECT_SOURCE_DIR}/SysVita/Include
+	${PROJECT_SOURCE_DIR}/Config/Dev
+)
 
-	target_link_libraries(${PROJECT_NAME}.elf
-		-Wl,--whole-archive daedalus -Wl,--no-whole-archive
-		imgui
-		vitaGL
-		vitashark
-		SceDisplay_stub
-		SceGxm_stub
-		ScePgf_stub
-		ScePvf_stub
-		SceSysmodule_stub
-		SceCommonDialog_stub
-		SceKernelThreadMgr_stub
-		SceCtrl_stub
-		SceTouch_stub
-		SceAudio_stub
-		ScePower_stub
-		SceNet_stub
-		SceAppMgr_stub
-		SceAppUtil_stub
-		SceShaccCg_stub
-		c
-		stdc++
-		m
-		mathneon
-		curl
-		ssl
-		crypto
-		speexdsp
-	)
+target_link_libraries(${PROJECT_NAME}.elf
+	-Wl,--whole-archive daedalus -Wl,--no-whole-archive
+	imgui
+	vitaGL
+	vitashark
+	SceDisplay_stub
+	SceGxm_stub
+	ScePgf_stub
+	ScePvf_stub
+	SceSysmodule_stub
+	SceCommonDialog_stub
+	SceKernelThreadMgr_stub
+	SceCtrl_stub
+	SceTouch_stub
+	SceAudio_stub
+	ScePower_stub
+	SceNet_stub
+	SceAppMgr_stub
+	SceAppUtil_stub
+	SceShaccCg_stub
+	c
+	stdc++
+	m
+	mathneon
+	curl
+	ssl
+	crypto
+	speexdsp
+)
 
-	vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
+vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)
 	
-	set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
-	vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
-		VERSION ${VITA_VERSION}
-		NAME ${VITA_APP_NAME}
-		FILE ${PROJECT_SOURCE_DIR}/Roboto.ttf Roboto.ttf
-		FILE ${PROJECT_SOURCE_DIR}/sce_sys/icon0.png sce_sys/icon0.png
-		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
-		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
-		FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
-	)
+set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
+vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
+	VERSION ${VITA_VERSION}
+	NAME ${VITA_APP_NAME}
+	FILE ${PROJECT_SOURCE_DIR}/Roboto.ttf Roboto.ttf
+	FILE ${PROJECT_SOURCE_DIR}/sce_sys/icon0.png sce_sys/icon0.png
+	FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
+	FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
+	FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
+)
 
-	add_custom_target(launch
-		COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
-		COMMAND echo "launch ${VITA_TITLEID}" | nc $ENV{PSVITAIP} 1338
-		DEPENDS ${PROJECT_NAME}.self
-	)
+add_custom_target(launch
+	COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
+	COMMAND echo "launch ${VITA_TITLEID}" | nc $ENV{PSVITAIP} 1338
+	DEPENDS ${PROJECT_NAME}.self
+)
 
-	add_custom_target(send
-		COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
-		DEPENDS ${PROJECT_NAME}.self
-	)
+add_custom_target(send
+	COMMAND curl -T ${PROJECT_NAME}.self ftp://$(PSVITAIP):1337/ux0:/app/${VITA_TITLEID}/eboot.bin
+	DEPENDS ${PROJECT_NAME}.self
+)
 
-	add_custom_target(vpksend
-		COMMAND curl -T ${PROJECT_NAME}.vpk ftp://$(PSVITAIP):1337/ux0:/
-		DEPENDS ${PROJECT_NAME}.vpk
-	)
-
-endif (VITA_RELEASE)
+add_custom_target(vpksend
+	COMMAND curl -T ${PROJECT_NAME}.vpk ftp://$(PSVITAIP):1337/ux0:/
+	DEPENDS ${PROJECT_NAME}.vpk
+)

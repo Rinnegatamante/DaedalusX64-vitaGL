@@ -208,6 +208,7 @@ void IGraphicsContext::EndFrame()
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	}
+	if (!pause_emu) glFlush();
 	if (gWaitRendering) glFinish();
 	DrawPendingDialog();
 }

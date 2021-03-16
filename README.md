@@ -1,14 +1,16 @@
 # DaedalusX64-vitaGL [![Build Status](https://dev.azure.com/rinnegatamante/Daedalus%20X64/_apis/build/status/Rinnegatamante.DaedalusX64-vitaGL?branchName=master)](https://dev.azure.com/rinnegatamante/Daedalus%20X64/_build/latest?definitionId=2&branchName=master)
  
-Daedalus X64 is a Nintendo 64 emulator originally for Linux and PSP. This repository is the official one for the PSVITA/PSTV port using vitaGL as renderer.
+DaedalusX64 is a Nintendo 64 emulator originally for Linux and PSP. This repository is the official one for the PSVITA/PSTV port using vitaGL as renderer.
 
 ## Build Instructions
+
+You need to have vitaGL compiled with `HAVE_SBRK=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1` in order to properly compile DaedalusX64.<br><br>
 
 You can compile DaedalusX64-vitaGL with:
 ```
 mkdir daedbuild
 cd daedbuild
-cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake
+cmake ../Source
 make
 ```
  
@@ -23,11 +25,11 @@ You can head to Vita Nuova discord server to get help with DaedalusX64-vitaGL. W
 Invite link: https://discord.gg/PyCaBx9
 
 ## HD Textures Pack Tutorial
-In order to create an HD texture pack (or adapt an existing one to Daedalus X64). You'll need to follow these steps:
-* Launch Daedalus X64 and enable **Textures Dumper** option under **Extra** menu.
+In order to create an HD texture pack (or adapt an existing one to DaedalusX64). You'll need to follow these steps:
+* Launch DaedalusX64 and enable **Textures Dumper** option under **Extra** menu.
 * Launch the game you want to create an HD texture pack for.
 * Play a bit the game in order to let Daedalus X64 dump all the textures the game loads in the meantime.
-* Close Daedalus X64, if you'll now navigate in **ux0:/data/DaedalusX64/Textures** you'll find a new folder named as the Cartridge ID of the game you've run containing a lot of images.
+* Close DaedalusX64, if you'll now navigate in **ux0:/data/DaedalusX64/Textures** you'll find a new folder named as the Cartridge ID of the game you've run containing a lot of images.
 * Create HD replacements for those images (or use existing ones from other textures pack) without changing filenames.
 
 ## Network Roms Tutorial
@@ -40,7 +42,7 @@ https://samilops2.gitbook.io/vita-troubleshooting-guide/daedalus-x64/making-cust
 
 ## Credits
  
-- All the original Daedalus X64 developers
+- All the original DaedalusX64 developers
 - xerpi for the original Vita port
 - m4xw for the help sanitizing PIF code
 - MasterFeizz for the ARM DynaRec
@@ -49,4 +51,4 @@ https://samilops2.gitbook.io/vita-troubleshooting-guide/daedalus-x64/making-cust
 - Inssame for some additions to the UI code
 - That One Seong & TheIronUniverse for the LiveArea assets
 - withLogic for the high-res preview assets
-- Rob Scotcher for the Daedalus X64 logo image
+- Rob Scotcher for the DaedalusX64 logo image

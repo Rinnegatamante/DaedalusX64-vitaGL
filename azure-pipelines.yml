@@ -41,8 +41,8 @@ steps:
 - script: |
     git clone https://github.com/Rinnegatamante/vitaGL
     cd vitaGL
-    make -j$(nproc) HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1 HAVE_UNFLIPPED_FBOS=1
-    sudo -E make HAVE_SBRK=1 NO_DEBUG=1 HAVE_SHARK=1 HAVE_UNFLIPPED_FBOS=1 install
+    make -j$(nproc) HAVE_SBRK=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1
+    sudo -E make HAVE_SBRK=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 install
   displayName: 'Build vitaGL'
 
 - script: |
@@ -57,7 +57,7 @@ steps:
     echo "$(git describe --abbrev=6 --dirty --always --tags)"
     mkdir daedbuild
     cd daedbuild
-    cmake -DVITA_RELEASE=1 ../Source -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake
+    cmake ../Source
     make -j$(nproc)
     cd ../Data
     zip -9 -r DaedalusX64.zip DaedalusX64
