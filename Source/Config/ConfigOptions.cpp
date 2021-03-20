@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 u32		gSpeedSyncEnabled			= 0;		// Enable to limit frame rate.
 bool	gUseCachedInterpreter       = false;	// Use cached interpreter
 bool	gDynarecEnabled				= true;		// Use dynamic recompilation
-bool	gDynarecLoopsOptimisation	= true;		// Enable the dynarec loop optimisation
+bool	gDynarecLoopsOptimisation	= false;	// Enable the dynarec loop optimisation
 bool	gDynarecDoublesOptimisation	= false;	// Enable the dynarec Doubles optimisation
 bool	gDynarecWordsOptimisation	= true;		// Enable compilation of word/double load/store instructions
 bool	gOSHooksEnabled				= true;		// Apply os-hooks
