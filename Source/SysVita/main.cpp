@@ -326,8 +326,13 @@ void reloadFont() {
 		0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
 		0x0590, 0x05FF, // Hebrew
 		0x1E00, 0x1EFF, // Latin Extended Additional
+		0x2000, 0x206F, // General Punctuation
 		0x2DE0, 0x2DFF, // Cyrillic Extended-A
+		0x3000, 0x30FF, // CJK Symbols and Punctuations, Hiragana, Katakana
+		0x31F0, 0x31FF, // Katakana Phonetic Extensions
+		0x4E00, 0x9FAF, // CJK Ideograms
 		0xA640, 0xA69F, // Cyrillic Extended-B
+        0xFF00, 0xFFEF, // Half-width characters
 		0,
 	};
 	
@@ -619,12 +624,17 @@ void setTranslation(int idx) {
 	char langFile[LANG_STR_SIZE * 2];
 	char identifier[LANG_ID_SIZE], buffer[LANG_STR_SIZE];
 	
+	if (idx == SCE_SYSTEM_PARAM_LANG_CHINESE_T) idx = SCE_SYSTEM_PARAM_LANG_CHINESE_S;
+	
 	switch (idx) {
 	case SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR: // Brazilian Portuguese
 		sprintf(langFile, "%sPortugueseBR.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
 	case SCE_SYSTEM_PARAM_LANG_CATALAN: // Catalan
 		sprintf(langFile, "%sCatalà.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
+	case SCE_SYSTEM_PARAM_LANG_CHINESE_S:
+		sprintf(langFile, "%sChinese.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
 	case SCE_SYSTEM_PARAM_LANG_DANISH: // Danish
 		sprintf(langFile, "%sDanish.ini", DAEDALUS_VITA_PATH("Languages/"));

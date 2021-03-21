@@ -858,6 +858,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Türk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_TURKISH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_TURKISH);
 		}
+		if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
+		}
 		ImGui::EndMenu();
 	}
 }
@@ -916,6 +919,7 @@ void DrawCommonWindows() {
 		ImGui::Text("ΧΡΗΣΤΟΣ ΜΑΝΟΥΣΗΣ (GRE)");
 		ImGui::Text("nekita13 (RUS)");
 		ImGui::Text("rewold20 (TUR)");
+		ImGui::Text("CHN-Gen (CHN)");
 		ImGui::End();
 	}
 	
