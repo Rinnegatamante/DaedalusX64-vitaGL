@@ -332,7 +332,7 @@ void reloadFont() {
 		0x31F0, 0x31FF, // Katakana Phonetic Extensions
 		0x4E00, 0x9FAF, // CJK Ideograms
 		0xA640, 0xA69F, // Cyrillic Extended-B
-        0xFF00, 0xFFEF, // Half-width characters
+		0xFF00, 0xFFEF, // Half-width characters
 		0,
 	};
 	
@@ -633,7 +633,7 @@ void setTranslation(int idx) {
 	case SCE_SYSTEM_PARAM_LANG_CATALAN: // Catalan
 		sprintf(langFile, "%sCatalà.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
-	case SCE_SYSTEM_PARAM_LANG_CHINESE_S:
+	case SCE_SYSTEM_PARAM_LANG_CHINESE_S: // Chinese
 		sprintf(langFile, "%sChinese.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
 	case SCE_SYSTEM_PARAM_LANG_DANISH: // Danish

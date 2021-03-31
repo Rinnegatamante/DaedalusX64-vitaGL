@@ -358,6 +358,16 @@ bool is_negative_y = false;
 void inline SetInternalViewport() {
 	// NOTE: If disabled, Tarzan in game HUD is not rendered and Fighting Force 64 floor is not rendered
 	if (!g_ROM.SCISSOR_HACK) glScissor(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
+	if (g_ROM.VIEWPORT_HACK) {
+		u32 scr_width, scr_height;
+		CGraphicsContext::Get()->GetScreenSize(&scr_width, &scr_height);
+		if (vp_h != scr_height) {
+			vp_x = (SCR_WIDTH - scr_width) / 2;
+			vp_y = (SCR_HEIGHT - scr_height) / 2;
+			vp_w = scr_width;
+			vp_h = scr_height;
+		}
+	}
 	glViewport(vp_x, SCR_HEIGHT - (vp_h + vp_y), vp_w, vp_h);
 }
 
