@@ -41,8 +41,8 @@ steps:
 - script: |
     git clone https://github.com/Rinnegatamante/vitaGL
     cd vitaGL
-    make -j$(nproc) HAVE_SBRK=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1
-    sudo -E make HAVE_SBRK=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 install
+    make -j$(nproc) NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1
+    sudo -E make NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 install
   displayName: 'Build vitaGL'
 
 - script: |

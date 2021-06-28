@@ -368,6 +368,7 @@ extern bool pendingDownload;
 extern bool custom_path_str_dirty;
 extern bool net_path_str_dirty;
 extern bool is_main_menu;
+extern bool fontDirty;
 
 extern uint64_t cur_playtime;
 extern char *raw_net_romlist;

@@ -319,7 +319,19 @@ static int updaterThread(unsigned int args, void* arg) {
 }
 
 void reloadFont() {
-	static const ImWchar ranges[] = {
+	static const ImWchar compact_ranges[] = { // All languages except chinese
+		0x0020, 0x00FF, // Basic Latin + Latin Supplement
+		0x0100, 0x024F, // Latin Extended
+		0x0370, 0x03FF, // Greek
+		0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
+		0x0590, 0x05FF, // Hebrew
+		0x1E00, 0x1EFF, // Latin Extended Additional
+		0x2DE0, 0x2DFF, // Cyrillic Extended-A
+		0xA640, 0xA69F, // Cyrillic Extended-B
+		0,
+	};
+	
+	static const ImWchar ranges[] = { // All languages with chinese included
 		0x0020, 0x00FF, // Basic Latin + Latin Supplement
 		0x0100, 0x024F, // Latin Extended
 		0x0370, 0x03FF, // Greek
@@ -336,7 +348,11 @@ void reloadFont() {
 		0,
 	};
 	
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE, NULL, ranges);
+	if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
+		gBigText = false;
+		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE, NULL, ranges);
+	} else
+		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto_compact.ttf", 16.0f * UI_SCALE, NULL, compact_ranges);
 }
 
 void start_net() {
@@ -621,6 +637,9 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 }
 
 void setTranslation(int idx) {
+	if (idx != gLanguageIndex && (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S || idx == SCE_SYSTEM_PARAM_LANG_CHINESE_S))
+		fontDirty = true;
+	
 	char langFile[LANG_STR_SIZE * 2];
 	char identifier[LANG_ID_SIZE], buffer[LANG_STR_SIZE];
 	

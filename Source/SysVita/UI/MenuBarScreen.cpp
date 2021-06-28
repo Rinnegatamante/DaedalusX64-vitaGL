@@ -37,8 +37,8 @@ float ver_len = 0.0f;
 bool calculate_ver_len = true;
 bool pendingDownload = false;
 bool is_main_menu = true;
+bool fontDirty = false;
 
-bool oldBigText = false;
 int gLanguageIndex = SCE_SYSTEM_PARAM_LANG_ENGLISH_US;
 int gUiTheme = DARK_THEME;
 int gAspectRatio = RATIO_16_9;
@@ -526,8 +526,9 @@ void DrawExtraMenu() {
 		if (ImGui::MenuItem(lang_strings[STR_MENU_MENUBAR], nullptr, gHideMenubar)){
 			gHideMenubar = !gHideMenubar;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText)){
+		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText, gLanguageIndex != SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
 			gBigText = !gBigText;
+			fontDirty = true;
 		}
 		ImGui::Separator();
 		if (ImGui::MenuItem(lang_strings[STR_MENU_AUTOUPDATE], nullptr, gAutoUpdate)){
@@ -858,8 +859,14 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Türk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_TURKISH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_TURKISH);
 		}
-		if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
-			setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
+		if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
+			if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
+			}
+		} else {
+			if (ImGui::MenuItem("Chinese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
+			}
 		}
 		ImGui::EndMenu();
 	}
@@ -1075,11 +1082,11 @@ void DrawPendingDialog() {
 
 void DrawMenuBar() {
 	// Checking if a UI scale change is performed
-	if (oldBigText != gBigText) {
+	if (fontDirty) {
 		ImGui::GetIO().Fonts->Clear();
 		ImGui_ImplVitaGL_InvalidateDeviceObjects();
 		reloadFont();
-		oldBigText = gBigText;
+		fontDirty = false;
 	}
 	
 	if (custom_path_str_dirty) {
@@ -1169,11 +1176,11 @@ void DrawInGameMenuBar() {
 	}
 	
 	// Checking if a UI scale change is performed
-	if (oldBigText != gBigText) {
+	if (fontDirty) {
 		ImGui::GetIO().Fonts->Clear();
 		ImGui_ImplVitaGL_InvalidateDeviceObjects();
 		reloadFont();
-		oldBigText = gBigText;
+		fontDirty = false;
 	}
 	
 	ImGui_ImplVitaGL_NewFrame();
