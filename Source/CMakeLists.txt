@@ -139,7 +139,6 @@ set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
 	VERSION ${VITA_VERSION}
 	NAME ${VITA_APP_NAME}
-	FILE ${PROJECT_SOURCE_DIR}/Roboto.ttf Roboto.ttf
 	FILE ${PROJECT_SOURCE_DIR}/Roboto_compact.ttf Roboto_compact.ttf
 	FILE ${PROJECT_SOURCE_DIR}/sce_sys/icon0.png sce_sys/icon0.png
 	FILE ${PROJECT_SOURCE_DIR}/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png

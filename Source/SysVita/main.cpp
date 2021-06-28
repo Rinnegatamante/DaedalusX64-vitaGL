@@ -48,7 +48,7 @@ bool gAutoUpdate = true;
 char gCustomRomPath[256] = {0};
 char gNetRomPath[256] = {0};
 
-static char fname[512], ext_fname[512], read_buffer[8192];
+static char fname[512], ext_fname[512], fnt_fname[512], read_buffer[8192];
 
 static char *net_url = nullptr;
 
@@ -318,6 +318,11 @@ static int updaterThread(unsigned int args, void* arg) {
 	return 0;
 }
 
+void apply_font() {
+	sceIoRename(TEMP_DOWNLOAD_NAME, fnt_fname);
+	fontDirty = true;
+}
+
 void reloadFont() {
 	static const ImWchar compact_ranges[] = { // All languages except chinese
 		0x0020, 0x00FF, // Basic Latin + Latin Supplement
@@ -350,7 +355,13 @@ void reloadFont() {
 	
 	if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
 		gBigText = false;
-		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto.ttf", 16.0f * UI_SCALE, NULL, ranges);
+		SceIoStat dummy;
+		if (sceIoGetstat(fnt_fname, &dummy) >= 0)
+			ImGui::GetIO().Fonts->AddFontFromFileTTF(fnt_fname, 16.0f * UI_SCALE, NULL, ranges);
+		else {
+			ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto_compact.ttf", 16.0f * UI_SCALE, NULL, compact_ranges);
+			queueDownload("Downloading required font data", "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/blob/master/Source/Roboto.ttf?raw=true", 21 * 1024 * 1024, apply_font, FILE_DOWNLOAD);
+		}
 	} else
 		ImGui::GetIO().Fonts->AddFontFromFileTTF("app0:/Roboto_compact.ttf", 16.0f * UI_SCALE, NULL, compact_ranges);
 }
@@ -441,6 +452,7 @@ static void Initialize()
 
 	// Initializing dear ImGui
 	ImGui::CreateContext();
+	sprintf(fnt_fname, "%sRoboto.ttf", DAEDALUS_VITA_PATH("Resources/"));
 	reloadFont();
 	ImGui_ImplVitaGL_Init();
 	ImGui_ImplVitaGL_TouchUsage(true);
