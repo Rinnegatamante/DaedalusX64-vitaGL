@@ -28,12 +28,6 @@ steps:
 - script: |
     git clone https://github.com/Rinnegatamante/vitaShaRK
     cd vitaShaRK
-    vita-libs-gen SceShaccCg.yml shaccg
-    cd shaccg
-    make -j$(nproc)
-    sudo -E make install
-    cd ..
-    sudo -E cp shacccg.h $VITASDK/arm-vita-eabi/include/psp2/shacccg.h
     make -j$(nproc)
     sudo -E make install
   displayName: 'Build vitaShaRK'
