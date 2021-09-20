@@ -240,10 +240,10 @@ void RendererLegacy::RestoreRenderStates()
 
 RendererLegacy::SBlendStateEntry RendererLegacy::LookupBlendState( u64 mux, bool two_cycles )
 {
-	#ifdef DAEDALUS_DEBUG_DISPLAYLIST
+#ifdef DAEDALUS_DEBUG_DISPLAYLIST
 	DAEDALUS_PROFILE( "RendererPSP::LookupBlendState" );
 	mRecordedCombinerStates.insert( mux );
-	#endif
+#endif
 
 	REG64 key;
 	key._u64 = mux;
