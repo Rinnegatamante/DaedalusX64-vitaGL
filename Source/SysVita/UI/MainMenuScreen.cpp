@@ -265,7 +265,7 @@ void LoadPlaytimeData(RomSelection *p) {
 		return;
 	}
 	char fname[64];
-	sprintf(fname, "%04x%04x-%01x.bin", p->id.CRC[0], p->id.CRC[1], p->id.CountryID);
+	sprintf(fname, "%08x%08x-%02x.bin", p->id.CRC[0], p->id.CRC[1], p->id.CountryID);
 	IO::Filename fullpath_filename;
 	IO::Path::Combine(fullpath_filename, DAEDALUS_VITA_PATH("Playtimes/"), fname );
 	FILE *f = fopen(fullpath_filename, "rb");
@@ -689,7 +689,7 @@ char *DrawRomSelector(bool skip_reloads) {
 			ImGui::Text("%s: %s", lang_strings[STR_GAME_NAME], strlen(hovered->title) > 0 ? hovered->title : lang_strings[STR_UNKNOWN]);
 			ImGui::Text("%s: %s", lang_strings[STR_REGION], ROM_GetCountryNameFromID(hovered->id.CountryID));
 			ImGui::Text("%s: %s", lang_strings[STR_PLAYTIME], FormatPlaytime(hovered->playtime));
-			ImGui::Text("CRC: %04x%04x-%01x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
+			ImGui::Text("CRC: %08x%08x-%02x", hovered->id.CRC[0], hovered->id.CRC[1], hovered->id.CountryID);
 			ImGui::Text("%s: %s", lang_strings[STR_CIC_TYPE], ROM_GetCicName(hovered->cic));
 			ImGui::Text("%s: %lu MBs", lang_strings[STR_ROM_SIZE], hovered->size);
 			ImGui::Text("%s: %s", lang_strings[STR_SAVE_TYPE], ROM_GetSaveTypeName(hovered->save));

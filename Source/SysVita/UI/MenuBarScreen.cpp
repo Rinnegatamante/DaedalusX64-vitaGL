@@ -1149,7 +1149,7 @@ void DrawMenuBar() {
 
 void ExecSaveState(int slot) {
 	IO::Filename full_path;
-	sprintf(full_path, "%s%04x%04x-%01x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, slot);
+	sprintf(full_path, "%s%08x%08x-%02x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, slot);
 	
 	CPU_RequestSaveState(full_path);
 	cached_saveslots[slot] = true;
@@ -1158,7 +1158,7 @@ void ExecSaveState(int slot) {
 
 void LoadSaveState(int slot) {
 	IO::Filename full_path;
-	sprintf(full_path, "%s%04x%04x-%01x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, slot);
+	sprintf(full_path, "%s%08x%08x-%02x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, slot);
 	
 	CPU_RequestLoadState(full_path);
 	showAlert(lang_strings[STR_ALERT_STATE_LOAD], ALERT_MESSAGE);
@@ -1173,7 +1173,7 @@ void DrawInGameMenuBar() {
 			// Translating old savestates names to newer one (Introduced on 28/06/2021)
 			IO::Filename old_save_path;
 			sprintf(old_save_path, "%s%s.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.settings.GameName.c_str(), i);
-			sprintf(save_path, "%s%04x%04x-%01x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, i);
+			sprintf(save_path, "%s%08x%08x-%02x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, i);
 			if (IO::File::Exists(old_save_path)) {
 				sceIoRename(old_save_path, save_path);
 				cached_saveslots[i] = true;
