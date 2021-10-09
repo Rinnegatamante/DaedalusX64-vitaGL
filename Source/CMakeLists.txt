@@ -116,6 +116,7 @@ target_link_libraries(${PROJECT_NAME}.elf
 	SceCommonDialog_stub
 	SceKernelThreadMgr_stub
 	SceCtrl_stub
+	SceKernelDmacMgr_stub
 	SceTouch_stub
 	SceAudio_stub
 	ScePower_stub
