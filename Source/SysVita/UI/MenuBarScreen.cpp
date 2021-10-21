@@ -50,6 +50,7 @@ bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
 bool gUseRendererLegacy = true;
+bool gRendererChanged = false;
 bool gNetBoot = false;
 
 uint8_t shader_idx = 0;
@@ -628,12 +629,14 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
-		if (ImGui::BeginMenu("Renderer", is_main_menu)){
+		if (ImGui::BeginMenu("Renderer")) {
 			if (ImGui::MenuItem(lang_strings[STR_MENU_LEGACY_REND], nullptr, gUseRendererLegacy)){
+				if (!is_main_menu && !gUseRendererLegacy) gRendererChanged = true;
 				gUseRendererLegacy = true;
 			}
 			SetDescription(lang_strings[STR_DESC_LEGACY_REND]);
-			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, !gUseRendererLegacy, vglHasRuntimeShaderCompiler())){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, !gUseRendererLegacy)){
+				if (!is_main_menu && gUseRendererLegacy) gRendererChanged = true;
 				gUseRendererLegacy = false;
 			}
 			SetDescription(lang_strings[STR_DESC_MODERN_REND]);
@@ -1147,6 +1150,47 @@ void DrawMenuBar() {
 	DrawCommonWindows();
 }
 
+enum {
+	SWAP_STARTED,
+	SWAP_REBOOTED,
+	SWAP_RELOADED
+};
+
+int gSwapState = SWAP_STARTED;
+bool gSwapUseRendererLegacy;
+int gSwapCounter = 0;
+
+void SwapRenderer() {
+	if (gRendererChanged) {
+		SceIoStat st;
+		if (sceIoGetstat("ux0:data/swap.d64", &st)) {
+			// Executing temp savestate
+			CPU_RequestSaveState("ux0:data/swap.d64");
+			gSwapUseRendererLegacy = gUseRendererLegacy;
+		} else {
+			if (gSwapState == SWAP_STARTED) {
+				// Restarting rom
+				pause_emu = false;
+				restart_rom = true;
+				CPU_Halt("");
+				gSwapState = SWAP_REBOOTED;
+			} else if (gSwapState == SWAP_REBOOTED) {
+				// Loading temp savestate and deleting it
+				CPU_RequestLoadState("ux0:data/swap.d64");
+				gSwapState = SWAP_RELOADED;
+			} else {
+				gSwapCounter++;
+				if (gSwapCounter > 30) {
+					sceIoRemove("ux0:data/swap.d64");
+					gRendererChanged = false;
+					gSwapState = SWAP_STARTED;
+					gSwapCounter = 0;
+				}
+			}
+		}
+	}
+}
+
 void ExecSaveState(int slot) {
 	IO::Filename full_path;
 	sprintf(full_path, "%s%08x%08x-%02x.ss%ld", DAEDALUS_VITA_PATH("SaveStates/"), g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, slot);
@@ -1254,4 +1298,6 @@ void DrawInGameMenuBar() {
 	}
 	
 	DrawCommonWindows();
+	
+	SwapRenderer();
 }

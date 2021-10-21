@@ -1,10 +1,10 @@
 # DaedalusX64-vitaGL [![Build Status](https://dev.azure.com/rinnegatamante/Daedalus%20X64/_apis/build/status/Rinnegatamante.DaedalusX64-vitaGL?branchName=master)](https://dev.azure.com/rinnegatamante/Daedalus%20X64/_build/latest?definitionId=2&branchName=master)
  
-DaedalusX64 is a Nintendo 64 emulator originally for Linux and PSP. This repository is the official one for the PSVITA/PSTV port using vitaGL as renderer.
+DaedalusX64 is a Nintendo 64 emulator originally for Linux and PSP. This repository is the official one for the PSVITA/PSTV port using vitaGL as renderer backend.
 
 ## Build Instructions
 
-You need to have vitaGL compiled with `NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1` in order to properly compile DaedalusX64.<br><br>
+You need to have vitaGL compiled with `NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1` in order to properly compile DaedalusX64.<br><br>
 
 You can compile DaedalusX64-vitaGL with:
 ```

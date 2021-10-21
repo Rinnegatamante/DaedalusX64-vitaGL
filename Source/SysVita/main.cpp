@@ -42,6 +42,9 @@
 #define NET_INIT_SIZE      1*1024*1024
 #define MAX_ROM_SIZE      64*1024*1024
 
+extern bool gRendererChanged;
+extern bool gSwapUseRendererLegacy;
+
 bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
 bool gAutoUpdate = true;
@@ -969,8 +972,11 @@ int main(int argc, char* argv[]) {
 		loadConfig("default");
 		EnableMenuButtons(true);
 
-		if (restart_rom) restart_rom = false;
-		else if (gStandaloneMode) {
+		if (restart_rom) {
+			restart_rom = false;
+			if (gRendererChanged)
+				gUseRendererLegacy = gSwapUseRendererLegacy;
+		} else if (gStandaloneMode) {
 			rom = nullptr;
 			do {
 				rom = DrawRomSelector(false);
@@ -989,6 +995,8 @@ int main(int argc, char* argv[]) {
 		System_Open(rom);
 		
 		loadConfig(g_ROM.settings.GameName.c_str());
+		if (gRendererChanged)
+			gUseRendererLegacy = gSwapUseRendererLegacy;
 		is_main_menu = false;
 		if (gStandaloneMode) rom_start_tick = sceKernelGetProcessTimeWide();
 		CPU_Run();
