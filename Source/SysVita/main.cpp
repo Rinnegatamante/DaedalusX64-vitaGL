@@ -216,7 +216,7 @@ static void startDownload(const char *url)
 	curl_easy_perform(curl_handle);
 }
 
-static int compatListThread(unsigned int args, void* arg) {
+static int compatListThread(unsigned int args, void *arg) {
 	char url[512], dbname[64];
 	curl_handle = curl_easy_init();
 	for (int i = 1; i <= NUM_DB_CHUNKS; i++) {
@@ -244,7 +244,7 @@ static int compatListThread(unsigned int args, void* arg) {
 	return 0;
 }
 
-static int downloaderThread_file(unsigned int args, void* arg) {
+static int downloaderThread_file(unsigned int args, void *arg) {
 	char url[512];
 	curl_handle = curl_easy_init();
 	strcpy(url, net_url);
@@ -261,7 +261,7 @@ static int downloaderThread_file(unsigned int args, void* arg) {
 	return 0;
 }
 
-static int downloaderThread_mem(unsigned int args, void* arg) {
+static int downloaderThread_mem(unsigned int args, void *arg) {
 	char url[512];
 	curl_handle = curl_easy_init();
 	strcpy(url, net_url);
@@ -274,8 +274,8 @@ static int downloaderThread_mem(unsigned int args, void* arg) {
 	return 0;
 }
 
-static int updaterThread(unsigned int args, void* arg) {
-	uint8_t update_detected = 0;
+static int updaterThread(unsigned int args, void *arg) {
+	bool update_detected = false;
 	char url[512];
 	curl_handle = curl_easy_init();
 	for (int i = UPDATER_CHECK_UPDATES; i < NUM_UPDATE_PASSES; i++) {
@@ -289,20 +289,27 @@ static int updaterThread(unsigned int args, void* arg) {
 		downloaded_bytes = 0;
 
 		// FIXME: Workaround since GitHub Api does not set Content-Length
-		total_bytes = i == UPDATER_CHECK_UPDATES ? 20 * 1024 : 2 * 1024 * 1024; /* 20 KB / 2 MB */
+		total_bytes = i == UPDATER_DOWNLOAD_UPDATE ? 2 * 1024 * 1024 : 20 * 1024; /* 2 MB / 20 KB */
 
 		startDownload(url);
 
 		if (downloaded_bytes > 12 * 1024) {
 			if (i == UPDATER_CHECK_UPDATES) {
-				if (strncmp(strstr((char*)rom_mem_buffer, "target_commitish") + 20, stringify(GIT_VERSION), 6)) {
-#ifdef STABLE_BUILD
-					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Stable/DaedalusX64.vpk");
-#else
-					sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.vpk");
-#endif
-					update_detected = 1;
+				char target_commit[7];
+				snprintf(target_commit, 6, strstr((char*)rom_mem_buffer, "target_commitish") + 20);
+				if (strncmp(target_commit, stringify(GIT_VERSION), 5)) {
+					sprintf(url, "https://api.github.com/repos/Rinnegatamante/DaedalusX64-vitaGL/compare/%s...%s", stringify(GIT_VERSION), target_commit);
+					update_detected = true;
 				}
+			} else if (i == UPDATER_DOWNLOAD_CHANGELIST) {
+				fh = fopen(LOG_DOWNLOAD_NAME, "wb");
+				fwrite((const void*)rom_mem_buffer, 1, downloaded_bytes, fh);
+				fclose(fh);
+#ifdef STABLE_BUILD
+				sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Stable/DaedalusX64.vpk");
+#else
+				sprintf(url, "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.vpk");
+#endif
 			}
 		}
 	}
@@ -466,6 +473,7 @@ static void Initialize()
 	SceKernelThreadInfo info;
 	info.size = sizeof(SceKernelThreadInfo);
 	int res = 0;
+	FILE *f;
 	
 	// Checking for updates
 	if (gAutoUpdate && !gSkipAutoUpdate) {
@@ -473,6 +481,7 @@ static void Initialize()
 		sceKernelStartThread(thd, 0, NULL);
 		do {
 			if (downloader_pass == UPDATER_CHECK_UPDATES) DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHECK_UPDATE], NUM_UPDATE_PASSES);
+			else if (downloader_pass == UPDATER_DOWNLOAD_CHANGELIST) DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_CHANGELIST], NUM_UPDATE_PASSES);
 			else DrawDownloaderScreen(downloader_pass + 1, downloaded_bytes, total_bytes, lang_strings[STR_DOWNLOADER_UPDATE], NUM_UPDATE_PASSES);
 			res = sceKernelGetThreadInfo(thd, &info);
 		} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
@@ -481,7 +490,7 @@ static void Initialize()
 		downloader_pass = 1;
 		
 		// Found an update, extracting and installing it
-		FILE *f = fopen(TEMP_DOWNLOAD_NAME, "r");
+		f = fopen(TEMP_DOWNLOAD_NAME, "r");
 		if (f) {
 			sceAppMgrUmount("app0:");
 			fclose(f);
@@ -500,7 +509,18 @@ static void Initialize()
 			res = sceKernelGetThreadInfo(thd, &info);
 		} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
 	}
-
+	
+	// Showing changelist
+	f = fopen(LOG_DOWNLOAD_NAME, "r");
+	if (f) {
+		ImGui_ImplVitaGL_MouseStickUsage(false);
+		ImGui_ImplVitaGL_GamepadUsage(true);
+		DrawChangeListScreen(f);
+		ImGui_ImplVitaGL_GamepadUsage(false);
+		ImGui_ImplVitaGL_MouseStickUsage(true);
+		sceIoRemove(LOG_DOWNLOAD_NAME);
+	}
+	
 	ImGui::GetIO().MouseDrawCursor = true;
 }
 

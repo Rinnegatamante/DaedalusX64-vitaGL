@@ -173,5 +173,8 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Playtime", // STR_PLAYTIME
 	"Retrieve webserver rom list at boot", // STR_DLG_NET_BOOT
 	"Loops Optimization", // STR_MENU_DYNAREC_LOOPS_OPT
-	"Error: Runtime shader compiler (libshacccg.suprx) is not installed." // STR_SHADER_COMPILER_ERROR
+	"Error: Runtime shader compiler (libshacccg.suprx) is not installed.", // STR_SHADER_COMPILER_ERROR
+	"Downloading Changelist", // STR_DOWNLOADER_CHANGELIST
+	"What's New", // STR_UPDATE_CHANGES
+	"Continue", // STR_CONTINUE
 };

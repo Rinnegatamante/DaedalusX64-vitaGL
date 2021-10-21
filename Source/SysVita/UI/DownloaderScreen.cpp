@@ -141,3 +141,74 @@ void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_
 	vglSwapBuffers(GL_FALSE);
 	sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DEFAULT);
 }
+
+struct ChangeList {
+	char msg[256];
+	ChangeList *next;
+};
+static ChangeList *lst = nullptr;
+
+void AppendChangeListEntries(FILE *f) {
+	fseek(f, 0, SEEK_END);
+	uint64_t len = ftell(f) - 5000; // Let's skip some data to improve performances
+	fseek(f, 5000, SEEK_SET);
+	char *buffer = (char*)malloc(len + 1);
+	fread(buffer, 1, len, f);
+	buffer[len] = 0;
+	char *ptr = strstr(buffer, "\"commits\":");
+	char *end;
+	do {
+		ptr = strstr(ptr, "\"message\":");
+		if (ptr) {
+			ChangeList *node = (ChangeList *)malloc(sizeof(ChangeList));
+				
+			// Extracting message
+			ptr += 12;
+			end = strstr(ptr, "\"");
+			char *tptr = strstr(ptr, "\\n\\n");
+			if (tptr && tptr < end)
+				end = tptr;
+			strcpy(node->msg, "- ");
+			sceClibMemcpy(&node->msg[2], ptr, end - ptr);
+			node->msg[end - ptr + 2] = 0;
+				
+			ptr += 1000; // Let's skip some data to improve performances
+			node->next = lst;
+			lst = node;
+		}
+	} while (ptr);
+	fclose(f);
+	free(buffer);
+}
+
+void DrawChangeListScreen(FILE *f) {
+	AppendChangeListEntries(f);
+	
+	bool show_list = true;
+	while (show_list) {
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplVitaGL_NewFrame();
+	
+		ImGui::GetIO().MouseDrawCursor = false;
+		ImGui::SetNextWindowPos(ImVec2(30.0f, 10.0f), ImGuiSetCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(900.0f, 524.0f), ImGuiSetCond_Always);
+		ImGui::Begin(lang_strings[STR_UPDATE_CHANGES], nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	
+		ChangeList *l = lst;
+		while (l) {
+			ImGui::TextWrapped(l->msg);
+			l = l->next;
+		}
+		
+		ImGui::Separator();
+		if (ImGui::Button(lang_strings[STR_CONTINUE]))
+			show_list = false;
+	
+		ImGui::End();
+		glViewport(0, 0, static_cast<int>(ImGui::GetIO().DisplaySize.x), static_cast<int>(ImGui::GetIO().DisplaySize.y));
+		ImGui::Render();
+		ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
+		vglSwapBuffers(GL_FALSE);
+		sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DEFAULT);
+	}
+}

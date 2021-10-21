@@ -1,13 +1,14 @@
+#include <stdio.h>
 #include <vitaGL.h>
 #include <imgui_vita.h>
 #include "stdafx.h"
 
 #define TEMP_DOWNLOAD_NAME "ux0:data/daedalusx64.tmp"
+#define LOG_DOWNLOAD_NAME "ux0:data/daedalusx64.log"
 #define FUNC_TO_NAME(x) #x
 #define stringify(x) FUNC_TO_NAME(x)
 
 #define NUM_DB_CHUNKS     5 // Number of pages to download for the compat list
-#define NUM_UPDATE_PASSES 2 // Number of passes required to download an update
 
 #define ALERT_TIME 5000000 // Timer for alerts to disappear in microseconds
 
@@ -16,7 +17,9 @@
 // Auto updater passes
 enum {
 	UPDATER_CHECK_UPDATES,
-	UPDATER_DOWNLOAD_UPDATE
+	UPDATER_DOWNLOAD_CHANGELIST,
+	UPDATER_DOWNLOAD_UPDATE,
+	NUM_UPDATE_PASSES
 };
 
 // Anti-aliasing modes
@@ -55,7 +58,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 168
+#define LANG_STRINGS_NUM 171
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -225,7 +228,10 @@ enum {
 	FUNC(STR_PLAYTIME) \
 	FUNC(STR_DLG_NET_BOOT) \
 	FUNC(STR_MENU_DYNAREC_LOOPS_OPT) \
-	FUNC(STR_SHADER_COMPILER_ERROR)
+	FUNC(STR_SHADER_COMPILER_ERROR) \
+	FUNC(STR_DOWNLOADER_CHANGELIST) \
+	FUNC(STR_UPDATE_CHANGES) \
+	FUNC(STR_CONTINUE)
 
 #define GET_VALUE(x) x,
 #define GET_STRING(x) #x,
@@ -383,6 +389,7 @@ void DrawInGameMenuBar();
 void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, char *text, int passes);
 void DrawDownloaderScreenCompat(float downloaded_bytes, float total_bytes, char *text);
 void DrawExtractorScreen(int index, float file_extracted_bytes, float extracted_bytes, float file_total_bytes, float total_bytes, char *filename, int num_files);
+void DrawChangeListScreen(FILE *f);
 void DrawPendingDialog();
 void DrawPendingAlert();
 void DrawFastForwardIcon();
