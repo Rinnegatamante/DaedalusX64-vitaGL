@@ -1,0 +1,7 @@
+float4 main(
+	float2 vTexcoord : TEXCOORD0,
+	uniform sampler2D uTexture : TEXUNIT0,
+	uniform float Gamma) : COLOR
+{
+	return float4(pow(tex2D(uTexture, vTexcoord).rgb, float3(1.0f / Gamma)), 1.0f);
+}
