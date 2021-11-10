@@ -132,6 +132,8 @@ target_link_libraries(${PROJECT_NAME}.elf
 	ssl
 	crypto
 	speexdsp
+	soloud
+	pthread
 )
 
 vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)

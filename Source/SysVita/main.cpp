@@ -38,6 +38,8 @@
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
 #include "minizip/unzip.h"
+#include "soloud.h"
+#include "soloud_wavstream.h"
 
 #define NET_INIT_SIZE      1*1024*1024
 #define MAX_ROM_SIZE      64*1024*1024
@@ -978,10 +980,33 @@ int main(int argc, char* argv[]) {
 				gUseRendererLegacy = gSwapUseRendererLegacy;
 		} else if (gStandaloneMode) {
 			rom = nullptr;
+			
+			bool has_bg_music = true;
+			char music_file[256];
+			char *fmt[2] = {
+				"ogg",
+				"wav"
+			};
+			SoLoud::Soloud audio_engine;
+			SoLoud::WavStream bg_mus;
+			audio_engine.init();
+			sprintf(music_file, "%sbg.%s", DAEDALUS_VITA_PATH("Resources/"), fmt[0]);
+			if (bg_mus.load(music_file)) {
+				sprintf(music_file, "%sbg.%s", DAEDALUS_VITA_PATH("Resources/"), fmt[1]);
+				if (bg_mus.load(music_file)) {
+					has_bg_music = false;
+				}
+			}
+			if (has_bg_music) {
+				bg_mus.setLooping(true);
+				audio_engine.playBackground(bg_mus);
+			}
 			do {
 				rom = DrawRomSelector(false);
 			} while (rom == nullptr);
-			
+			if (has_bg_music)
+				bg_mus.stop();
+			audio_engine.deinit();
 			char pre_launch[32], post_launch[32];
 			extractSubstrings(lang_strings[STR_ROM_LAUNCH], "?ROMNAME?", pre_launch, post_launch);
 			sprintf(boot_params, "%s%s%s", pre_launch, rom, post_launch); // Re-using boot_params to save some memory
