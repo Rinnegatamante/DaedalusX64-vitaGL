@@ -983,16 +983,12 @@ int main(int argc, char* argv[]) {
 			
 			bool has_bg_music = true;
 			char music_file[256];
-			char *fmt[2] = {
-				"ogg",
-				"wav"
-			};
 			SoLoud::Soloud audio_engine;
 			SoLoud::WavStream bg_mus;
 			audio_engine.init();
-			sprintf(music_file, "%sbg.%s", DAEDALUS_VITA_PATH("Resources/"), fmt[0]);
+			sprintf(music_file, "%sbg.ogg", DAEDALUS_VITA_PATH("Resources/"));
 			if (bg_mus.load(music_file)) {
-				sprintf(music_file, "%sbg.%s", DAEDALUS_VITA_PATH("Resources/"), fmt[1]);
+				sprintf(music_file, "%sbg.wav", DAEDALUS_VITA_PATH("Resources/"));
 				if (bg_mus.load(music_file)) {
 					has_bg_music = false;
 				}
