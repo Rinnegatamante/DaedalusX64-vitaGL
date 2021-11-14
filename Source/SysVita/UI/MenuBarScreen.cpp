@@ -856,6 +856,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Português (BR)", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR);
 		}
+		if (ImGui::MenuItem("Română", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ROMANIAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_ROMANIAN);
+		}
 		if (ImGui::MenuItem("Pусский", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RUSSIAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_RUSSIAN);
 		}
@@ -930,6 +933,7 @@ void DrawCommonWindows() {
 		ImGui::Text("nekita13 (RUS)");
 		ImGui::Text("rewold20 (TUR)");
 		ImGui::Text("CHN-Gen (CHN)");
+		ImGui::Text("noru212 (ROM)");
 		ImGui::End();
 	}
 	
