@@ -1140,8 +1140,11 @@ void DrawMenuBar() {
 				if (ImGui::MenuItem(lang_strings[STR_SORT_Z_TO_A], nullptr, gSortOrder == SORT_Z_TO_A)) {
 					gSortOrder = SORT_Z_TO_A;
 				}
-				if (ImGui::MenuItem(lang_strings[STR_PLAYTIME], nullptr, gSortOrder == SORT_PLAYTIME)) {
-					gSortOrder = SORT_PLAYTIME;
+				if (ImGui::MenuItem(lang_strings[STR_PLAYTIME_DESC], nullptr, gSortOrder == SORT_PLAYTIME_DESC)) {
+					gSortOrder = SORT_PLAYTIME_DESC;
+				}
+				if (ImGui::MenuItem(lang_strings[STR_PLAYTIME_ASC], nullptr, gSortOrder == SORT_PLAYTIME_ASC)) {
+					gSortOrder = SORT_PLAYTIME_ASC;
 				}
 				ImGui::EndMenu();
 			}

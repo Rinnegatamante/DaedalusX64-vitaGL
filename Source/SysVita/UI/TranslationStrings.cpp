@@ -172,6 +172,8 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Original renderer based on GL1 fixed function pipeline.", // STR_DESC_LEGACY_REND
 	"Modern renderer based on GL2+ shaders. Requires libshacccg.suprx.", // STR_DESC_MODERN_REND
 	"Playtime", // STR_PLAYTIME
+	"Most Played", // STR_PLAYTIME_DESC
+	"Least Played", // STR_PLAYTIME_ASC
 	"Retrieve webserver rom list at boot", // STR_DLG_NET_BOOT
 	"Loops Optimization", // STR_MENU_DYNAREC_LOOPS_OPT
 	"Error: Runtime shader compiler (libshacccg.suprx) is not installed.", // STR_SHADER_COMPILER_ERROR
