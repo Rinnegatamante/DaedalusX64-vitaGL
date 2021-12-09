@@ -593,13 +593,14 @@ char *DrawRomSelector(bool skip_reloads) {
 	ImGui::Text(lang_strings[STR_SEARCH]);
 	ImGui::SameLine();
 	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-	if (ImGui::Button(rom_name_filter, ImVec2(400.0f, 22.0f * UI_SCALE))) {
+	if (ImGui::Button(rom_name_filter, ImVec2(-1.0f, 0.0f))) {
 		showDialog(lang_strings[STR_DLG_SEARCH_ROM], apply_rom_name_filter, dummy_func, DIALOG_KEYBOARD, rom_name_filter);
 	}
 	ImGui::PopStyleVar();
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text(lang_strings[STR_FILTER_BY]);
 	ImGui::SameLine();
+	ImGui::PushItemWidth(-1.0f);
 	if (ImGui::BeginCombo("##combo", filter_modes[filter_idx])) {
 		for (int n = 0; n < FILTER_MODES_NUM; n++) {
 			bool is_selected = filter_idx == n;
@@ -610,6 +611,7 @@ char *DrawRomSelector(bool skip_reloads) {
 		}
 		ImGui::EndCombo();
 	}
+	ImGui::PopItemWidth();
 	ImGui::Separator();
 	
 	if (strlen(rom_name_filter) > 0) { // Filter results with searchbox
@@ -625,7 +627,7 @@ char *DrawRomSelector(bool skip_reloads) {
 					ImGui::PushStyleColor(ImGuiCol_Button, 0x880015FF);
 					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0xFF0000FF);
 				}
-				if (ImGui::Button(p->name)){
+				if (ImGui::Button(p->name, ImVec2(-1.0f, 0.0f))){
 					if (p->is_online) {
 						char url[512];
 						sprintf(url, "%s%s", gNetRomPath, p->name);
@@ -654,7 +656,7 @@ char *DrawRomSelector(bool skip_reloads) {
 				ImGui::PushStyleColor(ImGuiCol_Button, 0x880015FF);
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0xFF0000FF);
 			}
-			if (ImGui::Button(p->name)){
+			if (ImGui::Button(p->name, ImVec2(-1.0f, 0.0f))){
 				if (p->is_online) {
 					char url[512];
 					sprintf(url, "%s%s", gNetRomPath, p->name);
