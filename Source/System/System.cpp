@@ -231,7 +231,9 @@ bool System_Init()
 	return true;
 }
 
-bool System_Open(const char * filename)
+extern void loadConfig(const char *game);
+
+bool System_Open(const char *filename)
 {
 	strcpy(g_ROM.mFileName, filename);
 	for(u32 i = 0; i < ARRAYSIZE(gRomInitTable); i++)
@@ -240,19 +242,32 @@ bool System_Open(const char * filename)
 
 		if (entry.open == NULL)
 			continue;
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 		DBGConsole_Msg(0, "==>Open %s", entry.name);
-		#endif
+#endif
 		if (!entry.open())
 		{
-				#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 			DBGConsole_Msg(0, "==>Open %s [RFAILED]", entry.name);
-			#endif
+#endif
 			return false;
 		}
+		
+		if (i == 1) // RomBuffer + Settings loaded
+			loadConfig(g_ROM.settings.GameName.c_str());
 	}
 
 	return true;
+}
+
+void System_ExtractName(const char *filename, char *gamename)
+{
+	strcpy(g_ROM.mFileName, filename);
+	gRomInitTable[0].open();
+	gRomInitTable[1].open();
+	strcpy(gamename, g_ROM.settings.GameName.c_str());
+	gRomInitTable[0].close();
+	gRomInitTable[1].close();
 }
 
 void System_Close()

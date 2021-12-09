@@ -46,6 +46,7 @@
 
 extern bool gRendererChanged;
 extern bool gSwapUseRendererLegacy;
+extern char rom_game_name[256];
 
 bool gSkipCompatListUpdate = false;
 bool gStandaloneMode = true;
@@ -1000,9 +1001,11 @@ int main(int argc, char* argv[]) {
 				bg_mus.setLooping(true);
 				audio_engine.playBackground(bg_mus);
 			}
+			rom_game_name[0] = 0;
 			do {
 				rom = DrawRomSelector(false);
 			} while (rom == nullptr);
+			rom_game_name[0] = 0;
 			if (has_bg_music)
 				bg_mus.stop();
 			audio_engine.deinit();
@@ -1017,8 +1020,7 @@ int main(int argc, char* argv[]) {
 		
 		EnableMenuButtons(false);
 		System_Open(rom);
-		
-		loadConfig(g_ROM.settings.GameName.c_str());
+
 		if (gRendererChanged)
 			gUseRendererLegacy = gSwapUseRendererLegacy;
 		is_main_menu = false;
