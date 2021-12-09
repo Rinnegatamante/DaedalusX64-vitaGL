@@ -40,6 +40,7 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Credits", // STR_MENU_CREDITS
 	"Save Global Settings", // STR_MENU_GLOBAL_SETTINGS
 	"Save Game Settings", // STR_MENU_GAME_SETTINGS
+	"Unload Game Settings", // STR_MENU_UNLOAD_GAME_SETTINGS
 	"UI Theme", // STR_MENU_UI_THEME
 	"Hide Menubar", // STR_MENU_MENUBAR
 	"Auto Update at Boot", // STR_MENU_AUTOUPDATE

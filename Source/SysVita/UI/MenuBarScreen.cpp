@@ -32,6 +32,8 @@
 
 #define MAX_SAVESLOT 9
 
+extern void loadConfig(const char *game);
+
 char ver_str[64];
 float ver_len = 0.0f;
 bool calculate_ver_len = true;
@@ -73,6 +75,7 @@ extern bool has_rumblepak[4];
 extern char cur_gfx_ucode[32];
 extern char cur_gfx_ucode_str[256];
 extern char cur_audio_ucode[32];
+extern char rom_game_name[256];
 
 bool gBigText = false;
 bool show_menubar = true;
@@ -1123,14 +1126,21 @@ void DrawMenuBar() {
 				gNetBoot = !gNetBoot;
 			}
 			ImGui::Separator();
+			if (ImGui::MenuItem(lang_strings[STR_MENU_GAME_SETTINGS], nullptr, false, rom_game_name[0])) {
+				saveConfig(rom_game_name);
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_UNLOAD_GAME_SETTINGS], nullptr, false, rom_game_name[0])) {
+				rom_game_name[0] = 0;
+				loadConfig("default");
+			}
 			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){
-				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)){
+				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)) {
 					gSortOrder = SORT_A_TO_Z;
 				}
-				if (ImGui::MenuItem(lang_strings[STR_SORT_Z_TO_A], nullptr, gSortOrder == SORT_Z_TO_A)){
+				if (ImGui::MenuItem(lang_strings[STR_SORT_Z_TO_A], nullptr, gSortOrder == SORT_Z_TO_A)) {
 					gSortOrder = SORT_Z_TO_A;
 				}
-				if (ImGui::MenuItem(lang_strings[STR_PLAYTIME], nullptr, gSortOrder == SORT_PLAYTIME)){
+				if (ImGui::MenuItem(lang_strings[STR_PLAYTIME], nullptr, gSortOrder == SORT_PLAYTIME)) {
 					gSortOrder = SORT_PLAYTIME;
 				}
 				ImGui::EndMenu();

@@ -42,6 +42,9 @@
 #define ROMS_FOLDERS_NUM 5
 #define FILTER_MODES_NUM 8
 
+extern void loadConfig(const char *game);
+
+char rom_game_name[256];
 char playtime_str[32];
 char selectedRom[256];
 char rom_name_filter[128] = {0};
@@ -640,7 +643,19 @@ char *DrawRomSelector(bool skip_reloads) {
 				if (p->is_online) {
 					ImGui::PopStyleColor(2);
 				}
-				if (ImGui::IsItemHovered()) hovered = p;
+				if (ImGui::IsItemHovered()) {
+					hovered = p;
+					if (!p->is_online) {
+						SceCtrlData pad;
+						static uint32_t oldpad = 0;
+						sceCtrlPeekBufferPositive(0, &pad, 1);
+						if ((pad.buttons & SCE_CTRL_TRIANGLE) && (!(oldpad & SCE_CTRL_TRIANGLE))) {
+							System_ExtractName(p->fullpath, rom_game_name);
+							loadConfig(rom_game_name);
+						}
+						oldpad = pad.buttons;
+					}
+				}
 			}
 			p = p->next;
 		}
@@ -669,7 +684,19 @@ char *DrawRomSelector(bool skip_reloads) {
 			if (p->is_online) {
 				ImGui::PopStyleColor(2);
 			}
-			if (ImGui::IsItemHovered()) hovered = p;
+			if (ImGui::IsItemHovered()) {
+				hovered = p;
+				if (!p->is_online) {
+					SceCtrlData pad;
+					static uint32_t oldpad = 0;
+					sceCtrlPeekBufferPositive(0, &pad, 1);
+					if ((pad.buttons & SCE_CTRL_TRIANGLE) && (!(oldpad & SCE_CTRL_TRIANGLE))) {
+						System_ExtractName(p->fullpath, rom_game_name);
+						loadConfig(rom_game_name);
+					}
+					oldpad = pad.buttons;
+				}
+			}
 			p = p->next;
 		}
 	}
