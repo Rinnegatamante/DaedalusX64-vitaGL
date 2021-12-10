@@ -460,6 +460,13 @@ static void Initialize()
 	vglInitExtended(0, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
 	vglUseVram(gUseCdram);
 	vglWaitVblankStart(gUseVSync);
+	
+	// Initializing default wvp
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, 960, 544, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	System_Init();
 

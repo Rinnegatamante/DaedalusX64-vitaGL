@@ -338,8 +338,7 @@ void DrawBackground()
 	bg_indices[2] = 2;
 	bg_indices[3] = 3;
 	vglIndexPointerMapped(bg_indices);
-	
-	glDisableClientState(GL_COLOR_ARRAY);
+
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
