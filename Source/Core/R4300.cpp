@@ -2580,7 +2580,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_EQ( R4300_CALL_SIGNATURE ) 				// Compa
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( !R4300_IsNaN(fX + fY) && fX == fY ) FPUCTRL |= FPCSR_C;
+	if( !R4300_IsNaN(fX + fY) && !memcmp(&fX, &fY, sizeof(f32)) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2624,7 +2624,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_LE( R4300_CALL_SIGNATURE ) 				// Compa
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( fX <= fY ) FPUCTRL |= FPCSR_C;
+	if( fX < fY || !memcmp(&fX, &fY, sizeof(f32)) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2638,7 +2638,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_SEQ( R4300_CALL_SIGNATURE )
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( fX == fY ) FPUCTRL |= FPCSR_C;
+	if( !memcmp(&fX, &fY, sizeof(f32)) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2654,7 +2654,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_UEQ( R4300_CALL_SIGNATURE )
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( R4300_IsNaN(fX + fY) || fX == fY ) FPUCTRL |= FPCSR_C;
+	if( R4300_IsNaN(fX + fY) || !memcmp(&fX, &fY, sizeof(f32)) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2679,7 +2679,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_OLE( R4300_CALL_SIGNATURE )
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( !R4300_IsNaN(fX + fY) && fX <= fY ) FPUCTRL |= FPCSR_C;
+	if( !R4300_IsNaN(fX + fY) && (fX < fY || !memcmp(&fX, &fY, sizeof(f32))) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2693,7 +2693,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_ULE( R4300_CALL_SIGNATURE )
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( R4300_IsNaN(fX + fY) || fX <= fY ) FPUCTRL |= FPCSR_C;
+	if( R4300_IsNaN(fX + fY) || (fX < fY || !memcmp(&fX, &fY, sizeof(f32))) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2731,7 +2731,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_NGT( R4300_CALL_SIGNATURE )
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( fX <= fY ) FPUCTRL |= FPCSR_C;
+	if( (fX < fY) || !memcmp(&fX, &fY, sizeof(f32)) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -2773,7 +2773,7 @@ static void R4300_CALL_TYPE R4300_Cop1_S_NGL( R4300_CALL_SIGNATURE )
 
 	u32 FPUCTRL {gCPUState.FPUControl[31]._u32 & ~FPCSR_C};
 
-	if( fX == fY ) FPUCTRL |= FPCSR_C;
+	if( !memcmp(&fX, &fY, sizeof(f32)) ) FPUCTRL |= FPCSR_C;
 
 	gCPUState.FPUControl[31]._u32 = FPUCTRL;
 }
@@ -3323,16 +3323,6 @@ void R4300_Init()
 	else
 	{
 		R4300Cop1SInstruction[Cop1OpFunc_CVT_D] = R4300_Cop1_S_CVT_D;
-	}
-#endif
-#ifdef DAEDALUS_PSP
-	if(g_ROM.SET_ROUND_MODE)
-	{
-		R4300Cop1Instruction[Cop1Op_CTC1]	= R4300_Cop1_CTC1_2;
-	}
-	else
-	{
-		R4300Cop1Instruction[Cop1Op_CTC1]	= R4300_Cop1_CTC1;
 	}
 #endif
 }

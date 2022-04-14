@@ -391,13 +391,9 @@ void SpecificGameHacks( const ROMHeader & id )
 		g_ROM.ALPHA_HACK = true;
 		g_ROM.GameHacks = AIDYN_CRONICLES;
 		break;
-	case 0x424C:	// Mario Party 1
-		g_ROM.DISABLE_SIM_CVT_D_S = true;
-		break;
 	case 0x4A54:	// Tom and Jerry
 	case 0x4D4A:	// Earthworm Jim
 	case 0x5150:	// PowerPuff Girls
-		g_ROM.DISABLE_SIM_CVT_D_S = true;
 		g_ROM.LOAD_T1_HACK = true;
 		break;
 	case 0x5144:	// Donald Duck
@@ -405,6 +401,7 @@ void SpecificGameHacks( const ROMHeader & id )
 		g_ROM.LOAD_T1_HACK = true;
 		g_ROM.T1_HACK = true;
 		g_ROM.T0_SKIP_HACK = true;
+		g_ROM.DISABLE_DYNA_CMP = true;
 		break;
 	case 0x3358:	// GEX3
 	case 0x3258:	// GEX64

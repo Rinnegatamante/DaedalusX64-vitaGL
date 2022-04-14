@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/CPU.h"
 #include "Core/R4300.h"
 #include "Core/Registers.h"
+#include "Core/ROM.h"
 #include "Debug/DBGConsole.h"
 #include "Debug/DebugLog.h"
 #include "DynaRec/AssemblyUtils.h"
@@ -34,7 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "DynaRec/StaticAnalysis.h"
 #include "DynaRec/Trace.h"
 #include "OSHLE/ultra_R4300.h"
-
 
 using namespace AssemblyUtils;
 
@@ -1489,7 +1489,7 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 						
 						case Cop1OpFunc_CMP_F:		GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
 						case Cop1OpFunc_CMP_UN:		GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_EQ:		GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
+						case Cop1OpFunc_CMP_EQ:		if (!g_ROM.DISABLE_DYNA_CMP) { GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
 						case Cop1OpFunc_CMP_UEQ:	GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
 						case Cop1OpFunc_CMP_OLT:	GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
 						case Cop1OpFunc_CMP_ULT:	GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;

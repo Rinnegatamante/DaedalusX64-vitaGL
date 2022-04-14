@@ -145,7 +145,7 @@ struct RomInfo
 			u32			TLUT_HACK:1;			//Texture look up table hack for palette
 			u32			ALPHA_HACK:1;			//HACK for AIDYN CHRONICLES
 			u32			DISABLE_LBU_OPT:1;		//Disable memory optimation for
-			u32			DISABLE_SIM_CVT_D_S:1;	//Hack to disable sim-CVT_D_S
+			u32			DISABLE_DYNA_CMP:1;		//Hack to disable Cop1 CMP operations in dynarec
 			u32			VIEWPORT_HACK:1;		//Hack to force fullscreen viewport
 			u32			T0_SKIP_HACK:1;			//Hack for Rayman 2 texts
 			u32			SCISSOR_HACK:1;			//Hack to unbind viewport and scissor test region

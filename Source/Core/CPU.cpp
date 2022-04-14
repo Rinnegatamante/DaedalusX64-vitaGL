@@ -202,7 +202,7 @@ static void CPU_SetCompareEvent( s32 count )
 		//
 		//	Remove any existing compare events. Need to adjust any subsequent timer's count.
 		//
-		for( u32 i {}; i < gCPUState.NumEvents; ++i )
+		for( u32 i = 0; i < gCPUState.NumEvents; ++i )
 		{
 			if( gCPUState.Events[ i ].mEventType == CPU_EVENT_COMPARE )
 			{
@@ -249,7 +249,7 @@ static ECPUEventType CPU_PopEvent()
 // XXXX This is for savestate. Looks very suspicious to me
 u32 CPU_GetVideoInterruptEventCount()
 {
-	for( u32 i {}; i < gCPUState.NumEvents; ++i )
+	for( u32 i = 0; i < gCPUState.NumEvents; ++i )
 	{
 		if(gCPUState.Events[ i ].mEventType == CPU_EVENT_VBL)
 		{
@@ -263,7 +263,7 @@ u32 CPU_GetVideoInterruptEventCount()
 // XXXX This is for savestate. Looks very suspicious to me
 void CPU_SetVideoInterruptEventCount( u32 count )
 {
-	for( u32 i {}; i < gCPUState.NumEvents; ++i )
+	for( u32 i = 0; i < gCPUState.NumEvents; ++i )
 	{
 		if(gCPUState.Events[ i ].mEventType == CPU_EVENT_VBL)
 		{
