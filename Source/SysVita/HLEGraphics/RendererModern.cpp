@@ -678,6 +678,7 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 		float scale_x = texture->GetScaleX();
 		float scale_y = texture->GetScaleY();
 		
+		//printf("PrepareRenderState: %X\n", gRDPOtherMode.L);
 		if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241)) { // Hack to fix the sun in Zelda OOT/MM
 			scale_x *= 0.5f;
 			scale_y *= 0.5f;
@@ -776,6 +777,7 @@ void RendererModern::TexRect( u32 tile_idx, const v2 & xy0, const v2 & xy1, TexC
 	const f32 depth = gRDPOtherMode.depth_source ? mPrimDepth : 0.0f;
 	
 	float *uvs = gTexCoordBuffer;
+	//printf("TexRect: %X\n", gRDPOtherMode.L);
 	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
 		gTexCoordBuffer[0] = NORMALIZE_C1842XX(uv0.x);
 		gTexCoordBuffer[1] = NORMALIZE_C1842XX(uv0.y);
@@ -1113,8 +1115,10 @@ uint32_t RendererModern::PrepareTrisUnclipped(uint32_t **clr)
 	if (mTnL.Flags.Texture) {
 		vglVertexAttribPointerMapped(1, gTexCoordBuffer);
 		
-		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
-		else UpdateTileSnapshots( mTextureTile );
+		//printf("PrepareTrisUnclipped: %X\n", gRDPOtherMode.L);
+		if (g_ROM.T0_SKIP_HACK && ((gRDPOtherMode.L >= 0x0C184000 && gRDPOtherMode.L <= 0x0C184FFF) || gRDPOtherMode.L == 0xC8104A50)) {
+			UpdateTileSnapshots( mTextureTile + 1 );
+		} else UpdateTileSnapshots( mTextureTile );
 		
 		CNativeTexture *texture = mBoundTexture[0];
 		

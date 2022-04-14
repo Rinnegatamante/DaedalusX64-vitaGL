@@ -982,8 +982,9 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		vglTexCoordPointerMapped(gTexCoordBuffer);
 		
-		if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184240)) UpdateTileSnapshots( mTextureTile + 1 );
-		else UpdateTileSnapshots( mTextureTile );
+		if (g_ROM.T0_SKIP_HACK && ((gRDPOtherMode.L >= 0x0C184000 && gRDPOtherMode.L <= 0x0C184FFF) || gRDPOtherMode.L == 0xC8104A50)) {
+			UpdateTileSnapshots( mTextureTile + 1 );
+		} else UpdateTileSnapshots( mTextureTile );
 		
 		CNativeTexture *texture = mBoundTexture[0];
 		
