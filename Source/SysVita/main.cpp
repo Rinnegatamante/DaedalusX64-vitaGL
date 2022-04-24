@@ -366,7 +366,7 @@ void reloadFont() {
 		0,
 	};
 	
-	if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
+	if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S || gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE) {
 		gBigText = false;
 		SceIoStat dummy;
 		if (sceIoGetstat(fnt_fname, &dummy) >= 0)
@@ -682,7 +682,7 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 }
 
 void setTranslation(int idx) {
-	if (idx != gLanguageIndex && (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S || idx == SCE_SYSTEM_PARAM_LANG_CHINESE_S))
+	if (idx != gLanguageIndex && (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S || idx == SCE_SYSTEM_PARAM_LANG_CHINESE_S || idx == SCE_SYSTEM_PARAM_LANG_JAPANESE))
 		fontDirty = true;
 	
 	char langFile[LANG_STR_SIZE * 2];
@@ -708,6 +708,9 @@ void setTranslation(int idx) {
 		break;
 	case SCE_SYSTEM_PARAM_LANG_GERMAN: // German
 		sprintf(langFile, "%sDeutsch.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
+	case SCE_SYSTEM_PARAM_LANG_JAPANESE: // Japanese
+		sprintf(langFile, "%sJapanese.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
 	case SCE_SYSTEM_PARAM_LANG_ITALIAN: // Italiano
 		sprintf(langFile, "%sItaliano.ini", DAEDALUS_VITA_PATH("Languages/"));
