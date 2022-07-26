@@ -868,20 +868,23 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Türk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_TURKISH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_TURKISH);
 		}
-		if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE) {
+		if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE || gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN || gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
 			if (ImGui::MenuItem("日本語", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE)){
 				setTranslation(SCE_SYSTEM_PARAM_LANG_JAPANESE);
+			}
+			if (ImGui::MenuItem("琉球", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN)){
+				setTranslation(SCE_SYSTEM_PARAM_LANG_RYUKYUAN);
+			}
+			if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
 			}
 		} else {
 			if (ImGui::MenuItem("Japanese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE)){
 				setTranslation(SCE_SYSTEM_PARAM_LANG_JAPANESE);
 			}
-		}
-		if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
-			if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
-				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
+			if (ImGui::MenuItem("Ryukyuan", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN)){
+				setTranslation(SCE_SYSTEM_PARAM_LANG_RYUKYUAN);
 			}
-		} else {
 			if (ImGui::MenuItem("Chinese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
 				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
 			}
@@ -946,7 +949,7 @@ void DrawCommonWindows() {
 		ImGui::Text("rewold20 (TUR)");
 		ImGui::Text("CHN-Gen (CHN)");
 		ImGui::Text("noru212 (ROM)");
-		ImGui::Text("kuragehime (JAP)");
+		ImGui::Text("kuragehime (JAP, RYU)");
 		ImGui::End();
 	}
 	

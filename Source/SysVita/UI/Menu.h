@@ -346,6 +346,7 @@ extern PostProcessingEffect *effects_list;
 #define SCE_SYSTEM_PARAM_LANG_CATALAN  20
 #define SCE_SYSTEM_PARAM_LANG_GREEK    21
 #define SCE_SYSTEM_PARAM_LANG_ROMANIAN 22
+#define SCE_SYSTEM_PARAM_LANG_RYUKYUAN 23
 
 // Config Variables
 extern bool gUseRendererLegacy;
