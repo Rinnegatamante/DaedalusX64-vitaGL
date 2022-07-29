@@ -157,7 +157,6 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"No Tags", // STR_NO_TAGS
 	"Post-Processing", // STR_MENU_POST_PROCESSING
 	"Allows to apply custom effects on the final rendered scene.", // STR_DESC_POST_PROCESSING
-	"This feature is disabled since libshacccg.suprx is not correctly installed.", // STR_NO_POST_PROCESSING
 	"Overlays", // STR_MENU_OVERLAYS
 	"Draws an image on top of the final rendered scene.", // STR_DESC_OVERLAYS
 	"Retrieving webserver rom list", // STR_DLG_RETRIEVE_NET_PATH

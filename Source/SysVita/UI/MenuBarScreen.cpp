@@ -679,7 +679,7 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_POST_PROCESSING], vglHasRuntimeShaderCompiler())){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_POST_PROCESSING])) {
 			PostProcessingEffect *p = effects_list;
 			int i = 0;
 			while (p) {
@@ -694,7 +694,7 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
-		SetDescription(vglHasRuntimeShaderCompiler() ? lang_strings[STR_DESC_POST_PROCESSING] : lang_strings[STR_NO_POST_PROCESSING]);
+		SetDescription(lang_strings[STR_DESC_POST_PROCESSING]);
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OVERLAYS])){
 			Overlay *p = overlays_list;
 			int i = 0;

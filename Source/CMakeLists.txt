@@ -108,6 +108,8 @@ target_link_libraries(${PROJECT_NAME}.elf
 	imgui
 	vitaGL
 	vitashark
+	SceShaccCgExt
+	taihen_stub
 	SceDisplay_stub
 	SceGxm_stub
 	ScePgf_stub
