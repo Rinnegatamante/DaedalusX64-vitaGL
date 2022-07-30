@@ -20,7 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include <stdio.h>
 #include <malloc.h>
-
+#if 0
+#include <kubridge.h>
+#endif
 #include "DynaRec/CodeBufferManager.h"
 #include "Debug/DBGConsole.h"
 #include "CodeGeneratorARM.h"
@@ -32,7 +34,11 @@ static SceUID dynarec_memblock;
 void _DaedalusICacheInvalidate(const void * address, u32 length)
 {
 	if(length > 0)
+#if 1
 		sceKernelSyncVMDomain(dynarec_memblock, (void*)address, length);
+#else
+		kuKernelFlushCaches((void *)address, length);
+#endif
 }
 
 class CCodeBufferManagerARM : public CCodeBufferManager
@@ -84,17 +90,26 @@ CCodeBufferManager *	CCodeBufferManager::Create()
 bool	CCodeBufferManagerARM::Initialise()
 {
 	// mpSecondBuffer is currently unused
-
-	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE*2);
-
+#if 1
+	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE * 2);
+#else
+	SceKernelAllocMemBlockKernelOpt opt;
+	memset(&opt, 0, sizeof(SceKernelAllocMemBlockKernelOpt));
+	opt.size = sizeof(SceKernelAllocMemBlockKernelOpt);
+	opt.attr = 0x1;
+	opt.field_C = (SceUInt32)0x98000000;
+	dynarec_memblock = kuKernelAllocMemBlock("code", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, CODE_BUFFER_SIZE * 2, &opt);
+#endif
 	sceKernelGetMemBlockBase(dynarec_memblock, (void**)&mpBuffer);
 
 	mpSecondBuffer = mpBuffer + CODE_BUFFER_SIZE;
 	if (mpBuffer == NULL || mpSecondBuffer == NULL)
 		return false;
-
+#if 1
 	sceKernelOpenVMDomain();
-
+#else
+	kuKernelMemProtect(mpBuffer, CODE_BUFFER_SIZE * 2, KU_KERNEL_PROT_EXEC | KU_KERNEL_PROT_WRITE | KU_KERNEL_PROT_READ);
+#endif
 	mBufferPtr = 0;
 	mBufferSize = 0;
 
