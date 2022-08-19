@@ -8,7 +8,7 @@ You need to have vitaGL compiled with `NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_C
 Also, before compiling it, run:
 ```
 sed -i "s/float fog_dist = coords.z \/ coords.w;/float fog_dist = coords.z;/" source/shaders/ffp_f.h
-sed -i "s/#define SHADER_CACHE_MAGIC /#define SHADER_CACHE_MAGIC 99/" source/ffp.c
+sed -i "s/#define SHADER_CACHE_MAGIC /#define SHADER_CACHE_MAGIC 99/" source/shared.h
 ```
 This will apply an hack to the lib to make it handle better N64 fogging.<br><br>
 

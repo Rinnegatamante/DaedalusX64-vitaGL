@@ -1037,9 +1037,11 @@ int main(int argc, char* argv[]) {
 		if (gRendererChanged)
 			gUseRendererLegacy = gSwapUseRendererLegacy;
 		is_main_menu = false;
-		if (gStandaloneMode) rom_start_tick = sceKernelGetProcessTimeWide();
+		if (gStandaloneMode)
+			rom_start_tick = sceKernelGetProcessTimeWide();
 		CPU_Run();
-		if (gStandaloneMode) SavePlaytimeData();
+		if (gStandaloneMode)
+			SavePlaytimeData();
 		System_Close();
 		is_main_menu = true;
 		
