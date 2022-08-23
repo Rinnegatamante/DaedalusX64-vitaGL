@@ -126,6 +126,7 @@ target_link_libraries(${PROJECT_NAME}.elf
 	SceAppMgr_stub
 	SceAppUtil_stub
 	SceShaccCg_stub
+	SceVshBridge_stub
 	c
 	stdc++
 	m
