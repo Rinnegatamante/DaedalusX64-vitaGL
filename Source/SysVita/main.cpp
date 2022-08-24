@@ -474,7 +474,7 @@ static void Initialize()
 		SceMsgDialogUserMessageParam msg_param;
 		sceClibMemset(&msg_param, 0, sizeof(SceMsgDialogUserMessageParam));
 		msg_param.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_OK;
-		msg_param.msg = (const SceChar8*)"AutoPlugin 2 installation has been detected. The authors of this software encourage to get rid of it.\nBy proceeding, you agree at submitting any request for help to Henkaku Discord Server #help-and-support channel. Invitation Link: https://discord.gg/m7MwpKA.\nAny request of help to the original authors will be ignored unless you get rid of AutoPlugin 2.";
+		msg_param.msg = (const SceChar8*)"AutoPlugin 2 installation has been detected. The authors of this software encourage users to uninstall it, since it's well known to be cause of a lot of issues for a wide amount of users.\nBy proceeding, you agree to submit any request for help to the Henkaku Discord Server #help-and-support channel. Invitation Link: https://discord.gg/m7MwpKA./nAny request for help to the original authors will be ignored unless  AutoPlugin 2 is uninstalled or a server helper agrees the issue is not caused by AutoPlugin 2.";
 		SceMsgDialogParam param;
 		sceMsgDialogParamInit(&param);
 		param.mode = SCE_MSG_DIALOG_MODE_USER_MSG;
