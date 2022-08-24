@@ -981,6 +981,7 @@ int main(int argc, char* argv[]) {
 	preloadConfig();
 	
 	// Checking for libshacccg.suprx existence
+	SceIoStat st1, st2;
 	if (!(sceIoGetstat("ur0:/data/libshacccg.suprx", &st1) >= 0 || sceIoGetstat("ur0:/data/external/libshacccg.suprx", &st2) >= 0)) {
 		vglInit(0);
 		SceMsgDialogUserMessageParam msg_param;
