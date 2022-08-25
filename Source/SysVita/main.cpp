@@ -461,33 +461,6 @@ static void Initialize()
 	vglUseVram(gUseCdram);
 	vglWaitVblankStart(gUseVSync);
 	
-	int search_unk[2];
-	SceIoStat st0, st1, st2, st3, st4;
-	int is_ap_on = 0;
-	int is_bypass_on = _vshKernelSearchModuleByName("hideautopl", search_unk) >= 0;
-	if (is_bypass_on ||
-		!sceIoGetstat("ux0:app/AUTOPLUG2", &st0) ||
-		!sceIoGetstat("ur0:app/AUTOPLUG2", &st1) ||
-		!sceIoGetstat("uma0:app/AUTOPLUG2", &st2) ||
-		!sceIoGetstat("imc0:app/AUTOPLUG2", &st3) ||
-		!sceIoGetstat("xmc0:app/AUTOPLUG2", &st4)) {
-		SceMsgDialogUserMessageParam msg_param;
-		sceClibMemset(&msg_param, 0, sizeof(SceMsgDialogUserMessageParam));
-		msg_param.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_OK;
-		msg_param.msg = (const SceChar8*)"AutoPlugin 2 installation has been detected. The authors of this software encourage users to uninstall it, since it's well known to be cause of a lot of issues for a wide amount of users.\nBy proceeding, you agree to submit any request for help to the Henkaku Discord Server #help-and-support channel. Invitation Link: https://discord.gg/m7MwpKA.\nAny request for help to the original authors will be ignored unless  AutoPlugin 2 is uninstalled or a server helper agrees the issue is not caused by AutoPlugin 2.";
-		SceMsgDialogParam param;
-		sceMsgDialogParamInit(&param);
-		param.mode = SCE_MSG_DIALOG_MODE_USER_MSG;
-		param.userMsgParam = &msg_param;
-		sceMsgDialogInit(&param);
-		while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
-			vglSwapBuffers(GL_TRUE);
-		}
-		sceMsgDialogTerm();
-		is_ap_on = 1;
-	}
-	printf("AP2 State: %s\nBypass State: %s\n", is_ap_on ? "yes" : "no", is_bypass_on ? "yes" : "no");
-	
 	// Initializing default wvp
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
