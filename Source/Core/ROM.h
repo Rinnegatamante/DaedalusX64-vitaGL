@@ -135,7 +135,7 @@ struct RomInfo
 	ECicType		cic_chip;				// CIC boot chip type
 	union
 	{
-		u32 HACKS_u32;
+		u64 HACKS_u64;
 		struct
 		{
 			u16			GameHacks:16;			// Hacks for specific games
@@ -155,6 +155,7 @@ struct RomInfo
 			u32			PROJ_HACK:1;			//Hack to vertically flip projection matrix for 3D rendering
 			u32			CLEAR_DEPTH_HACK:1;		//Hack to clear depth framebuffer at the beginning of a frame
 			u32			CLEAR_SCENE_HACK:1;		//Hack to clear framebuffer at beginning of a frame
+			u32			VIHEIGHT_HACK:1;		//Hack to "fix" viHeight scale issues
 		};
 	};
 };

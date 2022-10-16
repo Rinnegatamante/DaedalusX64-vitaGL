@@ -342,7 +342,7 @@ void SpecificGameHacks( const ROMHeader & id )
 {
 	printf("ROM ID[%04X]\n", id.CartID);
 
-	g_ROM.HACKS_u32 = 0;	// Default to no game hacks
+	g_ROM.HACKS_u64 = 0;	// Default to no game hacks
 
 	switch( id.CartID )
 	{
@@ -466,6 +466,10 @@ void SpecificGameHacks( const ROMHeader & id )
 		break;
 	case 0x4350:    // Pachinko 365 Nichi
 		g_ROM.PROJ_HACK = true;
+		break;
+	case 0x4254:	//Mischief Makers
+	case 0x5257:    //Wave race
+		g_ROM.VIHEIGHT_HACK = true;
 		break;
 	default:
 		break;
