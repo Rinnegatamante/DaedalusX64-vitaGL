@@ -342,7 +342,7 @@ void SpecificGameHacks( const ROMHeader & id )
 {
 	printf("ROM ID[%04X]\n", id.CartID);
 
-	g_ROM.HACKS_u32 = 0;	// Default to no game hacks
+	g_ROM.HACKS_u64 = 0;	// Default to no game hacks
 
 	switch( id.CartID )
 	{

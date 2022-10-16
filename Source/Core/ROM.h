@@ -135,7 +135,7 @@ struct RomInfo
 	ECicType		cic_chip;				// CIC boot chip type
 	union
 	{
-		u32 HACKS_u32;
+		u64 HACKS_u64;
 		struct
 		{
 			u16			GameHacks:16;			// Hacks for specific games
