@@ -307,6 +307,9 @@ void BaseRenderer::InitViewport()
 		mN64ToScreenScale.x = mScreenWidth  / fViWidth;
 		mN64ToScreenScale.y = mScreenHeight / fViHeight;
 
+		if(g_ROM.VIHEIGHT_HACK)
+			mN64ToScreenScale.y = (f32)SCR_HEIGHT / 240.0f;
+
 		mN64ToScreenTranslate.x  = display_x;
 		mN64ToScreenTranslate.y  = display_y;
 
