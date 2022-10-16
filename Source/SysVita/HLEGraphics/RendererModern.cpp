@@ -682,7 +682,7 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 		if (g_ROM.ZELDA_HACK && (gRDPOtherMode.L == 0x0C184241)) { // Hack to fix the sun in Zelda OOT/MM
 			scale_x *= 0.5f;
 			scale_y *= 0.5f;
-		} else if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) { // Hack to fix texts on Rayman 2/Donald Duck Quack Attack
+		} else if (g_ROM.TEXELS_HACK && (gRDPOtherMode.L == 0x0C184244)) { // Hack to fix texts on Rayman 2/Donald Duck Quack Attack
 			scale_x *= 0.125f;
 			scale_y *= 0.125f;
 		}
@@ -778,7 +778,7 @@ void RendererModern::TexRect( u32 tile_idx, const v2 & xy0, const v2 & xy1, TexC
 	
 	float *uvs = gTexCoordBuffer;
 	//printf("TexRect: %X\n", gRDPOtherMode.L);
-	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
+	if (g_ROM.TEXELS_HACK && (gRDPOtherMode.L == 0x0C184244)) {
 		gTexCoordBuffer[0] = NORMALIZE_C1842XX(uv0.x);
 		gTexCoordBuffer[1] = NORMALIZE_C1842XX(uv0.y);
 		gTexCoordBuffer[2] = NORMALIZE_C1842XX(uv1.x);
@@ -1116,7 +1116,7 @@ uint32_t RendererModern::PrepareTrisUnclipped(uint32_t **clr)
 		vglVertexAttribPointerMapped(1, gTexCoordBuffer);
 		
 		//printf("PrepareTrisUnclipped: %X\n", gRDPOtherMode.L);
-		if (g_ROM.T0_SKIP_HACK && ((gRDPOtherMode.L >= 0x0C184000 && gRDPOtherMode.L <= 0x0C184FFF) || gRDPOtherMode.L == 0xC8104A50)) {
+		if (g_ROM.TEXELS_HACK && ((gRDPOtherMode.L >= 0x0C184000 && gRDPOtherMode.L <= 0x0C184FFF) || gRDPOtherMode.L == 0xC8104A50)) {
 			UpdateTileSnapshots( mTextureTile + 1 );
 		} else UpdateTileSnapshots( mTextureTile );
 		

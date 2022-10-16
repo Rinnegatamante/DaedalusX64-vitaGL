@@ -1570,7 +1570,7 @@ static void T1Hack(const TextureInfo & ti0, CNativeTexture * texture0,
 	   (ti1.GetWidth()  == ti0.GetWidth()) &&
 	   (ti1.GetHeight() == ti0.GetHeight()))
 	{
-		if( g_ROM.T1_HACK )
+		if( g_ROM.TEXELS_HACK )
 		{
 			const u32 * src = static_cast<const u32*>(texture0->GetData());
 			u32 * dst       = static_cast<      u32*>(texture1->GetData());

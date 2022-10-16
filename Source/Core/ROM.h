@@ -135,19 +135,18 @@ struct RomInfo
 	ECicType		cic_chip;				// CIC boot chip type
 	union
 	{
-		u64 HACKS_u64;
+		u32 HACKS_u32;
 		struct
 		{
 			u16			GameHacks:16;			// Hacks for specific games
 			u32			LOAD_T1_HACK:1;			//LOAD T1 texture hack
-			u32			T1_HACK:1;				//T1 texture hack
+			u32			TEXELS_HACK:1;				// Hack for Rayman 2/Donald Duck renderer
 			u32			ZELDA_HACK:1;			//for both MM and OOT
 			u32			TLUT_HACK:1;			//Texture look up table hack for palette
 			u32			ALPHA_HACK:1;			//HACK for AIDYN CHRONICLES
 			u32			DISABLE_LBU_OPT:1;		//Disable memory optimation for
 			u32			DISABLE_DYNA_CMP:1;		//Hack to disable Cop1 CMP operations in dynarec
 			u32			VIEWPORT_HACK:1;		//Hack to force fullscreen viewport
-			u32			T0_SKIP_HACK:1;			//Hack for Rayman 2 texts
 			u32			SCISSOR_HACK:1;			//Hack to unbind viewport and scissor test region
 			u32			SKIP_CPU_REND_HACK:1;	//Hack to disable CPU rendering at boot
 			u32			SKIP_MSG_SEND_HACK:1;	//Dummies osSendMesg

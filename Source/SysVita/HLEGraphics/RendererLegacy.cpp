@@ -362,7 +362,7 @@ void RendererLegacy::RenderUsingRenderSettings( const CBlendStates * states, u32
 			
 			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, tfx);
 
-			if( g_ROM.T1_HACK )
+			if( g_ROM.TEXELS_HACK )
 			{
 				// NB if install_texture0 and install_texture1 are both set, 1 wins out
 				texture_idx = install_texture1;
@@ -541,7 +541,7 @@ void RendererLegacy::RenderUsingCurrentBlendMode(const float (&mat_project)[16],
 		
 		if( details.InstallTexture )
 		{
-			int texture_idx = g_ROM.T1_HACK ? 1 : 0;
+			int texture_idx = g_ROM.TEXELS_HACK ? 1 : 0;
 			if( mBoundTexture[ texture_idx ] )
 			{
 				mBoundTexture[ texture_idx ]->InstallTexture();
@@ -616,13 +616,13 @@ void RendererLegacy::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCo
 	float scale_x = texture->GetScaleX();
 	float scale_y = texture->GetScaleY();
 	
-	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
+	if (g_ROM.TEXELS_HACK && (gRDPOtherMode.L == 0x0C184244)) {
 		scale_x *= 0.125f;
 		scale_y *= 0.125f;
 	}
 	
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	if (g_ROM.T0_SKIP_HACK && (gRDPOtherMode.L == 0x0C184244)) {
+	if (g_ROM.TEXELS_HACK && (gRDPOtherMode.L == 0x0C184244)) {
 		gTexCoordBuffer[0] = NORMALIZE_C1842XX(uv0.x) * scale_x;
 		gTexCoordBuffer[1] = NORMALIZE_C1842XX(uv0.y) * scale_y;
 		gTexCoordBuffer[2] = NORMALIZE_C1842XX(uv1.x) * scale_x;
@@ -982,7 +982,7 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		vglTexCoordPointerMapped(gTexCoordBuffer);
 		
-		if (g_ROM.T0_SKIP_HACK && ((gRDPOtherMode.L >= 0x0C184000 && gRDPOtherMode.L <= 0x0C184FFF) || gRDPOtherMode.L == 0xC8104A50)) {
+		if (g_ROM.TEXELS_HACK && ((gRDPOtherMode.L >= 0x0C184000 && gRDPOtherMode.L <= 0x0C184FFF) || gRDPOtherMode.L == 0xC8104A50)) {
 			UpdateTileSnapshots( mTextureTile + 1 );
 		} else UpdateTileSnapshots( mTextureTile );
 		

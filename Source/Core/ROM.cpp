@@ -342,7 +342,7 @@ void SpecificGameHacks( const ROMHeader & id )
 {
 	printf("ROM ID[%04X]\n", id.CartID);
 
-	g_ROM.HACKS_u64 = 0;	// Default to no game hacks
+	g_ROM.HACKS_u32 = 0;	// Default to no game hacks
 
 	switch( id.CartID )
 	{
@@ -399,8 +399,7 @@ void SpecificGameHacks( const ROMHeader & id )
 	case 0x5144:	// Donald Duck
 	case 0x3259:	// Rayman2
 		g_ROM.LOAD_T1_HACK = true;
-		g_ROM.T1_HACK = true;
-		g_ROM.T0_SKIP_HACK = true;
+		g_ROM.TEXELS_HACK = true;
 		g_ROM.DISABLE_DYNA_CMP = true;
 		break;
 	case 0x3358:	// GEX3
