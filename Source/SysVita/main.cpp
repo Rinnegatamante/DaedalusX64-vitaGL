@@ -983,6 +983,7 @@ int main(int argc, char* argv[]) {
 		loadNetRomPath();
 	}
 	
+	sceIoMkdir(DAEDALUS_VITA_PATH("ShaderCache/"), 0777);
 	sceIoMkdir(DAEDALUS_VITA_PATH("Playtimes/"), 0777);
 	Initialize();
 	

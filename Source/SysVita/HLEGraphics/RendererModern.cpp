@@ -23,8 +23,12 @@
 #include "SysVita/HLEGraphics/FragmentShader.h"
 #include "SysVita/UI/Menu.h"
 
+#define MODERN_SHADER_MAGIC 1
+
 #define NORMALIZE_C1842XX(x) ((x) > 16.5f ? ((x) / ((x) / 16.0f)) : (x))
 
+void *vertex_shader_bin = nullptr;
+int vertex_shader_size = 0;
 extern BaseRenderer *gRenderer;
 RendererModern  *gRendererModern = nullptr;
 
@@ -38,6 +42,8 @@ static const u32 kNumTextures = 2;
 static bool use_texture_scale = false;
 
 extern bool gUseMipmaps;
+
+char cache_name[256];
 
 struct ScePspFMatrix4
 {
@@ -129,33 +135,41 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 	GLuint vertex_shader = 0u;
 	GLuint fragment_shader = 0u;
 
-	vertex_shader = make_shader(GL_VERTEX_SHADER, vertex_lines, num_vertex_lines);
-	if (vertex_shader != 0u)
-	{
-		fragment_shader = make_shader(GL_FRAGMENT_SHADER, fragment_lines, num_fragment_lines);
-		if (fragment_shader != 0u)
-		{
-			/* make the program that connect the two shader and link it */
-			program = glCreateProgram();
-			if (program != 0u)
-			{
-				/* attach both shader and link */
-				glAttachShader(program, vertex_shader);
-				glAttachShader(program, fragment_shader);
-				
-				vglBindAttribLocation(program, 0, "in_pos",  3,         GL_FLOAT);
-				vglBindAttribLocation(program, 1, "in_uv" ,  2,         GL_FLOAT);
-				vglBindAttribLocation(program, 2, "in_col",  4, GL_UNSIGNED_BYTE);
-
-				glLinkProgram(program);
-				
-				GLint loc = glGetUniformLocation(program, "uTexture0");
-				GLint loc2 = glGetUniformLocation(program, "uTexture1");
-				glUniform1i(loc, 0);
-				glUniform1i(loc2, 1);
-			}
-		}
+	if (!vertex_shader_bin) {
+		vertex_shader = make_shader(GL_VERTEX_SHADER, vertex_lines, num_vertex_lines);
+		vertex_shader_bin = malloc(16 * 1024);
+		vglGetShaderBinary(vertex_shader, 16 * 1024, &vertex_shader_size, vertex_shader_bin);
+		FILE *f = fopen(DAEDALUS_VITA_PATH("ShaderCache/vert.gxp"), "wb");
+		fwrite(vertex_shader_bin, 1, vertex_shader_size, f);
+		fclose(f);
+	} else {
+		vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderBinary(1, &vertex_shader, 0, vertex_shader_bin, vertex_shader_size);
 	}
+
+	fragment_shader = make_shader(GL_FRAGMENT_SHADER, fragment_lines, num_fragment_lines);
+
+	void *bin = malloc(16 * 1024);
+	GLsizei bin_len;
+	vglGetShaderBinary(fragment_shader, 16 * 1024, &bin_len, bin);
+	FILE *f = fopen(cache_name, "wb");
+	fwrite(bin, 1, bin_len, f);
+	fclose(f);
+	free(bin);
+			
+	/* make the program that connect the two shader and link it */
+	program = glCreateProgram();
+
+	/* attach both shader and link */
+	glAttachShader(program, vertex_shader);
+	glAttachShader(program, fragment_shader);
+				
+	vglBindAttribLocation(program, 0, "in_pos",  3,         GL_FLOAT);
+	vglBindAttribLocation(program, 1, "in_uv" ,  2,         GL_FLOAT);
+	vglBindAttribLocation(program, 2, "in_col",  4, GL_UNSIGNED_BYTE);
+
+	glLinkProgram(program);
+
 	return program;
 }
 
@@ -392,19 +406,57 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 			return program;
 	}
 
-	char frag_shader[2048];
-	SprintShader(frag_shader, config);
+	sprintf(cache_name, "%s%016llX%08X%08X%008X-%d.gxp",
+		DAEDALUS_VITA_PATH("ShaderCache/"), config.Mux, config.CycleType, config.HasFog, *(uint32_t *)(&config.AlphaThreshold), MODERN_SHADER_MAGIC);
+	GLuint shader_program;
+	FILE *f = fopen(cache_name, "rb");
+	if (f) {
+		fseek(f, 0, SEEK_END);
+		int bin_size = ftell(f);
+		void *bin = malloc(bin_size);
+		fseek(f, 0, SEEK_SET);
+		fread(bin, 1, bin_size, f);
+		fclose(f);
+		GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderBinary(1, &fragment_shader, 0, bin, bin_size);
+		free(bin);
+		
+		GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+		if (!vertex_shader_bin) {
+			f = fopen(DAEDALUS_VITA_PATH("ShaderCache/vert.gxp"), "rb");
+			fseek(f, 0, SEEK_END);
+			vertex_shader_size = ftell(f);
+			vertex_shader_bin = malloc(vertex_shader_size);
+			fseek(f, 0, SEEK_SET);
+			fread(vertex_shader_bin, 1, vertex_shader_size, f);
+			fclose(f);
+		}
+		glShaderBinary(1, &vertex_shader, 0, vertex_shader_bin, vertex_shader_size);
+		shader_program = glCreateProgram();
+		glAttachShader(shader_program, vertex_shader);
+		glAttachShader(shader_program, fragment_shader);
+				
+		vglBindAttribLocation(shader_program, 0, "in_pos",  3,         GL_FLOAT);
+		vglBindAttribLocation(shader_program, 1, "in_uv" ,  2,         GL_FLOAT);
+		vglBindAttribLocation(shader_program, 2, "in_col",  4, GL_UNSIGNED_BYTE);
 
-	const char * vertex_lines[] = { default_vertex_shader };
-	const char * fragment_lines[] = { gN64FragmentLibrary, frag_shader };
+		glLinkProgram(shader_program);
+	} else {
+		char frag_shader[2048];
+		SprintShader(frag_shader, config);
 
-	GLuint shader_program = make_shader_program(
-								vertex_lines, ARRAYSIZE(vertex_lines),
-								fragment_lines, ARRAYSIZE(fragment_lines));
-	if (shader_program == 0)
-	{
-		return NULL;
+		const char * vertex_lines[] = { default_vertex_shader };
+		const char * fragment_lines[] = { gN64FragmentLibrary, frag_shader };
+
+		shader_program = make_shader_program(
+			vertex_lines, ARRAYSIZE(vertex_lines),
+			fragment_lines, ARRAYSIZE(fragment_lines));
 	}
+	
+	GLint loc = glGetUniformLocation(shader_program, "uTexture0");
+	GLint loc2 = glGetUniformLocation(shader_program, "uTexture1");
+	glUniform1i(loc, 0);
+	glUniform1i(loc2, 1);
 
 	ShaderProgram * program = new ShaderProgram;
 	InitShaderProgram(program, config, shader_program);
