@@ -633,26 +633,11 @@ void MemoryUpdateSPStatus( u32 flags )
 	if (flags & SP_SET_SIG7)				DBGConsole_Msg( 0, "SP: Setting Sig7" );
 #endif
 	
-	bool start_rsp = false;
-	//bool stop_rsp = false;
-	
 	u32	clr_bits = 0, set_bits = 0;
-
-	if (flags & SP_CLR_HALT) {
-		clr_bits |= SP_STATUS_HALT;
-		start_rsp = true;
-	}
 	
-	if (flags & SP_SET_HALT) {
-		set_bits |= SP_STATUS_HALT;
-		//stop_rsp = true;
-	}
-	
-	if (flags & SP_CLR_BROKE)
-	{
-		clr_bits |= SP_STATUS_BROKE;
-		start_rsp = true;
-	}
+	if (flags & SP_CLR_HALT)         clr_bits |= SP_STATUS_HALT;
+	if (flags & SP_SET_HALT)         set_bits |= SP_STATUS_HALT;
+	if (flags & SP_CLR_BROKE)        clr_bits |= SP_STATUS_BROKE;
 
 	if (flags & SP_CLR_INTR)
 	{
@@ -665,7 +650,7 @@ void MemoryUpdateSPStatus( u32 flags )
 		Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_SP);
 		R4300_Interrupt_UpdateCause3();
 	}
-
+	
 	if (flags & SP_CLR_SSTEP)        clr_bits |= SP_STATUS_SSTEP;
 	if (flags & SP_SET_SSTEP)        set_bits |= SP_STATUS_SSTEP;
 	if (flags & SP_CLR_INTR_BREAK)   clr_bits |= SP_STATUS_INTR_BREAK;
@@ -692,7 +677,8 @@ void MemoryUpdateSPStatus( u32 flags )
 	//
 	// We execute the task here, after we've written to the SP status register.
 	//
-	if( start_rsp )
+	uint32_t registers = Memory_SP_GetRegisterBits( SP_STATUS_REG );
+	if (!( registers & (SP_STATUS_HALT | SP_STATUS_BROKE) ))
 	{
 		// Check for tasks whenever the RSP is started
 		RSP_HLE_ProcessTask();

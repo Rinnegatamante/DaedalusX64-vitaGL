@@ -299,6 +299,12 @@ inline void Write8Bits_NoSwizzle( u32 address, u8 data )	{                      
 		return AtomicBitSet( p, and_bits, or_bits );									\
 	}																					\
 																						\
+	inline u32 Memory_##set##_GetRegisterBits( u32 reg )		\
+	{																					\
+		u32 * p( &((u32 *)g_pMemoryBuffers[memory_buffer])[ (reg - base_reg) / 4 ] );	\
+		return *p;									\
+	}																					\
+																						\
 	inline u32 Memory_##set##_SetRegisterBits( u32 reg, u32 value )						\
 	{																					\
 		u32 * p( &((u32 *)g_pMemoryBuffers[memory_buffer])[ (reg - base_reg) / 4 ] );	\
