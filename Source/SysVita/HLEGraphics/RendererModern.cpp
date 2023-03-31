@@ -148,6 +148,11 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 				vglBindAttribLocation(program, 2, "in_col",  4, GL_UNSIGNED_BYTE);
 
 				glLinkProgram(program);
+				
+				GLint loc = glGetUniformLocation(program, "uTexture0");
+				GLint loc2 = glGetUniformLocation(program, "uTexture1");
+				glUniform1i(loc, 0);
+				glUniform1i(loc2, 1);
 			}
 		}
 	}
@@ -204,7 +209,7 @@ static const char* default_vertex_shader =
 "	float3 in_pos,\n"
 "	float2 in_uv,\n"
 "	float4 in_col,\n"
-"	uniform float4x4 wvp,\n"
+"	uniform float4x4 gl_ModelViewProjectionMatrix,\n"
 "	uniform float tex_scale_x,\n"
 "	uniform float tex_scale_y,\n"
 "	float2 out sti : TEXCOORD0,\n"
@@ -213,7 +218,7 @@ static const char* default_vertex_shader =
 "{\n"
 "	sti = float2(in_uv.x * tex_scale_x, in_uv.y * tex_scale_y);\n"
 "	v_col = in_col;\n"
-"	v_pos = mul(wvp, float4(in_pos, 1.0));\n"
+"	v_pos = mul(gl_ModelViewProjectionMatrix, float4(in_pos, 1.0));\n"
 "}\n";
 
 // FIXME(strmnnrmn): texel fetch filter changes between cycles.
