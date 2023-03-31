@@ -1,0 +1,19 @@
+float4 main(
+	float2 vTexcoord : TEXCOORD0,
+	uniform sampler2D uTexture : TEXUNIT0,
+	uniform float Radius,
+	uniform float Softness,
+	uniform float Opacity) : COLOR
+{
+	float3 res = tex2D(uTexture, vTexcoord).xyz;
+	
+	float2 position = vTexcoord - float2(0.5, 0.5);
+	
+	float vignette = smoothstep(
+		Radius,
+		Radius - Softness,
+		length(position)
+	);
+	
+    return float4(lerp(res.rgb, res.rgb * vignette, Opacity), 1.0f); 
+}

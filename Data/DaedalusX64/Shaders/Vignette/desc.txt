@@ -1,0 +1,1 @@
+Vignette effect for image bordering.

@@ -1,0 +1,3 @@
+Radius=1
+Softness=1
+Opacity=1
