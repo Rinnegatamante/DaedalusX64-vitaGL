@@ -452,11 +452,9 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 			vertex_lines, ARRAYSIZE(vertex_lines),
 			fragment_lines, ARRAYSIZE(fragment_lines));
 	}
-	
-	GLint loc = glGetUniformLocation(shader_program, "uTexture0");
-	GLint loc2 = glGetUniformLocation(shader_program, "uTexture1");
-	glUniform1i(loc, 0);
-	glUniform1i(loc2, 1);
+
+	glUniform1i(glGetUniformLocation(shader_program, "uTexture0"), 0);
+	glUniform1i(glGetUniformLocation(shader_program, "uTexture1"), 1);
 
 	ShaderProgram * program = new ShaderProgram;
 	InitShaderProgram(program, config, shader_program);

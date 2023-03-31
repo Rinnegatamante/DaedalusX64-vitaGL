@@ -266,6 +266,7 @@ bool setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 						
 		glLinkProgram(program[shader_idx]);
 		cur_prog = program[shader_idx];
+		glUniform1i(glGetUniformLocation(program[shader_idx], "colorMap"), 0);
 		
 		if (p->customizable) {
 			sprintf(fpath, "%s%s/unif.txt", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);

@@ -6,14 +6,14 @@
 void main(
 	float3 position,
 	float2 texcoord,
-	uniform float4x4 wvp,
+	uniform float4x4 gl_ModelViewProjectionMatrix,
 	out float4 vPosition : POSITION,
 	out float2 vTexcoord : TEXCOORD0,
 	out float2 texel : TEXCOORD1)
 {
 	float2 texture_size = float2(960.0f, 544.0f);
 	
-	vPosition = mul(wvp,float4(position, 1.f));
+	vPosition = mul(gl_ModelViewProjectionMatrix,float4(position, 1.f));
 	vTexcoord = texcoord - float2(0.25 / texture_size.x, 0.0);
 
 	texel = texcoord * texture_size;
