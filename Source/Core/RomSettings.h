@@ -42,8 +42,8 @@ struct RomSettings
 {
 	CFixedString<128>	GameName;
 	CFixedString<128>	Preview;
-
 	ESaveType			SaveType;
+	u32					CountPerOp;
 
 	RomSettings();
 

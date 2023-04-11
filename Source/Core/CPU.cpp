@@ -828,7 +828,7 @@ void R4300_CALL_TYPE CPU_UpdateCounter( u32 ops_executed )
 	gTotalInstructionsExecuted += ops_executed;
 #endif
 
-	const u32 cycles = ops_executed * COUNTER_INCREMENT_PER_OP;
+	const u32 cycles = ops_executed * g_ROM.settings.CountPerOp;
 
 	// Increment count register
 	gCPUState.CPUControl[C0_COUNT]._u32 += cycles;
@@ -847,7 +847,7 @@ void CPU_UpdateCounterNoInterrupt( u32 ops_executed )
 
 	if( ops_executed > 0 )
 	{
-		const u32 cycles {ops_executed * COUNTER_INCREMENT_PER_OP};
+		const u32 cycles {ops_executed * g_ROM.settings.CountPerOp};
 
 #ifdef DAEDALUS_PROFILE_EXECUTION
 		gTotalInstructionsExecuted += ops_executed;

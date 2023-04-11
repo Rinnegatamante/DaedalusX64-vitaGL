@@ -230,6 +230,10 @@ bool IRomSettingsDB::OpenSettingsFile( const char * filename )
 		{
 			settings.SaveType = SaveTypeFromString( p_property->GetValue() );
 		}
+		if( p_section->FindProperty( "CountPerOp", &p_property ) )
+		{
+			settings.CountPerOp = *(p_property->GetValue()) - '0';
+		}
 		SetSettings( id, settings );
 	}
 
@@ -386,6 +390,8 @@ void	IRomSettingsDB::SetSettings( const RomID & id, const RomSettings & settings
 RomSettings::RomSettings()
 :	SaveType( SAVE_TYPE_UNKNOWN )
 {
+	printf("Defaulting to CountPerOp 2\n");
+	CountPerOp = 2;
 }
 
 

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <algorithm>
 
+#include "ROM.h"
 #include "CPU.h"
 #include "Registers.h"					// For REG_?? defines
 #include "Memory.h"
@@ -170,9 +171,9 @@ template< bool TraceEnabled > DAEDALUS_FORCEINLINE void CPU_EXECUTE_OP()
 	SYNCH_POINT( DAED_SYNC_REGS, CPU_ProduceRegisterHash(), "Registers don't match" );
 	#endif
 	// Increment count register
-	gCPUState.CPUControl[C0_COUNT]._u32 = gCPUState.CPUControl[C0_COUNT]._u32 + COUNTER_INCREMENT_PER_OP;
+	gCPUState.CPUControl[C0_COUNT]._u32 = gCPUState.CPUControl[C0_COUNT]._u32 + g_ROM.settings.CountPerOp;
 
-	if (CPU_ProcessEventCycles( COUNTER_INCREMENT_PER_OP ) )
+	if (CPU_ProcessEventCycles( g_ROM.settings.CountPerOp ) )
 	{
 		CPU_HANDLE_COUNT_INTERRUPT();
 	}
