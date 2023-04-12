@@ -390,7 +390,6 @@ void	IRomSettingsDB::SetSettings( const RomID & id, const RomSettings & settings
 RomSettings::RomSettings()
 :	SaveType( SAVE_TYPE_UNKNOWN )
 {
-	printf("Defaulting to CountPerOp 2\n");
 	CountPerOp = 2;
 }
 
@@ -403,4 +402,5 @@ void	RomSettings::Reset()
 {
 	GameName = "";
 	SaveType = SAVE_TYPE_UNKNOWN;
+	CountPerOp = 2;
 }
