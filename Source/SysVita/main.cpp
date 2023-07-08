@@ -912,12 +912,12 @@ void extractSubstrings(char *src, char *tag, char* dst1, char *dst2) {
 int power_cb(int notifyId, int notifyCount, int powerInfo, void *common) {
 	if (is_main_menu || !gStandaloneMode) return 0;
 	
-	if ((powerInfo & SCE_POWER_CB_RESUME_LIVEAREA) ||
-		(powerInfo & SCE_POWER_CB_RESUMING))
+	if ((powerInfo & SCE_POWER_CB_APP_RESUME) ||
+		(powerInfo & SCE_POWER_CB_APP_RESUMING))
 		rom_start_tick = sceKernelGetProcessTimeWide();
-	else if ((powerInfo & SCE_POWER_CB_PS_BUTTON_PRESS) ||
-		(powerInfo & SCE_POWER_CB_SUSPENDING) ||
-		(powerInfo & SCE_POWER_CB_SHUTDOWN)) {
+	else if ((powerInfo & SCE_POWER_CB_BUTTON_PS_PRESS) ||
+		(powerInfo & SCE_POWER_CB_APP_SUSPEND) ||
+		(powerInfo & SCE_POWER_CB_SYSTEM_SUSPEND)) {
 		SavePlaytimeData();
 	}
 	return 0;
