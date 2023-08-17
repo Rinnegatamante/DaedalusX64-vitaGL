@@ -109,26 +109,6 @@ target_link_libraries(${PROJECT_NAME}.elf
 	vitaGL
 	vitashark
 	SceShaccCgExt
-	taihen_stub
-	SceDisplay_stub
-	SceGxm_stub
-	-Wl,--whole-archive SceSysmodule_stub -Wl,--no-whole-archive
-	SceCommonDialog_stub
-	SceKernelThreadMgr_stub
-	SceCtrl_stub
-	SceKernelDmacMgr_stub
-	SceTouch_stub
-	SceAudio_stub
-	ScePower_stub
-	SceNet_stub
-	-Wl,--whole-archive SceNetCtl_stub -Wl,--no-whole-archive
-	SceAppMgr_stub
-	SceAppUtil_stub
-	SceShaccCg_stub
-	SceVshBridge_stub
-	c
-	stdc++
-	m
 	mathneon
 	curl
 	ssl
@@ -136,6 +116,20 @@ target_link_libraries(${PROJECT_NAME}.elf
 	speexdsp
 	soloud
 	pthread
+	taihen_stub
+	SceDisplay_stub
+	SceGxm_stub
+	SceCommonDialog_stub
+	SceKernelThreadMgr_stub
+	SceCtrl_stub
+	SceKernelDmacMgr_stub
+	SceTouch_stub
+	SceAudio_stub
+	ScePower_stub
+	SceAppMgr_stub
+	SceAppUtil_stub
+	SceShaccCg_stub
+	SceVshBridge_stub
 )
 
 vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME}.elf UNSAFE)

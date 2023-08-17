@@ -37,8 +37,8 @@ steps:
     cd vitaGL
     sed -i "s/float fog_dist = coords.z \/ coords.w;/float fog_dist = coords.z;/" source/shaders/ffp_f.h
     sed -i "s/#define SHADER_CACHE_MAGIC /#define SHADER_CACHE_MAGIC 99/" source/shared.h
-    make -j$(nproc) NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 HAVE_CUSTOM_HEAP=1
-    sudo -E make NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 HAVE_CUSTOM_HEAP=1 install
+    make -j$(nproc) NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1
+    sudo -E make NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 install
   displayName: 'Build vitaGL'
 
 - script: |
