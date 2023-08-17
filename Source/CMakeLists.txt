@@ -112,9 +112,7 @@ target_link_libraries(${PROJECT_NAME}.elf
 	taihen_stub
 	SceDisplay_stub
 	SceGxm_stub
-	ScePgf_stub
-	ScePvf_stub
-	SceSysmodule_stub
+	-Wl,--whole-archive SceSysmodule_stub -Wl,--no-whole-archive
 	SceCommonDialog_stub
 	SceKernelThreadMgr_stub
 	SceCtrl_stub
@@ -123,6 +121,7 @@ target_link_libraries(${PROJECT_NAME}.elf
 	SceAudio_stub
 	ScePower_stub
 	SceNet_stub
+	-Wl,--whole-archive SceNetCtl_stub -Wl,--no-whole-archive
 	SceAppMgr_stub
 	SceAppUtil_stub
 	SceShaccCg_stub

@@ -985,7 +985,7 @@ void RendererModern::DoGamma(float gamma)
 	gVertexBuffer[9] = SCR_WIDTH;
 	gVertexBuffer[10] = SCR_HEIGHT;
 	gVertexBuffer[11] = 0.0f;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 	
 	// Hack to use float colors without having to use a temporary buffer
@@ -1031,7 +1031,7 @@ void RendererModern::DrawUITexture()
 	gVertexBuffer[9] = SCR_WIDTH;
 	gVertexBuffer[10] = SCR_HEIGHT;
 	gVertexBuffer[11] = 0.0f;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 	
 	gTexCoordBuffer[0] = 0.0f;

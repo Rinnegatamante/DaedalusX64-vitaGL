@@ -656,7 +656,7 @@ void RendererLegacy::TexRect(u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCo
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
 	gVertexBuffer[11] = depth;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 
 	uint32_t *p_vertices = gColorBuffer;
@@ -710,7 +710,7 @@ void RendererLegacy::TexRectFlip(u32 tile_idx, const v2 & xy0, const v2 & xy1, T
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
 	gVertexBuffer[11] = 0.0f;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 	
 	uint32_t *p_vertices = gColorBuffer;
@@ -742,7 +742,7 @@ void RendererLegacy::FillRect(const v2 & xy0, const v2 & xy1, u32 color)
 	gVertexBuffer[9] = screen1.x;
 	gVertexBuffer[10] = screen1.y;
 	gVertexBuffer[11] = 0.0f;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 	
 	uint32_t *p_vertices = gColorBuffer;
@@ -775,7 +775,7 @@ void RendererLegacy::DoGamma(float gamma)
 	gVertexBuffer[9] = SCR_WIDTH;
 	gVertexBuffer[10] = SCR_HEIGHT;
 	gVertexBuffer[11] = 0.0f;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 	
 	// Hack to use float colors without having to use a temporary buffer
@@ -820,7 +820,7 @@ void RendererLegacy::DrawUITexture()
 	gVertexBuffer[9] = SCR_WIDTH;
 	gVertexBuffer[10] = SCR_HEIGHT;
 	gVertexBuffer[11] = 0.0f;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	gVertexBuffer += 12;
 	
 	gTexCoordBuffer[0] = 0.0f;
@@ -897,7 +897,7 @@ void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	gTexCoordBuffer[5] = v1 * scale_y;
 	gTexCoordBuffer[6] = u1 * scale_x;
 	gTexCoordBuffer[7] = v1 * scale_y;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
@@ -959,7 +959,7 @@ void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	gTexCoordBuffer[5] = t * scale_y;
 	gTexCoordBuffer[6] = 0.0f;
 	gTexCoordBuffer[7] = t * scale_y;
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	vglTexCoordPointerMapped(gTexCoordBuffer);
 	gVertexBuffer += 12;
 	gTexCoordBuffer += 8;
@@ -976,7 +976,7 @@ uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)
 	//
 	//	Now we just shuffle all the data across directly (potentially duplicating verts)
 	//
-	vglVertexPointerMapped(gVertexBuffer);
+	vglVertexPointerMapped(3, gVertexBuffer);
 	*clr = gColorBuffer;
 	if (mTnL.Flags.Texture) {
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);

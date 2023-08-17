@@ -1027,7 +1027,7 @@ void DrawCommonWindows() {
 		colors[3] = colors[7] = colors[11] = colors[15] = a;
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
-		vglVertexPointerMapped(vflux_vertices);
+		vglVertexPointerMapped(3, vflux_vertices);
 		vglColorPointerMapped(GL_FLOAT, colors);
 		vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
 		glDisableClientState(GL_COLOR_ARRAY);
