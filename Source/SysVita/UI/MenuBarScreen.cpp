@@ -113,6 +113,7 @@ PostProcessingEffect *effects_list = nullptr;
 Overlay *overlays_list = nullptr;
 
 Uniform prog_uniforms[8];
+int time_unif = -1;
 
 GLuint ff_icon = 0xDEADBEEF;
 /*GLuint achievement_icon = 0xDEADBEEF;
@@ -267,6 +268,7 @@ bool setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 		glLinkProgram(program[shader_idx]);
 		cur_prog = program[shader_idx];
 		glUniform1i(glGetUniformLocation(program[shader_idx], "colorMap"), 0);
+		time_unif = glGetUniformLocation(cur_prog, "iTime");
 		
 		if (p->customizable) {
 			sprintf(fpath, "%s%s/unif.txt", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);

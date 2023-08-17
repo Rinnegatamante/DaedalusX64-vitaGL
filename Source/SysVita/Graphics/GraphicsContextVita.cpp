@@ -36,6 +36,7 @@ uint32_t *gColorBufferPtr;
 float *gTexCoordBufferPtr;
 bool new_frame = true;
 
+extern int time_unif;
 extern float gamma_val;
 
 static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex, emu_depth_buf_tex;
@@ -236,6 +237,9 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 				break;
 			}
 			i++;
+		}
+		if (time_unif != -1) {
+			glUniform1f(time_unif, (float)sceKernelGetProcessTimeLow() / 1000000.0f);
 		}
 			
 		vglVertexAttribPointerMapped(0, vflux_vertices);
