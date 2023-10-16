@@ -123,6 +123,8 @@ target_link_libraries(${PROJECT_NAME}.elf
 	SceKernelThreadMgr_stub
 	SceCtrl_stub
 	SceKernelDmacMgr_stub
+	-Wl,--whole-archive SceNetCtl_stub -Wl,--no-whole-archive
+	-Wl,--whole-archive SceSysmodule_stub -Wl,--no-whole-archive
 	SceTouch_stub
 	SceAudio_stub
 	ScePower_stub

@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/Alignment.h"
 #include "Utility/DaedalusTypes.h"
 
+#define N64_AUDIO_BUFF 0x10000
+
 struct AudioHLEState
 {
 	void	ClearBuffer( u16 addr, u16 count );
@@ -68,7 +70,7 @@ private:
 
 
 public:
-	ALIGNED_TYPE(u8, Buffer[0x10000], 16);	// Seems excesively large? 0x1000 should be enough, but will require to make many changes, ex update the bitfields 
+	ALIGNED_TYPE(u8, Buffer[N64_AUDIO_BUFF], 16);	// Seems excesively large? 0x1000 should be enough, but will require to make many changes, ex update the bitfields 
 	u16		ADPCMTable[0x88];
 
 	//u32		Segments[16];		// 0x0320

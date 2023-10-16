@@ -4,7 +4,7 @@ DaedalusX64 is a Nintendo 64 emulator originally for Linux and PSP. This reposit
 
 ## Build Instructions
 
-You need to have vitaGL compiled with `NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1` in order to properly compile DaedalusX64.<br>
+You need to have vitaGL compiled with `NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 HAVE_CUSTOM_HEAP=1` in order to properly compile DaedalusX64.<br>
 Also, before compiling it, run:
 ```
 sed -i "s/float fog_dist = coords.z \/ coords.w;/float fog_dist = coords.z;/" source/shaders/ffp_f.h
