@@ -868,6 +868,9 @@ void DrawCommonMenuBar() {
 		if (ImGui::MenuItem("Pусский", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RUSSIAN)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_RUSSIAN);
 		}
+		if (ImGui::MenuItem("Українська", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_UKRAINIAN)){
+			setTranslation(SCE_SYSTEM_PARAM_LANG_UKRAINIAN);
+		}
 		if (ImGui::MenuItem("Türk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_TURKISH)){
 			setTranslation(SCE_SYSTEM_PARAM_LANG_TURKISH);
 		}
@@ -915,17 +918,12 @@ void DrawCommonWindows() {
 		ImGui::Text("%s: Rinnegatamante", lang_strings[STR_CREDITS_AUTHOR]);
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_PATRONERS]);
-		ImGui::Text("Tain Sueiras");
-		ImGui::Text("drd7of14");
-		ImGui::Text("Titi Clash");
-		ImGui::Text("The Vita3K project");
-		ImGui::Text("psymu");
+		ImGui::Text("mmtechnodrone");
+		ImGui::Text("Pspguru");
+		ImGui::Text("Shin Megami");
+		ImGui::Text("sputnik");
 		ImGui::Text("@Sarkies_Proxy");
 		ImGui::Text("Badmanwazzy37");
-		ImGui::Text("Freddy Parra");
-		ImGui::Text("The Libretro Team");
-		ImGui::Text("ArkSource");
-		ImGui::Text("XandridFire");
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_THANKS]);
 		ImGui::Text(lang_strings[STR_CREDITS_1]);
@@ -953,6 +951,7 @@ void DrawCommonWindows() {
 		ImGui::Text("CHN-Gen (CHN)");
 		ImGui::Text("noru212 (ROM)");
 		ImGui::Text("kuragehime (JAP, RYU)");
+		ImGui::Text("BARABASDRISTATEL (UKR)");
 		ImGui::End();
 	}
 	

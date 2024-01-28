@@ -727,6 +727,9 @@ void setTranslation(int idx) {
 	case SCE_SYSTEM_PARAM_LANG_RYUKYUAN: // Ryukyuan
 		sprintf(langFile, "%sRyukyuan.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;
+	case SCE_SYSTEM_PARAM_LANG_UKRAINIAN: // Ukrainian
+		sprintf(langFile, "%sUkrainian.ini", DAEDALUS_VITA_PATH("Languages/"));
+		break;
 	case SCE_SYSTEM_PARAM_LANG_POLISH: // Polish
 		sprintf(langFile, "%sPolish.ini", DAEDALUS_VITA_PATH("Languages/"));
 		break;

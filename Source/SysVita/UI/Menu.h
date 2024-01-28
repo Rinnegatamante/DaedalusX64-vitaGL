@@ -342,10 +342,11 @@ extern Overlay *overlays_list;
 extern PostProcessingEffect *effects_list;
 
 // Language identifiers for languages not supported by PSVITA nativeely
-#define SCE_SYSTEM_PARAM_LANG_CATALAN  20
-#define SCE_SYSTEM_PARAM_LANG_GREEK    21
-#define SCE_SYSTEM_PARAM_LANG_ROMANIAN 22
-#define SCE_SYSTEM_PARAM_LANG_RYUKYUAN 23
+#define SCE_SYSTEM_PARAM_LANG_CATALAN   20
+#define SCE_SYSTEM_PARAM_LANG_GREEK     21
+#define SCE_SYSTEM_PARAM_LANG_ROMANIAN  22
+#define SCE_SYSTEM_PARAM_LANG_RYUKYUAN  23
+#define SCE_SYSTEM_PARAM_LANG_UKRAINIAN 24
 
 // Config Variables
 extern bool gUseRendererLegacy;
