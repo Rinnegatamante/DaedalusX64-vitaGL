@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define CODE_BUFFER_SIZE (8 * 1024 * 1024)
 
-static SceUID dynarec_memblock;
+SceUID dynarec_memblock;
 
-void _DaedalusICacheInvalidate(const void * address, u32 length)
+static inline __attribute__((always_inline)) void _DaedalusICacheInvalidate(const void * address, u32 length)
 {
 	if(length > 0)
 #if 1
@@ -89,7 +89,6 @@ CCodeBufferManager *	CCodeBufferManager::Create()
 //*****************************************************************************
 bool	CCodeBufferManagerARM::Initialise()
 {
-	// mpSecondBuffer is currently unused
 #if 1
 	dynarec_memblock = sceKernelAllocMemBlockForVM("code", CODE_BUFFER_SIZE * 2);
 #else
@@ -175,12 +174,9 @@ u32 CCodeBufferManagerARM::FinaliseCurrentBlock()
 	mBufferPtr += primary_block_size;
 	mSecondBufferPtr += secondary_block_size;
 
-	#if 0 //Second buffer is currently unused
-	mSecondBufferPtr += mSecondaryBuffer.GetSize();
-	mSecondBufferPtr = ((mSecondBufferPtr - 1) & 0xfffffff0) + 0x10; // align to 16-byte boundary
-	#endif
-
+	uint32_t tick = sceKernelGetProcessTimeLow();
 	_DaedalusICacheInvalidate(p_primary_base, primary_block_size);
+	uint32_t tick2 = sceKernelGetProcessTimeLow();
 	_DaedalusICacheInvalidate(p_secondary_base, secondary_block_size);
 
 	return primary_block_size;

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Math/MathUtil.h"
 #include "DynaRec/AssemblyUtils.h"
 
-extern void _DaedalusICacheInvalidate(const void * address, u32 length);
+extern SceUID dynarec_memblock;
 
 namespace AssemblyUtils
 {
@@ -48,9 +48,20 @@ bool	PatchJumpLong( CJumpLocation jump, CCodeLabel target )
 
 bool	PatchJumpLongAndFlush( CJumpLocation jump, CCodeLabel target )
 {
-	PatchJumpLong( jump, target );
+	u32* p_jump_addr( reinterpret_cast< u32* >( jump.GetWritableU8P() ) );
+
+	u32 address = target.GetTargetU32();
+
+	s32 offset = jump.GetOffset(target) - 8;
 	
-	_DaedalusICacheInvalidate( jump.GetTargetU8P(), 4 );
+	offset >>= 2;
+	p_jump_addr[0] = (p_jump_addr[0] &0xFF000000)| (offset & 0xFFFFFF);
+	
+#if 1
+	sceKernelSyncVMDomain(dynarec_memblock, (void*)jump.GetTargetU8P(), 4);
+#else
+	kuKernelFlushCaches((void *)jump.GetTargetU8P(), 4);
+#endif
 
 	return true;
 }
