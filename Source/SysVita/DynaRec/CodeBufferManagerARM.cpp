@@ -174,9 +174,7 @@ u32 CCodeBufferManagerARM::FinaliseCurrentBlock()
 	mBufferPtr += primary_block_size;
 	mSecondBufferPtr += secondary_block_size;
 
-	uint32_t tick = sceKernelGetProcessTimeLow();
 	_DaedalusICacheInvalidate(p_primary_base, primary_block_size);
-	uint32_t tick2 = sceKernelGetProcessTimeLow();
 	_DaedalusICacheInvalidate(p_secondary_base, secondary_block_size);
 
 	return primary_block_size;
