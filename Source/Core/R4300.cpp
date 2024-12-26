@@ -33,6 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/AuxFunc.h"
 #include "Utility/Macros.h"
 
+#ifdef __vita__
+#include <fenv.h>
+#define ACCURATE_CVT // This also works with Windows
+#endif
+
 #ifdef DAEDALUS_PSP
 #include <pspfpu.h>
 #include <limits.h>
@@ -53,7 +58,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define isnan _isnan
 #endif
 
-#define SPEEDHACK_INTERPRETER // Probably can disalbe this on the PSP?
+#define SPEEDHACK_INTERPRETER // Probably can disable this on the PSP?
 
 
 #define	R4300_CALL_MAKE_OP( var )	OpCode	var;	var._u32 = op_code_bits
@@ -105,9 +110,17 @@ inline void SET_ROUND_MODE( ERoundingMode mode )
 
 #elif defined(DAEDALUS_VITA)
 
+static const int		gNativeRoundingModes[ RM_NUM_MODES ] =
+{
+	FE_TONEAREST,	// RM_ROUND,
+	FE_TOWARDZERO,	// RM_TRUNC,
+	FE_UPWARD,		// RM_CEIL,
+	FE_DOWNWARD,	// RM_FLOOR,
+};
+
 inline void SET_ROUND_MODE( ERoundingMode mode )
 {
-	// TODO
+	fesetround( gNativeRoundingModes[ mode ] );
 }
 
 #elif defined(DAEDALUS_W32)
@@ -145,9 +158,9 @@ inline void SET_ROUND_MODE( ERoundingMode mode )
 // Need defining
 void SET_ROUND_MODE( ERoundingMode mode )
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 	DAEDALUS_ERROR( "Floating point rounding modes not implemented on this platform" );
-	#endif
+#endif
 }
 
 #endif
@@ -1318,7 +1331,7 @@ static void R4300_CALL_TYPE R4300_Special_SYSCALL( R4300_CALL_SIGNATURE )
 
 static void R4300_CALL_TYPE R4300_Special_BREAK( R4300_CALL_SIGNATURE ) 	// BREAK
 {
-	#ifdef DAEDALUS_PROFILER
+#ifdef DAEDALUS_PROFILER
 	DPF( DEBUG_INTR, "BREAK Called. PC: 0x%08x. COUNT: 0x%08x", gCPUState.CurrentPC, gCPUState.CPUControl[C0_COUNT]._u32 );
 #endif
 	R4300_Exception_Break();
@@ -1375,9 +1388,7 @@ static void R4300_CALL_TYPE R4300_Special_DSRLV( R4300_CALL_SIGNATURE )
 static void R4300_CALL_TYPE R4300_Special_DSRAV( R4300_CALL_SIGNATURE )
 {
 	R4300_CALL_MAKE_OP( op_code );
-		#ifdef DAEDALUS_DEBUG_CONSOLE
 
-		#endif
 	// Reserved Instruction exception
 	gGPR[ op_code.rd ]._u64 = gGPR[ op_code.rt ]._s64 >> ( gGPR[ op_code.rs ]._u32_0 & 0x3F );
 }
