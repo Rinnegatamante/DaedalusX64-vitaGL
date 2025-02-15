@@ -453,8 +453,12 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 			fragment_lines, ARRAYSIZE(fragment_lines));
 	}
 
-	glUniform1i(glGetUniformLocation(shader_program, "uTexture0"), 0);
-	glUniform1i(glGetUniformLocation(shader_program, "uTexture1"), 1);
+	auto uTex0 = glGetUniformLocation(shader_program, "uTexture0");
+	if (uTex0)
+		glUniform1i(uTex0, 0);
+	auto uTex1 = glGetUniformLocation(shader_program, "uTexture1");
+	if (uTex1 != -1)
+		glUniform1i(uTex1, 1);
 
 	ShaderProgram * program = new ShaderProgram;
 	InitShaderProgram(program, config, shader_program);
@@ -466,9 +470,6 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 void RendererModern::RestoreRenderStates()
 {
 	// Initialise the device to our default state
-
-	// No fog
-	glDisable(GL_FOG);
 
 	// We do our own culling
 	glDisable(GL_CULL_FACE);
