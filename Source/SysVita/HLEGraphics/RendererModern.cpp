@@ -454,7 +454,7 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 	}
 
 	auto uTex0 = glGetUniformLocation(shader_program, "uTexture0");
-	if (uTex0)
+	if (uTex0 != -1)
 		glUniform1i(uTex0, 0);
 	auto uTex1 = glGetUniformLocation(shader_program, "uTexture1");
 	if (uTex1 != -1)
