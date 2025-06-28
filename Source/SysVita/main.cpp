@@ -41,9 +41,10 @@
 #include "soloud.h"
 #include "soloud_wavstream.h"
 
-#define NET_INIT_SIZE      1*1024*1024
-#define MAX_ROM_SIZE      64*1024*1024
+#define NET_INIT_SIZE (1 * 1024 * 1024)
+#define MAX_ROM_SIZE (64 * 1024 * 1024)
 
+extern bool gSRGB;
 extern bool gRendererChanged;
 extern bool gSwapUseRendererLegacy;
 extern char rom_game_name[256];
@@ -858,6 +859,7 @@ void loadConfig(const char *game) {
 			else if (strcmp("gAspectRatio", buffer) == 0) gAspectRatio = value;
 			else if (strcmp("gTexCacheMode", buffer) == 0) gTexCacheMode = value;
 			else if (strcmp("gForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
+			else if (strcmp("gSRGB", buffer) == 0) gSRGB = (bool)value;
 
 			else if (strcmp("gUseMipmaps", buffer) == 0) gUseMipmaps = value;
 			else if (strcmp("gUseVSync", buffer) == 0) gUseVSync = value;
@@ -1020,6 +1022,7 @@ int main(int argc, char* argv[]) {
 				audio_engine.playBackground(bg_mus);
 			}
 			rom_game_name[0] = 0;
+			glDisable(GL_FRAMEBUFFER_SRGB);
 			do {
 				rom = DrawRomSelector(false);
 			} while (rom == nullptr);
@@ -1035,13 +1038,18 @@ int main(int argc, char* argv[]) {
 			// We re-draw last frame two times in order to make the launching alert to show up
 			for (int i = 0; i < 2; i++) { DrawRomSelector(true); } 
 		}
-		
+
 		EnableMenuButtons(false);
 		System_Open(rom);
 
 		if (gRendererChanged)
 			gUseRendererLegacy = gSwapUseRendererLegacy;
 		is_main_menu = false;
+		if (gSRGB) {
+			glEnable(GL_FRAMEBUFFER_SRGB);
+		} else {
+			glDisable(GL_FRAMEBUFFER_SRGB);
+		}
 		if (gStandaloneMode)
 			rom_start_tick = sceKernelGetProcessTimeWide();
 		CPU_Run();
@@ -1050,7 +1058,8 @@ int main(int argc, char* argv[]) {
 		System_Close();
 		is_main_menu = true;
 		
-		if (!gStandaloneMode && !restart_rom) break;
+		if (!gStandaloneMode && !restart_rom)
+			break;
 	}
 
 	System_Finalize();

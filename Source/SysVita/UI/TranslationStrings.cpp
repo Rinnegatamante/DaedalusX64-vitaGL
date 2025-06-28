@@ -179,4 +179,5 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Downloading Changelist", // STR_DOWNLOADER_CHANGELIST
 	"What's New", // STR_UPDATE_CHANGES
 	"Continue", // STR_CONTINUE
+	"sRGB Colorspace", // STR_MENU_SRGB
 };

@@ -64,7 +64,7 @@ RomInfo g_ROM;
 static void DumpROMInfo( const ROMHeader & header )
 {
 	// The "Header" is actually something to do with the PI_DOM_*_OFS values...
-	#ifdef DAEDALUS_DEBUG_CONSOLE
+#ifdef DAEDALUS_DEBUG_CONSOLE
 	DBGConsole_Msg(0, "Header:          0x%02x%02x%02x%02x", header.x1, header.x2, header.x3, header.x4);
 	DBGConsole_Msg(0, "Clockrate:       0x%08x", header.ClockRate);
 	DBGConsole_Msg(0, "BootAddr:        0x%08x", BSWAP32(header.BootAddress));
@@ -81,7 +81,7 @@ static void DumpROMInfo( const ROMHeader & header )
 	DBGConsole_Msg(0, "CartID:          0x%04x", header.CartID);
 	DBGConsole_Msg(0, "CountryID:       0x%02x - '%c'", header.CountryID, (char)header.CountryID);
 	DBGConsole_Msg(0, "Unknown5:        0x%02x", header.Unknown5);
-	#endif
+#endif
 }
 
 static void ROM_SimulatePIFBoot( ECicType cic_chip, u32 Country )
@@ -346,20 +346,48 @@ void SpecificGameHacks( const ROMHeader & id )
 
 	switch( id.CartID )
 	{
-	case 0x324a: g_ROM.GameHacks = WONDER_PROJECTJ2;	break;
-	case 0x4547: g_ROM.GameHacks = GOLDEN_EYE;			break;
-	case 0x5742: g_ROM.GameHacks = SUPER_BOWLING;		break;
-	case 0x514D: g_ROM.GameHacks = PMARIO;				break;
-	case 0x5632: g_ROM.GameHacks = CHAMELEON_TWIST_2;	break;
-	case 0x504A: g_ROM.GameHacks = ISS64;				break;
-	case 0x5944: g_ROM.GameHacks = DKR;					break;
-	case 0x3247: g_ROM.GameHacks = EXTREME_G2;			break;
-	case 0x5359: g_ROM.GameHacks = YOSHI;				break;
-	case 0x4C42: g_ROM.GameHacks = BUCK_BUMBLE;			break;
-	case 0x4441: g_ROM.GameHacks = WORMS_ARMAGEDDON;	break;
-	case 0x4F50: g_ROM.GameHacks = POKEMON_STADIUM;		break;
-	case 0x3350: g_ROM.GameHacks = POKEMON_STADIUM;		break; // Pokemon Stadium 2
-	case 0x3357: g_ROM.GameHacks = WCW_NITRO;			break;
+	case 0x324a:
+		g_ROM.GameHacks = WONDER_PROJECTJ2;
+		break;
+	case 0x4547:
+		g_ROM.GameHacks = GOLDEN_EYE;
+		break;
+	case 0x5742:
+		g_ROM.GameHacks = SUPER_BOWLING;
+		break;
+	case 0x514D:
+		g_ROM.GameHacks = PMARIO;
+		break;
+	case 0x5632:
+		g_ROM.GameHacks = CHAMELEON_TWIST_2;
+		break;
+	case 0x504A:
+		g_ROM.GameHacks = ISS64;
+		break;
+	case 0x5944:
+		g_ROM.GameHacks = DKR;
+		break;
+	case 0x3247:
+		g_ROM.GameHacks = EXTREME_G2;
+		break;
+	case 0x5359:
+		g_ROM.GameHacks = YOSHI;
+		break;
+	case 0x4C42:
+		g_ROM.GameHacks = BUCK_BUMBLE;
+		break;
+	case 0x4441:
+		g_ROM.GameHacks = WORMS_ARMAGEDDON;
+		break;
+	case 0x4F50:
+		g_ROM.GameHacks = POKEMON_STADIUM;
+		break;
+	case 0x3350: // Pokemon Stadium 2
+		g_ROM.GameHacks = POKEMON_STADIUM;
+		break;
+	case 0x3357:
+		g_ROM.GameHacks = WCW_NITRO;
+		break;
 	case 0x4B51:	// Quake 64
 		g_ROM.GameHacks = QUAKE;
 		g_ROM.KEEP_MODE_H_HACK = true;

@@ -54,6 +54,7 @@ bool gUseRearpad = false;
 bool gUseRendererLegacy = true;
 bool gRendererChanged = false;
 bool gNetBoot = false;
+bool gSRGB = false;
 
 uint8_t shader_idx = 0;
 
@@ -331,6 +332,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gAspectRatio", gAspectRatio);
 		fprintf(config, "%s=%d\n", "gTexCacheMode", gTexCacheMode);
 		fprintf(config, "%s=%d\n", "gForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
+		fprintf(config, "%s=%d\n", "gSRGB", (int)gSRGB);
 		
 		fprintf(config, "%s=%d\n", "gUseMipmaps", gUseMipmaps);
 		fprintf(config, "%s=%d\n", "gUseVSync", gUseVSync);
@@ -364,8 +366,11 @@ void saveConfig(const char *game)
 		fclose(config);
 	}
 	
-	if (!strcmp(game, "default")) showAlert(lang_strings[STR_ALERT_GLOBAL_SETTINGS_SAVE], ALERT_MESSAGE);
-	else showAlert(lang_strings[STR_ALERT_GAME_SETTINGS_SAVE], ALERT_MESSAGE);
+	if (!strcmp(game, "default")) {
+		showAlert(lang_strings[STR_ALERT_GLOBAL_SETTINGS_SAVE], ALERT_MESSAGE);
+	} else {
+		showAlert(lang_strings[STR_ALERT_GAME_SETTINGS_SAVE], ALERT_MESSAGE);
+	}
 }
 
 void save_and_restart_func() {
@@ -513,51 +518,51 @@ void SetDescription(const char *text) {
 }
 
 void DrawExtraMenu() {
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_EXTRA])){
-		if (ImGui::MenuItem(lang_strings[STR_MENU_GLOBAL_SETTINGS])){
+	if (ImGui::BeginMenu(lang_strings[STR_MENU_EXTRA])) {
+		if (ImGui::MenuItem(lang_strings[STR_MENU_GLOBAL_SETTINGS])) {
 			saveConfig("default");
 		}
 		ImGui::Separator();
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_UI_THEME])){
-			if (ImGui::MenuItem(lang_strings[STR_THEME_DARK], nullptr, gUiTheme == DARK_THEME)){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_UI_THEME])) {
+			if (ImGui::MenuItem(lang_strings[STR_THEME_DARK], nullptr, gUiTheme == DARK_THEME)) {
 				setUiTheme(DARK_THEME);
 			}
-			if (ImGui::MenuItem(lang_strings[STR_THEME_LIGHT], nullptr, gUiTheme == LIGHT_THEME)){
+			if (ImGui::MenuItem(lang_strings[STR_THEME_LIGHT], nullptr, gUiTheme == LIGHT_THEME)) {
 				setUiTheme(LIGHT_THEME);
 			}
-			if (ImGui::MenuItem(lang_strings[STR_THEME_CLASSIC], nullptr, gUiTheme == CLASSIC_THEME)){
+			if (ImGui::MenuItem(lang_strings[STR_THEME_CLASSIC], nullptr, gUiTheme == CLASSIC_THEME)) {
 				setUiTheme(CLASSIC_THEME);
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_MENUBAR], nullptr, gHideMenubar)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_MENUBAR], nullptr, gHideMenubar)) {
 			gHideMenubar = !gHideMenubar;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText, gLanguageIndex != SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText, gLanguageIndex != SCE_SYSTEM_PARAM_LANG_CHINESE_S)) {
 			gBigText = !gBigText;
 			fontDirty = true;
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_AUTOUPDATE], nullptr, gAutoUpdate)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_AUTOUPDATE], nullptr, gAutoUpdate)) {
 			gAutoUpdate = !gAutoUpdate;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_COMPAT_LIST], nullptr, !gSkipCompatListUpdate)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_COMPAT_LIST], nullptr, !gSkipCompatListUpdate)) {
 			gSkipCompatListUpdate = !gSkipCompatListUpdate;
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_DEBUGGER], nullptr, debug_window)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_DEBUGGER], nullptr, debug_window)) {
 			debug_window = !debug_window;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_LOG], nullptr, logs_window)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_LOG], nullptr, logs_window)) {
 			logs_window = !logs_window;
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_TEX_DUMPER], nullptr, gTexturesDumper)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_TEX_DUMPER], nullptr, gTexturesDumper)) {
 			gTexturesDumper = !gTexturesDumper;
 		}
 		SetDescription(lang_strings[STR_DESC_TEX_DUMPER]);
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_CREDITS], nullptr, credits_window)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_CREDITS], nullptr, credits_window)) {
 			credits_window = !credits_window;
 		}
 		ImGui::EndMenu();
@@ -567,116 +572,126 @@ void DrawExtraMenu() {
 void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_EMULATION])){
-		if (ImGui::BeginMenu("CPU")){
-			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC], nullptr, gCpuMode == CPU_DYNAREC)){
+	if (ImGui::BeginMenu(lang_strings[STR_MENU_EMULATION])) {
+		if (ImGui::BeginMenu("CPU")) {
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC], nullptr, gCpuMode == CPU_DYNAREC)) {
 				setCpuMode(CPU_DYNAREC);
 			}
 			SetDescription(lang_strings[STR_DESC_DYNAREC]);
-			if (ImGui::MenuItem(lang_strings[STR_MENU_CACHED_INTERP], nullptr, gCpuMode == CPU_CACHED_INTERPRETER)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_CACHED_INTERP], nullptr, gCpuMode == CPU_CACHED_INTERPRETER)) {
 				setCpuMode(CPU_CACHED_INTERPRETER);
 			}
 			SetDescription(lang_strings[STR_DESC_CACHED_INTERP]);
-			if (ImGui::MenuItem(lang_strings[STR_MENU_INTERP], nullptr, gCpuMode == CPU_INTERPRETER)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_INTERP], nullptr, gCpuMode == CPU_INTERPRETER)) {
 				setCpuMode(CPU_INTERPRETER);
 			}
 			SetDescription(lang_strings[STR_DESC_INTERP]);
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_DYNAREC_CONFIG], gDynarecEnabled && !gUseCachedInterpreter)){
-			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_WORDS_OPT], nullptr, gDynarecWordsOptimisation)){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_DYNAREC_CONFIG], gDynarecEnabled && !gUseCachedInterpreter)) {
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_WORDS_OPT], nullptr, gDynarecWordsOptimisation)) {
 				gDynarecWordsOptimisation = !gDynarecWordsOptimisation;
 			}
-			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_LOOPS_OPT], nullptr, gDynarecLoopsOptimisation)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_LOOPS_OPT], nullptr, gDynarecLoopsOptimisation)) {
 				gDynarecLoopsOptimisation = !gDynarecLoopsOptimisation;
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_HLE], nullptr, gOSHooksEnabled)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_HLE], nullptr, gOSHooksEnabled)) {
 			gOSHooksEnabled = !gOSHooksEnabled;
 		}
 		SetDescription(lang_strings[STR_DESC_HLE]);
-		if (ImGui::MenuItem("Expansion Pak", nullptr, gUseExpansionPak)){
+		if (ImGui::MenuItem("Expansion Pak", nullptr, gUseExpansionPak)) {
 				gUseExpansionPak = !gUseExpansionPak;
 			}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_FRAME_LIMIT], nullptr, gSpeedSyncEnabled)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_FRAME_LIMIT], nullptr, gSpeedSyncEnabled)) {
 			gSpeedSyncEnabled = !gSpeedSyncEnabled;
 		}
 		SetDescription(lang_strings[STR_DESC_FRAME_LIMIT]);
-		if (ImGui::MenuItem(lang_strings[STR_MENU_VIDEO_RATE], nullptr, gVideoRateMatch)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_VIDEO_RATE], nullptr, gVideoRateMatch)) {
 			gVideoRateMatch = !gVideoRateMatch;
 		}
 		SetDescription(lang_strings[STR_DESC_VIDEO_RATE]);
-		if (ImGui::MenuItem(lang_strings[STR_MENU_AUDIO_RATE], nullptr, gAudioRateMatch)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_AUDIO_RATE], nullptr, gAudioRateMatch)) {
 			gAudioRateMatch = !gAudioRateMatch;
 		}
 		SetDescription(lang_strings[STR_DESC_AUDIO_RATE]);
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_GRAPHICS])){
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_ASPECT_RATIO])){
-			if (ImGui::MenuItem("16:9", nullptr, gAspectRatio == RATIO_16_9)){
+	if (ImGui::BeginMenu(lang_strings[STR_MENU_GRAPHICS])) {
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_ASPECT_RATIO])) {
+			if (ImGui::MenuItem("16:9", nullptr, gAspectRatio == RATIO_16_9)) {
 				gAspectRatio = RATIO_16_9;
 			}
-			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_UNSTRETCHED], nullptr, gAspectRatio == RATIO_16_9_HACK)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_UNSTRETCHED], nullptr, gAspectRatio == RATIO_16_9_HACK)) {
 				gAspectRatio = RATIO_16_9_HACK;
 			}
-			if (ImGui::MenuItem("4:3", nullptr, gAspectRatio == RATIO_4_3)){
+			if (ImGui::MenuItem("4:3", nullptr, gAspectRatio == RATIO_4_3)) {
 				gAspectRatio = RATIO_4_3;
 			}
-			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_ORIGINAL], nullptr, gAspectRatio == RATIO_ORIG)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_RATIO_ORIGINAL], nullptr, gAspectRatio == RATIO_ORIG)) {
 				gAspectRatio = RATIO_ORIG;
 			}
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_BRIGHTNESS])){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_BRIGHTNESS])) {
 			ImGui::SliderFloat("", &gamma_val, 1.0f, 0.0f);
 			ImGui::EndMenu();
 		}
+		if (ImGui::MenuItem(lang_strings[STR_MENU_SRGB], nullptr, gSRGB)) {
+			gSRGB = !gSRGB;
+			if (!is_main_menu) {
+				if (gSRGB) {
+					glEnable(GL_FRAMEBUFFER_SRGB);
+				} else {
+					glDisable(GL_FRAMEBUFFER_SRGB);
+				}
+			}
+		}
 		ImGui::Separator();
 		if (ImGui::BeginMenu("Renderer")) {
-			if (ImGui::MenuItem(lang_strings[STR_MENU_LEGACY_REND], nullptr, gUseRendererLegacy)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_LEGACY_REND], nullptr, gUseRendererLegacy)) {
 				if (!is_main_menu && !gUseRendererLegacy) gRendererChanged = true;
 				gUseRendererLegacy = true;
 			}
 			SetDescription(lang_strings[STR_DESC_LEGACY_REND]);
-			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, !gUseRendererLegacy)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, !gUseRendererLegacy)) {
 				if (!is_main_menu && gUseRendererLegacy) gRendererChanged = true;
 				gUseRendererLegacy = false;
 			}
 			SetDescription(lang_strings[STR_DESC_MODERN_REND]);
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_TEX_CACHE])){
-			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gTexCacheMode == TEX_CACHE_DISABLED)){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_TEX_CACHE])) {
+			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gTexCacheMode == TEX_CACHE_DISABLED)) {
 				setTexCacheMode(TEX_CACHE_DISABLED);
 			}
 			SetDescription(lang_strings[STR_DESC_CACHE_DISABLED]);
-			if (ImGui::MenuItem(lang_strings[STR_ACCURATE], nullptr, gTexCacheMode == TEX_CACHE_ACCURATE)){
+			if (ImGui::MenuItem(lang_strings[STR_ACCURATE], nullptr, gTexCacheMode == TEX_CACHE_ACCURATE)) {
 				setTexCacheMode(TEX_CACHE_ACCURATE);
 			}
 			SetDescription(lang_strings[STR_DESC_CACHE_ACCURATE]);
-			if (ImGui::MenuItem(lang_strings[STR_FAST], nullptr, gTexCacheMode == TEX_CACHE_FAST)){
+			if (ImGui::MenuItem(lang_strings[STR_FAST], nullptr, gTexCacheMode == TEX_CACHE_FAST)) {
 				setTexCacheMode(TEX_CACHE_FAST);
 			}
 			SetDescription(lang_strings[STR_DESC_CACHE_FAST]);
 			ImGui::EndMenu();
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_BILINEAR], nullptr, gGlobalPreferences.ForceLinearFilter)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_BILINEAR], nullptr, gGlobalPreferences.ForceLinearFilter)) {
 			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
 		}
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
-		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])){
-			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)){
+		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])) {
+			if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAntiAliasing == ANTIALIASING_DISABLED)) {
 				if (gAntiAliasing != ANTIALIASING_DISABLED) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE, NULL);
 				gAntiAliasing = ANTIALIASING_DISABLED;
 			}
-			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)){
+			if (ImGui::MenuItem("MSAA 2x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_2X)) {
 				if (gAntiAliasing != ANTIALIASING_MSAA_2X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE, NULL);
 				gAntiAliasing = ANTIALIASING_MSAA_2X;
 			}
-			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)){
+			if (ImGui::MenuItem("MSAA 4x", nullptr, gAntiAliasing == ANTIALIASING_MSAA_4X)) {
 				if (gAntiAliasing != ANTIALIASING_MSAA_4X) showDialog(lang_strings[STR_REBOOT_REQ], save_and_restart_func, dummy_func, DIALOG_MESSAGE, NULL);
 				gAntiAliasing = ANTIALIASING_MSAA_4X;
 			}
@@ -686,7 +701,7 @@ void DrawCommonMenuBar() {
 			PostProcessingEffect *p = effects_list;
 			int i = 0;
 			while (p) {
-				if (ImGui::MenuItem(p->name, nullptr, gPostProcessing == i)){
+				if (ImGui::MenuItem(p->name, nullptr, gPostProcessing == i)) {
 					if (setPostProcessingEffect(i, p)) post_processing_window = true;
 				}
 				if (i) SetDescription(p->desc);
@@ -698,11 +713,11 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		SetDescription(lang_strings[STR_DESC_POST_PROCESSING]);
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_OVERLAYS])){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_OVERLAYS])) {
 			Overlay *p = overlays_list;
 			int i = 0;
 			while (p) {
-				if (ImGui::MenuItem(p->name, nullptr, gOverlay == i)){
+				if (ImGui::MenuItem(p->name, nullptr, gOverlay == i)) {
 					setOverlay(i, p);
 				}
 				p = p->next;
@@ -712,63 +727,63 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		SetDescription(lang_strings[STR_DESC_OVERLAYS]);
-		if (ImGui::MenuItem(lang_strings[STR_MENU_MIPMAPS], nullptr, gUseMipmaps)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_MIPMAPS], nullptr, gUseMipmaps)) {
 			gUseMipmaps = !gUseMipmaps;
 		}
 		SetDescription(lang_strings[STR_DESC_MIPMAPS]);
-		if (ImGui::MenuItem(lang_strings[STR_MENU_HIRES_TEX], nullptr, gUseHighResTextures)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_HIRES_TEX], nullptr, gUseHighResTextures)) {
 			gUseHighResTextures = !gUseHighResTextures;
 		}
 		SetDescription(lang_strings[STR_DESC_HIRES_TEX]);
 		ImGui::Separator();
-		if (ImGui::MenuItem("vFlux", nullptr, vflux_window)){
+		if (ImGui::MenuItem("vFlux", nullptr, vflux_window)) {
 			vflux_window = !vflux_window;
 		}
 		SetDescription(lang_strings[STR_DESC_VFLUX]);
-		if (ImGui::MenuItem("V-Sync", nullptr, gUseVSync)){
+		if (ImGui::MenuItem("V-Sync", nullptr, gUseVSync)) {
 			gUseVSync = gUseVSync == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglWaitVblankStart(gUseVSync);
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_VRAM], nullptr, gUseCdram)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_VRAM], nullptr, gUseCdram)) {
 			gUseCdram = gUseCdram == GL_TRUE ? GL_FALSE : GL_TRUE;
 			vglUseVram(gUseCdram);
 		}
 		SetDescription(lang_strings[STR_DESC_VRAM]);
-		if (ImGui::MenuItem(lang_strings[STR_MENU_WAIT_REND], nullptr, gWaitRendering)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_WAIT_REND], nullptr, gWaitRendering)) {
 			gWaitRendering = !gWaitRendering;
 		}
 		SetDescription(lang_strings[STR_DESC_WAIT_REND]);
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_AUDIO])){
-		if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAudioPluginEnabled == APM_DISABLED)){
+	if (ImGui::BeginMenu(lang_strings[STR_MENU_AUDIO])) {
+		if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAudioPluginEnabled == APM_DISABLED)) {
 			gAudioPluginEnabled = APM_DISABLED;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_SYNC], nullptr, gAudioPluginEnabled == APM_ENABLED_SYNC)){
+		if (ImGui::MenuItem(lang_strings[STR_SYNC], nullptr, gAudioPluginEnabled == APM_ENABLED_SYNC)) {
 			gAudioPluginEnabled = APM_ENABLED_SYNC;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_ASYNC], nullptr, gAudioPluginEnabled == APM_ENABLED_ASYNC)){
+		if (ImGui::MenuItem(lang_strings[STR_ASYNC], nullptr, gAudioPluginEnabled == APM_ENABLED_ASYNC)) {
 			gAudioPluginEnabled = APM_ENABLED_ASYNC;
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_MP3_INSTR], nullptr, !gUseMp3)){
+		if (ImGui::MenuItem(lang_strings[STR_MENU_MP3_INSTR], nullptr, !gUseMp3)) {
 			gUseMp3 = !gUseMp3;
 		}
 		SetDescription(lang_strings[STR_DESC_MP3_INSTR]);
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_INPUT])){
+	if (ImGui::BeginMenu(lang_strings[STR_MENU_INPUT])) {
 		if (!sceKernelIsPSVitaTV()) {
-			if (ImGui::MenuItem(lang_strings[STR_MENU_REARPAD], nullptr, gUseRearpad)){
+			if (ImGui::MenuItem(lang_strings[STR_MENU_REARPAD], nullptr, gUseRearpad)) {
 				gUseRearpad = !gUseRearpad;
 			}
 			SetDescription(lang_strings[STR_DESC_REARPAD]);
 		}
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_CTRL_MAP])){
+		if (ImGui::BeginMenu(lang_strings[STR_MENU_CTRL_MAP])) {
 			u32 num_configs = CInputManager::Get()->GetNumConfigurations();
 			for (u32 i = 0; i < num_configs; i++) {
-				if (ImGui::MenuItem(CInputManager::Get()->GetConfigurationName(i), nullptr, i == gControllerIndex)){
+				if (ImGui::MenuItem(CInputManager::Get()->GetConfigurationName(i), nullptr, i == gControllerIndex)) {
 					CInputManager::Get()->SetConfiguration(i);
 				}
 				SetDescription(CInputManager::Get()->GetConfigurationDescription(i));
@@ -778,12 +793,12 @@ void DrawCommonMenuBar() {
 		ImGui::Separator();
 		char ctrl_str[64];
 		sprintf(ctrl_str, "%s 1", lang_strings[STR_CONTROLLER]);
-		if (ImGui::BeginMenu(ctrl_str, pinfo.port[0] != SCE_CTRL_TYPE_UNPAIRED)){
-			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])){
-				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[0])){
+		if (ImGui::BeginMenu(ctrl_str, pinfo.port[0] != SCE_CTRL_TYPE_UNPAIRED)) {
+			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])) {
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[0])) {
 					has_rumblepak[0] = true;
 				}
-				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[0])){
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[0])) {
 					has_rumblepak[0] = false;
 				}
 				ImGui::EndMenu();
@@ -791,12 +806,12 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		sprintf(ctrl_str, "%s 2", lang_strings[STR_CONTROLLER]);
-		if (ImGui::BeginMenu(ctrl_str, pinfo.port[2] != SCE_CTRL_TYPE_UNPAIRED)){
-			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])){
-				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[1])){
+		if (ImGui::BeginMenu(ctrl_str, pinfo.port[2] != SCE_CTRL_TYPE_UNPAIRED)) {
+			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])) {
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[1])) {
 					has_rumblepak[1] = true;
 				}
-				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[1])){
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[1])) {
 					has_rumblepak[1] = false;
 				}
 				ImGui::EndMenu();
@@ -804,12 +819,12 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		sprintf(ctrl_str, "%s 3", lang_strings[STR_CONTROLLER]);
-		if (ImGui::BeginMenu(ctrl_str, pinfo.port[3] != SCE_CTRL_TYPE_UNPAIRED)){
-			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])){
-				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[2])){
+		if (ImGui::BeginMenu(ctrl_str, pinfo.port[3] != SCE_CTRL_TYPE_UNPAIRED)) {
+			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])) {
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[2])) {
 					has_rumblepak[2] = true;
 				}
-				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[2])){
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[2])) {
 					has_rumblepak[2] = false;
 				}
 				ImGui::EndMenu();
@@ -817,12 +832,12 @@ void DrawCommonMenuBar() {
 			ImGui::EndMenu();
 		}
 		sprintf(ctrl_str, "%s 4", lang_strings[STR_CONTROLLER]);
-		if (ImGui::BeginMenu(ctrl_str, pinfo.port[4] != SCE_CTRL_TYPE_UNPAIRED)){
-			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])){
-				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[3])){
+		if (ImGui::BeginMenu(ctrl_str, pinfo.port[4] != SCE_CTRL_TYPE_UNPAIRED)) {
+			if (ImGui::BeginMenu(lang_strings[STR_ACCESSORY])) {
+				if (ImGui::MenuItem("Rumble Pak", nullptr, has_rumblepak[3])) {
 					has_rumblepak[3] = true;
 				}
-				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[3])){
+				if (ImGui::MenuItem("Controller Pak", nullptr, !has_rumblepak[3])) {
 					has_rumblepak[3] = false;
 				}
 				ImGui::EndMenu();
@@ -831,67 +846,67 @@ void DrawCommonMenuBar() {
 		}
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_LANG])){
-		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)){
+	if (ImGui::BeginMenu(lang_strings[STR_MENU_LANG])) {
+		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
 		}
-		if (ImGui::MenuItem("Dansk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_DANISH)){
+		if (ImGui::MenuItem("Dansk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_DANISH)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_DANISH);
 		}
-		if (ImGui::MenuItem("Deutsch", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GERMAN)){
+		if (ImGui::MenuItem("Deutsch", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GERMAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_GERMAN);
 		}
-		if (ImGui::MenuItem("English", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ENGLISH_US)){
+		if (ImGui::MenuItem("English", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ENGLISH_US)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ENGLISH_US);
 		}
-		if (ImGui::MenuItem("Español", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_SPANISH)){
+		if (ImGui::MenuItem("Español", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_SPANISH)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_SPANISH);
 		}
-		if (ImGui::MenuItem("Ελληνικά", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GREEK)){
+		if (ImGui::MenuItem("Ελληνικά", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_GREEK)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_GREEK);
 		}
-		if (ImGui::MenuItem("Français", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_FRENCH)){
+		if (ImGui::MenuItem("Français", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_FRENCH)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_FRENCH);
 		}
-		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)){
+		if (ImGui::MenuItem("Italiano", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ITALIAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ITALIAN);
 		}
-		if (ImGui::MenuItem("Polskie", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_POLISH)){
+		if (ImGui::MenuItem("Polskie", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_POLISH)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_POLISH);
 		}
-		if (ImGui::MenuItem("Português (BR)", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR)){
+		if (ImGui::MenuItem("Português (BR)", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR);
 		}
-		if (ImGui::MenuItem("Română", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ROMANIAN)){
+		if (ImGui::MenuItem("Română", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_ROMANIAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_ROMANIAN);
 		}
-		if (ImGui::MenuItem("Pусский", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RUSSIAN)){
+		if (ImGui::MenuItem("Pусский", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RUSSIAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_RUSSIAN);
 		}
-		if (ImGui::MenuItem("Українська", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_UKRAINIAN)){
+		if (ImGui::MenuItem("Українська", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_UKRAINIAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_UKRAINIAN);
 		}
-		if (ImGui::MenuItem("Türk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_TURKISH)){
+		if (ImGui::MenuItem("Türk", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_TURKISH)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_TURKISH);
 		}
 		if (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE || gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN || gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S) {
-			if (ImGui::MenuItem("日本語", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE)){
+			if (ImGui::MenuItem("日本語", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE)) {
 				setTranslation(SCE_SYSTEM_PARAM_LANG_JAPANESE);
 			}
-			if (ImGui::MenuItem("琉球", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN)){
+			if (ImGui::MenuItem("琉球", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN)) {
 				setTranslation(SCE_SYSTEM_PARAM_LANG_RYUKYUAN);
 			}
-			if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+			if (ImGui::MenuItem("中国人", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)) {
 				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
 			}
 		} else {
-			if (ImGui::MenuItem("Japanese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE)){
+			if (ImGui::MenuItem("Japanese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_JAPANESE)) {
 				setTranslation(SCE_SYSTEM_PARAM_LANG_JAPANESE);
 			}
-			if (ImGui::MenuItem("Ryukyuan", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN)){
+			if (ImGui::MenuItem("Ryukyuan", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_RYUKYUAN)) {
 				setTranslation(SCE_SYSTEM_PARAM_LANG_RYUKYUAN);
 			}
-			if (ImGui::MenuItem("Chinese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)){
+			if (ImGui::MenuItem("Chinese", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S)) {
 				setTranslation(SCE_SYSTEM_PARAM_LANG_CHINESE_S);
 			}
 		}
@@ -1125,7 +1140,7 @@ void DrawMenuBar() {
 	}
 	
 	ImGui_ImplVitaGL_NewFrame();
-	if (ImGui::BeginMainMenuBar()){
+	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
 			if (ImGui::MenuItem(lang_strings[STR_DOWNLOAD_DATA])) {
 				queueDownload(lang_strings[STR_DLG_DOWNLOAD_DATA], "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.zip", 26 * 1024 * 1024, install_data_files, FILE_DOWNLOAD);
@@ -1137,7 +1152,7 @@ void DrawMenuBar() {
 			if (ImGui::MenuItem(net_path_str)) {
 				showDialog(lang_strings[STR_DLG_NET_PATH], change_net_rom_path, dummy_func, DIALOG_KEYBOARD, gNetRomPath);
 			}
-			if (ImGui::MenuItem(lang_strings[STR_DLG_NET_BOOT], nullptr, gNetBoot)){
+			if (ImGui::MenuItem(lang_strings[STR_DLG_NET_BOOT], nullptr, gNetBoot)) {
 				gNetBoot = !gNetBoot;
 			}
 			ImGui::Separator();
@@ -1148,7 +1163,7 @@ void DrawMenuBar() {
 				rom_game_name[0] = 0;
 				loadConfig("default");
 			}
-			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])){
+			if (ImGui::BeginMenu(lang_strings[STR_MENU_SORT_ROMS])) {
 				if (ImGui::MenuItem(lang_strings[STR_SORT_A_TO_Z], nullptr, gSortOrder == SORT_A_TO_Z)) {
 					gSortOrder = SORT_A_TO_Z;
 				}
@@ -1269,39 +1284,39 @@ void DrawInGameMenuBar() {
 	
 	ImGui_ImplVitaGL_NewFrame();
 	if (show_menubar) {
-		if (ImGui::BeginMainMenuBar()){
-			if (ImGui::BeginMenu(lang_strings[STR_MENU_FILES])){
-				if (ImGui::MenuItem(lang_strings[STR_MENU_GAME_SETTINGS])){
+		if (ImGui::BeginMainMenuBar()) {
+			if (ImGui::BeginMenu(lang_strings[STR_MENU_FILES])) {
+				if (ImGui::MenuItem(lang_strings[STR_MENU_GAME_SETTINGS])) {
 					saveConfig(g_ROM.settings.GameName.c_str());
 				}
 				ImGui::Separator();
-				if (ImGui::BeginMenu(lang_strings[STR_MENU_SAVE_STATE])){
+				if (ImGui::BeginMenu(lang_strings[STR_MENU_SAVE_STATE])) {
 					for (int i = 0; i <= MAX_SAVESLOT; i++) {
 						char tag[8];
 						sprintf(tag, "%s %ld", lang_strings[STR_SLOT], i);
-						if (ImGui::MenuItem(tag, nullptr, cached_saveslots[i])){
+						if (ImGui::MenuItem(tag, nullptr, cached_saveslots[i])) {
 							ExecSaveState(i);
 						}
 					}
 					ImGui::EndMenu();
 				}
-				if (ImGui::BeginMenu(lang_strings[STR_MENU_LOAD_STATE])){
+				if (ImGui::BeginMenu(lang_strings[STR_MENU_LOAD_STATE])) {
 					for (int i = 0; i <= MAX_SAVESLOT; i++) {
 						char tag[8];
 						sprintf(tag, "%s %ld", lang_strings[STR_SLOT], i);
-						if (ImGui::MenuItem(tag, nullptr, false, cached_saveslots[i])){
+						if (ImGui::MenuItem(tag, nullptr, false, cached_saveslots[i])) {
 							LoadSaveState(i);
 						}
 					}
 					ImGui::EndMenu();
 				}
 				ImGui::Separator();
-				if (ImGui::MenuItem(lang_strings[STR_MENU_RESTART_ROM])){
+				if (ImGui::MenuItem(lang_strings[STR_MENU_RESTART_ROM])) {
 					pause_emu = false;
 					restart_rom = true;
 					CPU_Halt(lang_strings[STR_MENU_RESTART_ROM]);
 				}
-				if (ImGui::MenuItem(lang_strings[STR_MENU_CLOSE_ROM])){
+				if (ImGui::MenuItem(lang_strings[STR_MENU_CLOSE_ROM])) {
 					pause_emu = false;
 					has_cached_saveslots = false;
 					CPU_Halt(lang_strings[STR_MENU_CLOSE_ROM]);
@@ -1310,9 +1325,9 @@ void DrawInGameMenuBar() {
 			}
 			DrawCommonMenuBar();
 			if (codegroupcount > 0) {
-				if (ImGui::BeginMenu(lang_strings[STR_MENU_CHEATS])){
+				if (ImGui::BeginMenu(lang_strings[STR_MENU_CHEATS])) {
 					for (u32 i = 0; i < codegroupcount; i++) {
-						if (ImGui::MenuItem(codegrouplist[i].name, nullptr, codegrouplist[i].enable)){
+						if (ImGui::MenuItem(codegrouplist[i].name, nullptr, codegrouplist[i].enable)) {
 							codegrouplist[i].enable = !codegrouplist[i].enable;
 							CheatCodes_Apply(i, IN_GAME);
 						}

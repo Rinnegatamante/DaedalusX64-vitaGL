@@ -23,7 +23,7 @@
 #include "SysVita/HLEGraphics/FragmentShader.h"
 #include "SysVita/UI/Menu.h"
 
-#define MODERN_SHADER_MAGIC 1
+#define MODERN_SHADER_MAGIC 2
 
 #define NORMALIZE_C1842XX(x) ((x) > 16.5f ? ((x) / ((x) / 16.0f)) : (x))
 
@@ -32,6 +32,7 @@ int vertex_shader_size = 0;
 extern BaseRenderer *gRenderer;
 RendererModern  *gRendererModern = nullptr;
 
+extern bool gSRGB;
 extern float *gVertexBuffer;
 extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
@@ -263,6 +264,36 @@ static const char* default_fragment_shader_fmt =
 "%s		// Body is injected here\n"
 "	fragcol = col;\n"
 "}\n";
+static const char* default_srgb_fragment_shader_fmt =
+"void main(float2 sti : TEXCOORD0,\n"
+"	float4 v_col : COLOR0,\n"
+"	float4 coords : WPOS,\n"
+"	uniform sampler2D uTexture0 : TEXUNIT0,\n"
+"	uniform sampler2D uTexture1 : TEXUNIT1,\n"
+"	uniform float fog_near,\n"
+"	uniform float fog_far,\n"
+"	uniform float4 fog_color,\n"
+"	uniform float4 uPrimColour,\n"
+"	uniform float4 uEnvColour,\n"
+"	uniform float uPrimLODFrac,\n"
+"	float4 out fragcol : COLOR)\n"
+"{\n"
+"	float4 shade = v_col;\n"
+"	float4 prim  = uPrimColour;\n"
+"	float4 env   = uEnvColour;\n"
+"	float4 one   = float4(1,1,1,1);\n"
+"	float4 zero  = float4(0,0,0,0);\n"
+"	float4 col;\n"
+"	float4 combined = float4(0,0,0,1);\n"
+"	float lod_frac      = 0.0;		// FIXME\n"
+"	float prim_lod_frac = uPrimLODFrac;\n"
+"	float k5            = 0.0;		// FIXME\n"
+"%s		// Body is injected here\n"
+"	float3 cutoff = float3(col.r < 0.0031308f ? 1.0f : 0.0f, col.g < 0.0031308f ? 1.0f : 0.0f, col.b < 0.0031308f ? 1.0f : 0.0f);"
+"	float3 higher = float3(1.055f) * pow(col.rgb, float3(1.0f / 2.4f)) - float3(0.055f);"
+"	float3 lower = col.rgb * float3(12.92f);"
+"	fragcol = float4(lerp(higher, lower, cutoff), col.a);"
+"}\n";
 
 static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & config)
 {
@@ -338,7 +369,11 @@ static void SprintShader(char (&frag_shader)[2048], const ShaderConfiguration & 
 		sprintf(p, "%s", "\tfloat vFog = clamp((fog_far - coords.z) / (fog_far - fog_near), 0.0, 1.0);\n\tcol.rgb = lerp(fog_color.rgb, col.rgb, vFog);\n");
 	}
 
-	sprintf(frag_shader, default_fragment_shader_fmt, body);
+	if (gSRGB) {
+		sprintf(frag_shader, default_srgb_fragment_shader_fmt, body);
+	} else {
+		sprintf(frag_shader, default_fragment_shader_fmt, body);
+	}
 }
 
 static void InitShaderProgram(ShaderProgram * program, const ShaderConfiguration & config, GLuint shader_program)
@@ -399,6 +434,12 @@ void RendererModern::MakeShaderConfigFromCurrentState(ShaderConfiguration * conf
 
 static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 {
+	static bool old_gSRGB = false;
+	if (old_gSRGB != gSRGB) {
+		gShaders.clear();
+		old_gSRGB = gSRGB;
+	}
+	
 	for (u32 i = 0; i < gShaders.size(); ++i)
 	{
 		ShaderProgram * program = gShaders[i];
@@ -406,8 +447,8 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 			return program;
 	}
 
-	sprintf(cache_name, "%s%016llX%08X%08X%008X-%d.gxp",
-		DAEDALUS_VITA_PATH("ShaderCache/"), config.Mux, config.CycleType, config.HasFog, *(uint32_t *)(&config.AlphaThreshold), MODERN_SHADER_MAGIC);
+	sprintf(cache_name, "%s%016llX%08X%08X%008X-%d%d.gxp",
+		DAEDALUS_VITA_PATH("ShaderCache/"), config.Mux, config.CycleType, config.HasFog, *(uint32_t *)(&config.AlphaThreshold), (int)gSRGB, MODERN_SHADER_MAGIC);
 	GLuint shader_program;
 	FILE *f = fopen(cache_name, "rb");
 	if (f) {
