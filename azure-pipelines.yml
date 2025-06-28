@@ -6,7 +6,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-container: gnuton/vitasdk-docker:latest
+container: gnuton/vitasdk-docker:20250520
 
 steps:
 - script: sudo apt-get install -qq -y pkg-config
