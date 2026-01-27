@@ -102,21 +102,21 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 			isMusyx = true;
 			sprintf(cur_audio_ucode, "MusyX v1");
 			break;
-		case 0x1C58126C: /* DonkeyKong */
+		case 0x1c58126c: /* DonkeyKong */
 			ABI = NAudio_DK;
 			sprintf(cur_audio_ucode, "NAudio (DK)");
 			break;
-		case 0x1AB0140C: /* Conker's Bad Fur Day */
-		case 0x1AE8143C: /* NAudio MP3 BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
+		case 0x00001280: /* BanjoKazooie */
+			ABI = NAudio_BK;
+			sprintf(cur_audio_ucode, "NAudio (BK)");
+			break;
+		case 0x1ab0140c: /* Conker's Bad Fur Day */
+		case 0x1ae8143c: /* NAudio MP3 BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
 			if (gUseMp3) {
 				ABI = NAudio_MP3;
 				sprintf(cur_audio_ucode, "NAudio MP3");
 				break;
 			}
-		case 0x00001280: /* BanjoKazooie */
-			ABI = NAudio_BK;
-			sprintf(cur_audio_ucode, "NAudio (BK)");
-			break;
 		default: /* NAudio */
 			ABI = NAudio;
 			sprintf(cur_audio_ucode, "NAudio");
@@ -125,11 +125,11 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 	}
 	else
 	{
-		if (*(u32*)(p_base + 0x30) == 0xF0000F00) {
+		if (*(u32*)(p_base + 0x30) == 0xf0000f00) {
 			v = *(u32*)(p_base + 0x28);
 			switch (v) {
-				case 0x1DC8138C: /* GoldenEye */
-				case 0x1E3C1390: /* BlastCorp, DiddyKongRacing */
+				case 0x1dc8138c: /* GoldenEye */
+				case 0x1e3c1390: /* BlastCorp, DiddyKongRacing */
 					ABI = ABI_GE;
 					sprintf(cur_audio_ucode, "ABI (GE)");
 					break;
@@ -141,7 +141,8 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 		} else {
 			v = *(u32*)(p_base + 0x10);
 			switch (v) {
-				case 0x1CD01250: /* F-Zero X */
+				case 0x1f4c1230: /* F-Zero X Expansion */
+				case 0x1cd01250: /* F-Zero X */
 					ABI = NEAD_FZ;
 					sprintf(cur_audio_ucode, "NEAD (FZ)");
 					break;
@@ -187,7 +188,6 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 					break;
 				case 0x00010010: /* MusyX v2 (Indiana Jones, Battle For Naboo) */
 				case 0x1f701238: /* Mario Artist Talent Studio */
-				case 0x1f4c1230: /* FZeroX Expansion */
 				default: /* NEAD */
 					ABI = NEAD;
 					sprintf(cur_audio_ucode, "NEAD");
