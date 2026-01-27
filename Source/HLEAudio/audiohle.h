@@ -103,7 +103,7 @@ struct SAbi1Mixer
 };
 //DAEDALUS_STATIC_ASSERT( sizeof( SAbi1Mixer ) == 8 );
 
-struct SAbi1Resample
+struct SAbiResample
 {
 	unsigned		Address : ADR_SIZE;
 	unsigned		: 8;
@@ -132,17 +132,6 @@ struct SAbi2Mixer
 	unsigned		: 8;			// Command
 };
 //DAEDALUS_STATIC_ASSERT( sizeof( SAbi2Mixer ) == 8 );
-
-struct SAbi2Resample
-{
-	unsigned		Address : ADR_SIZE;
-	unsigned		: 8;
-	unsigned		Pitch : 16;
-	unsigned		Flags : 8;
-	unsigned		: 8;			// Command
-};
-//DAEDALUS_STATIC_ASSERT( sizeof( SAbi2Resample ) == 8 );
-
 
 struct SAbi1LoadBuffer
 {
@@ -356,7 +345,7 @@ struct AudioHLECommand
 		SAbi1ClearBuffer	Abi1ClearBuffer;
 		SAbi1EnvMixer		Abi1EnvMixer;
 		SAbi1Mixer			Abi1Mixer;
-		SAbi1Resample		Abi1Resample;
+		SAbiResample		AbiResample;
 		SAbi1ADPCM			Abi1ADPCM;
 		SAbi1LoadBuffer		Abi1LoadBuffer;
 		SAbi1SaveBuffer		Abi1SaveBuffer;
@@ -369,7 +358,6 @@ struct AudioHLECommand
 
 		SAbi2ClearBuffer	Abi2ClearBuffer;
 		SAbi2Mixer			Abi2Mixer;
-		SAbi2Resample		Abi2Resample;
 		SAbi2LoadBuffer		Abi2LoadBuffer;
 		SAbi2SaveBuffer		Abi2SaveBuffer;
 		SAbi2SetLoop		Abi2SetLoop;

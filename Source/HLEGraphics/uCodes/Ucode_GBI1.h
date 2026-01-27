@@ -180,15 +180,10 @@ void DLParser_GBI1_MoveWord( MicroCodeCommand command )
 			if ((old_fog_mult != mul) || (old_fog_offs != offs)) {
 				old_fog_mult = mul;
 				old_fog_offs = offs;
-#ifndef DAEDALUS_VITA
-				gRenderer->SetFogMultOffs(mul, offs);
-#else
 				f32 rng = 128000.0f / mul;
-			
 				f32 fog_near = 500 - (offs * rng / 256.0f);
 				f32 fog_far = rng + fog_near;
 				gRenderer->SetFogMinMax(fog_near, fog_far);
-#endif
 			}
 		}
 		break;
@@ -307,12 +302,8 @@ void DLParser_GBI1_GeometryMode( MicroCodeCommand command )
 	TnL.Light		= gGeometryMode.GBI1_Lighting;
 	TnL.TexGen		= gGeometryMode.GBI1_TexGen;
 	TnL.TexGenLin   = gGeometryMode.GBI1_TexGenLin;
-#ifdef DAEDALUS_VITA
 	TnL.Fog			= gGeometryMode.GBI2_Fog;
-#else
-	TnL.Fog			= gGeometryMode.GBI2_Fog & gFogEnabled;// && (gRDPOtherMode.c1_m1a==3 || gRDPOtherMode.c1_m2a==3 || gRDPOtherMode.c2_m1a==3 || gRDPOtherMode.c2_m2a==3);
-#endif
-	TnL.Shade		= gGeometryMode.GBI1_Shade/* & gGeometryMode.GBI1_ShadingSmooth*/;
+	TnL.Shade		= gGeometryMode.GBI1_Shade;
 	TnL.Zbuffer		= gGeometryMode.GBI1_Zbuffer;
 
 	// CULL_BACK has priority, Fixes Mortal Kombat 4

@@ -81,7 +81,7 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 	
 	u32 v;
 	
-	if (*(u32*)(p_base) != 0x01)
+	if (*(u32*)(p_base) != 0x00000001)
 	{
 		v = *(u32*)(p_base + 0x10);
 		switch (v) {
@@ -104,6 +104,7 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 				sprintf(cur_audio_ucode, "NAudio MP3");
 				break;
 			}
+		case 0x00001280: /* BanjoKazooie */
 		default: /* NAudio */
 			ABI = NAudio;
 			sprintf(cur_audio_ucode, "NAudio");
@@ -117,7 +118,7 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 			switch (v) {
 				case 0x1DC8138C: /* GoldenEye */
 				case 0x1E3C1390: /* BlastCorp, DiddyKongRacing */
-					ABI = ABI_GE; 
+					ABI = ABI_GE;
 					sprintf(cur_audio_ucode, "ABI (GE)");
 					break;
 				default: /* Audio ABI */
@@ -136,6 +137,18 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 					ABI = NEAD_MK;
 					sprintf(cur_audio_ucode, "NEAD (MK)");
 					break;
+				case 0x110412ac: /* WaveRace (J RevB) */
+				case 0x111812e0: /* StarFox (J) */
+				case 0x110412cc: /* StarFox/LylatWars (except J) */
+				case 0x1f08122c: /* Yoshi's Story */
+				case 0x1f38122c: /* 1080° Snowboarding */
+				case 0x1f681230: /* Zelda OoT / Zelda MM (J, J RevA) */
+				case 0x1f801250: /* Zelda MM (except J, J RevA, E Beta), Pokemon Stadium 2 */
+				case 0x109411f8: /* Zelda MM (E Beta) */
+				case 0x1eac11b8: /* AnimalCrossing */
+				case 0x00010010: /* MusyX v2 (Indiana Jones, Battle For Naboo) */
+				case 0x1f701238: /* Mario Artist Talent Studio */
+				case 0x1f4c1230: /* FZeroX Expansion */
 				default: /* NEAD */
 					ABI = NEAD;
 					sprintf(cur_audio_ucode, "NEAD");

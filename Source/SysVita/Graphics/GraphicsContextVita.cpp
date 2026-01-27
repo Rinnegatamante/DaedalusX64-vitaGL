@@ -116,7 +116,6 @@ IGraphicsContext::IGraphicsContext()
 
 IGraphicsContext::~IGraphicsContext()
 {
-	vglEnd();
 }
 
 bool IGraphicsContext::Initialise()
