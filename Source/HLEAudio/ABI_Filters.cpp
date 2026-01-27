@@ -14,11 +14,11 @@ extern bool isZeldaABI;
 
 void FILTER2(AudioHLECommand command)
 {
-  #ifdef DEBUG_AUDIO
-  	DBGConsole_Msg(0, "FILTER2");
-    #endif
+#ifdef DEBUG_AUDIO
+	DBGConsole_Msg(0, "FILTER2");
+#endif
 
-  static int cnt = 0;
+	static int cnt = 0;
 	static s16 *lutt6;
 	static s16 *lutt5;
 	u8 *save = (rdram+(command.cmd1&0xFFFFFF));
@@ -27,19 +27,19 @@ void FILTER2(AudioHLECommand command)
 	if (t4 > 1) { // Then set the cnt variable
 		cnt = (command.cmd0 & 0xFFFF);
 		lutt6 = (s16 *)save;
-//				memmove (dmem+0xFE0, rdram+(command.cmd1&0xFFFFFF), 0x10);
+//		memmove (dmem+0xFE0, rdram+(command.cmd1&0xFFFFFF), 0x10);
 		return;
 	}
 
 	if (t4 == 0) {
-//				memmove (dmem+0xFB0, rdram+(command.cmd1&0xFFFFFF), 0x20);
+//		memmove (dmem+0xFB0, rdram+(command.cmd1&0xFFFFFF), 0x20);
 		lutt5 = (short *)(save+0x10);
 	}
 
 	lutt5 = (short *)(save+0x10);
 
-//			lutt5 = (short *)(dmem + 0xFC0);
-//			lutt6 = (short *)(dmem + 0xFE0);
+//	lutt5 = (short *)(dmem + 0xFC0);
+//	lutt6 = (short *)(dmem + 0xFE0);
 	for (int x = 0; x < 8; x++) {
 		s32 a;
 		a = (lutt5[x] + lutt6[x]) >> 1;
@@ -138,7 +138,7 @@ void FILTER2(AudioHLECommand command)
 		inp2 += 8;
 		outp += 8;
 	}
-//			memmove (rdram+(command.cmd1&0xFFFFFF), dmem+0xFB0, 0x20);
+//	memmove (rdram+(command.cmd1&0xFFFFFF), dmem+0xFB0, 0x20);
 	memmove (save, inp2-8, 0x10);
 	memmove (gAudioHLEState.Buffer+(command.cmd0&0xffff), outbuff, cnt);
 }

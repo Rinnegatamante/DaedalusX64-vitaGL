@@ -408,9 +408,9 @@ void MIXER(AudioHLECommand command); void MIXER2(AudioHLECommand command); void 
 void MP3(AudioHLECommand command );
 void NAUDIO_02B0(AudioHLECommand command ); void NAUDIO_14(AudioHLECommand command );
 void NEAD_16(AudioHLECommand command);
+
 //	void MP3ADDY(AudioHLECommand command );
-// void POLEF(AudioHLECommand command );
-void RESAMPLE(AudioHLECommand command); void RESAMPLE2(AudioHLECommand command); void RESAMPLE3(AudioHLECommand command);
+void RESAMPLE(AudioHLECommand command); void RESAMPLE2(AudioHLECommand command); void RESAMPLE3(AudioHLECommand command); void RESAMPLE_ZOH(AudioHLECommand command);
 void SETVOL(AudioHLECommand command); void SETVOL3(AudioHLECommand command);
 void SPNOOP(AudioHLECommand command);
 void UNKNOWN(AudioHLECommand command);

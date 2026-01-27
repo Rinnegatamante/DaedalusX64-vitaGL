@@ -73,3 +73,8 @@ void RESAMPLE3(AudioHLECommand command)
   	((u16 *)rdram)[((addy/2))^1] = src[srcPtr^1];
   	*(u16 *)(rdram+addy+10) = u16( Accum );
 }
+
+void RESAMPLE_ZOH(AudioHLECommand command)
+{
+	// TODO
+}
