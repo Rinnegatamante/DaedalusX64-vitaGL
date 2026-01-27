@@ -52,6 +52,7 @@ extern AudioHLEInstruction ABI_GE[0x20];
 extern AudioHLEInstruction NAudio[0x20];
 extern AudioHLEInstruction NAudio_MP3[0x20];
 extern AudioHLEInstruction NAudio_DK[0x20];
+extern AudioHLEInstruction NAudio_BK[0x20];
 extern AudioHLEInstruction NEAD[0x20];
 extern AudioHLEInstruction NEAD_MK[0x20];
 extern AudioHLEInstruction NEAD_FZ[0x20];
@@ -97,14 +98,16 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 			sprintf(cur_audio_ucode, "NAudio (DK)");
 			break;
 		case 0x1AB0140C: /* Conker's Bad Fur Day */
-		case 0x1AE8143C: /* NAudio MP3
-			BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
+		case 0x1AE8143C: /* NAudio MP3 BanjoTooie, JetForceGemini, MickeySpeedWayUSA, PerfectDark */
 			if (gUseMp3) {
 				ABI = NAudio_MP3;
 				sprintf(cur_audio_ucode, "NAudio MP3");
 				break;
 			}
 		case 0x00001280: /* BanjoKazooie */
+			ABI = NAudio_BK;
+			sprintf(cur_audio_ucode, "NAudio (BK)");
+			break;
 		default: /* NAudio */
 			ABI = NAudio;
 			sprintf(cur_audio_ucode, "NAudio");
@@ -138,14 +141,41 @@ inline void Audio_Ucode_Detect(OSTask * pTask)
 					sprintf(cur_audio_ucode, "NEAD (MK)");
 					break;
 				case 0x110412ac: /* WaveRace (J RevB) */
+					/*ABI = NEAD_WRJB;
+					sprintf(cur_audio_ucode, "NEAD (WRJB)");
+					break;*/	
 				case 0x111812e0: /* StarFox (J) */
+					/*ABI = NEAD_SFJ;
+					sprintf(cur_audio_ucode, "NEAD (SFJ)");
+					break;*/		
 				case 0x110412cc: /* StarFox/LylatWars (except J) */
+					/*ABI = NEAD_SF;
+					sprintf(cur_audio_ucode, "NEAD (SF)");
+					break;*/	
 				case 0x1f08122c: /* Yoshi's Story */
+					/*ABI = NEAD_YS;
+					sprintf(cur_audio_ucode, "NEAD (YS)");
+					break;*/
 				case 0x1f38122c: /* 1080° Snowboarding */
+					/*ABI = NEAD_1080;
+					sprintf(cur_audio_ucode, "NEAD (1080)");
+					break;*/	
 				case 0x1f681230: /* Zelda OoT / Zelda MM (J, J RevA) */
+					/*ABI = NEAD_OOT;
+					sprintf(cur_audio_ucode, "NEAD (OOT)");
+					break;*/
 				case 0x1f801250: /* Zelda MM (except J, J RevA, E Beta), Pokemon Stadium 2 */
+					/*ABI = NEAD_MM;
+					sprintf(cur_audio_ucode, "NEAD (MM)");
+					break;*/
 				case 0x109411f8: /* Zelda MM (E Beta) */
-				case 0x1eac11b8: /* AnimalCrossing */
+					/*ABI = NEAD_MMB;
+					sprintf(cur_audio_ucode, "NEAD (MMB)");
+					break;*/
+				case 0x1eac11b8: /* Animal Crossing */
+					/*ABI = NEAD_AC;
+					sprintf(cur_audio_ucode, "NEAD (AC)");
+					break;*/
 				case 0x00010010: /* MusyX v2 (Indiana Jones, Battle For Naboo) */
 				case 0x1f701238: /* Mario Artist Talent Studio */
 				case 0x1f4c1230: /* FZeroX Expansion */
