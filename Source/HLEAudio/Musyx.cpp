@@ -70,8 +70,23 @@ const u16 ResampleLUT[0x100] =
 	0xFFD8, 0x0E5F, 0x6696, 0x0B39, 0xFFDF, 0x0D46, 0x66AD, 0x0C39
 };
 
-static inline int align(int x, int n) {
-	return (((x >> n) + 1) << n);
+static inline unsigned align(unsigned x, unsigned amount) {
+    --amount;
+    return (x + amount) & ~amount;
+}
+
+static inline u8 musyx_rdram_read_u8(u32 address)
+{
+    u8 value;
+    rdram_read_many_u8(&value, address, 1);
+    return value;
+}
+
+static inline u16 musyx_rdram_read_u16(u32 address)
+{
+    u16 value;
+    rdram_read_many_u16(&value, address, 1);
+    return value;
 }
 
 extern "C" {
@@ -292,7 +307,7 @@ void musyx_v1_task(OSTask *hle)
     uint32_t state_ptr;
     musyx_t musyx;
 
-    state_ptr = *(u32*)(g_pu8RamBase + sfd_ptr + SFD_STATE_PTR);
+    state_ptr = rdram_read_u32(sfd_ptr + SFD_STATE_PTR);
 
     /* load initial state */
     load_base_vol(hle, musyx.base_vol, state_ptr + STATE_BASE_VOL);
@@ -301,9 +316,9 @@ void musyx_v1_task(OSTask *hle)
 
     for (;;) {
         /* parse SFD structure */
-        uint16_t sfx_index   = *(u16*)(g_pu8RamBase + sfd_ptr + SFD_SFX_INDEX);
-        uint32_t voice_mask  = *(u16*)(g_pu8RamBase + sfd_ptr + SFD_VOICE_BITMASK);
-        uint32_t sfx_ptr     = *(u32*)(g_pu8RamBase + sfd_ptr + SFD_SFX_PTR);
+        uint16_t sfx_index   = musyx_rdram_read_u16(sfd_ptr + SFD_SFX_INDEX);
+        uint32_t voice_mask  = rdram_read_u32(sfd_ptr + SFD_VOICE_BITMASK);
+        uint32_t sfx_ptr     = rdram_read_u32(sfd_ptr + SFD_SFX_PTR);
         uint32_t voice_ptr       = sfd_ptr + SFD_VOICES;
         uint32_t last_sample_ptr = state_ptr + STATE_LAST_SAMPLE;
         uint32_t output_ptr;
@@ -327,7 +342,7 @@ void musyx_v1_task(OSTask *hle)
             break;
 
         sfd_ptr += SFD_VOICES + MAX_VOICES * VOICE_SIZE;
-        state_ptr = *(u32*)(g_pu8RamBase + sfd_ptr + SFD_STATE_PTR);
+        state_ptr = rdram_read_u32(sfd_ptr + SFD_STATE_PTR);
     }
 
     /* writeback updated state */
@@ -338,10 +353,10 @@ void musyx_v1_task(OSTask *hle)
 
 static void load_base_vol(OSTask *hle, int32_t *base_vol, uint32_t address)
 {
-    base_vol[0] = ((uint32_t)(*(u16*)(g_pu8RamBase + address)) << 16) | (*(u16*)(g_pu8RamBase + address +  8));
-    base_vol[1] = ((uint32_t)(*(u16*)(g_pu8RamBase + address + 2)) << 16) | (*(u16*)(g_pu8RamBase + address + 10));
-    base_vol[2] = ((uint32_t)(*(u16*)(g_pu8RamBase + address + 4)) << 16) | (*(u16*)(g_pu8RamBase + address + 12));
-    base_vol[3] = ((uint32_t)(*(u16*)(g_pu8RamBase + address + 6)) << 16) | (*(u16*)(g_pu8RamBase + address + 14));
+    base_vol[0] = ((uint32_t)musyx_rdram_read_u16(address) << 16) | musyx_rdram_read_u16(address + 8);
+    base_vol[1] = ((uint32_t)musyx_rdram_read_u16(address + 2) << 16) | musyx_rdram_read_u16(address + 10);
+    base_vol[2] = ((uint32_t)musyx_rdram_read_u16(address + 4) << 16) | musyx_rdram_read_u16(address + 12);
+    base_vol[3] = ((uint32_t)musyx_rdram_read_u16(address + 6) << 16) | musyx_rdram_read_u16(address + 14);
 }
 
 static void save_base_vol(OSTask *hle, const int32_t *base_vol, uint32_t address)
@@ -349,12 +364,12 @@ static void save_base_vol(OSTask *hle, const int32_t *base_vol, uint32_t address
     unsigned k;
 
     for (k = 0; k < 4; ++k) {
-        *(u16*)(g_pu8RamBase + address) = (uint16_t)(base_vol[k] >> 16);
+        rdram_write_many_u16(address, (uint16_t)(base_vol[k] >> 16), 1);
         address += 2;
     }
 
     for (k = 0; k < 4; ++k) {
-        *(u16*)(g_pu8RamBase + address) = (uint16_t)(base_vol[k]);
+        rdram_write_many_u16(address, (uint16_t)base_vol[k], 1);
         address += 2;
     }
 }
@@ -374,7 +389,7 @@ static void update_base_vol(OSTask *hle, int32_t *base_vol,
                 continue;
 
             for (k = 0; k < 4; ++k)
-                base_vol[k] += (int16_t)*(u16*)(g_pu8RamBase + last_sample_ptr + k * 2);
+                base_vol[k] += (int16_t)musyx_rdram_read_u16(last_sample_ptr + k * 2);
         }
     }
 
@@ -386,7 +401,7 @@ static void update_base_vol(OSTask *hle, int32_t *base_vol,
                 continue;
 
             for(k = 0; k < 4; ++k)
-                base_vol[k] += (int16_t)*(u16*)(g_pu8RamBase + ptr_24 + k * 2);
+                base_vol[k] += (int16_t)musyx_rdram_read_u16(ptr_24 + k * 2);
         }
     }
 
@@ -423,8 +438,8 @@ static uint32_t voice_stage(OSTask *hle, musyx_t *musyx,
     int i = 0;
 
     /* voice stage can be skipped if first voice has no samples */
-    if (*(u16*)(g_pu8RamBase + voice_ptr + VOICE_CATSRC_0 + CATSRC_SIZE1) == 0) {
-        output_ptr = *(u32*)(g_pu8RamBase + voice_ptr + VOICE_INTERLEAVED_PTR);
+    if (musyx_rdram_read_u16(voice_ptr + VOICE_CATSRC_0 + CATSRC_SIZE1) == 0) {
+        output_ptr = rdram_read_u32(voice_ptr + VOICE_INTERLEAVED_PTR);
     } else {
         /* otherwise process voices until a non null output_ptr is encountered */
         for (;;) {
@@ -433,7 +448,7 @@ static uint32_t voice_stage(OSTask *hle, musyx_t *musyx,
             unsigned segbase;
             unsigned offset;
 
-            if (*(u8*)(g_pu8RamBase + voice_ptr + VOICE_ADPCM_FRAMES) == 0)
+            if (musyx_rdram_read_u8(voice_ptr + VOICE_ADPCM_FRAMES) == 0)
                 load_samples_PCM16(hle, voice_ptr, samples, &segbase, &offset);
             else
                 load_samples_ADPCM(hle, voice_ptr, samples, &segbase, &offset);
@@ -443,7 +458,7 @@ static uint32_t voice_stage(OSTask *hle, musyx_t *musyx,
                               last_sample_ptr + i * 8);
 
             /* check break condition */
-            output_ptr = *(u32*)(g_pu8RamBase + voice_ptr + VOICE_INTERLEAVED_PTR);
+            output_ptr = rdram_read_u32(voice_ptr + VOICE_INTERLEAVED_PTR);
             if (output_ptr != 0)
                 break;
 
@@ -458,10 +473,10 @@ static uint32_t voice_stage(OSTask *hle, musyx_t *musyx,
 
 static void dma_cat8(OSTask *hle, uint8_t *dst, uint32_t catsrc_ptr)
 {
-    uint32_t ptr1  = *(u32*)(g_pu8RamBase + catsrc_ptr + CATSRC_PTR1);
-    uint32_t ptr2  = *(u32*)(g_pu8RamBase + catsrc_ptr + CATSRC_PTR2);
-    uint16_t size1 = *(u16*)(g_pu8RamBase + catsrc_ptr + CATSRC_SIZE1);
-    uint16_t size2 = *(u16*)(g_pu8RamBase + catsrc_ptr + CATSRC_SIZE2);
+    uint32_t ptr1  = rdram_read_u32(catsrc_ptr + CATSRC_PTR1);
+    uint32_t ptr2  = rdram_read_u32(catsrc_ptr + CATSRC_PTR2);
+    uint16_t size1 = musyx_rdram_read_u16(catsrc_ptr + CATSRC_SIZE1);
+    uint16_t size2 = musyx_rdram_read_u16(catsrc_ptr + CATSRC_SIZE2);
 
     size_t count1 = size1;
     size_t count2 = size2;
@@ -476,10 +491,10 @@ static void dma_cat8(OSTask *hle, uint8_t *dst, uint32_t catsrc_ptr)
 
 static void dma_cat16(OSTask *hle, uint16_t *dst, uint32_t catsrc_ptr)
 {
-    uint32_t ptr1  = *(u32*)(g_pu8RamBase + catsrc_ptr + CATSRC_PTR1);
-    uint32_t ptr2  = *(u32*)(g_pu8RamBase + catsrc_ptr + CATSRC_PTR2);
-    uint16_t size1 = *(u16*)(g_pu8RamBase + catsrc_ptr + CATSRC_SIZE1);
-    uint16_t size2 = *(u16*)(g_pu8RamBase + catsrc_ptr + CATSRC_SIZE2);
+    uint32_t ptr1  = rdram_read_u32(catsrc_ptr + CATSRC_PTR1);
+    uint32_t ptr2  = rdram_read_u32(catsrc_ptr + CATSRC_PTR2);
+    uint16_t size1 = musyx_rdram_read_u16(catsrc_ptr + CATSRC_SIZE1);
+    uint16_t size2 = musyx_rdram_read_u16(catsrc_ptr + CATSRC_SIZE2);
 
     size_t count1 = size1 >> 1;
     size_t count2 = size2 >> 1;
@@ -496,9 +511,9 @@ static void load_samples_PCM16(OSTask *hle, uint32_t voice_ptr, int16_t *samples
                                unsigned *segbase, unsigned *offset)
 {
 
-    uint8_t  u8_3e  = *(u8*)(g_pu8RamBase + voice_ptr + VOICE_SKIP_SAMPLES);
-    uint16_t u16_40 = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_U16_40);
-    uint16_t u16_42 = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_U16_42);
+    uint8_t  u8_3e  = musyx_rdram_read_u8(voice_ptr + VOICE_SKIP_SAMPLES);
+    uint16_t u16_40 = musyx_rdram_read_u16(voice_ptr + VOICE_U16_40);
+    uint16_t u16_42 = musyx_rdram_read_u16(voice_ptr + VOICE_U16_42);
 
     unsigned count = align(u16_40 + u8_3e, 4);
 
@@ -519,12 +534,14 @@ static void load_samples_ADPCM(OSTask *hle, uint32_t voice_ptr, int16_t *samples
     uint8_t buffer[SAMPLE_BUFFER_SIZE * 2 * 5 / 16];
     int16_t adpcm_table[128];
 
-    uint8_t u8_3c = *(u8*)(g_pu8RamBase + voice_ptr + VOICE_ADPCM_FRAMES    );
-    uint8_t u8_3d = u8_3c + 1;
-    uint8_t u8_3e = *(u8*)(g_pu8RamBase + voice_ptr + VOICE_SKIP_SAMPLES    );
-    uint8_t u8_3f = u8_3e + 1;
-    uint32_t adpcm_table_ptr = *(u32*)(g_pu8RamBase + voice_ptr + VOICE_ADPCM_TABLE_PTR);
+    uint8_t u8_3c = musyx_rdram_read_u8(voice_ptr + VOICE_ADPCM_FRAMES);
+    uint8_t u8_3d = musyx_rdram_read_u8(voice_ptr + VOICE_ADPCM_FRAMES + 1);
+    uint8_t u8_3e = musyx_rdram_read_u8(voice_ptr + VOICE_SKIP_SAMPLES);
+    uint8_t u8_3f = musyx_rdram_read_u8(voice_ptr + VOICE_SKIP_SAMPLES + 1);
+    uint32_t adpcm_table_ptr = rdram_read_u32(voice_ptr + VOICE_ADPCM_TABLE_PTR);
     unsigned count;
+
+    rdram_read_many_u16((uint16_t *)adpcm_table, adpcm_table_ptr, 128);
 
     count = u8_3c << 5;
 
@@ -606,13 +623,13 @@ static void mix_voice_samples(OSTask *hle, musyx_t *musyx,
     int i, k;
 
     /* parse VOICE structure */
-    const uint16_t pitch_q16   = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_PITCH_Q16);
-    const uint16_t pitch_shift = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_PITCH_SHIFT); /* Q4.12 */
+    const uint16_t pitch_q16   = musyx_rdram_read_u16(voice_ptr + VOICE_PITCH_Q16);
+    const uint16_t pitch_shift = musyx_rdram_read_u16(voice_ptr + VOICE_PITCH_SHIFT); /* Q4.12 */
 
-    const uint16_t end_point     = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_END_POINT);
-    const uint16_t restart_point = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_RESTART_POINT);
+    const uint16_t end_point     = musyx_rdram_read_u16(voice_ptr + VOICE_END_POINT);
+    const uint16_t restart_point = musyx_rdram_read_u16(voice_ptr + VOICE_RESTART_POINT);
 
-    const uint16_t u16_4e = *(u16*)(g_pu8RamBase + voice_ptr + VOICE_U16_4E);
+    const uint16_t u16_4e = musyx_rdram_read_u16(voice_ptr + VOICE_U16_4E);
 
     /* init values and pointers */
     const int16_t       *sample         = samples + segbase + offset + u16_4e;
@@ -699,19 +716,19 @@ static void sfx_stage(OSTask *hle, mix_sfx_with_main_subframes_t mix_sfx_with_ma
         return;
 
     /* load sfx  parameters */
-    cbuffer_ptr    = *(u32*)(g_pu8RamBase + sfx_ptr + SFX_CBUFFER_PTR);
-    cbuffer_length = *(u32*)(g_pu8RamBase + sfx_ptr + SFX_CBUFFER_LENGTH);
+    cbuffer_ptr    = rdram_read_u32(sfx_ptr + SFX_CBUFFER_PTR);
+    cbuffer_length = rdram_read_u32(sfx_ptr + SFX_CBUFFER_LENGTH);
 
-    tap_count      = *(u16*)(g_pu8RamBase + sfx_ptr + SFX_TAP_COUNT);
+    tap_count      = musyx_rdram_read_u16(sfx_ptr + SFX_TAP_COUNT);
 
     rdram_read_many_u32(tap_delays, sfx_ptr + SFX_TAP_DELAYS, 8);
     rdram_read_many_u16((uint16_t *)tap_gains,  sfx_ptr + SFX_TAP_GAINS,  8);
 
-    fir4_hgain     = *(u16*)(g_pu8RamBase + sfx_ptr + SFX_FIR4_HGAIN);
+    fir4_hgain     = musyx_rdram_read_u16(sfx_ptr + SFX_FIR4_HGAIN);
     rdram_read_many_u16((uint16_t *)fir4_hcoeffs, sfx_ptr + SFX_FIR4_HCOEFFS, 4);
 
-    sfx_gains[0]   = *(u16*)(g_pu8RamBase + sfx_ptr + SFX_U16_3C);
-    sfx_gains[1]   = *(u16*)(g_pu8RamBase + sfx_ptr + SFX_U16_3E);
+    sfx_gains[0]   = musyx_rdram_read_u16(sfx_ptr + SFX_U16_3C);
+    sfx_gains[1]   = musyx_rdram_read_u16(sfx_ptr + SFX_U16_3E);
 
     /* mix up to 8 delayed subframes */
     memset(subframe, 0, SUBFRAME_SIZE * sizeof(subframe[0]));
@@ -791,21 +808,22 @@ static void interleave_stage_v1(OSTask *hle, musyx_t *musyx, uint32_t output_ptr
 
     int16_t *left;
     int16_t *right;
-    uint32_t *dst;
+    uint32_t interleaved[SUBFRAME_SIZE];
 
     base_left  = clamp_s16(musyx->base_vol[0]);
     base_right = clamp_s16(musyx->base_vol[1]);
 
     left  = musyx->left;
     right = musyx->right;
-    dst  = (u32*)(g_pu8RamBase + output_ptr);
 
     for (i = 0; i < SUBFRAME_SIZE; ++i) {
         uint16_t l = clamp_s16(*(left++)  + base_left);
         uint16_t r = clamp_s16(*(right++) + base_right);
 
-        *(dst++) = (l << 16) | r;
+        interleaved[i] = ((uint32_t)l << 16) | r;
     }
+
+    rdram_write_many_u32(interleaved, output_ptr, SUBFRAME_SIZE);
 }
 
 };
