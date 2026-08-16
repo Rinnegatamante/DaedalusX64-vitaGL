@@ -1,0 +1,94 @@
+name: Build Nightly
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare build script
+        run: |
+          cat > build.sh << 'BUILD_EOF'
+          set -e
+          apt-get update && apt-get install -qq -y pkg-config libc6-dev-i386 zip
+
+          git clone https://github.com/vitasdk/vita-headers
+          cp -r vita-headers/include/* $VITASDK/arm-vita-eabi/include/
+
+          git clone https://github.com/Rinnegatamante/math-neon
+          cd math-neon
+          make -j$(nproc)
+          make -j$(nproc) install
+          cd ..
+
+          git clone https://github.com/Rinnegatamante/vitaShaRK
+          cd vitaShaRK
+          make -j$(nproc)
+          make -j$(nproc) install
+          cd ..
+
+          git clone https://github.com/Rinnegatamante/vitaGL
+          cd vitaGL
+          sed -i "s/float fog_dist = coords.z \/ coords.w;/float fog_dist = coords.z;/" source/shaders/ffp_f.h
+          sed -i "s/#define SHADER_CACHE_MAGIC /#define SHADER_CACHE_MAGIC 99/" source/shared.h
+          make -j$(nproc) NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 HAVE_CUSTOM_HEAP=1 SINGLE_THREADED_GC=1 HAVE_FFP_SHADER_SUPPORT=1 DEPTH_STENCIL_HACK=1 CIRCULAR_VERTEX_POOL=2 ENABLE_LEGACY_PIPELINE=1 NO_SPLASHSCREEN=1
+          make -j$(nproc) NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 HAVE_CUSTOM_HEAP=1 SINGLE_THREADED_GC=1 HAVE_FFP_SHADER_SUPPORT=1 DEPTH_STENCIL_HACK=1 CIRCULAR_VERTEX_POOL=2 ENABLE_LEGACY_PIPELINE=1 NO_SPLASHSCREEN=1 install
+          cd ..
+
+          git clone https://github.com/Rinnegatamante/imgui-vita
+          cd imgui-vita
+          make -j$(nproc)
+          make -j$(nproc) install
+          cd ..
+
+          echo "$(cat $VITASDK/version_info.txt)"
+          echo "$(git describe --abbrev=6 --dirty --always --tags)"
+          mkdir daedbuild
+          cd daedbuild
+          cmake ../Source
+          make -j$(nproc)
+          cd ../Data
+          zip -9 -r DaedalusX64.zip DaedalusX64
+          cd ../Launcher
+          make -j$(nproc)
+          cp ../Source/sce_sys/icon0.png builder/assets/icon0.png
+          cp ../Source/sce_sys/livearea/contents/bg.png builder/assets/bg.png
+          cp ../Source/sce_sys/livearea/contents/startup.png builder/assets/startup.png
+          zip -9 -r builder.zip builder
+          BUILD_EOF
+          chmod +x build.sh
+
+      - name: Build inside vitasdk container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            gnuton/vitasdk-docker:20250520 \
+            bash /workspace/build.sh
+
+      - name: Publish Nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: Nightly
+          name: "Nightly ${{ github.run_number }}"
+          files: |
+            daedbuild/DaedalusX64.vpk
+            Data/DaedalusX64.zip
+            daedbuild/DaedalusX64.elf
+            daedbuild/DaedalusX64.self
+            Launcher/builder.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
