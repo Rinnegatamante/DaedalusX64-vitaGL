@@ -364,12 +364,14 @@ static void save_base_vol(OSTask *hle, const int32_t *base_vol, uint32_t address
     unsigned k;
 
     for (k = 0; k < 4; ++k) {
-        rdram_write_many_u16(address, (uint16_t)(base_vol[k] >> 16), 1);
+		uint16_t v = (uint16_t)(base_vol[k] >> 16);
+        rdram_write_many_u16(&v, address, 1);
         address += 2;
     }
 
     for (k = 0; k < 4; ++k) {
-        rdram_write_many_u16(address, (uint16_t)base_vol[k], 1);
+		uint16_t v = (uint16_t)base_vol[k];
+        rdram_write_many_u16(&v, address, 1);
         address += 2;
     }
 }
