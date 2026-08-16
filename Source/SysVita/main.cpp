@@ -455,6 +455,7 @@ static void Initialize()
 		start_net();
 	
 	// Initializing vitaGL
+	vglSetSemanticBindingMode(VGL_MODE_SHADER_PAIR);
 	vglInitExtended(0, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
 	vglWaitVblankStart(gUseVSync);
 	

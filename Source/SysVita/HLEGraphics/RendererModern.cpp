@@ -134,7 +134,7 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 	GLuint fragment_shader = 0u;
 
 	if (!vertex_shader_bin) {
-		vertex_shader = make_shader(GL_VERTEX_SHADER, vertex_lines, num_vertex_lines);
+		vertex_shader = make_shader(GL_CG_VERTEX_SHADER_EXT, vertex_lines, num_vertex_lines);
 		vertex_shader_bin = malloc(16 * 1024);
 		vglGetShaderBinary(vertex_shader, 16 * 1024, &vertex_shader_size, vertex_shader_bin);
 		FILE *f = fopen(DAEDALUS_VITA_PATH("ShaderCache/vert.gxp"), "wb");
@@ -145,7 +145,7 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 		glShaderBinary(1, &vertex_shader, 0, vertex_shader_bin, vertex_shader_size);
 	}
 
-	fragment_shader = make_shader(GL_FRAGMENT_SHADER, fragment_lines, num_fragment_lines);
+	fragment_shader = make_shader(GL_CG_FRAGMENT_SHADER_EXT, fragment_lines, num_fragment_lines);
 
 	void *bin = malloc(16 * 1024);
 	GLsizei bin_len;
