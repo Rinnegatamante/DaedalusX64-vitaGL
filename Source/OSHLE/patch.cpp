@@ -20,11 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include "patch.h"
 
-#ifdef DAEDALUS_VITA
 extern "C"{
 #include <math_neon.h>
 };
-#endif
 
 #ifdef DAEDALUS_ENABLE_OS_HOOKS
 
@@ -41,9 +39,6 @@ extern "C"{
 #include "Core/R4300.h"
 #include "Core/Registers.h"
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
-#include "Debug/Dump.h"
 #include "DynaRec/Fragment.h"
 #include "DynaRec/FragmentCache.h"
 #include "Math/Math.h"	// VFPU Math
@@ -55,7 +50,8 @@ extern "C"{
 #include "Utility/CRC.h"
 #include "Utility/Endian.h"
 #include "Utility/FastMemcpy.h"
-#include "Utility/Profiler.h"
+
+extern void Dump_GetSaveDirectory(char * rootdir, const char * rom_filename, const char * extension);
 
 #ifdef DUMPOSFUNCTIONS
 #include "Debug/Dump.h"
@@ -219,61 +215,6 @@ void Patch_ApplyPatch(u32 i)
 #endif
 }
 
-#ifndef DAEDALUS_SILENT
-// Return the location of a symbol
-u32 Patch_GetSymbolAddress(const char * name)
-{
-	// Search new list
-	for (u32 p = 0; p < nPatchSymbols; p++)
-	{
-		// Skip symbol if already found, or if it is a variable
-		if (!g_PatchSymbols[p]->Found)
-			continue;
-
-		if (_strcmpi(g_PatchSymbols[p]->Name, name) == 0)
-			return PHYS_TO_K0(g_PatchSymbols[p]->Location);
-
-	}
-
-	// The patch was not found
-	return u32(~0);
-
-}
-
-// Given a location, this function returns the name of the matching
-// symbol (if there is one)
-
-const char * Patch_GetJumpAddressName(u32 jump)
-{
-	u32 * pdwOpBase;
-	u32 * pdwPatchBase;
-
-	if (!Memory_GetInternalReadAddress(jump, (void **)&pdwOpBase))
-		return "??";
-
-	// Search new list
-	for (u32 p = 0; p < nPatchSymbols; p++)
-	{
-		// Skip symbol if already found, or if it is a variable
-		if (!g_PatchSymbols[p]->Found)
-			continue;
-
-		pdwPatchBase = g_pu32RamBase + (g_PatchSymbols[p]->Location>>2);
-
-		// Symbol not found, attempt to locate on this pass. This may
-		// fail if all dependent symbols are not found
-		if (pdwPatchBase == pdwOpBase)
-		{
-			return g_PatchSymbols[p]->Name;
-		}
-
-	}
-
-	// The patch was not found
-	return "?";
-}
-#endif //DAEDALUS_SILENT
-
 #ifdef DUMPOSFUNCTIONS
 
 void Patch_DumpOsThreadInfo()
@@ -330,108 +271,11 @@ void Patch_DumpOsThreadInfo()
 
 void Patch_DumpOsQueueInfo()
 {
-#ifdef DAED_OS_MESSAGE_QUEUES
-	u32 dwQueue;
-
-
-	// List queue info:
-	u32 i;
-	u32 dwEmptyQ;
-	u32 dwFullQ;
-	u32 dwValidCount;
-	u32 dwFirst;
-	u32 dwMsgCount;
-	u32 dwMsg;
-
-
-	DBGConsole_Msg(0, "There are %d Queues", g_MessageQueues.size());
-	  DBGConsole_Msg(0, "Queues:   Empty     Full      Valid First MsgCount Msg");
-	//DBGConsole_Msg(0, "01234567, 01234567, 01234567, xxxx, xxxx, xxxx, 01234567",
-	for (i = 0; i <	g_MessageQueues.size(); i++)
-	{
-		char fullqueue_buffer[30];
-		char emptyqueue_buffer[30];
-		char type_buffer[60] = "";
-
-		dwQueue = g_MessageQueues[i];
-
-		COSMesgQueue q(dwQueue);
-
-		dwEmptyQ	 = q.GetEmptyQueue();
-		dwFullQ		 = q.GetFullQueue();
-		dwValidCount = q.GetValidCount();
-		dwFirst      = q.GetFirst();
-		dwMsgCount   = q.GetMsgCount();
-		dwMsg        = q.GetMesgArray();
-
-		if ((s32)dwFirst < 0 ||
-			(s32)dwValidCount < 0 ||
-			(s32)dwMsgCount < 0)
-		{
-			continue;
-		}
-
-		if (dwFullQ == VAR_ADDRESS(osnullptrMsgQueue))
-			sprintf(fullqueue_buffer, "       -");
-		else
-			sprintf(fullqueue_buffer, "%08x", dwFullQ);
-
-		if (dwEmptyQ == VAR_ADDRESS(osnullptrMsgQueue))
-			sprintf(emptyqueue_buffer, "       -");
-		else
-			sprintf(emptyqueue_buffer, "%08x", dwEmptyQ);
-
-		if (dwQueue == VAR_ADDRESS(osSiAccessQueue))
-		{
-			sprintf(type_buffer, "<- Si Access");
-
-		}
-		else if (dwQueue == VAR_ADDRESS(osPiAccessQueue))
-		{
-			sprintf(type_buffer, "<- Pi Access");
-		}
-
-
-		// Try and find in the event mesg array
-		if (strlen(type_buffer) == 0 && VAR_FOUND(osEventMesgArray))
-		{
-			for (u32 j = 0; j <	23; j++)
-			{
-				if (dwQueue == Read32Bits(VAR_ADDRESS(osEventMesgArray) + (j * 8) + 0x0))
-				{
-					sprintf(type_buffer, "<- %s", gEventStrings[j]);
-					break;
-				}
-			}
-		}
-		DBGConsole_Msg(0, "%08x, %s, %s, % 4d, % 4d, % 4d, %08x %s",
-			dwQueue, emptyqueue_buffer, fullqueue_buffer, dwValidCount, dwFirst, dwMsgCount, dwMsg, type_buffer);
-	}
-#endif
 }
 
 
 void Patch_DumpOsEventInfo()
 {
-	u32 dwQueue;
-	u32 dwMsg;
-
-	if (!VAR_FOUND(osEventMesgArray))
-	{
-		DBGConsole_Msg(0, "osSetEventMesg not patched, event table unknown");
-		return;
-	}
-
-	DBGConsole_Msg(0, "");
-	DBGConsole_Msg(0, "Events:                      Queue      Message");
-	for (u32 i = 0; i <	23; i++)
-	{
-		dwQueue = Read32Bits(VAR_ADDRESS(osEventMesgArray) + (i * 8) + 0x0);
-		dwMsg   = Read32Bits(VAR_ADDRESS(osEventMesgArray) + (i * 8) + 0x4);
-
-		DBGConsole_Msg(0, "  %-26s 0x%08x 0x%08x",
-			gEventStrings[i], dwQueue, dwMsg);
-	}
 }
 
 
@@ -480,42 +324,12 @@ void Patch_RecurseAndFind()
 	s32 nFound;
 	u32 first;
 	u32 last;
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Searching for os functions. This may take several seconds...");
-#endif
 	// Keep looping until a pass does not resolve any more symbols
 	nFound = 0;
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	CDebugConsole::Get()->MsgOverwriteStart();
-#else
-#ifdef DAEDALUS_PSP
-	// Load our font here, Intrafont used in UI is destroyed when emulation starts
-	intraFont* ltn8  = intraFontLoad( "flash0:/font/ltn8.pgf", INTRAFONT_CACHE_ASCII);
-	intraFontSetStyle( ltn8, 1.0f, 0xFFFFFFFF, 0, 0.f, INTRAFONT_ALIGN_CENTER );
-#endif
-#endif
 
 	// Loops through all symbols, until name is nullptr
 	for (u32 i = 0; i < nPatchSymbols && !gCPUState.IsJobSet( CPU_STOP_RUNNING ); i++)
 	{
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-		CDebugConsole::Get()->MsgOverwrite(0, "OS HLE: %d / %d Looking for [G%s]",
-			i, nPatchSymbols, g_PatchSymbols[i]->Name);
-		fflush(stdout);
-#else
-#ifdef DAEDALUS_PSP
-		//Update patching progress on PSPscreen
-		CGraphicsContext::Get()->BeginFrame();
-		CGraphicsContext::Get()->ClearToBlack();
-		//intraFontPrintf( ltn8, 480/2, (272>>1)-50, "Searching for os functions. This may take several seconds...");
-		intraFontPrintf( ltn8, 480/2, (272>>1), "OS HLE Patching: %d%%", i * 100 / (nPatchSymbols-1));
-		intraFontPrintf( ltn8, 480/2, (272>>1)-50, "Searching for %s", g_PatchSymbols[i]->Name );
-		CGraphicsContext::Get()->EndFrame();
-		CGraphicsContext::Get()->UpdateFrame( true );
-#endif
-#endif //DAEDALUS_DEBUG_CONSOLE
 		// Skip symbol if already found, or if it is a variable
 		if (g_PatchSymbols[i]->Found)
 			continue;
@@ -528,19 +342,8 @@ void Patch_RecurseAndFind()
 
 	if ( gCPUState.IsJobSet( CPU_STOP_RUNNING ) )
 	{
-#ifdef DAEDALUS_DEBUG_CONSOLE
-		CDebugConsole::Get()->MsgOverwrite( 0, "OS HLE: Aborted" );
-		CDebugConsole::Get()->MsgOverwriteEnd();
-#endif
-
 		return;
 	}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	CDebugConsole::Get()->MsgOverwrite(0, "OS HLE: %d / %d All done",
-		nPatchSymbols, nPatchSymbols);
-
-	CDebugConsole::Get()->MsgOverwriteEnd();
-#endif
 
 	first = u32(~0);
 	last = 0;
@@ -564,12 +367,6 @@ void Patch_RecurseAndFind()
 					(g_PatchSymbols[i]->Location ==
 					 g_PatchSymbols[j]->Location))
 				{
-					#ifdef DAEDALUS_DEBUG_CONSOLE
-						DBGConsole_Msg(0, "Warning [C%s==%s]",
-							g_PatchSymbols[i]->Name,
-							g_PatchSymbols[j]->Name);
-							#endif
-
 					// Don't patch!
 					g_PatchSymbols[i]->Found = false;
 					g_PatchSymbols[j]->Found = false;
@@ -581,9 +378,6 @@ void Patch_RecurseAndFind()
 			//
 			if( Patch_Hacks(g_PatchSymbols[i]) )
 			{
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				DBGConsole_Msg(0, "[ROS Hack : Disabling %s]", g_PatchSymbols[i]->Name);
-				#endif
 				g_PatchSymbols[i]->Found = false;
 			}
 
@@ -598,20 +392,6 @@ void Patch_RecurseAndFind()
 				nFound++;
 			}
 		}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "%d/%d symbols identified, in range 0x%08x -> 0x%08x",
-		nFound, nPatchSymbols, first, last);
-#else
-#ifdef DAEDALUS_PSP
-		//Update patching progress on PSPscreen
-		CGraphicsContext::Get()->BeginFrame();
-		CGraphicsContext::Get()->ClearToBlack();
-		intraFontPrintf( ltn8, 480/2, (272>>1), "Symbols Identified: %d%%", 100 * nFound / (nPatchSymbols-1));
-		intraFontPrintf( ltn8, 480/2, (272>>1)+50, "Range 0x%08x -> 0x%08x", first, last );
-		CGraphicsContext::Get()->EndFrame();
-		CGraphicsContext::Get()->UpdateFrame( true );
-#endif
-#endif
 	}
 
 	nFound = 0;
@@ -623,46 +403,9 @@ void Patch_RecurseAndFind()
 		}
 		else
 		{
-
-			// Find duplicates! (to avoid showing the same clash twice, only scan up to the first symbol)
-			for (u32 j = 0; j < i; j++)
-			{
-				if (g_PatchVariables[i]->Found &&
-					g_PatchVariables[j]->Found &&
-					(g_PatchVariables[i]->Location ==
-					 g_PatchVariables[j]->Location))
-				{
-					#ifdef DAEDALUS_DEBUG_CONSOLE
-						DBGConsole_Msg(0, "Warning [C%s==%s]",
-							g_PatchVariables[i]->Name,
-							g_PatchVariables[j]->Name);
-							#endif
-				}
-			}
-
 			nFound++;
 		}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "%d/%d variables identified", nFound, nPatchVariables);
-#else
-#ifdef DAEDALUS_PSP
-		//Update patching progress on PSPscreen
-		CGraphicsContext::Get()->BeginFrame();
-		CGraphicsContext::Get()->ClearToBlack();
-		intraFontPrintf( ltn8, 480/2, 272>>1, "Variables Identified: %d%%", 100 * nFound / (nPatchVariables-1) );
-		CGraphicsContext::Get()->EndFrame();
-		CGraphicsContext::Get()->UpdateFrame( true );
-#endif
-#endif
 	}
-
-#ifndef DAEDALUS_DEBUG_CONSOLE
-#ifdef DAEDALUS_PSP
-	// Unload font after we done patching progress
-	intraFontUnload( ltn8 );
-#endif
-#endif
-
 }
 
 // Attempt to locate this symbol.
@@ -752,9 +495,6 @@ bool Patch_VerifyLocation_CheckSignature(PatchSymbol * ps,
 	if (pcr == nullptr)
 		pcr = &dummy_cr;
 
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	u32 last = pcr->Offset;
-#endif
 	crc = 0;
 	partial_crc = 0;
 	for (u32 m = 0; m < psig->NumOps; m++)
@@ -841,19 +581,6 @@ bool Patch_VerifyLocation_CheckSignature(PatchSymbol * ps,
 			// We've handled this cross ref - point to the next one
 			// ready for the next match.
 			pcr++;
-
-			// If pcr->Offset == ~0, then there are no more in the array
-			// This is okay, as the comparison with m above will never match
-#ifdef DAEDALUS_DEBUG_CONSOLE
-			if (pcr->Offset < last)
-			{
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				DBGConsole_Msg(0, "%s: CrossReference offsets out of order", ps->Name);
-				#endif
-			}
-
-			last = pcr->Offset;
-#endif
 		}
 		else
 		{
@@ -937,9 +664,6 @@ static void Patch_FlushCache()
 	IO::Filename name;
 
 	Dump_GetSaveDirectory(name, g_ROM.mFileName, ".hle");
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Write OSHLE cache: %s", name);
-#endif
 	FILE *fp = fopen(name, "wb");
 
 	if (fp != nullptr)
@@ -998,9 +722,6 @@ static bool Patch_GetCache()
 
 	if (fp != nullptr)
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "Read from OSHLE cache: %s", name);
-		#endif
 		u32 data;
 
 		fread(&data, 1, sizeof(data), fp);
@@ -1048,9 +769,6 @@ static bool Patch_GetCache()
 
 static u32 RET_NOT_PROCESSED(PatchSymbol* ps)
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( ps != nullptr, "Not Supported" );
-	#endif
 	gCPUState.CurrentPC = PHYS_TO_K0(ps->Location);
 	//DBGConsole_Msg(0, "%s RET_NOT_PROCESSED PC=0x%08x RA=0x%08x", ps->Name, gCPUState.TargetPC, gGPR[REG_ra]._u32_0);
 
@@ -1061,9 +779,7 @@ static u32 RET_NOT_PROCESSED(PatchSymbol* ps)
 	OpCode op_code;
 	op_code._u32 = Read32Bits(gCPUState.CurrentPC);
 	R4300_ExecuteInstruction(op_code);
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(gCPUState.Delay == NO_DELAY, "OS functions' first op is a JUMP??");
-	#endif
+
 	INCREMENT_PC();
 	gCPUState.TargetPC = gCPUState.CurrentPC;
 
@@ -1101,9 +817,6 @@ static u32 RET_JR_ERET()
 
 static u32 ConvertToPhysics(u32 addr)
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(IS_K0K1(addr) == (IS_KSEG0(addr) | IS_KSEG1(addr)), "IS_K0K1 is inconsistent");
-	#endif
 	if( IS_K0K1(addr) )
 	{
 		return K0_TO_PHYS(addr);	// Same as K1_TO_PHYS
@@ -1137,10 +850,6 @@ extern void MemoryUpdateSPStatus( u32 flags );
 
 u32 Patch___osContAddressCrc()
 {
-TEST_DISABLE_FUNCS
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "__osContAddressCrc(0x%08x)", gGPR[REG_a0]._u32_0);
-	#endif
 	return PATCH_RET_NOT_PROCESSED;
 }
 

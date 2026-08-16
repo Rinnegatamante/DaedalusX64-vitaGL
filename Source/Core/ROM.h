@@ -84,8 +84,6 @@ class RomID
 
 #include "RomSettings.h"
 
-struct SRomPreferences;
-
 // Increase this everytime you add a new hack, don't forget to add it in gGameHackNames too !!!
 //
 //
@@ -166,7 +164,7 @@ bool ROM_ReBoot();
 void ROM_Unload();
 bool ROM_LoadFile();
 void ROM_UnloadFile();
-bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings, const SRomPreferences & preferences );
+bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings );
 
 bool ROM_GetRomDetailsByFilename( const char * filename, RomID * id, u32 * rom_size, ECicType * boot_type );
 bool ROM_GetRomDetailsByID( const RomID & id, u32 * rom_size, ECicType * boot_type );
@@ -180,9 +178,5 @@ const char *	ROM_GetCicTypeName( ECicType cic_type );
 // Externs (urgh)
 //*****************************************************************************
 extern RomInfo g_ROM;
-
-#if defined(DAEDALUS_ENABLE_DYNAREC_PROFILE) || defined(DAEDALUS_W32)
-extern u32 g_dwNumFrames;
-#endif
 
 #endif // CORE_ROM_H_

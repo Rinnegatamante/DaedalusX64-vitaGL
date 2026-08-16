@@ -36,8 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/CPU.h"
 #include "Core/Memory.h"
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/Dump.h"
 #include "Graphics/GraphicsContext.h"
 #include "Math/MathUtil.h"
 #include "OSHLE/ultra_gbi.h"
@@ -46,26 +44,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Plugins/GraphicsPlugin.h"
 #include "Test/BatchTest.h"
 #include "Utility/IO.h"
-#include "Utility/Profiler.h"
 
 //*****************************************************************************
 //
 //*****************************************************************************
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-#define DL_UNIMPLEMENTED_ERROR( msg )			\
-{												\
-	static bool shown = false;					\
-	if (!shown )								\
-	{											\
-		DL_PF( "~*Not Implemented %s", msg );	\
-		DAEDALUS_DL_ERROR( "%s: %08x %08x", (msg), command.inst.cmd0, command.inst.cmd1 );				\
-		shown = true;							\
-	}											\
-}
-#else
-#define DL_UNIMPLEMENTED_ERROR( msg )
-#endif
-
 #define MAX_DL_STACK_SIZE	32
 
 // Mask down to 0x003FFFFF?
@@ -178,8 +160,6 @@ static SImageDescriptor g_CI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
 static SImageDescriptor g_DI = { G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, 0 };
 
 const MicroCodeInstruction *gUcodeFunc = gNormalInstruction[ GBI_0 ];
-
-bool gFrameskipActive = false;
 
 //*****************************************************************************
 //
@@ -307,22 +287,6 @@ void DLParser_InitMicrocode( u32 code_base, u32 code_size, u32 data_base, u32 da
 //*****************************************************************************
 //
 //*****************************************************************************
-#ifdef DAEDALUS_ENABLE_PROFILING
-SProfileItemHandle * gpProfileItemHandles[ 256 ];
-
-#define PROFILE_DL_CMD( cmd )								\
-	if(gpProfileItemHandles[ (cmd) ] == nullptr)				\
-	{														\
-		gpProfileItemHandles[ (cmd) ] = new SProfileItemHandle( CProfiler::Get()->AddItem( gUcodeName[ cmd ] ));		\
-	}														\
-	CAutoProfile		_auto_profile( *gpProfileItemHandles[ (cmd) ] )
-
-#else
-
-#define PROFILE_DL_CMD( cmd )		do { } while(0)
-
-#endif
-
 
 //*****************************************************************************
 //	Process the entire display list in one go
@@ -338,8 +302,6 @@ static u32 DLParser_ProcessDList(u32 instruction_limit)
 		DLParser_FetchNextCommand( &command );
 
 		DL_BEGIN_INSTR(current_instruction_count, command.inst.cmd0, command.inst.cmd1, gDlistStackPointer, gUcodeName[command.inst.cmd]);
-
-		PROFILE_DL_CMD( command.inst.cmd );
 
 		gUcodeFunc[ command.inst.cmd ]( command );
 
@@ -406,18 +368,11 @@ u32 DLParser_Process(u32 instruction_limit, DLDebugOutput * debug_output)
 
 	u32 count;
 
-	if(!gFrameskipActive)
-	{
-		gRenderer->ResetMatrices(stack_size);
-		gRenderer->Reset();
-		gRenderer->BeginScene();
-		count = DLParser_ProcessDList(instruction_limit);
-		gRenderer->EndScene();
-	}
-	else
-	{
-		FinishRDPJob();
-	}
+	gRenderer->ResetMatrices(stack_size);
+	gRenderer->Reset();
+	gRenderer->BeginScene();
+	count = DLParser_ProcessDList(instruction_limit);
+	gRenderer->EndScene();
 
 	// Hack for Chameleon Twist 2, only works if screen is update at last
 	//
@@ -481,9 +436,6 @@ void RDP_MoveMemLight(u32 light_idx, const N64Light *light)
 
 void RDP_MoveMemViewport(u32 address)
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( address+16 < MAX_RAM_ADDRESS, "MoveMem Viewport, invalid memory" );
-	#endif
 	// address is offset into RD_RAM of 8 x 16bits of data...
 	N64Viewport *vp = (N64Viewport*)(g_pu8RamBase + address);
 

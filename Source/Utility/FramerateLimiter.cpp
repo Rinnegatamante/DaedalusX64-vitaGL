@@ -32,8 +32,6 @@ static u64				gLastVITime = 0;				// The time of the last vertical blank
 static u32				gLastOrigin = 0;				// The origin that we saw on the last vertical blank
 static u32				gVblsSinceFlip = 0;				// The number of vertical blanks that have occurred since the last n64 flip
 static u32				gCurrentAverageTicksPerVbl = 0;
-static FramerateSyncFn 	gAuxSyncFn = NULL;
-static void *			gAuxSyncArg = NULL;
 
 static const u32		gTvFrequencies[] =
 {
@@ -41,12 +39,6 @@ static const u32		gTvFrequencies[] =
 	60,		// OS_TV_NTSC,
 	50		// OS_TV_MPAL
 };
-
-void FramerateLimiter_SetAuxillarySyncFunction(FramerateSyncFn fn, void * arg)
-{
-	gAuxSyncFn  = fn;
-	gAuxSyncArg = arg;
-}
 
 bool FramerateLimiter_Reset()
 {
@@ -56,15 +48,8 @@ bool FramerateLimiter_Reset()
 	gLastOrigin = 0;
 	gVblsSinceFlip = 0;
 
-	//gAuxSyncFn  = NULL;	// Should we reset this? Will audio re-init?
-	//gAuxSyncArg = NULL;
-
-	if(NTiming::GetPreciseFrequency(&frequency))
+	if (NTiming::GetPreciseFrequency(&frequency))
 	{
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT(g_ROM.TvType <= sizeof(gTvFrequencies) / sizeof(u32), "Unknown TV type: %d", g_ROM.TvType);
-		#endif
-
 		gTicksBetweenVbls = (u32)(frequency / (u64)gTvFrequencies[ g_ROM.TvType ]);
 		gTicksPerSecond = (u32)frequency;
 	}
@@ -95,11 +80,6 @@ void FramerateLimiter_Limit()
 	// Only do framerate limiting on frames that correspond to a flip
 	u32 current_origin = Memory_VI_GetRegister(VI_ORIGIN_REG);
 
-	if (gAuxSyncFn)
-	{
-		gAuxSyncFn(gAuxSyncArg);
-	}
-
 	if( current_origin == gLastOrigin )
 		return;
 
@@ -110,11 +90,11 @@ void FramerateLimiter_Limit()
 
 	gCurrentAverageTicksPerVbl = FramerateLimiter_UpdateAverageTicksPerVbl( elapsed_ticks / gVblsSinceFlip );
 
-	if( gSpeedSyncEnabled && !gAuxSyncFn )
+	if( gSpeedSyncEnabled )
 	{
 		u32 required_ticks = gTicksBetweenVbls * gVblsSinceFlip;
 
-		if( gSpeedSyncEnabled == 2 ) required_ticks = required_ticks << 1;	// Slow down to 1/2 speed //Corn
+		if( gSpeedSyncEnabled == 2 ) required_ticks <<= 1;	// Slow down to 1/2 speed //Corn
 
 		// FIXME the constant here will need to be adjusted for different platforms.
 		s32	delay_ticks = required_ticks - elapsed_ticks - 50;	//Remove ~50 ticks for additional processing

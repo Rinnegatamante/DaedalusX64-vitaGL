@@ -8,8 +8,6 @@
 #include "Core/Memory.h"
 #include "Math/MathUtil.h"
 
-#include "Debug/DBGConsole.h"
-
 extern bool isZeldaABI;
 
 inline s32 FixedPointMul16( s32 a, s32 b )
@@ -19,9 +17,6 @@ inline s32 FixedPointMul16( s32 a, s32 b )
 
 void RESAMPLE(AudioHLECommand command)
 {
-#ifdef DEBUG_AUDIO
-	DBGConsole_Msg(0, "RESAMPLE");
-#endif
 	u8 flags(command.AbiResample.Flags);
 	u32 pitch(command.AbiResample.Pitch);
 	u32 address(command.AbiResample.Address);// + gAudioHLEState.Segments[(command.cmd1>>24)&0xf];
@@ -31,9 +26,6 @@ void RESAMPLE(AudioHLECommand command)
 
 void RESAMPLE3(AudioHLECommand command)
 {
-#ifdef DEBUG_AUDIO
-	DBGConsole_Msg(0, "RESAMPLE3");
-#endif
 	u8 Flags=(u8)((command.cmd1>>0x1e));
   	u32 Pitch=((command.cmd1>>0xe)&0xffff) << 1;
   	u32 addy = (command.cmd0 & 0xffffff);

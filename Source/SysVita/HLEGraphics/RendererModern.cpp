@@ -7,8 +7,6 @@
 #include "Combiner/CombinerTree.h"
 #include "Combiner/RenderSettings.h"
 #include "Core/ROM.h"
-#include "Debug/Dump.h"
-#include "Debug/DBGConsole.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/NativeTexture.h"
 #include "HLEGraphics/CachedTexture.h"
@@ -18,7 +16,6 @@
 #include "Math/MathUtil.h"
 #include "OSHLE/ultra_gbi.h"
 #include "Utility/IO.h"
-#include "Utility/Profiler.h"
 
 #include "SysVita/HLEGraphics/FragmentShader.h"
 #include "SysVita/UI/Menu.h"
@@ -43,6 +40,7 @@ static const u32 kNumTextures = 2;
 static bool use_texture_scale = false;
 
 extern bool gUseMipmaps;
+extern bool gForceLinearFilter;
 
 char cache_name[256];
 
@@ -117,7 +115,6 @@ static GLuint make_shader(GLenum type, const char** lines, size_t num_lines)
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 		if (shader_ok != GL_TRUE)
 		{
-			DBGConsole_Msg(0, "ERROR: Failed to compile %s shader.\n", (type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex");
 			glDeleteShader(shader);
 			shader = 0;
 		}
@@ -144,7 +141,7 @@ static GLuint make_shader_program(const char ** vertex_lines, size_t num_vertex_
 		fwrite(vertex_shader_bin, 1, vertex_shader_size, f);
 		fclose(f);
 	} else {
-		vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+		vertex_shader = glCreateShader(GL_CG_VERTEX_SHADER_EXT);
 		glShaderBinary(1, &vertex_shader, 0, vertex_shader_bin, vertex_shader_size);
 	}
 
@@ -458,11 +455,11 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 		fseek(f, 0, SEEK_SET);
 		fread(bin, 1, bin_size, f);
 		fclose(f);
-		GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+		GLuint fragment_shader = glCreateShader(GL_CG_FRAGMENT_SHADER_EXT);
 		glShaderBinary(1, &fragment_shader, 0, bin, bin_size);
 		free(bin);
 		
-		GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+		GLuint vertex_shader = glCreateShader(GL_CG_VERTEX_SHADER_EXT);
 		if (!vertex_shader_bin) {
 			f = fopen(DAEDALUS_VITA_PATH("ShaderCache/vert.gxp"), "rb");
 			fseek(f, 0, SEEK_END);
@@ -540,7 +537,7 @@ void RendererModern::RenderDaedalusVtxStreams(int prim, const float * positions,
 	vglVertexAttribPointerMapped(0, positions);
 	if (uvs) vglVertexAttribPointerMapped(1, uvs);
 	vglVertexAttribPointerMapped(2, colours);
-	vglDrawObjects(prim, count, GL_TRUE);
+	vglDrawObjects(prim, count);
 }
 
 /*
@@ -750,7 +747,6 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 	if (program == NULL)
 	{
 		// There must have been some failure to compile the shader. Abort!
-		DBGConsole_Msg(0, "Couldn't generate a shader for mux %llx, cycle %d, alpha %d\n", config.Mux, config.CycleType, config.AlphaThreshold);
 		return;
 	}
 
@@ -810,7 +806,7 @@ void RendererModern::PrepareRenderState(const float (&mat_project)[16], bool dis
 
 			texture->InstallTexture();
 
-			if (((gRDPOtherMode.text_filt != G_TF_POINT) && cycle_mode != CYCLE_COPY) || (gGlobalPreferences.ForceLinearFilter))
+			if (((gRDPOtherMode.text_filt != G_TF_POINT) && cycle_mode != CYCLE_COPY) || (gForceLinearFilter))
 			{
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -836,7 +832,7 @@ void RendererModern::RenderTriangles( uint32_t * p_vertices, u32 num_vertices, b
 	PrepareRenderState(gProjection.m, disable_zbuffer);
 	SetPositiveViewport();
 	vglVertexAttribPointerMapped(2, p_vertices);
-	vglDrawObjects(GL_TRIANGLES, num_vertices, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLES, num_vertices);
 }
 
 void RendererModern::TexRect( u32 tile_idx, const v2 & xy0, const v2 & xy1, TexCoord st0, TexCoord st1 )
@@ -1047,7 +1043,7 @@ void RendererModern::DoGamma(float gamma)
 	glEnableClientState(GL_COLOR_ARRAY);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
-	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4);
 	glDisable(GL_BLEND);
 }
 
@@ -1089,7 +1085,7 @@ void RendererModern::DrawUITexture()
 	
 	glDisableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4);
 }
 
 void RendererModern::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1, f32 u0, f32 v0, f32 u1, f32 v1)

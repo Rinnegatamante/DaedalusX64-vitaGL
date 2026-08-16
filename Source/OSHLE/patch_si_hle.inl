@@ -1,17 +1,11 @@
-#define TEST_DISABLE_SI_FUNCS DAEDALUS_PROFILE(__FUNCTION__);
-
 //*****************************************************************************
 //
 //*****************************************************************************
 u32 Patch___osSiCreateAccessQueue()
 {
-TEST_DISABLE_SI_FUNCS
 #ifdef DAED_OS_MESSAGE_QUEUES
 
 	Write32Bits(VAR_ADDRESS(osSiAccessQueueCreated), 1);
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Creating Si Access Queue");
-#endif
 	OS_HLE_osCreateMesgQueue(VAR_ADDRESS(osSiAccessQueue), VAR_ADDRESS(osSiAccessQueueBuffer), 1);
 
 	//u32 dwQueue     = (u32)gGPR[REG_a0]._u32_0;
@@ -38,7 +32,6 @@ TEST_DISABLE_SI_FUNCS
 //*****************************************************************************
 u32 Patch___osSiGetAccess()
 {
-TEST_DISABLE_SI_FUNCS
 	u32 created = Read32Bits(VAR_ADDRESS(osSiAccessQueueCreated));
 
 	if (created == 0)
@@ -58,7 +51,6 @@ TEST_DISABLE_SI_FUNCS
 //*****************************************************************************
 u32 Patch___osSiRelAccess()
 {
-TEST_DISABLE_SI_FUNCS
 	gGPR[REG_a0]._u32_0 = VAR_ADDRESS(osSiAccessQueue);
 	gGPR[REG_a1]._u32_0 = 0;		// Place on stack and ignore
 	gGPR[REG_a2]._u32_0 = OS_MESG_NOBLOCK;
@@ -172,9 +164,6 @@ u32 Patch___osSiRawStartDma_Mario()
 {
 	u32 RWflag = gGPR[REG_a0]._u32_0;
 	u32 SIAddr = gGPR[REG_a1]._u32_0;
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !IsSiDeviceBusy(), "Si Device is BUSY, Need to handle!");
-	#endif
 	/*
 	if (IsSiDeviceBusy())
 	{
@@ -209,9 +198,6 @@ u32 Patch___osSiRawStartDma_Rugrats()
 {
 	u32 RWflag = gGPR[REG_a0]._u32_0;
 	u32 SIAddr = gGPR[REG_a1]._u32_0;
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !IsSiDeviceBusy(), "Si Device is BUSY, Need to handle!");
-	#endif
 	/*
 	if (IsSiDeviceBusy())
 	{

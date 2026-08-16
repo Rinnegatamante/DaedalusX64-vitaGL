@@ -28,15 +28,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <map>
 
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
 #include "Interface/RomDB.h"
-#include "System/Paths.h"
 #include "Utility/IniFile.h"
 #include "Utility/IO.h"
 
-#ifdef DAEDALUS_VITA
 #include "SysVita/UI/Menu.h"
-#endif
 
 namespace
 {
@@ -67,24 +63,14 @@ const char * ROM_GetSaveTypeName( ESaveType save_type )
 {
 	switch ( save_type )
 	{
-#ifdef DEADALUS_VITA
 		case SAVE_TYPE_UNKNOWN:		return lang_strings[STR_UNKNOWN];
-#else
-		case SAVE_TYPE_UNKNOWN:		return "Unknown";
-#endif
 		case SAVE_TYPE_EEP4K:		return "Eeprom4k";
 		case SAVE_TYPE_EEP16K:		return "Eeprom16k";
 		case SAVE_TYPE_SRAM:		return "SRAM";
 		case SAVE_TYPE_FLASH:		return "FlashRam";
 	}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR( "Unknown save type" );
-#endif
-#ifdef DEADALUS_VITA
+
 	return lang_strings[STR_UNKNOWN];
-#else
-	return "?";
-#endif
 }
 
 
@@ -125,9 +111,6 @@ class IRomSettingsDB : public CRomSettingsDB
 
 template<> bool	CSingleton< CRomSettingsDB >::Create()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT_Q(mpInstance == nullptr);
-	#endif
 	mpInstance = new IRomSettingsDB();
 
 	IO::Filename	ini_filename;
@@ -204,9 +187,6 @@ bool IRomSettingsDB::OpenSettingsFile( const char * filename )
 	CIniFile * p_ini_file( CIniFile::Create( filename ) );
 	if( p_ini_file == nullptr )
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg( 0, "Failed to open RomDB from %s\n", filename );
-		#endif
 		return false;
 	}
 

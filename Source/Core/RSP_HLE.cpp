@@ -24,9 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Interrupt.h"
 #include "Memory.h"
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
-#include "Debug/Dump.h"			// For Dump_GetDumpDirectory()
 #include "Math/MathUtil.h"
 #include "OSHLE/ultra_mbi.h"
 #include "OSHLE/ultra_rcp.h"
@@ -35,8 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Plugins/GraphicsPlugin.h"
 #include "Test/BatchTest.h"
 #include "Utility/IO.h"
-#include "Utility/PrintOpCode.h"
-#include "Utility/Profiler.h"
 
 /* JpegTask.cpp */
 extern void jpeg_decode_PS(OSTask *task);
@@ -50,87 +45,6 @@ extern "C" {
 	extern void fill_video_double_buffer_task(OSTask *task);
 	extern void hvqm2_decode_task(OSTask *task, int is32);
 };
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-#if 0
-static void RDP_DumpRSPCode(char * name, u32 crc, u32 * mem_base, u32 pc_base, u32 len)
-{
-	char filename[100];
-	sprintf(filename, "task_dump_%s_crc_0x%08x.txt", name, crc);
-
-	IO::Filename filepath;
-	Dump_GetDumpDirectory(filepath, "rsp_dumps");
-	IO::Path::Append(filepath, filename);
-
-	FILE * fp = fopen(filepath, "w");
-	if (fp == nullptr)
-		return;
-
-	for (u32 i = 0; i < len; i+=4)
-	{
-		OpCode op;
-		u32 pc = i & 0x0FFF;
-		op._u32 = mem_base[i/4];
-
-		char opinfo[400];
-		SprintRSPOpCodeInfo( opinfo, pc + pc_base, op );
-
-		fprintf(fp, "0x%08x: <0x%08x> %s\n", pc + pc_base, op._u32, opinfo);
-		//fprintf(fp, "<0x%08x>\n", dwOpCode);
-	}
-
-	fclose(fp);
-}
-#endif
-
-#if 0
-static void RDP_DumpRSPData(char * name, u32 crc, u32 * mem_base, u32 pc_base, u32 len)
-{
-	char filename[100];
-	sprintf(filename, "task_data_dump_%s_crc_0x%08x.txt", name, crc);
-
-	IO::Filename filepath;
-	Dump_GetDumpDirectory(filepath, "rsp_dumps");
-	IO::Path::Append(filepath, filename);
-
-	FILE * fp = fopen(filepath, "w");
-	if (fp == nullptr)
-		return;
-
-	for (u32 i = 0; i < len; i+=4)
-	{
-		u32 pc = i & 0x0FFF;
-		u32 data = mem_base[i/4];
-
-		fprintf(fp, "0x%08x: 0x%08x\n", pc + pc_base, data);
-	}
-
-	fclose(fp);
-}
-#endif
-
-
-//
-
-#if 0
-static void	RSP_HLE_DumpTaskInfo( const OSTask * pTask )
-{
-	DBGConsole_Msg(0, "DP: Task:%08x Flags:%08x BootCode:%08x BootCodeSize:%08x",
-		pTask->t.type, pTask->t.flags, pTask->t.ucode_boot, pTask->t.ucode_boot_size);
-
-	DBGConsole_Msg(0, "DP: uCode:%08x uCodeSize:%08x uCodeData:%08x uCodeDataSize:%08x",
-		pTask->t.ucode, pTask->t.ucode_size, pTask->t.ucode_data, pTask->t.ucode_data_size);
-
-	DBGConsole_Msg(0, "DP: Stack:%08x StackS:%08x Output:%08x OutputS:%08x",
-		pTask->t.dram_stack, pTask->t.dram_stack_size, pTask->t.output_buff, pTask->t.output_buff_size);
-
-	DBGConsole_Msg(0, "DP: Data(PC):%08x DataSize:%08x YieldData:%08x YieldDataSize:%08x",
-		pTask->t.data_ptr, pTask->t.data_size, pTask->t.yield_data_ptr, pTask->t.yield_data_size);
-}
-#endif
-
-#endif
-//
 
 void RSP_HLE_Finished(u32 setbits)
 {

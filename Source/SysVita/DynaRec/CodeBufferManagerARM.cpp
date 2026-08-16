@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <kubridge.h>
 #endif
 #include "DynaRec/CodeBufferManager.h"
-#include "Debug/DBGConsole.h"
 #include "CodeGeneratorARM.h"
 
 #define CODE_BUFFER_SIZE (8 * 1024 * 1024)

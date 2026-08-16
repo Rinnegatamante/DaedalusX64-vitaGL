@@ -25,12 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Math/MathUtil.h"
 
-#include "Debug/DBGConsole.h"
-
-#ifdef DAEDALUS_PSP
-extern bool PSP_IS_SLIM;
-#endif
-
 namespace
 {
 	static  u32	CACHE_SIZE;
@@ -67,27 +61,10 @@ ROMFileCache::ROMFileCache()
 ,	mpChunkMap( NULL )
 ,	mMRUIdx( 0 )
 {
-#ifdef DAEDALUS_PSP
-	CHUNK_SIZE = 16 * 1024;
-	if( PSP_IS_SLIM )
-	{
-		//32MB cache(SLIM)
-		CACHE_SIZE = 2048;
-	}
-	else
-	{
-		//2MB cache(PHAT)
-		CACHE_SIZE = 256;
-	}
-#else
 	CHUNK_SIZE = 2 * 1024;
 	CACHE_SIZE = 1024;
-#endif
 
 	STORAGE_BYTES = CACHE_SIZE * CHUNK_SIZE;
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( (1<<(sizeof(CacheIdx)*8)) > CACHE_SIZE, "Need to increase size of CacheIdx typedef to allow sufficient entries to be indexed" );
-#endif
 	mpStorage   = (u8*)CROMFileMemory::Get()->Alloc( STORAGE_BYTES );
 	mpChunkInfo = new SChunkInfo[ CACHE_SIZE ];
 }
@@ -164,9 +141,6 @@ inline u32 GetChunkStartAddress( u32 address )
 //*****************************************************************************
 void	ROMFileCache::PurgeChunk( CacheIdx cache_idx )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( cache_idx < CACHE_SIZE, "Invalid chunk index" );
-	#endif
 
 	SChunkInfo &		chunk_info( mpChunkInfo[ cache_idx ] );
 	u32		current_chunk_address( chunk_info.StartOffset );
@@ -174,10 +148,7 @@ void	ROMFileCache::PurgeChunk( CacheIdx cache_idx )
 	{
 		//DBGConsole_Msg( 0, "[CRomCache - purging %02x %08x-%08x", cache_idx, chunk_info.StartOffset, chunk_info.StartOffset + CHUNK_SIZE );
 		u32		chunk_map_idx( AddressToChunkMapIndex( current_chunk_address ) );
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( chunk_map_idx < mChunkMapEntries, "Chunk address is out of range?" );
-		DAEDALUS_ASSERT( mpChunkMap[ chunk_map_idx ] == cache_idx, "Chunk map inconsistancy" );
-		#endif
+
 		// Scrub down the chunk map to show it's no longer cached
 		mpChunkMap[ chunk_map_idx ] = INVALID_IDX;
 	}
@@ -197,9 +168,7 @@ void	ROMFileCache::PurgeChunk( CacheIdx cache_idx )
 ROMFileCache::CacheIdx	ROMFileCache::GetCacheIndex( u32 address )
 {
 	u32		chunk_map_idx( AddressToChunkMapIndex( address ) );
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( chunk_map_idx < mChunkMapEntries, "Chunk address is out of range?" );
-	#endif
+
 	//
 	//	Check if this chunk is already cached, load if necessary
 	//
@@ -231,10 +200,6 @@ ROMFileCache::CacheIdx	ROMFileCache::GetCacheIndex( u32 address )
 		chunk_info.StartOffset = GetChunkStartAddress( address );
 		chunk_info.LastUseIdx = ++mMRUIdx;
 
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( chunk_map_idx < mChunkMapEntries, "Chunk address is out of range?" );
-		#endif
-
 		mpChunkMap[ chunk_map_idx ] = selected_idx;
 
 		u32		storage_offset( selected_idx * CHUNK_SIZE );
@@ -259,16 +224,8 @@ bool	ROMFileCache::GetChunk( u32 rom_offset, u8 ** p_p_chunk_base, u32 * p_chunk
 	if(chunk_map_idx < mChunkMapEntries)
 	{
 		CacheIdx	idx( GetCacheIndex( rom_offset ) );
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( idx < CACHE_SIZE, "Invalid chunk index!" );
-		#endif
 
 		const SChunkInfo &	chunk_info( mpChunkInfo[ idx ] );
-
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( AddressToChunkMapIndex( chunk_info.StartOffset ) == chunk_map_idx, "Inconsistant map indices" );
-		DAEDALUS_ASSERT( chunk_info.ContainsAddress( rom_offset ), "Address is out of range for chunk" );
-		#endif
 		
 		u32		storage_offset( idx * CHUNK_SIZE );
 

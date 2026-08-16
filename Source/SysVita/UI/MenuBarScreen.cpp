@@ -12,18 +12,13 @@
 #include "Core/PIF.h"
 #include "Core/RomSettings.h"
 #include "Core/Save.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "Graphics/GraphicsContext.h"
 #include "HLEGraphics/TextureCache.h"
 #include "Input/InputManager.h"
 #include "Interface/RomDB.h"
-#include "System/Paths.h"
 #include "System/System.h"
 #include "Test/BatchTest.h"
 #include "Utility/IO.h"
-#include "Utility/Preferences.h"
-#include "Utility/Profiler.h"
 #include "Utility/Thread.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
@@ -55,6 +50,7 @@ bool gUseRendererLegacy = true;
 bool gRendererChanged = false;
 bool gNetBoot = false;
 bool gSRGB = false;
+bool gForceLinearFilter = false;
 
 uint8_t shader_idx = 0;
 
@@ -91,10 +87,8 @@ static bool vflux_window = false;
 static bool vflux_enabled = false;
 static bool credits_window = false;
 static bool debug_window = false;
-static bool logs_window = false;
 static bool post_processing_window = false;
 
-extern EFrameskipValue gFrameskipValue;
 extern bool kUpdateTexturesEveryFrame;
 
 static float vcolors[3];
@@ -105,7 +99,6 @@ float *vflux_texcoords;
 
 float gamma_val = 1.0f;
 
-char dbg_lines[MAX_DEBUG_LINES][256];
 int cur_dbg_line = 0;
 
 char *raw_net_romlist = nullptr;
@@ -244,8 +237,8 @@ bool setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 			glDeleteShader(shaders[shader_idx * 2]);
 			glDeleteShader(shaders[shader_idx * 2 + 1]);
 		}
-		shaders[shader_idx * 2] = glCreateShader(GL_VERTEX_SHADER);
-		shaders[shader_idx * 2 + 1] = glCreateShader(GL_FRAGMENT_SHADER);
+		shaders[shader_idx * 2] = glCreateShader(GL_CG_VERTEX_SHADER_EXT);
+		shaders[shader_idx * 2 + 1] = glCreateShader(GL_CG_FRAGMENT_SHADER_EXT);
 		program[shader_idx] = glCreateProgram();
 						
 		char fpath[128];
@@ -331,12 +324,11 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gAudioRateMatch", gAudioRateMatch);
 		fprintf(config, "%s=%d\n", "gAspectRatio", gAspectRatio);
 		fprintf(config, "%s=%d\n", "gTexCacheMode", gTexCacheMode);
-		fprintf(config, "%s=%d\n", "gForceLinearFilter", gGlobalPreferences.ForceLinearFilter);
+		fprintf(config, "%s=%d\n", "gForceLinearFilter", gForceLinearFilter);
 		fprintf(config, "%s=%d\n", "gSRGB", (int)gSRGB);
 		
 		fprintf(config, "%s=%d\n", "gUseMipmaps", gUseMipmaps);
 		fprintf(config, "%s=%d\n", "gUseVSync", gUseVSync);
-		fprintf(config, "%s=%d\n", "gUseCdram", gUseCdram);
 		fprintf(config, "%s=%d\n", "gWaitRendering", gWaitRendering);
 		fprintf(config, "%s=%d\n", "gAntiAliasing", gAntiAliasing);
 		
@@ -553,9 +545,6 @@ void DrawExtraMenu() {
 		if (ImGui::MenuItem(lang_strings[STR_MENU_DEBUGGER], nullptr, debug_window)) {
 			debug_window = !debug_window;
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_LOG], nullptr, logs_window)) {
-			logs_window = !logs_window;
-		}
 		ImGui::Separator();
 		if (ImGui::MenuItem(lang_strings[STR_MENU_TEX_DUMPER], nullptr, gTexturesDumper)) {
 			gTexturesDumper = !gTexturesDumper;
@@ -678,8 +667,8 @@ void DrawCommonMenuBar() {
 			SetDescription(lang_strings[STR_DESC_CACHE_FAST]);
 			ImGui::EndMenu();
 		}
-		if (ImGui::MenuItem(lang_strings[STR_MENU_BILINEAR], nullptr, gGlobalPreferences.ForceLinearFilter)) {
-			gGlobalPreferences.ForceLinearFilter = !gGlobalPreferences.ForceLinearFilter;
+		if (ImGui::MenuItem(lang_strings[STR_MENU_BILINEAR], nullptr, gForceLinearFilter)) {
+			gForceLinearFilter = !gForceLinearFilter;
 		}
 		SetDescription(lang_strings[STR_DESC_BILINEAR]);
 		if (ImGui::BeginMenu(lang_strings[STR_ANTI_ALIASING])) {
@@ -745,11 +734,6 @@ void DrawCommonMenuBar() {
 			vglWaitVblankStart(gUseVSync);
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem(lang_strings[STR_MENU_VRAM], nullptr, gUseCdram)) {
-			gUseCdram = gUseCdram == GL_TRUE ? GL_FALSE : GL_TRUE;
-			vglUseVram(gUseCdram);
-		}
-		SetDescription(lang_strings[STR_DESC_VRAM]);
 		if (ImGui::MenuItem(lang_strings[STR_MENU_WAIT_REND], nullptr, gWaitRendering)) {
 			gWaitRendering = !gWaitRendering;
 		}
@@ -998,15 +982,6 @@ void DrawCommonWindows() {
 		ImGui::End();
 	}
 	
-	if (logs_window) {
-		ImGui::Begin(lang_strings[STR_MENU_LOG], &logs_window);
-		for (int i = 0; i < MAX_DEBUG_LINES; i++) {
-			if ((i == cur_dbg_line - 1) || ((cur_dbg_line == 0) && (i == MAX_DEBUG_LINES - 1))) ImGui::TextColored({1.0f, 1.0f, 0.0f, 1.0f}, dbg_lines[i]);
-			else ImGui::Text(dbg_lines[i]);
-		}
-		ImGui::End();
-	}
-	
 	/*if (achievement_window) {
 		bool dummy = true;
 		ImGui::SetNextWindowPos(ImVec2(565, 40));
@@ -1045,7 +1020,7 @@ void DrawCommonWindows() {
 		glEnableClientState(GL_COLOR_ARRAY);
 		vglVertexPointerMapped(3, vflux_vertices);
 		vglColorPointerMapped(GL_FLOAT, colors);
-		vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
+		vglDrawObjects(GL_TRIANGLE_FAN, 4);
 		glDisableClientState(GL_COLOR_ARRAY);
 	}
 }

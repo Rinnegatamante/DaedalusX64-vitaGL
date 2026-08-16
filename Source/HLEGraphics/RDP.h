@@ -109,7 +109,6 @@ struct RDP_GeometryMode
 		};
 	};
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_GeometryMode) == 4);
 
 struct RDP_OtherMode
 {
@@ -182,7 +181,6 @@ struct RDP_OtherMode
 		};
 	};
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_OtherMode) == 8);
 
 struct RDP_Combine
 {
@@ -221,8 +219,6 @@ struct RDP_Combine
 		};
 	};
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_Combine) == 8);
-
 
 struct RDP_TexRect
 {
@@ -260,8 +256,6 @@ struct RDP_TexRect
 		};
 	};
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_TexRect) == 16);
-
 
 struct RDP_MemRect
 {
@@ -300,8 +294,6 @@ struct RDP_MemRect
 
 	};
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_MemRect) == 12);
-
 
 struct RDP_Tile
 {
@@ -351,8 +343,6 @@ struct RDP_Tile
 		return cmd0 != rhs.cmd0 || cmd1 != rhs.cmd1;
 	}
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_Tile) == 8);
-
 
 struct RDP_TileSize
 {
@@ -401,6 +391,5 @@ struct RDP_TileSize
 		return cmd0 != rhs.cmd0 || cmd1 != rhs.cmd1;
 	}
 };
-DAEDALUS_STATIC_ASSERT(sizeof(RDP_TileSize) == 8);
 
 #endif // HLEGRAPHICS_RDP_H_

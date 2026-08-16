@@ -13,19 +13,14 @@
 #include "Core/PIF.h"
 #include "Core/RomSettings.h"
 #include "Core/Save.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "Graphics/GraphicsContext.h"
 #include "HLEGraphics/BaseRenderer.h"
 #include "HLEGraphics/TextureCache.h"
 #include "Input/InputManager.h"
 #include "Interface/RomDB.h"
-#include "System/Paths.h"
 #include "System/System.h"
 #include "Test/BatchTest.h"
 #include "Utility/IO.h"
-#include "Utility/Preferences.h"
-#include "Utility/Profiler.h"
 #include "Utility/Thread.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
@@ -347,7 +342,7 @@ void DrawBackground()
 	glOrtho(0, 960, 544, 0, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4);
 }
 
 bool LoadPreview(RomSelection *rom) {

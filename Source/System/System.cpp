@@ -33,13 +33,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/FramerateLimiter.h"
 #include "Utility/Synchroniser.h"
 #include "Utility/Macros.h"
-#include "Utility/Profiler.h"
-#include "Utility/Preferences.h"
 
 #include "Input/InputManager.h"		// CInputManager::Create/Destroy
-
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 
 #include "Plugins/GraphicsPlugin.h"
 #include "Plugins/AudioPlugin.h"
@@ -49,9 +44,6 @@ CAudioPlugin	* gAudioPlugin		= NULL;
 
 static bool InitAudioPlugin()
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ASSERT( gAudioPlugin == NULL, "Why is there already an audio plugin?" );
-	#endif
 	CAudioPlugin * audio_plugin = CreateAudioPlugin();
 	if( audio_plugin != NULL )
 	{
@@ -67,9 +59,6 @@ static bool InitAudioPlugin()
 
 static bool InitGraphicsPlugin()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gGraphicsPlugin == NULL, "The graphics plugin should not be initialised at this point" );
-	#endif
 	CGraphicsPlugin * graphics_plugin = CreateGraphicsPlugin();
 	if( graphics_plugin != NULL )
 	{
@@ -114,68 +103,15 @@ struct SysEntityEntry
 	void (*final)();
 };
 
-#ifdef DAEDALUS_ENABLE_PROFILING
-static void ProfilerVblCallback(void * arg)
-{
-	CProfiler::Get()->Update();
-	CProfiler::Get()->Display();
-}
-
-static bool Profiler_Init()
-{
-	if (!CProfiler::Create())
-		return false;
-
-	CPU_RegisterVblCallback(&ProfilerVblCallback, NULL);
-
-	return true;
-}
-
-static void Profiler_Fini()
-{
-	CPU_UnregisterVblCallback(&ProfilerVblCallback, NULL);
-	CProfiler::Destroy();
-}
-#endif
-
 static const SysEntityEntry gSysInitTable[] =
 {
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	{"DebugConsole",		CDebugConsole::Create,		CDebugConsole::Destroy},
-#endif
-#ifdef DAEDALUS_LOG
-	{"Logger",				Debug_InitLogging,			Debug_FinishLogging},
-#endif
-#ifdef DAEDALUS_ENABLE_PROFILING
-	{"Profiler",			Profiler_Init,				Profiler_Fini},
-#endif
 	{"ROM Database",		CRomDB::Create,				CRomDB::Destroy},
 	{"ROM Settings",		CRomSettingsDB::Create,		CRomSettingsDB::Destroy},
 	{"InputManager",		CInputManager::Create,		CInputManager::Destroy},
-#ifdef DAEDALUS_PSP
-	{"VideoMemory",			CVideoMemoryManager::Create, NULL},
-#endif
 	{"GraphicsContext",		CGraphicsContext::Create,	CGraphicsContext::Destroy},
-#ifdef DAEDALUS_PSP
-	{"Language",			Translate_Init,				NULL},
-#endif
-	{"Preference",			CPreferences::Create,		CPreferences::Destroy},
 	{"Memory",				Memory_Init,				Memory_Fini},
-
 	{"Controller",			CController::Create,		CController::Destroy},
 	{"RomBuffer",			RomBuffer::Create,			RomBuffer::Destroy},
-
-#if defined(DAEDALUS_OSX) || defined(DAEDALUS_W32)
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	{"WebDebug",			WebDebug_Init, 				WebDebug_Fini},
-	{"TextureCacheWebDebug",TextureCache_RegisterWebDebug, 	NULL},
-	{"DLDebuggerWebDebug",	DLDebugger_RegisterWebDebug, 	NULL},
-#endif
-#endif
-
-#ifdef DAEDALUS_GL
-	{"UI",					UI_Init,				 	UI_Finalise},
-#endif
 };
 
 struct RomEntityEntry
@@ -213,17 +149,8 @@ bool System_Init()
 		if (entry.init == NULL)
 			continue;
 
-		if (entry.init())
+		if (!entry.init())
 		{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "==>Initialized %s", entry.name);
-			#endif
-		}
-		else
-		{
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "==>Initialize %s Failed", entry.name);
-			#endif
 			return false;
 		}
 	}
@@ -242,14 +169,9 @@ bool System_Open(const char *filename)
 
 		if (entry.open == NULL)
 			continue;
-#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "==>Open %s", entry.name);
-#endif
+
 		if (!entry.open())
 		{
-#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "==>Open %s [RFAILED]", entry.name);
-#endif
 			return false;
 		}
 		
@@ -278,9 +200,7 @@ void System_Close()
 
 		if (entry.close == NULL)
 			continue;
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "==>Close %s", entry.name);
-		#endif
+
 		entry.close();
 	}
 }
@@ -293,9 +213,7 @@ void System_Finalize()
 
 		if (entry.final == NULL)
 			continue;
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "==>Finalize %s", entry.name);
-		#endif
+
 		entry.final();
 	}
 }

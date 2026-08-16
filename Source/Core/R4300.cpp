@@ -25,59 +25,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Config/ConfigOptions.h"
 #include "Core/Registers.h"			// For REG_?? defines
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "DynaRec/TraceRecorder.h"
 #include "Math/Math.h"	// VFPU Math
 #include "OSHLE/ultra_R4300.h"
 #include "Utility/AuxFunc.h"
 #include "Utility/Macros.h"
 
-#ifdef __vita__
 #include <fenv.h>
-#define ACCURATE_CVT // This also works with Windows
-#endif
+#define ACCURATE_CVT
 
-#ifdef DAEDALUS_PSP
-#include <pspfpu.h>
-#include <limits.h>
-
-#define SIM_DOUBLES
-#else
 #include <float.h>
-#define DAEDALUS_128BIT_MULT // On PSP we only handle 64bit mults for performance
-#endif
+#define DAEDALUS_128BIT_MULT
 
-#ifdef DAEDALUS_POSIX
-#include <fenv.h>
-//Accurate cvt for W32/OSX, convert using the rounding mode specified in the Floating Control/Status register (FCSR)
-#define ACCURATE_CVT // This also works with Windows
-#endif
-
-#ifdef DAEDALUS_W32
-#define isnan _isnan
-#endif
-
-#define SPEEDHACK_INTERPRETER // Probably can disable this on the PSP?
-
+#define SPEEDHACK_INTERPRETER
 
 #define	R4300_CALL_MAKE_OP( var )	OpCode	var;	var._u32 = op_code_bits
 
 #define R4300_Rand()		FastRand()
 
-#if defined(DAEDALUS_PSP) && defined(SIM_DOUBLES)
-#define R4300_IsNaN(x) 		isnanf((x))
-#define R4300_Sqrt(x)		sqrtf((x))
-#define R4300_SqrtD(x)		sqrtf((x))
-#define R4300_AbsS(x) 		fabsf((x))
-#define R4300_AbsD(x) 		fabsf((x))
-#else
 #define R4300_IsNaN(x)		isnan((x))
 #define R4300_Sqrt(x)		sqrtf((x))
 #define R4300_SqrtD(x)		sqrt((x))
 #define R4300_AbsS(x) 		fabsf((x))
 #define R4300_AbsD(x) 		fabs((x))
-#endif
 
 //	Abstract away the different rounding modes between targets
 enum ERoundingMode
@@ -90,26 +60,6 @@ enum ERoundingMode
 };
 static ERoundingMode	gRoundingMode( RM_ROUND );
 
-#if defined(DAEDALUS_PSP)
-
-static const PspFpuRoundMode		gNativeRoundingModes[ RM_NUM_MODES ] =
-{
-	PSP_FPU_RN,	// RM_ROUND,
-	PSP_FPU_RZ,	// RM_TRUNC,
-	PSP_FPU_RP,	// RM_CEIL,
-	PSP_FPU_RM,	// RM_FLOOR,
-};
-
-inline void SET_ROUND_MODE( ERoundingMode mode )
-{
-	//This is very expensive on the PSP, so is disabled, also this is skipt in the dynarec as well.
-	//Note: Do not enable this, since it causes conflicts in the dynarec because we dont set rounding mode there. See Mario Party 3
-	//TODO: Map 1:1 N64 and PSP round mode? perphaps write this in asm and just fiddle with the PSP CTC1 opcode?
-	//pspFpuSetRoundmode( gNativeRoundingModes[ mode ] );
-}
-
-#elif defined(DAEDALUS_VITA)
-
 static const int		gNativeRoundingModes[ RM_NUM_MODES ] =
 {
 	FE_TONEAREST,	// RM_ROUND,
@@ -123,55 +73,7 @@ inline void SET_ROUND_MODE( ERoundingMode mode )
 	fesetround( gNativeRoundingModes[ mode ] );
 }
 
-#elif defined(DAEDALUS_W32)
-
-static const int		gNativeRoundingModes[ RM_NUM_MODES ] =
-{
-	_RC_NEAR,	// RM_ROUND,
-	_RC_CHOP,	// RM_TRUNC,
-	_RC_UP,		// RM_CEIL,
-	_RC_DOWN,	// RM_FLOOR,
-};
-
-DAEDALUS_FORCEINLINE void SET_ROUND_MODE( ERoundingMode mode )
-{
-	_controlfp( gNativeRoundingModes[ mode ], _MCW_RC );
-}
-
-#elif DAEDALUS_POSIX
-
-static const int		gNativeRoundingModes[ RM_NUM_MODES ] =
-{
-	FE_TONEAREST,	// RM_ROUND,
-	FE_TOWARDZERO,	// RM_TRUNC,
-	FE_UPWARD,		// RM_CEIL,
-	FE_DOWNWARD,	// RM_FLOOR,
-};
-
-inline void SET_ROUND_MODE( ERoundingMode mode )
-{
-	fesetround( gNativeRoundingModes[ mode ] );
-}
-
-#else
-
-// Need defining
-void SET_ROUND_MODE( ERoundingMode mode )
-{
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR( "Floating point rounding modes not implemented on this platform" );
-#endif
-}
-
-#endif
-
-// If the hardware doesn't support doubles in hardware - use 32 bits floats and accept the loss in precision
-#ifdef SIM_DOUBLES
-typedef f32 d64;
-#else
 typedef f64 d64;
-#endif
-
 
 DAEDALUS_FORCEINLINE void SpeedHack(u32 pc, u32 new_pc)
 {
@@ -179,10 +81,6 @@ DAEDALUS_FORCEINLINE void SpeedHack(u32 pc, u32 new_pc)
 	// If jumping to the same address, this might be a busy-wait
 	if (pc == new_pc)
 	{
-#ifdef DAEDALUS_ENABLE_DYNAREC
-		if (gTraceRecorder.IsTraceActive())
-			return;
-#endif
 		// TODO: Should maybe use some internal function, so we can account
 		// for things like Branch/DelaySlot pair straddling a page boundary.
 		u32 next_op {*(u32 *)(gLastAddress + 4)};
@@ -191,7 +89,7 @@ DAEDALUS_FORCEINLINE void SpeedHack(u32 pc, u32 new_pc)
 		if (next_op == 0)
 		{
 			// XXXX if we leave the counter at 1, then we always terminate traces with a delay slot active.
-			// Need a more permenant fix to for this - i.e. making tracing more robust.
+			// Need a more permanent fix to for this - i.e. making tracing more robust.
 			CPU_SkipToNextEvent();
 		}
 		// XXXX check this....need to update count....
@@ -237,13 +135,6 @@ DAEDALUS_FORCEINLINE void StoreFPR_Long( u32 reg, u64 value )
 DAEDALUS_FORCEINLINE u64 LoadFPR_Long( u32 reg )
 {
 	REG64 res;
-#ifdef SIM_DOUBLES
-	if (gCPUState.FPU[reg+0]._u32 == SIMULATESIG)
-	{
-		res._f64 = (f64)gCPUState.FPU[reg+1]._f32;	//Convert f32 -> f64
-	}
-	else
-#endif
 	{
 		res._u32_0 = gCPUState.FPU[reg+0]._u32;
 		res._u32_1 = gCPUState.FPU[reg+1]._u32;
@@ -253,13 +144,6 @@ DAEDALUS_FORCEINLINE u64 LoadFPR_Long( u32 reg )
 
 DAEDALUS_FORCEINLINE d64 LoadFPR_Double( u32 reg )
 {
-#ifdef SIM_DOUBLES
-	if (gCPUState.FPU[reg+0]._u32 == SIMULATESIG)
-	{
-		return (d64)gCPUState.FPU[reg+1]._f32;
-	}
-	else
-#endif
 	{
 		REG64 res;
 		res._u32_0 = gCPUState.FPU[reg+0]._u32;
@@ -270,16 +154,11 @@ DAEDALUS_FORCEINLINE d64 LoadFPR_Double( u32 reg )
 
 DAEDALUS_FORCEINLINE void StoreFPR_Double( u32 reg, d64 value )
 {
-#ifdef SIM_DOUBLES
-	gCPUState.FPU[reg+0]._u32 = SIMULATESIG;
-	gCPUState.FPU[reg+1]._f32 = f32( value );	//No Coversion
-#else
 	REG64 r;
 	r._f64 = value;
 
 	gCPUState.FPU[reg+0]._u32 = r._u32_0;
 	gCPUState.FPU[reg+1]._u32 = r._u32_1;
-#endif
 }
 
 DAEDALUS_FORCEINLINE s32 LoadFPR_Word( u32 reg ) { 	return gCPUState.FPU[reg]._s32; }
@@ -297,53 +176,6 @@ DAEDALUS_FORCEINLINE d64 s64_to_d64( s64 x ) { return (d64)x; }
 //	float -> float conversion routines
 DAEDALUS_FORCEINLINE d64 f32_to_d64( f32 x ) { return (d64)x; }
 DAEDALUS_FORCEINLINE f32 d64_to_f32( d64 x ) { return (f32)x; }
-
-
-//	Float -> int conversion routines
-#ifdef DAEDALUS_PSP
-
-//These ASM routines convert float to int and puts the value in CPU to sign extend, rather than FPU since the PSP doesn't have 64bit instructions //Corn
-//These can be risky since the N64 is expecting float to int64 and thus float can be larger than int, this happens with trunc_w_s on the 4th level of DK64..
-#ifdef DAEDALUS_ENABLE_ASSERTS
-inline s32 cvt_w_s( f32 x )							{ DAEDALUS_ASSERT( x >= LONG_MIN && x <= LONG_MAX, "Float too large, can't convert with 32bit PSP instruction" );s32 r; asm volatile ( "cvt.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 trunc_w_s( f32 x )						{ DAEDALUS_ASSERT( x >= LONG_MIN && x <= LONG_MAX, "Float too large, can't convert with 32bit PSP instruction" );s32 r; asm volatile ( "trunc.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 round_w_s( f32 x )						{ DAEDALUS_ASSERT( x >= LONG_MIN && x <= LONG_MAX, "Float too large, can't convert with 32bit PSP instruction" );s32 r; asm volatile ( "round.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 ceil_w_s( f32 x )						{ DAEDALUS_ASSERT( x >= LONG_MIN && x <= LONG_MAX, "Float too large, can't convert with 32bit PSP instruction" );s32 r; asm volatile ( "ceil.w.s  %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 floor_w_s( f32 x )						{ DAEDALUS_ASSERT( x >= LONG_MIN && x <= LONG_MAX, "Float too large, can't convert with 32bit PSP instruction" );s32 r; asm volatile ( "floor.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-#else
-inline s32 cvt_w_s( f32 x )							{s32 r; asm volatile ( "cvt.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 trunc_w_s( f32 x )						{s32 r; asm volatile ( "trunc.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 round_w_s( f32 x )						{s32 r; asm volatile ( "round.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 ceil_w_s( f32 x )						{s32 r; asm volatile ( "ceil.w.s  %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-inline s32 floor_w_s( f32 x )						{s32 r; asm volatile ( "floor.w.s %1, %1\nmfc1 %0,%1\n" : "=r"(r) : "f"(x) ); return r; }
-#endif
-
-inline s32 f32_to_s32_trunc( f32 x )				{ return pspFpuTrunc(x); }
-inline s32 f32_to_s32_round( f32 x )				{ return pspFpuRound(x); }
-inline s32 f32_to_s32_ceil( f32 x )					{ return pspFpuCeil(x); }
-inline s32 f32_to_s32_floor( f32 x )				{ return pspFpuFloor(x); }
-inline s32 f32_to_s32( f32 x )						{ pspFpuSetRoundmode( gNativeRoundingModes[ gRoundingMode ] ); return cvt_w_s( x ); }
-
-//inline s64 f32_to_s64_trunc( f32 x )				{ return (s64)trunc_w_s( x ); }
-inline s64 f32_to_s64_trunc( f32 x )				{ return (s64)truncf( x ); }
-inline s64 f32_to_s64_round( f32 x )				{ return (s64)round_w_s( x ); }
-inline s64 f32_to_s64_ceil( f32 x )					{ return (s64)ceil_w_s( x ); }
-inline s64 f32_to_s64_floor( f32 x )				{ return (s64)floor_w_s( x ); }
-inline s64 f32_to_s64( f32 x )						{ pspFpuSetRoundmode( gNativeRoundingModes[ gRoundingMode ] ); return (s64)x; }	// XXXX Need to do a cvt really
-
-inline s32 d64_to_s32_trunc( d64 x )				{ return pspFpuTrunc( (f32)x ); }
-inline s32 d64_to_s32_round( d64 x )				{ return pspFpuRound( (f32)x ); }
-inline s32 d64_to_s32_ceil( d64 x )					{ return pspFpuCeil( (f32)x ); }
-inline s32 d64_to_s32_floor( d64 x )				{ return pspFpuFloor( (f32)x ); }
-inline s32 d64_to_s32( d64 x )						{ pspFpuSetRoundmode( gNativeRoundingModes[ gRoundingMode ] ); return cvt_w_s( (f32)x ); }
-
-inline s64 d64_to_s64_trunc( d64 x )				{ return (s64)x; }
-inline s64 d64_to_s64_round( d64 x )				{ return (s64)( x + 0.5f ); }
-inline s64 d64_to_s64_ceil( d64 x )					{ return (s64)ceilf( x ); }
-inline s64 d64_to_s64_floor( d64 x )				{ return (s64)floorf( x ); }
-inline s64 d64_to_s64( d64 x )						{ pspFpuSetRoundmode( gNativeRoundingModes[ gRoundingMode ] ); return (s64)x; }	// XXXX Need to do a cvt really
-
-#else
 
 DAEDALUS_FORCEINLINE s32 f32_to_s32_trunc( f32 x )	{ SET_ROUND_MODE( RM_TRUNC ); return (s32)truncf(x); }
 DAEDALUS_FORCEINLINE s32 f32_to_s32_round( f32 x )	{ SET_ROUND_MODE( RM_ROUND ); return (s32)roundf(x); }
@@ -425,7 +257,6 @@ DAEDALUS_FORCEINLINE s64 d64_to_s64( d64 x )
 	return (s64)x;
 #endif
 }
-#endif
 
 static void R4300_CALL_TYPE R4300_Cop1_BCInstr( R4300_CALL_SIGNATURE );
 static void R4300_CALL_TYPE R4300_Cop1_SInstr( R4300_CALL_SIGNATURE );
@@ -554,13 +385,6 @@ bool	R4300_InstructionHandlerNeedsPC( OpCode op_code )
 
 void R4300_CALL_TYPE R4300_SetSR( u32 new_value )
 {
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	if((gCPUState.CPUControl[C0_SR]._u32 & SR_FR) != (new_value & SR_FR))
-	{
-		DBGConsole_Msg(0, "[MChanging FP to %s, STATUS=%08X", (new_value & SR_FR) ? "64bit" : "32bit", (new_value & SR_FR));
-	}
-#endif
-
 	bool interrupts_enabled_before =(gCPUState.CPUControl[C0_SR]._u32 & SR_IE) != 0;
 
 	gCPUState.CPUControl[C0_SR]._u32 = new_value;
@@ -595,23 +419,19 @@ void R4300_CALL_TYPE R4300_SetSR( u32 new_value )
 	}
 }
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-#define WARN_NOEXIST(inf)	{ DAEDALUS_ASSERT( false, "Instruction Unknown" ); }
-#define WARN_NOIMPL(op)		{ DAEDALUS_ASSERT( false, "Instruction Not Implemented" ); }
+#if 0
+#define WARN_NOEXIST(inf)	{ sceClibPrintf("%s Instruction Unknown\n", inf); }
+#define WARN_NOIMPL(op)		{ sceClibPrintf("%s Instruction Not Implemented\n", op); }
 #else
 #define WARN_NOEXIST(inf) {}
 #define WARN_NOIMPL(op) {}
 #endif
 
-static void R4300_CALL_TYPE R4300_Unk( R4300_CALL_SIGNATURE )     { WARN_NOEXIST("R4300_Unk"); }
+static void R4300_CALL_TYPE R4300_Unk( R4300_CALL_SIGNATURE ) { WARN_NOEXIST("R4300_Unk"); }
 static void R4300_CALL_TYPE R4300_CoPro1_Disabled( R4300_CALL_SIGNATURE )
 
 {
 	// Cop1 Unusable
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Thread accessing Cop1, throwing COP1 unusuable exception");
-	DAEDALUS_ASSERT( (gCPUState.CPUControl[C0_SR]._u32 & SR_CU1) == 0, "COP1 usable flag in inconsistant state!" );
-#endif
 	R4300_Exception_CopUnusuable();
 }
 
@@ -922,9 +742,7 @@ static void R4300_CALL_TYPE R4300_BGTZL( R4300_CALL_SIGNATURE ) 		// Branch on G
 static void R4300_CALL_TYPE R4300_LB( R4300_CALL_SIGNATURE ) 			// Load Byte
 {
 	R4300_CALL_MAKE_OP( op_code );
-	#ifdef DAEDALUS_DEBUG_CONSOLE
 
-#endif
 	u32 address {(u32)( gGPR[op_code.base]._s32_0 + (s32)(s16)op_code.immediate )};
 
 	gGPR[op_code.rt]._s64 = (s64)(s8)Read8Bits(address);
@@ -933,9 +751,6 @@ static void R4300_CALL_TYPE R4300_LB( R4300_CALL_SIGNATURE ) 			// Load Byte
 static void R4300_CALL_TYPE R4300_LBU( R4300_CALL_SIGNATURE ) 			// Load Byte Unsigned -- Zero extend byte...
 {
 	R4300_CALL_MAKE_OP( op_code );
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-
-	#endif
 
 	u32 address {(u32)( gGPR[op_code.base]._s32_0 + (s32)(s16)op_code.immediate)};
 
@@ -945,9 +760,7 @@ static void R4300_CALL_TYPE R4300_LBU( R4300_CALL_SIGNATURE ) 			// Load Byte Un
 static void R4300_CALL_TYPE R4300_LH( R4300_CALL_SIGNATURE ) 		// Load Halfword
 {
 	R4300_CALL_MAKE_OP( op_code );
-		#ifdef DAEDALUS_DEBUG_CONSOLE
 
-#endif
 	u32 address {(u32)( gGPR[op_code.base]._s32_0 + (s32)(s16)op_code.immediate )};
 
 	gGPR[op_code.rt]._s64 = (s64)(s16)Read16Bits(address);
@@ -956,9 +769,7 @@ static void R4300_CALL_TYPE R4300_LH( R4300_CALL_SIGNATURE ) 		// Load Halfword
 static void R4300_CALL_TYPE R4300_LHU( R4300_CALL_SIGNATURE )			// Load Halfword Unsigned -- Zero extend word
 {
 	R4300_CALL_MAKE_OP( op_code );
-		#ifdef DAEDALUS_DEBUG_CONSOLE
 
-#endif
 	u32 address {(u32)( gGPR[op_code.base]._s32_0 + (s32)(s16)op_code.immediate )};
 
 	gGPR[op_code.rt]._u64 = (u64)(u16)Read16Bits(address);
@@ -968,9 +779,7 @@ static void R4300_CALL_TYPE R4300_LHU( R4300_CALL_SIGNATURE )			// Load Halfword
 static void R4300_CALL_TYPE R4300_LWL( R4300_CALL_SIGNATURE ) 			// Load Word Left
 {
 	R4300_CALL_MAKE_OP( op_code );
-		#ifdef DAEDALUS_DEBUG_CONSOLE
 
-	#endif
 	u32 address {(u32)( gGPR[op_code.base]._s32_0 + (s32)(s16)op_code.immediate )};
 	u32 nMem {Read32Bits(address & ~0x3)};
 	u32 nReg {gGPR[op_code.rt]._u32_0};
@@ -1331,9 +1140,6 @@ static void R4300_CALL_TYPE R4300_Special_SYSCALL( R4300_CALL_SIGNATURE )
 
 static void R4300_CALL_TYPE R4300_Special_BREAK( R4300_CALL_SIGNATURE ) 	// BREAK
 {
-#ifdef DAEDALUS_PROFILER
-	DPF( DEBUG_INTR, "BREAK Called. PC: 0x%08x. COUNT: 0x%08x", gCPUState.CurrentPC, gCPUState.CPUControl[C0_COUNT]._u32 );
-#endif
 	R4300_Exception_Break();
 }
 
@@ -1444,10 +1250,6 @@ static void R4300_CALL_TYPE R4300_Special_DMULT( R4300_CALL_SIGNATURE ) 		// Dou
 	R4300_CALL_MAKE_OP( op_code );
 	// Reserved Instruction exception
 
-#ifndef DAEDALUS_128BIT_MULT
-	gCPUState.MultLo._u64 = gGPR[ op_code.rs ]._s64 * gGPR[ op_code.rt ]._s64;
-	gCPUState.MultHi._u64 = 0;
-#else
 	s64 rrs = gGPR[ op_code.rs ]._s64;
 	s64 rrt = gGPR[ op_code.rt ]._s64;
 
@@ -1493,7 +1295,6 @@ static void R4300_CALL_TYPE R4300_Special_DMULT( R4300_CALL_SIGNATURE ) 		// Dou
 
 	gCPUState.MultLo._s64 = lo;
 	gCPUState.MultHi._s64 = hi;
-#endif
 }
 
 static void R4300_CALL_TYPE R4300_Special_DMULTU( R4300_CALL_SIGNATURE ) 			// Double Multiply Unsigned
@@ -1501,31 +1302,26 @@ static void R4300_CALL_TYPE R4300_Special_DMULTU( R4300_CALL_SIGNATURE ) 			// D
 	R4300_CALL_MAKE_OP( op_code );
 	// Reserved Instruction exception
 
-#ifndef DAEDALUS_128BIT_MULT
-	gCPUState.MultLo._u64 = gGPR[ op_code.rs ]._u64 * gGPR[ op_code.rt ]._u64;
-	gCPUState.MultHi._u64 = 0;
-#else
 	s64 rrs = gGPR[ op_code.rs ]._s64;
 	s64 rrt = gGPR[ op_code.rt ]._s64;
 
-u64	op1 {rrs & 0xFFFFFFFF};
-u64	op2 {(rrs >> 32) & 0xFFFFFFFF};
-u64	op3 {rrt & 0xFFFFFFFF};
-u64	op4 {(rrt >> 32) & 0xFFFFFFFF};
+	u64	op1 {rrs & 0xFFFFFFFF};
+	u64	op2 {(rrs >> 32) & 0xFFFFFFFF};
+	u64	op3 {rrt & 0xFFFFFFFF};
+	u64	op4 {(rrt >> 32) & 0xFFFFFFFF};
 
-u64	temp1 {op1 * op3};
-u64	temp2 {(temp1 >> 32) + op1 * op4};
-u64	temp3 {op2 * op3};
-u64	temp4 {(temp3 >> 32) + op2 * op4};
+	u64	temp1 {op1 * op3};
+	u64	temp2 {(temp1 >> 32) + op1 * op4};
+	u64	temp3 {op2 * op3};
+	u64	temp4 {(temp3 >> 32) + op2 * op4};
 
-u64	result1 {temp1 & 0xFFFFFFFF};
-u64	result2 {temp2 + (temp3 & 0xFFFFFFFF)};
-u64	result3 {(result2 >> 32) + temp4};
-u64	result4 {(result3 >> 32)};
+	u64	result1 {temp1 & 0xFFFFFFFF};
+	u64	result2 {temp2 + (temp3 & 0xFFFFFFFF)};
+	u64	result3 {(result2 >> 32) + temp4};
+	u64	result4 {(result3 >> 32)};
 
 	gCPUState.MultLo._s64 = result1 | (result2 << 32);
 	gCPUState.MultHi._s64 = (result3 & 0xFFFFFFFF) | (result4 << 32);
-#endif
 }
 
 static void R4300_CALL_TYPE R4300_Special_DDIV( R4300_CALL_SIGNATURE ) 				// Double Divide
@@ -1879,18 +1675,6 @@ static void R4300_CALL_TYPE R4300_Cop0_MFC0( R4300_CALL_SIGNATURE )
 {
 	R4300_CALL_MAKE_OP( op_code );
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	if ( op_code.fs == C0_CAUSE )
-	{
-		bool	mi_interrupt_set {(Memory_MI_GetRegister(MI_INTR_MASK_REG) & Memory_MI_GetRegister(MI_INTR_REG)) != 0 };
-		bool	cause_int_3_set( {(gCPUState.CPUControl[C0_CAUSE]._u32 & CAUSE_IP3) != 0});
-
-		DAEDALUS_ASSERT( mi_interrupt_set == cause_int_3_set, "CAUSE_IP3 inconsistant with MI_INTR_REG" );
-
-		DAEDALUS_ASSERT( op_code.fs != C0_RAND, "MFC0 random register unhandled" );
-	}
-#endif
-
 	// Never seen a game use C0_RAND - Salvy
 	/*if( op_code.fs == C0_RAND )	// Copy from FS to RT
 	{
@@ -1939,9 +1723,6 @@ static void R4300_CALL_TYPE R4300_Cop0_MTC0( R4300_CALL_SIGNATURE )
 		case C0_WIRED:
 			// Set to top limit on write to wired
 			gCPUState.CPUControl[C0_RAND]._u32 = 31;
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "Setting Wired register to 0x%08x", new_value);
-			#endif
 			gCPUState.CPUControl[C0_WIRED]._u32 = new_value;
 			break;
 
@@ -1950,9 +1731,6 @@ static void R4300_CALL_TYPE R4300_Cop0_MTC0( R4300_CALL_SIGNATURE )
 		case C0_PRID:
 		case C0_CACHE_ERR:			// Furthermore, this reg must return 0 on reads.
 			// All these registers are read only - make sure that software doesn't write to them
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "MTC0. Software attempted to write to read only reg %s: 0x%08x", Cop0RegNames[ op_code.fs ], new_value);
-			#endif
 			break;
 
 		case C0_CAUSE:
@@ -1960,18 +1738,6 @@ static void R4300_CALL_TYPE R4300_Cop0_MTC0( R4300_CALL_SIGNATURE )
 			// On writes, set all others to 0. Is this correct?
 			//  Other bits are CE (copro error) BD (branch delay), the other
 			// Interrupt pendings and EscCode.
-				#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT(new_value == 0, "CAUSE register invalid writing");
-			#endif
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-				if ( (new_value&~(CAUSE_SW1|CAUSE_SW2)) != (gCPUState.CPUControl[C0_CAUSE]._u32&~(CAUSE_SW1|CAUSE_SW2))  )
-				{
-					DBGConsole_Msg( 0, "[MWas previously clobbering CAUSE REGISTER" );
-				}
-				#endif
-				#ifdef DAEDALUS_PROFILER
-			DPF( DEBUG_REGS, "CAUSE set to 0x%08x (was: 0x%08x)", new_value, gGPR[ op_code.rt ]._u32_0 );
-			#endif
 
 			gCPUState.CPUControl[C0_CAUSE]._u32 &=             ~(CAUSE_SW1|CAUSE_SW2);
 			gCPUState.CPUControl[C0_CAUSE]._u32 |= (new_value & (CAUSE_SW1|CAUSE_SW2));
@@ -1990,9 +1756,6 @@ static void R4300_CALL_TYPE R4300_Cop0_MTC0( R4300_CALL_SIGNATURE )
 				// When this register is set, we need to check whether the next timed interrupt will
 				//  be due to vertical blank or COMPARE
 				gCPUState.CPUControl[C0_COUNT]._u32 = new_value;
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				DBGConsole_Msg(0, "Count set - setting int");
-				#endif
 				// XXXX Do we need to update any existing events?
 				break;
 			}
@@ -2033,11 +1796,6 @@ static void R4300_CALL_TYPE R4300_TLB_TLBR( R4300_CALL_SIGNATURE ) 				// TLB Re
 	gCPUState.CPUControl[C0_ENTRYHI ]._u32 = g_TLBs[index].hi   & (~g_TLBs[index].pagemask);
 	gCPUState.CPUControl[C0_ENTRYLO0]._u32 = g_TLBs[index].pfne | g_TLBs[index].g;
 	gCPUState.CPUControl[C0_ENTRYLO1]._u32 = g_TLBs[index].pfno | g_TLBs[index].g;
-
-#ifdef DAEDALUS_PROFILER
-	DPF( DEBUG_TLB, "TLBR: INDEX: 0x%04x. PAGEMASK: 0x%08x.", index, gCPUState.CPUControl[C0_PAGEMASK]._u32 );
-	DPF( DEBUG_TLB, "      ENTRYHI: 0x%08x. ENTRYLO1: 0x%08x. ENTRYLO0: 0x%08x", gCPUState.CPUControl[C0_ENTRYHI]._u32, gCPUState.CPUControl[C0_ENTRYLO1]._u32, gCPUState.CPUControl[C0_ENTRYLO0]._u32 );
-#endif
 }
 
 
@@ -2047,9 +1805,6 @@ static void R4300_CALL_TYPE R4300_TLB_TLBWI( R4300_CALL_SIGNATURE )			// TLB Wri
 
 	u32 i {gCPUState.CPUControl[C0_INX]._u32 & 0x1F};
 
- 	#ifdef DAEDALUS_PROFILER
-	DPF( DEBUG_TLB, "TLBWI: INDEX: 0x%04x. ", i );
-	#endif
 	g_TLBs[i].UpdateValue(gCPUState.CPUControl[C0_PAGEMASK]._u32,
 						gCPUState.CPUControl[C0_ENTRYHI ]._u32,
 						gCPUState.CPUControl[C0_ENTRYLO1]._u32,
@@ -2064,9 +1819,6 @@ static void R4300_CALL_TYPE R4300_TLB_TLBWR( R4300_CALL_SIGNATURE )
 	// Select a value for index between wired and 31
 	u32 i {(R4300_Rand()%(32-wired)) + wired};
 
-		#ifdef DAEDALUS_PROFILER
-			DPF( DEBUG_TLB, "TLBWR: INDEX: 0x%04x. ", i );
-		#endif
 	g_TLBs[i].UpdateValue(gCPUState.CPUControl[C0_PAGEMASK]._u32,
 						gCPUState.CPUControl[C0_ENTRYHI ]._u32,
 						gCPUState.CPUControl[C0_ENTRYLO1]._u32,
@@ -2078,27 +1830,17 @@ static void R4300_CALL_TYPE R4300_TLB_TLBP( R4300_CALL_SIGNATURE ) 				// TLB Pr
 {
 	u32 entryH {gCPUState.CPUControl[C0_ENTRYHI]._u32};
 
-#ifdef DAEDALUS_PROFILER
-	DPF( DEBUG_TLB, "TLBP: ENTRYHI: 0x%08x", entryH );
-	#endif
-
     for( u32 i {}; i < 32; i++ )
 	{
 		if( ((g_TLBs[i].hi & TLBHI_VPN2MASK) == (entryH & TLBHI_VPN2MASK)) && ( (g_TLBs[i].g)
 			|| ((g_TLBs[i].hi & TLBHI_PIDMASK) ==  (entryH    & TLBHI_PIDMASK))) )
 		{
-			#ifdef DAEDALUS_PROFILER
-			DPF( DEBUG_TLB, "   Found matching TLB Entry - 0x%04x", i );
-			#endif
 			gCPUState.CPUControl[C0_INX]._u32 = i;
 			return;
 		}
     }
 
 	gCPUState.CPUControl[C0_INX]._u32 = TLBINX_PROBE;
-		#ifdef DAEDALUS_PROFILER
-	DPF( DEBUG_TLB, "   No matching TLB Entry Found for 0x%08x", entryH );
-	#endif
 }
 
 static void R4300_CALL_TYPE R4300_TLB_ERET( R4300_CALL_SIGNATURE )
@@ -2107,17 +1849,11 @@ static void R4300_CALL_TYPE R4300_TLB_ERET( R4300_CALL_SIGNATURE )
 	if( gCPUState.CPUControl[C0_SR]._u32 & SR_ERL )
 	{
 		// Returning from an error trap
-			#ifdef DAEDALUS_PROFILER
-		DPF(DEBUG_INTR, "ERET: Returning from error trap");
-		#endif
 		CPU_SetPC( gCPUState.CPUControl[C0_ERROR_EPC]._u32 );
 		gCPUState.CPUControl[C0_SR]._u32 &= ~SR_ERL;
 	}
 	else
 	{
-			#ifdef DAEDALUS_PROFILER
-		DPF(DEBUG_INTR, "ERET: Returning from interrupt/exception");
-		#endif
 		// Returning from an exception
 		CPU_SetPC( gCPUState.CPUControl[C0_EPC]._u32 );
 		gCPUState.CPUControl[C0_SR]._u32 &= ~SR_EXL;
@@ -2184,9 +1920,6 @@ static void R4300_CALL_TYPE R4300_Cop1_CTC1( R4300_CALL_SIGNATURE ) 		// move Co
 {
 	R4300_CALL_MAKE_OP( op_code );
 
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( op_code.fs != 0, "CTC1 : Reg zero unhandled");
-	#endif
 	// Only defined for reg 0 or 31
 	// TODO - Maybe an exception was raised?
 	// Not needed for 0?
@@ -2203,47 +1936,7 @@ static void R4300_CALL_TYPE R4300_Cop1_CTC1( R4300_CALL_SIGNATURE ) 		// move Co
 		gRoundingMode = (ERoundingMode)( fpcr & FPCSR_RM_MASK );
 		SET_ROUND_MODE(gRoundingMode);
 	}
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	else
-	{
-		// Now generate lots of exceptions :-)
-	}
-	#endif
 }
-
-// Hack for the PSP, set rounding mode here, see notes in SET_ROUND_MODE
-// Fixes collision issues in the final boss of DK64 and camera icon not rotating, fixes collision issues in Rayman, and JFG too
-#ifdef DAEDALUS_PSP
-static void R4300_CALL_TYPE R4300_Cop1_CTC1_2( R4300_CALL_SIGNATURE )
-{
-	R4300_CALL_MAKE_OP( op_code );
-
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( op_code.fs != 0, "CTC1 : Reg zero unhandled");
-	#endif
-	// Only defined for reg 0 or 31
-	// TODO - Maybe an exception was raised?
-	// Not needed for 0?
-	/*if ( op_code.fs == 0 )
-	{
-		gCPUState.FPUControl[ op_code.fs ]._u64 = gGPR[ op_code.rt ]._u64;
-	}*/
-	if ( op_code.fs == 31 )
-	{
-		gCPUState.FPUControl[ 31 ]._u32 = gGPR[ op_code.rt ]._u32_0;
-
-		u32		fpcr( gCPUState.FPUControl[ 31 ]._u32 );
-		gRoundingMode = (ERoundingMode)( fpcr & FPCSR_RM_MASK );
-		pspFpuSetRoundmode( gNativeRoundingModes[ gRoundingMode ] );
-	}
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	else
-	{
-		// Now generate lots of exceptions :-)
-	}
-	#endif
-}
-#endif
 
 static void R4300_CALL_TYPE R4300_BC1_BC1F( R4300_CALL_SIGNATURE )		// Branch on FPU False
 {
@@ -2387,9 +2080,6 @@ static void R4300_CALL_TYPE R4300_Cop1_S_DIV( R4300_CALL_SIGNATURE )
 
 	// Should we handle if /0? GoldenEye007 and Exitebike does this.
 	// Not sure if is worth to handle this, I have yet to see a game that fails due this..
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(fDivisor != 0.0f, "Float divide by zero");
-#endif
 
 	// Causes excitebike to freeze when entering the menu
 	/*if ( fDivisor == 0 )
@@ -2560,26 +2250,6 @@ static void R4300_CALL_TYPE R4300_Cop1_S_CVT_D( R4300_CALL_SIGNATURE )
 
 	StoreFPR_Double( op_code.fd, f32_to_d64( fX ) );
 }
-
-// Used by Mario Party Draft mini game, Earth Worm Jim, Tom and Jerry, Power Puff Girls' disable esimulate double hack
-// Convert float to double...
-#ifdef SIM_DOUBLES
-static void R4300_CALL_TYPE R4300_Cop1_S_CVT_D_2( R4300_CALL_SIGNATURE )
-{
-	R4300_CALL_MAKE_OP( op_code );
-
-// 	SET_ROUND_MODE( gRoundingMode );		//XXXX Is this needed?
-
-	f32 fX {LoadFPR_Single( op_code.fs )};
-
-	REG64 r {};
-
-	r._f64 = (f64)fX;
-
-	gCPUState.FPU[op_code.fd+0]._u32 = r._u32_0;
-	gCPUState.FPU[op_code.fd+1]._u32 = r._u32_1;
-}
-#endif
 
 static void R4300_CALL_TYPE R4300_Cop1_S_EQ( R4300_CALL_SIGNATURE ) 				// Compare for Equality
 {
@@ -2763,15 +2433,6 @@ static void R4300_CALL_TYPE R4300_Cop1_S_ULT( R4300_CALL_SIGNATURE )
 
 static void R4300_CALL_TYPE R4300_Cop1_S_SF( R4300_CALL_SIGNATURE )
 {
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	R4300_CALL_MAKE_OP( op_code );
-
-	f32 fX {LoadFPR_Single( op_code.fs )};
-	f32 fY {LoadFPR_Single( op_code.ft )};
-
-	// CATCH_NAN_EXCEPTION( "R4300_Cop1_S_SF", fX, fY );
-#endif
-
 	gCPUState.FPUControl[31]._u32 &= ~FPCSR_C;
 }
 
@@ -2819,27 +2480,6 @@ static void R4300_CALL_TYPE R4300_Cop1_D_ABS( R4300_CALL_SIGNATURE )
 	StoreFPR_Double( op_code.fd, R4300_AbsD(fX) );
 }
 
-// Used by Buck Bumble to properly work with simulate doubles...
-#ifdef SIM_DOUBLES
-static void R4300_CALL_TYPE R4300_Cop1_D_ADD_2( R4300_CALL_SIGNATURE )
-{
-	R4300_CALL_MAKE_OP( op_code );
-
-	// fd = fs+ft
-	d64 fX {LoadFPR_Double( op_code.fs )};
-	d64 fY {LoadFPR_Double( op_code.ft )};
-
-// 	SET_ROUND_MODE( gRoundingMode );		//XXXX Is this needed?
-
-	REG64	r {};
-
-	// Use double, float won't work for buck bumble
-	r._f64 = f64( (f64)fX + (f64)fY );
-	gCPUState.FPU[op_code.fd+0]._u32 = r._u32_0;
-	gCPUState.FPU[op_code.fd+1]._u32 = r._u32_1;
-
-}
-#endif
 static void R4300_CALL_TYPE R4300_Cop1_D_ADD( R4300_CALL_SIGNATURE )
 {
 	R4300_CALL_MAKE_OP( op_code );
@@ -2887,10 +2527,6 @@ static void R4300_CALL_TYPE R4300_Cop1_D_DIV( R4300_CALL_SIGNATURE )
 	// fd = fs/ft
 	d64 fDividend = LoadFPR_Double( op_code.fs );
 	d64 fDivisor = LoadFPR_Double( op_code.ft );
-
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(fDivisor != 0, "Double divide by zero");
-	#endif
 
 // 	SET_ROUND_MODE( gRoundingMode );		//XXXX Is this needed?
 

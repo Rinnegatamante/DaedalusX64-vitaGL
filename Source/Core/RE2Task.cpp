@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Debug/DBGConsole.h"
 #include "Memory.h"
 #include "RDRam.h"
 #include "OSHLE/ultra_sptask.h"

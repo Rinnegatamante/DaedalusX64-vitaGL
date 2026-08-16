@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/ROM.h"
 #include "OSHLE/ultra_gbi.h"
 #include "Utility/Hash.h"
-#include "Utility/Profiler.h"
 
 static const char * const	gImageFormatNames[8] {"RGBA", "YUV", "CI", "IA", "I", "?1", "?2", "?3"};
 static const u32			gImageSizesInBits[4] {4, 8, 16, 32};
@@ -45,9 +44,6 @@ u32 TextureInfo::GetSizeInBits() const
 u32 TextureInfo::GenerateHashValue() const
 {
 	//Rewritten to use less recources //Corn
-#ifdef DAEDALUS_ENABLE_PROFILING
-	DAEDALUS_PROFILE( "TextureInfo::GenerateHashValue" );
-#endif
 	// If CRC checking is disabled, always return 0
 	if ( gCheckTextureHashFrequency == 0 ) return 0;
 

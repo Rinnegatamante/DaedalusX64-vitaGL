@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/R4300.h"
 #include "Core/Registers.h"
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "DynaRec/AssemblyUtils.h"
 #include "DynaRec/IndirectExitMap.h"
 #include "DynaRec/StaticAnalysis.h"
@@ -86,7 +84,7 @@ extern "C" {
 				gCPUState.CurrentPC += 4;
 				break;
 			default:
-				NODEFAULT;
+				break;
 		}
 	}
 }
@@ -242,9 +240,6 @@ void	CCodeGeneratorARM::SetRegisterSpanList(const SRegisterUsageInfo& register_u
 
 	// Push all the available registers in reverse order (i.e. use temporaries later)
 	// Use temporaries first so we can avoid flushing them in case of a funcion call //Corn
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(mAvailableRegisters.empty(), "Why isn't the available register list empty?");
-#endif
 	for (u32 i{ 0 }; i < NUM_CACHE_REGS; i++)
 	{
 		mAvailableRegisters.push(gRegistersToUseForCaching[i]);
@@ -334,9 +329,6 @@ void	CCodeGeneratorARM::ExpireOldIntervals(u32 instruction_idx)
 
 void	CCodeGeneratorARM::SpillAtInterval(const SRegisterSpan& live_span)
 {
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(!mActiveIntervals.empty(), "There are no active intervals");
-#endif
 	const SRegisterSpan& last_span(mActiveIntervals.back());		// Spill the last active interval (it has the greatest end point)
 
 	if (last_span.SpanEnd > live_span.SpanEnd)
@@ -554,9 +546,6 @@ void	CCodeGeneratorARM::PrepareCachedRegister(EN64Reg n64_reg, u32 lo_hi_idx)
 
 const CN64RegisterCacheARM& CCodeGeneratorARM::GetRegisterCacheFromHandle(RegisterSnapshotHandle snapshot) const
 {
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(snapshot.Handle < mRegisterSnapshots.size(), "Invalid snapshot handle");
-#endif
 	return mRegisterSnapshots[snapshot.Handle];
 }
 
@@ -576,19 +565,11 @@ void CCodeGeneratorARM::FlushRegister(CN64RegisterCacheARM& cache, EN64Reg n64_r
 		}
 		else if (cache.IsCached(n64_reg, lo_hi_idx))
 		{
-#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT(cache.IsValid(n64_reg, lo_hi_idx), "Register is dirty but not valid?");
-#endif
 			EArmReg	cached_reg(cache.GetCachedReg(n64_reg, lo_hi_idx));
 
 			SetVar(lo_hi_idx ? &gGPR[n64_reg]._u32_1 : &gGPR[n64_reg]._u32_0, cached_reg);
 		}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-		else
-		{
-			DAEDALUS_ERROR("Register is dirty, but not known or cached");
-		}
-#endif
+
 		// We're no longer dirty
 		cache.MarkAsDirty(n64_reg, lo_hi_idx, false);
 	}
@@ -635,9 +616,6 @@ void	CCodeGeneratorARM::FlushAllFloatingPointRegisters( CN64RegisterCacheARM & c
 		EN64FloatReg	n64_reg = EN64FloatReg( i );
 		if( cache.IsFPDirty( n64_reg ) )
 		{
-			#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT( cache.IsFPValid( n64_reg ), "Register is dirty but not valid?" );
-			#endif
 			EArmVfpReg	arm_reg = EArmVfpReg( n64_reg );
 
 			SetFloatVar( &gCPUState.FPU[n64_reg]._f32, arm_reg );
@@ -788,9 +766,6 @@ EArmVfpReg	CCodeGeneratorARM::GetFloatRegisterAndLoad( EN64FloatReg n64_reg )
 
 EArmVfpReg	CCodeGeneratorARM::GetDoubleRegisterAndLoad( EN64FloatReg n64_reg )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( n64_reg % 2 == 0, "n64_reg not a multiple of 2?" );
-	#endif
 	EArmVfpReg arm_reg = EArmVfpReg(n64_reg); // 1:1 mapping
 	if (!mRegisterCache.IsFPValid(n64_reg) && !mRegisterCache.IsFPValid(EN64FloatReg(n64_reg + 1)) )
 	{
@@ -823,9 +798,6 @@ inline void CCodeGeneratorARM::UpdateFloatRegister( EN64FloatReg n64_reg )
 
 inline void CCodeGeneratorARM::UpdateDoubleRegister( EN64FloatReg n64_reg )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( n64_reg % 2 == 0, "n64_reg not a multiple of 2?" );
-	#endif
 	mRegisterCache.MarkFPAsDirty( n64_reg, true );
 	mRegisterCache.MarkFPAsValid( n64_reg, true );
 	mRegisterCache.MarkFPAsSim( n64_reg, false );
@@ -900,9 +872,6 @@ EArmReg	CCodeGeneratorARM::GetRegisterAndLoad(EN64Reg n64_reg, u32 lo_hi_idx, EA
 //*****************************************************************************
 CJumpLocation CCodeGeneratorARM::GenerateExitCode( u32 exit_address, u32 jump_address, u32 num_instructions, CCodeLabel next_fragment )
 {
-	//DAEDALUS_ASSERT( exit_address != u32( ~0 ), "Invalid exit address" );
-	DAEDALUS_ASSERT( !next_fragment.IsSet() || jump_address == 0, "Shouldn't be specifying a jump address if we have a next fragment?" );
-
 #ifdef _DEBUG
 	if(exit_address == u32(~0))
 	{
@@ -912,9 +881,6 @@ CJumpLocation CCodeGeneratorARM::GenerateExitCode( u32 exit_address, u32 jump_ad
 
 	if( (exit_address == mEntryAddress) & mLoopTop.IsSet() )
 	{
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( mUseFixedRegisterAllocation, "Have mLoopTop but unfixed register allocation?" );
-		#endif
 		FlushAllFloatingPointRegisters( mRegisterCache, false );
 
 		// Check if we're ok to continue, without flushing any registers
@@ -2589,11 +2555,6 @@ void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is
 
 void CCodeGeneratorARM::GenerateBEQ( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BEQ?" );
-	#endif
-
 	if (rt == N64Reg_R0)
 	{
 		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
@@ -2626,11 +2587,6 @@ void CCodeGeneratorARM::GenerateBEQ( EN64Reg rs, EN64Reg rt, const SBranchDetail
 
 void CCodeGeneratorARM::GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BEQ?" );
-	#endif
-
 	if (rt == N64Reg_R0)
 	{
 		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
@@ -2663,11 +2619,6 @@ void CCodeGeneratorARM::GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetail
 
 void CCodeGeneratorARM::GenerateBLEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLEZ?" );
-	#endif
-
 	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
 
 	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
@@ -2686,11 +2637,6 @@ void CCodeGeneratorARM::GenerateBLEZ( EN64Reg rs, const SBranchDetails * p_branc
 
 void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
-	#endif
-
 	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
 
 	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
@@ -2709,11 +2655,6 @@ void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branc
 
 void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BLTZ?" );
-	#endif
-
 	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
 
 	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
@@ -2732,11 +2673,6 @@ void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branc
 
 void CCodeGeneratorARM::GenerateBGTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( p_branch != nullptr, "No branch details?" );
-	DAEDALUS_ASSERT( p_branch->Direct, "Indirect branch for BGTZ?" );
-	#endif
-
 	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
 
 	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
@@ -3004,10 +2940,6 @@ void CCodeGeneratorARM::GenerateCMP_D( u32 fs, u32 ft, EArmCond cond, u8 E )
 
 inline void	CCodeGeneratorARM::GenerateMFC0( EN64Reg rt, u32 fs )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	// Never seen this to happen, no reason to bother to handle it
-	DAEDALUS_ASSERT( fs != C0_RAND, "Reading MFC0 random register is unhandled");
-	#endif
 	EArmReg reg_dst( GetRegisterNoLoadLo( rt, ArmReg_R0 ) );
 
 	GetVar( reg_dst, &gCPUState.CPUControl[ fs ]._u32 );

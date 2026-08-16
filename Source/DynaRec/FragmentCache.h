@@ -70,20 +70,11 @@ public:
 	CFragmentCache();
 	~CFragmentCache();
 
-#ifdef DAEDALUS_DEBUG_DYNAREC
-	CFragment *				LookupFragment( u32 address ) const;
-#endif
 	CFragment *				LookupFragmentQ( u32 address ) const;
 	void					InsertFragment( CFragment * p_fragment );
 
 	u32						GetCacheSize() const					{ return mFragments.size(); }
 	void					Clear();
-
-#ifdef DAEDALUS_DEBUG_DYNAREC
-	void					DumpStats( const char * outputdir ) const;
-#endif
-
-	u32						GetMemoryUsage() const					{ return mMemoryUsage; }
 
 	CCodeBufferManager *	GetCodeBufferManager() const			{ return mpCodeBufferManager; }
 
@@ -109,10 +100,6 @@ private:
 
 	typedef std::vector< SFragmentEntry >	FragmentVec;
 	FragmentVec				mFragments;			// Sorted on Address
-
-	u32						mMemoryUsage;
-	u32						mInputLength;
-	u32						mOutputLength;
 
 	typedef std::vector< CJumpLocation >	JumpList;
 	typedef std::map< u32, JumpList >		JumpMap;

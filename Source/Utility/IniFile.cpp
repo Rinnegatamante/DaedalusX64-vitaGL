@@ -408,9 +408,6 @@ const CIniFileSection *	IIniFile::GetSection( u32 section_idx ) const
 	{
 		return mSections[ section_idx ];
 	}
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DAEDALUS_ERROR( "Invalid section index" );
-	#endif
 	return NULL;
 }
 

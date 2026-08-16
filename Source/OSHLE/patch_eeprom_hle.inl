@@ -1,19 +1,14 @@
-#define TEST_DISABLE_EEPROM_FUNCS //return PATCH_RET_NOT_PROCESSED;
-
 //*****************************************************************************
 //
 //*****************************************************************************
 u32 Patch___osEepStatus()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	// Return status of Eeeprom in OSContStatus struct passed in a1.
 	// a0 is the message queue to block on, and is ignored
 
 	u32 ContStatus = gGPR[REG_a1]._u32_0;
 	u32 type, data;
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "osEepStatus(), ra = 0x%08x", (u32)gGPR[REG_ra]._s64);
-#endif
+
 	// Set up ContStatus values
 	switch(g_ROM.settings.SaveType)
 	{
@@ -42,7 +37,6 @@ TEST_DISABLE_EEPROM_FUNCS
 // Is this intended? Seems odd to have the whole body commented out. Strmnnrnm.
 u32 Patch_osContInit()
 {
-TEST_DISABLE_FUNCS
 	//s32		osContInit(OSMesgQueue * mq, u8 *, OSContStatus * cs);
 
 	// a0 is the message queue to block on, and is ignored
@@ -76,11 +70,7 @@ TEST_DISABLE_FUNCS
 // Used in Mario Kart
 u32 Patch_osEepromProbe()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	// Returns 1 on EEPROM detected, 0 on error/no eeprom
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "osEepromProbe(), ra = 0x%08x", gGPR[REG_ra]._u32_0);
-#endif
 	u32 data = 0;
 	switch( g_ROM.settings.SaveType )
 	{
@@ -106,7 +96,6 @@ TEST_DISABLE_EEPROM_FUNCS
 //*****************************************************************************
 u32 Patch_osEepromRead()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	// s32 osEepromRead(OSMesgQueue * mq, u8 page, u8 * buf);
 	//u32 dwMQ   = gGPR[REG_a0]._u32_0;
 	//u32 dwPage = gGPR[REG_a1]._u32_0;
@@ -124,7 +113,6 @@ TEST_DISABLE_EEPROM_FUNCS
 //*****************************************************************************
 u32 Patch_osEepromLongRead()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	//u32 dwMQ   = gGPR[REG_a0]._u32_0;
 	//u32 dwPage = gGPR[REG_a1]._u32_0;
 	//u32 dwBuf  = gGPR[REG_a2]._u32_0;
@@ -143,7 +131,6 @@ TEST_DISABLE_EEPROM_FUNCS
 //*****************************************************************************
 u32 Patch_osEepromWrite()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	// s32 osEepromWrite(OSMesgQueue * mq, u8 page, u8 * buf);
 	//u32 dwMQ   = gGPR[REG_a0]._u32_0;
 	//u32 dwPage = gGPR[REG_a1]._u32_0;
@@ -164,7 +151,6 @@ TEST_DISABLE_EEPROM_FUNCS
 //*****************************************************************************
 u32 Patch_osEepromLongWrite()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	//u32 dwMQ   = gGPR[REG_a0]._u32_0;
 	//u32 dwPage = gGPR[REG_a1]._u32_0;
 	//u32 dwBuf  = gGPR[REG_a2]._u32_0;
@@ -186,7 +172,6 @@ TEST_DISABLE_EEPROM_FUNCS
 //*****************************************************************************
 u32 Patch___osContGetInitData()
 {
-TEST_DISABLE_EEPROM_FUNCS
 	//u32 data = gGPR[REG_a0]._u32_0;
 	//u32 pad = gGPR[REG_a1]._u32_0;
 

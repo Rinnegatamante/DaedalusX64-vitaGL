@@ -21,6 +21,8 @@
    access functions to crctables and pkeys
 */
 
+#include <vitasdk.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

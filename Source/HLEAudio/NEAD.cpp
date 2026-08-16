@@ -33,8 +33,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Math/MathUtil.h"
 
-#include "Debug/DBGConsole.h"
-
 bool isZeldaABI = false;
 
 static u32 gEnv_t3, gEnv_s5, gEnv_s6;

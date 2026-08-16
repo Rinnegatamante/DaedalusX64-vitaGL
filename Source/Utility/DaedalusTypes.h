@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef UTILITY_DAEDALUSTYPES_H_
 #define UTILITY_DAEDALUSTYPES_H_
 
-#include "Debug/DaedalusAssert.h"
-
-
-#if !defined(DAEDALUS_W32) || _MSC_VER >= 1600
 #include <stdint.h>
 
 typedef uint8_t					u8;
@@ -38,35 +34,6 @@ typedef int64_t					s64;
 
 typedef float					f32;
 typedef double					f64;
-
-#else
-
-typedef unsigned char			u8;
-typedef unsigned short			u16;
-typedef unsigned long			u32;
-typedef unsigned long long		u64;
-
-typedef signed char				s8;
-typedef short					s16;
-typedef long					s32;
-typedef long long				s64;
-
-typedef float					f32;
-typedef double					f64;
-
-#endif
-
-DAEDALUS_STATIC_ASSERT( sizeof( u8 ) == 1 );
-DAEDALUS_STATIC_ASSERT( sizeof( s8 ) == 1 );
-DAEDALUS_STATIC_ASSERT( sizeof( u16 ) == 2 );
-DAEDALUS_STATIC_ASSERT( sizeof( s16 ) == 2 );
-DAEDALUS_STATIC_ASSERT( sizeof( u32 ) == 4 );
-DAEDALUS_STATIC_ASSERT( sizeof( s32 ) == 4 );
-DAEDALUS_STATIC_ASSERT( sizeof( u64 ) == 8 );
-DAEDALUS_STATIC_ASSERT( sizeof( s64 ) == 8 );
-DAEDALUS_STATIC_ASSERT( sizeof( f32 ) == 4 );
-DAEDALUS_STATIC_ASSERT( sizeof( f64 ) == 8 );
-
 
 union REG64
 {
@@ -99,8 +66,6 @@ union REG64
 	u8		_u8[8];*/
 };
 
-DAEDALUS_STATIC_ASSERT( sizeof( REG64 ) == sizeof( u64 ) );
-
 union REG32
 {
 	f32		_f32;
@@ -113,12 +78,6 @@ union REG32
 	u8		_u8[4];*/
 };
 
-DAEDALUS_STATIC_ASSERT( sizeof( REG32 ) == sizeof( u32 ) );
-
-#if defined(DAEDALUS_PSP)
-#define _strcmpi stricmp
-#elif defined(DAEDALUS_PS3) || defined(DAEDALUS_OSX) || defined(DAEDALUS_LINUX) || defined(DAEDALUS_VITA)
 #define _strcmpi strcasecmp
-#endif
 
 #endif // UTILITY_DAEDALUSTYPES_H_

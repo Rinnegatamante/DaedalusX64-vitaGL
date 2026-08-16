@@ -31,8 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "RomSettings.h"
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "Interface/RomDB.h"
 #include "Math/MathUtil.h"
 #include "OSHLE/patch.h"			// Patch_ApplyPatches
@@ -44,45 +42,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/FramerateLimiter.h"
 #include "Utility/IO.h"
 #include "Utility/Macros.h"
-#include "Utility/Preferences.h"
 #include "Utility/ROMFile.h"
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
-#ifdef DAEDALUS_VITA
 #include "SysVita/UI/Menu.h"
-#endif
-
-#if defined(DAEDALUS_ENABLE_DYNAREC_PROFILE) || defined(DAEDALUS_W32)
-// This isn't really the most appropriate place. Need to check with
-// the graphics plugin really
-u32 g_dwNumFrames {};
-#endif
 
 RomInfo g_ROM;
-
-static void DumpROMInfo( const ROMHeader & header )
-{
-	// The "Header" is actually something to do with the PI_DOM_*_OFS values...
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Header:          0x%02x%02x%02x%02x", header.x1, header.x2, header.x3, header.x4);
-	DBGConsole_Msg(0, "Clockrate:       0x%08x", header.ClockRate);
-	DBGConsole_Msg(0, "BootAddr:        0x%08x", BSWAP32(header.BootAddress));
-	DBGConsole_Msg(0, "Release:         0x%08x", header.Release);
-	DBGConsole_Msg(0, "CRC1:            0x%08x", header.CRC1);
-	DBGConsole_Msg(0, "CRC2:            0x%08x", header.CRC2);
-	DBGConsole_Msg(0, "Unknown0:        0x%08x", header.Unknown0);
-	DBGConsole_Msg(0, "Unknown1:        0x%08x", header.Unknown1);
-	DBGConsole_Msg(0, "ImageName:       '%s'",   header.Name);
-	DBGConsole_Msg(0, "Unknown2:        0x%08x", header.Unknown2);
-	DBGConsole_Msg(0, "Unknown3:        0x%04x", header.Unknown3);
-	DBGConsole_Msg(0, "Unknown4:        0x%02x", header.Unknown4);
-	DBGConsole_Msg(0, "Manufacturer:    0x%02x", header.Manufacturer);
-	DBGConsole_Msg(0, "CartID:          0x%04x", header.CartID);
-	DBGConsole_Msg(0, "CountryID:       0x%02x - '%c'", header.CountryID, (char)header.CountryID);
-	DBGConsole_Msg(0, "Unknown5:        0x%02x", header.Unknown5);
-#endif
-}
 
 static void ROM_SimulatePIFBoot( ECicType cic_chip, u32 Country )
 {
@@ -276,43 +242,6 @@ bool ROM_ReBoot()
 	RomBuffer::GetRomBytesRaw( rom_base, 0, RAMROM_GAME_OFFSET );
 
 	g_ROM.cic_chip = ROM_GenerateCICType( rom_base );
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	if (g_ROM.cic_chip == CIC_UNKNOWN)
-	{
-		//DAEDALUS_ERROR( "Unknown CIC CRC: 0x%08x\nAssuming CIC-6102", crc );
-		//DBGConsole_Msg(0, "[MUnknown CIC CRC: 0x%08x]", crc );
-		DBGConsole_Msg(0, "[MUnknown CIC]" );
-	}
-	else
-	{
-		DBGConsole_Msg(0, "[MRom uses %s]", ROM_GetCicName( g_ROM.cic_chip ) );
-
-/* goodn64 already tell us if the rom is good or bad
-		u32 crc1;
-		u32 crc2;
-		if( ROM_DoCicCheckSum( g_ROM.cic_chip, &crc1, &crc2 ) )
-		{
-			if (crc1 != RomBuffer::ReadValueRaw< u32 >( 0x10 ) ||
-				crc2 != RomBuffer::ReadValueRaw< u32 >( 0x14 ))
-			{
-				DBGConsole_Msg(0, "[MWarning, CRC values don't match, fixing]");
-
-				RomBuffer::WriteValueRaw< u32 >( 0x10, crc1 );
-				RomBuffer::WriteValueRaw< u32 >( 0x14, crc2 );
-			}
-		}
-		else
-		{
-			// Unable to checksum - just continue with what we have
-		}
-*/
-	}
-#endif
-	// XXXX Update this rom's boot info
-#ifdef DAEDALUS_ENABLE_DYNAREC_PROFILE
-	g_dwNumFrames = 0;
-#endif
 
 #ifdef DAEDALUS_ENABLE_OS_HOOKS
 	Patch_Reset();
@@ -526,18 +455,13 @@ bool ROM_LoadFile()
 	if (ROM_GetRomDetailsByFilename(g_ROM.mFileName, &rom_id, &rom_size, &boot_type ))
 	{
 		RomSettings			settings;
-		SRomPreferences		preferences;
 
 		if (!CRomSettingsDB::Get()->GetSettings( rom_id, &settings ))
 		{
 			settings.Reset();
 		}
-		if (!CPreferences::Get()->GetRomPreferences( rom_id, &preferences ))
-		{
-			preferences.Reset();
-		}
 
-		return ROM_LoadFile( rom_id, settings, preferences );
+		return ROM_LoadFile( rom_id, settings );
 	}
 
 	return false;
@@ -550,20 +474,14 @@ void ROM_UnloadFile()
 	g_ROM.settings = RomSettings();
 }
 
-bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings, const SRomPreferences & preferences )
+bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings )
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Reading rom image: [C%s]", g_ROM.mFileName);
-	#endif
 	// Get information about the rom header
 	RomBuffer::GetRomBytesRaw( &g_ROM.rh, 0, sizeof(ROMHeader) );
 
 	//	Swap into native format
 	ROMFile::ByteSwap_3210( &g_ROM.rh, sizeof(ROMHeader) );
 
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( RomID( g_ROM.rh ) == rom_id, "Why is the rom id incorrect?" );
-	#endif
 	// Copy across various bits
 	g_ROM.mRomID   = rom_id;
 	g_ROM.settings = settings;
@@ -572,12 +490,6 @@ bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings, const SRom
 	// Game specific hacks..
 	SpecificGameHacks( g_ROM.rh );
 
-	DumpROMInfo( g_ROM.rh );
-
-#ifndef DAEDALUS_VITA // Disabling this until we have preferences working
-	// Read and apply preferences from preferences.ini
-	preferences.Apply();
-#endif
 	// Parse cheat file this rom, if cheat feature is enabled
 	// This is also done when accessing the cheat menu
 	// But we do this when ROM is loaded too, to allow any forced enabled cheats to work.
@@ -586,15 +498,6 @@ bool ROM_LoadFile(const RomID & rom_id, const RomSettings & settings, const SRom
 		CheatCodes_Read( g_ROM.settings.GameName.c_str(), "Daedalus.cht", g_ROM.rh.CountryID );
 	}
 
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "[G%s]", g_ROM.settings.GameName.c_str());
-	DBGConsole_Msg(0, "SaveType: [G%s]", ROM_GetSaveTypeName( g_ROM.settings.SaveType ) );
-	DBGConsole_Msg(0, "ApplyPatches: [G%s]", gOSHooksEnabled ? "on" : "off");
-	DBGConsole_Msg(0, "Check Texture Hash Freq: [G%d]", gCheckTextureHashFrequency);
-	DBGConsole_Msg(0, "SpeedSync: [G%d]", gSpeedSyncEnabled);
-	DBGConsole_Msg(0, "DynaRec: [G%s]", gDynarecEnabled ? "on" : "off");
-	DBGConsole_Msg(0, "Cheats: [G%s]", gCheatsEnabled ? "on" : "off");
-	#endif
 	//Patch_ApplyPatches();
 
 	return true;
@@ -662,7 +565,6 @@ struct CountryIDInfo
 
 static const CountryIDInfo g_CountryCodeInfo[] =
 {
-#ifdef DAEDALUS_VITA
 	{  0,  lang_strings[STR_UNKNOWN],		OS_TV_NTSC },
 	{ '7', "Beta",							OS_TV_NTSC },
 	{ 'A', "NTSC",							OS_TV_NTSC },
@@ -676,21 +578,6 @@ static const CountryIDInfo g_CountryCodeInfo[] =
 	{ 'U', lang_strings[STR_REGION_AUS],	OS_TV_PAL },
 	{ 'X', "PAL",							OS_TV_PAL },
 	{ 'Y', "PAL",							OS_TV_PAL }
-#else
-	{  0,  "0",			OS_TV_NTSC },
-	{ '7', "Beta",		OS_TV_NTSC },
-	{ 'A', "NTSC",		OS_TV_NTSC },
-	{ 'D', "Germany",	OS_TV_PAL },
-	{ 'E', "USA",		OS_TV_NTSC },
-	{ 'F', "France",	OS_TV_PAL },
-	{ 'I', "Italy",		OS_TV_PAL },
-	{ 'J', "Japan",		OS_TV_NTSC },
-	{ 'P', "Europe",	OS_TV_PAL },
-	{ 'S', "Spain",		OS_TV_PAL },
-	{ 'U', "Australia", OS_TV_PAL },
-	{ 'X', "PAL",		OS_TV_PAL },
-	{ 'Y', "PAL",		OS_TV_PAL }
-#endif
 };
 
 // Get a string representing the country name from an ID value

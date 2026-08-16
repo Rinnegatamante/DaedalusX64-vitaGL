@@ -24,7 +24,6 @@ Copyright (C) 2001 StrmnNrmn
 
 #include "DLDebug.h"
 #include "Core/Memory.h"
-#include "Debug/DBGConsole.h"
 
 #include "RDP.h"
 #include "N64PixelFormat.h"
@@ -229,9 +228,6 @@ struct SConvert
 	template < typename OutT, u32 InFiddle, u32 OutFiddle >
 	static inline void ConvertRow( OutT * dst, const u8 * src, u32 src_offset, u32 width )
 	{
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_DL_ASSERT( IsAligned( src_offset, sizeof( InT ) ), "Offset should be correctly aligned" );
-		#endif
 		//
 		//	Need to be careful of this - ensure that it's doing the right thing in all cases and not overflowing rows.
 		//	This is to ensure that we correctly convert all the texels in a row, even when we're fiddling.
@@ -275,9 +271,6 @@ struct SConvert
 		case TexFmt_CI8_8888: break;
 
 		}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_DL_ERROR( "Unhandled format" );
-		#endif
 	}
 };
 
@@ -337,9 +330,6 @@ struct SConvertIA4
 		case TexFmt_CI8_8888: break;
 
 		}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_DL_ERROR( "Unhandled format" );
-		#endif
 	}
 };
 
@@ -401,9 +391,6 @@ struct SConvertI4
 		case TexFmt_CI8_8888: break;
 
 		}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_DL_ERROR( "Unhandled format" );
-		#endif
 	}
 };
 
@@ -454,10 +441,6 @@ static void ConvertCI4_Row( NativePfCI44 * dst, const u8 * src, u32 src_offset, 
 template< u32 F >
 static void ConvertCI4_Row_To_8888( NativePf8888 * dst, const u8 * src, u32 src_offset, u32 width, const NativePf8888 * palette )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(palette, "No palette");
-	#endif
-
 	for (u32 x = 0; x+1 < width; x+=2)
 	{
 		u8 b = src[src_offset ^ F];
@@ -495,10 +478,6 @@ static void ConvertCI8_Row( NativePfCI8 * dst, const u8 * src, u32 src_offset, u
 template< u32 F >
 static  void ConvertCI8_Row_To_8888( NativePf8888 * dst, const u8 * src, u32 src_offset, u32 width, const NativePf8888 * palette )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(palette, "No palette");
-	#endif
-
 	for (u32 x = 0; x < width; x++)
 	{
 		u8 b     = src[src_offset ^ F];
@@ -566,11 +545,8 @@ static void ConvertCI8(const TextureDestInfo & dsti, const TextureInfo & ti)
 							   ConvertCI8_Row< 0x3 > );
 		break;
 
-#ifdef DAEDALUS_DEBUG_CONSOLE
 	default:
-		DAEDALUS_ERROR( "Unhandled format for CI8 textures" );
 		break;
-		#endif
 	}
 }
 
@@ -590,12 +566,7 @@ static void ConvertYUV16(const TextureDestInfo & dsti, const TextureInfo & ti)
 	// NB! YUV/16 line needs to be doubled.
 	src_row_stride *= 2;
 
-	if (ti.IsSwapped())
-	{
-		//TODO: This should be easy to implement but I would like to find first a game that uses it
-		DAEDALUS_ERROR("Swapped YUV16 textures are not supported yet");
-	}
-	else
+	if (!ti.IsSwapped())
 	{
 		for (u32 y = 0; y < height; y++)
 		{
@@ -645,11 +616,8 @@ static void ConvertCI4(const TextureDestInfo & dsti, const TextureInfo & ti)
 							   ConvertCI4_Row< 0x3 > );
 		break;
 
-#ifdef DAEDALUS_DEBUG_CONSOLE
 	default:
-		DAEDALUS_ERROR( "Unhandled format for CI4 textures" );
 		break;
-		#endif
 	}
 }
 

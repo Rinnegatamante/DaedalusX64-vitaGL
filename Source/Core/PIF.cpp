@@ -94,9 +94,7 @@ area assignment does not change. After Tx/RxData assignment, this flag is reset 
 #include "Save.h"
 
 #include "Math/MathUtil.h"
-#include "Utility/Preferences.h"
 
-#include "Debug/DBGConsole.h"
 #include "Input/InputManager.h"
 
 #include "OSHLE/ultra_os.h"
@@ -107,17 +105,7 @@ area assignment does not change. After Tx/RxData assignment, this flag is reset 
 #pragma warning(default : 4002)
 #endif
 
-#ifdef DAEDALUS_DEBUG_PIF
-	#define DPF_PIF( ... )		{ if ( mDebugFile ) { fprintf( mDebugFile, __VA_ARGS__ ); fprintf( mDebugFile, "\n" ); } }
-#else
-	#define DPF_PIF( ... )
-#endif
-
-#ifdef DAEDALUS_VITA
 #include <vitasdk.h>
-#else
-bool gRumblePakActive = false;
-#endif
 
 #define PIF_RAM_SIZE 64
 
@@ -160,11 +148,6 @@ class	IController : public CController
 		void			n64_cic_nus_6105();
 		u8				Byte2Bcd(s32 n)								{ n %= 100; return ((n / 10) << 4) | (n % 10); }
 
-
-#ifdef DAEDALUS_DEBUG_PIF
-		void			DumpInput() const;
-#endif
-
 	private:
 
 		enum
@@ -198,10 +181,6 @@ class	IController : public CController
 
 		u8 *			mpPifRam;
 
-#ifdef DAEDALUS_DEBUG_PIF
-		u8				mpInput[ PIF_RAM_SIZE ];
-#endif
-
 		enum EPIFChannels
 		{
 			PC_CONTROLLER_0 = 0,
@@ -224,10 +203,6 @@ class	IController : public CController
 
 		u8 *			mMemPack[ NUM_CONTROLLERS ];
 
-#ifdef DAEDALUS_DEBUG_PIF
-		FILE *			mDebugFile;
-#endif
-
 };
 
 
@@ -236,9 +211,6 @@ class	IController : public CController
 
 template<> bool	CSingleton< CController >::Create()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT_Q(mpInstance == nullptr);
-	#endif
 	mpInstance = new IController();
 
 	return true;
@@ -251,32 +223,13 @@ IController::IController() :
 	mpPifRam( nullptr ),
 	mpEepromData( nullptr )
 {
-#ifdef DAEDALUS_DEBUG_PIF
-#ifdef DAEDALUS_VITA
-	mDebugFile = fopen( "ux0:data/controller.txt", "w" );
-#else
-	mDebugFile = fopen( "controller.txt", "w" );
-#endif
-#endif
-
-#ifdef DAEDALUS_VITA
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
-#endif
 
 	for (u32 i = 0; i < NUM_CONTROLLERS; i++)
 	{
-#ifdef DAEDALUS_VITA
 		mContPresent[i] = pinfo.port[i ? (i+1) : 0] != SCE_CTRL_TYPE_UNPAIRED;
-#else
-		mContPresent[i] = false;
-#endif
 	}
-
-#ifndef DAEDALUS_VITA
-	// Only one controller is enabled, this has to be revised once mltiplayer is introduced
-	mContPresent[0] = true;
-#endif
 }
 
 
@@ -284,12 +237,6 @@ IController::IController() :
 
 IController::~IController()
 {
-#ifdef DAEDALUS_DEBUG_PIF
-	if( mDebugFile != nullptr )
-	{
-		fclose( mDebugFile );
-	}
-#endif
 }
 
 
@@ -309,18 +256,12 @@ bool IController::OnRomOpen()
 	{
 		mpEepromData = (u8*)g_pMemoryBuffers[MEM_SAVE];
 		mEepromContType = 0x80;
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg( 0, "Initialising EEPROM to [M%d] bytes", 4096/8 );	// 4k bits
-		#endif
 	}
 	else if ( save_type == SAVE_TYPE_EEP16K )
 	{
 
 		mpEepromData = (u8*)g_pMemoryBuffers[MEM_SAVE];
 		mEepromContType = 0xC0;
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg( 0, "Initialising EEPROM to [M%d] bytes", 16384/8 );	// 16 kbits
-		#endif
 	}
 	else
 	{
@@ -341,13 +282,6 @@ void IController::OnRomClose() {}
 
 void IController::Process()
 {
-#ifdef DAEDALUS_DEBUG_PIF
-	sceClibMemcpy(mpInput, mpPifRam, PIF_RAM_SIZE);
-	DPF_PIF("");
-	DPF_PIF("");
-	DPF_PIF("*********************************************");
-	DPF_PIF("**                                         **");
-#endif
 
 	u32 count = 0, channel = 0;
 	
@@ -357,9 +291,6 @@ void IController::Process()
 		(tmp[2] == 0xFFFFFFFF) &&
 		(tmp[3] == 0xFFFFFFFF))
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "[YDecrypting PifRam]");
-		#endif
 		n64_cic_nus_6105();
 		return;
 	}
@@ -375,35 +306,20 @@ void IController::Process()
 		
 		switch (cmd[0]) {
 		case CONT_TX_SIZE_FORMAT_END:
-#ifdef DAEDALUS_DEBUG_PIF
-			DPF_PIF("Command Format End on Chn %ld", channel);
-#endif
 			stop = true;
 			break;
 		case CONT_TX_SIZE_DUMMYDATA:
-#ifdef DAEDALUS_DEBUG_PIF
-			DPF_PIF("Command Dummy Data on Chn %ld", channel);
-#endif
 			count++;
 			break;
 		case CONT_TX_SIZE_CHANSKIP:
-#ifdef DAEDALUS_DEBUG_PIF
-			DPF_PIF("Command Chn Skip on Chn %ld", channel);
-#endif
 			count++;
 			channel++;
 			break;
 		case CONT_TX_SIZE_CHANRESET:
-#ifdef DAEDALUS_DEBUG_PIF
-			DPF_PIF("Command Chn Reset on Chn %ld", channel);
-#endif
 			count++;
 			channel++;
 			break;
 		default:
-#ifdef DAEDALUS_DEBUG_PIF
-			DPF_PIF("Processing Chn %ld", channel);
-#endif
 			// HACK?: some games sends bogus PIF commands while accessing controller paks
 			// Yoshi Story, Top Gear Rally 2, Indiana Jones, ...
 			// When encountering such commands, we skip this bogus byte.
@@ -423,9 +339,6 @@ void IController::Process()
 				ProcessEeprom(cmd);
 				break;
 			default:
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				DAEDALUS_ERROR( "Trying to write from invalid controller channel! %d", channel );
-				#endif
 				break;
 			}
 		
@@ -438,40 +351,7 @@ void IController::Process()
 	}
 
 	mpPifRam[PIF_RAM_SIZE - 1] = 0;	// Set the last bit as 0 as successfully return
-
-#ifdef DAEDALUS_DEBUG_PIF
-	DPF_PIF("Before | After:");
-
-	for ( u32 x {}; x < 64; x+=8 )
-	{
-		DPF_PIF( "0x%02x%02x%02x%02x : 0x%02x%02x%02x%02x  |  0x%02x%02x%02x%02x : 0x%02x%02x%02x%02x",
-			mpInput[(x + 0)],  mpInput[(x + 1)],  mpInput[(x + 2)],  mpInput[(x + 3)],
-			mpInput[(x + 4)],  mpInput[(x + 5)],  mpInput[(x + 6)],  mpInput[(x + 7)],
-			mpPifRam[(x + 0)], mpPifRam[(x + 1)], mpPifRam[(x + 2)], mpPifRam[(x + 3)],
-			mpPifRam[(x + 4)], mpPifRam[(x + 5)], mpPifRam[(x + 6)], mpPifRam[(x + 7)] );
-	}
-	DPF_PIF("");
-	DPF_PIF("");
-	DPF_PIF("**                                         **");
-	DPF_PIF("*********************************************");
-#endif
 }
-
-#ifdef DAEDALUS_DEBUG_PIF
-
-// Dump the PIF input
-
-void IController::DumpInput() const
-{
-	DBGConsole_Msg( 0, "PIF:" );
-	for ( u32 x = 0; x < PIF_RAM_SIZE; x+=8 )
-	{
-		DBGConsole_Msg( 0, "0x%02x%02x%02x%02x : 0x%02x%02x%02x%02x",
-			mpInput[(x + 0)],  mpInput[(x + 1)],  mpInput[(x + 2)],  mpInput[(x + 3)],
-			mpInput[(x + 4)],  mpInput[(x + 5)],  mpInput[(x + 6)],  mpInput[(x + 7)] );
-	}
-}
-#endif
 
 
 // i points to start of command
@@ -482,9 +362,6 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 
 	if( !mContPresent[channel] )
 	{
-		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller %ld is not connected", channel);
-		#endif
 		cmd[1] |= 0x80;
 		cmd[3] = 0xFF;
 		cmd[4] = 0xFF;
@@ -496,18 +373,12 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 	{
 	case CONT_RESET:
 	case CONT_GET_STATUS:
-		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller #%ld: Command is RESET/STATUS", channel);
-		#endif
 		cmd[3] = 0x05;
 		cmd[4] = 0x00;
 		cmd[5] = CONT_STATUS_PAK_PRESENT;
 		break;
 
 	case CONT_READ_CONTROLLER:
-		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller #%ld: Executing READ_CONTROLLER", channel);
-		#endif
 		cmd[3] = (u8)(mContPads[channel].button >> 8);
 		cmd[4] = (u8)mContPads[channel].button;
 		cmd[5] = (u8)mContPads[channel].stick_x;
@@ -515,9 +386,6 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 		break;
 
 	case CONT_READ_MEMPACK:
-		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller: Command is READ_MEMPACK");
-		#endif
 		if (has_rumblepak[channel])
 			CommandReadRumblePack(cmd);
 		else
@@ -525,9 +393,6 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 		break;
 
 	case CONT_WRITE_MEMPACK:
-		#ifdef DAEDALUS_DEBUG_PIF
-		DPF_PIF("Controller #%ld: Command is WRITE_MEMPACK", channel);
-		#endif
 		if (has_rumblepak[channel])
 			CommandWriteRumblePack(channel, cmd);
 		else
@@ -535,9 +400,6 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 		break;
 
 	default:
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Unknown controller command: %02x", cmd[2] );
-		#endif
 		break;
 	}
 
@@ -549,9 +411,6 @@ bool	IController::ProcessController(u8 *cmd, u32 channel)
 
 bool	IController::ProcessEeprom(u8 *cmd)
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( IsEepromPresent(), "ROM is accessing the EEPROM, but none is present");
-#endif
 	switch(cmd[2])
 	{
 	case CONT_RESET:
@@ -582,15 +441,9 @@ bool	IController::ProcessEeprom(u8 *cmd)
 		break;
 
 	case CONT_RTC_WRITE:	// write RTC block
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR("RTC Write : %02x Not Implemented", cmd[2]);
-		#endif
 		break;
 
 	default:
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Unknown Eeprom command: %02x", cmd[2] );
-		#endif
 		break;
 	}
 
@@ -692,14 +545,10 @@ void	IController::CommandWriteRumblePack(u32 channel, u8 *cmd)
 	u16 addr = (cmd[3] << 8) | (cmd[4] & 0xE0);
 
 	if ( addr == 0xC000 ) {
-#ifdef DAEDALUS_VITA
 		SceCtrlActuator handle;
 		handle.small = cmd[5] ? 100 : 0;
 		handle.large = cmd[5] ? 100 : 0;
 		sceCtrlSetActuator(channel + 1, &handle);
-#else
-		gRumblePakActive = cmd[5] ? true : false;
-#endif
 	}
 
 	cmd[37] = CalculateDataCrc(&cmd[5]);
@@ -738,11 +587,8 @@ void	IController::CommandReadRTC(u8 *cmd)
 		cmd[11] = Byte2Bcd(curtime.tm_year / 100);
 		cmd[12] = 0x00;       // status
 		break;
-		#ifdef DAEDALUS_DEBUG_CONSOLE
 	default:
-		DAEDALUS_ERROR( "Unknown Eeprom command: %02x", cmd[3] );
 		break;
-		#endif
 	}
 }
 
@@ -820,10 +666,7 @@ void IController::n64_cic_nus_6105()
 		mpPifRam[PIF_RAM_SIZE - 1] = 0;
 		break;
 	}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
 	default:
-		DAEDALUS_ERROR("Failed to decrypt pif ram");
 		break;
-		#endif
 	}
 }

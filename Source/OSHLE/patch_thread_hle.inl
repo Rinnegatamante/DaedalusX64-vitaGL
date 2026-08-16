@@ -1,10 +1,8 @@
-#define TEST_DISABLE_THREAD_FUNCS DAEDALUS_PROFILE(__FUNCTION__);
 //*****************************************************************************
 //
 //*****************************************************************************
 u32 Patch_osCreateThread_Mario()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 thread = gGPR[REG_a0]._u32_0;
 	u32 id     = gGPR[REG_a1]._u32_0;
 	u32 func  = gGPR[REG_a2]._u32_0;
@@ -22,10 +20,7 @@ TEST_DISABLE_THREAD_FUNCS
 
 	// Pri is arg 5
 	u32 pri = QuickRead32Bits(pStackBase, 4*5);
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "[WosCreateThread](0x%08x, %d, 0x%08x(), 0x%08x, 0x%08x, %d)",
-		thread, id, func, arg, stack, pri );
-#endif
+
 	// fp used - we now HLE the Cop1 Unusable exception and set this
 	// when the thread first accesses the FP unit
 	QuickWrite32Bits(pThreadBase, offsetof(OSThread, fp), 0);						// pThread->fp
@@ -68,7 +63,6 @@ TEST_DISABLE_THREAD_FUNCS
 // Identical to Mario code - just more optimised
 u32 Patch_osCreateThread_Rugrats()
 {
-TEST_DISABLE_THREAD_FUNCS
 	return Patch_osCreateThread_Mario();
 }
 
@@ -78,7 +72,6 @@ TEST_DISABLE_THREAD_FUNCS
 // ToDo : Implement me
 u32 Patch_osSetThreadPri()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 thread = gGPR[REG_a0]._u32_0;
 //	u32 pri    = gGPR[REG_a1]._u32_0;
 
@@ -99,7 +92,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch_osGetThreadPri()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 thread = gGPR[REG_a0]._u32_0;
 	u32 pri;
 
@@ -119,7 +111,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch___osDequeueThread()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 queue = gGPR[REG_a0]._u32_0;
 	u32 thread = gGPR[REG_a1]._u32_0;
 
@@ -151,7 +142,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch___osDispatchThread_Mario()
 {
-TEST_DISABLE_THREAD_FUNCS
 	// First pop the first thread off the stack (copy of osPopThread code):
 	u32 thread = Read32Bits(VAR_ADDRESS(osThreadQueue));
 
@@ -261,7 +251,6 @@ TEST_DISABLE_THREAD_FUNCS
 // Neither of these are correct- they ignore the interrupt mask thing
 u32 Patch___osDispatchThread_MarioKart()
 {
-TEST_DISABLE_THREAD_FUNCS
 	return Patch___osDispatchThread_Mario();
 }
 
@@ -270,8 +259,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch___osDispatchThread_Rugrats()
 {
-TEST_DISABLE_THREAD_FUNCS
-
 	u32 thread = Read32Bits(VAR_ADDRESS(osThreadQueue));
 
 	u8 * pThreadBase = (u8 *)ReadAddress(thread);
@@ -426,8 +413,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch_osDestroyThread_Mario()
 {
-TEST_DISABLE_THREAD_FUNCS
-
 	u32 thread = gGPR[REG_a0]._u32_0;
 	u32 CurrThread;
 	u32 NextThread;
@@ -440,9 +425,6 @@ TEST_DISABLE_THREAD_FUNCS
 	{
 		thread = ActiveThread;
 	}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "osDestroyThread(0x%08x)", thread);
-#endif
 	state = Read16Bits(thread + offsetof(OSThread, state));
 	if (state != OS_STATE_STOPPED)
 	{
@@ -497,10 +479,6 @@ TEST_DISABLE_THREAD_FUNCS
 // ToDo : Implement me
 u32 Patch_osDestroyThread_Zelda()
 {
-TEST_DISABLE_THREAD_FUNCS
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "osDestroyThread_Zelda not implemented (0x%08x)", gGPR[REG_a0]._u32_0);
-#endif
 	return PATCH_RET_NOT_PROCESSED0(osDestroyThread);
 }
 
@@ -509,7 +487,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch___osEnqueueThread_Mario()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 queue = gGPR[REG_a0]._u32_0;
 	u32 thread = gGPR[REG_a1]._u32_0;
 	u32 ThreadPri = Read32Bits(thread + 0x4);
@@ -547,7 +524,6 @@ TEST_DISABLE_THREAD_FUNCS
 // Identical - just different compilation
 u32 Patch___osEnqueueThread_Rugrats()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 queue = gGPR[REG_a0]._u32_0;
 	u32 thread = gGPR[REG_a1]._u32_0;
 	u32 ThreadPri = Read32Bits(thread + 0x4);
@@ -585,7 +561,6 @@ TEST_DISABLE_THREAD_FUNCS
 // Gets active thread in a1. Adds to queue in a0 (if specified), dispatches
 u32 Patch___osEnqueueAndYield_Mario()
 {
-TEST_DISABLE_THREAD_FUNCS
 	// Get the active thread
 	u32 thread = Read32Bits(VAR_ADDRESS(osActiveThread));
 	u8 * pThreadBase = (u8 *)ReadAddress(thread);
@@ -655,7 +630,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch___osEnqueueAndYield_MarioKart()
 {
-TEST_DISABLE_THREAD_FUNCS
 	return Patch___osEnqueueAndYield_Mario();
 
 }
@@ -665,7 +639,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch_osStartThread()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 thread = gGPR[REG_a0]._u32_0;
 	u8 * pThreadBase = (u8 *)ReadAddress(thread);
 	// Disable interrupts
@@ -726,12 +699,7 @@ TEST_DISABLE_THREAD_FUNCS
 			g___osEnqueueThread_s.Function();
 		}
 	}
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	else
-	{
-		DBGConsole_Msg(0, "  Thread is neither WAITING nor STOPPED");
-	}
-#endif
+
 	// At this point, we check the priority of the current
 	// thread and the highest priority thread on the thread queue. If
 	// the current thread has a higher priority, nothing happens, else
@@ -785,7 +753,6 @@ TEST_DISABLE_THREAD_FUNCS
 //*****************************************************************************
 u32 Patch___osPopThread()
 {
-TEST_DISABLE_THREAD_FUNCS
 	u32 queue = gGPR[REG_a0]._u32_0;
 	u8 * pBase	  = (u8 *)ReadAddress(queue);
 

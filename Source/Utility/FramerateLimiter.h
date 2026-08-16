@@ -29,8 +29,4 @@ void			FramerateLimiter_Limit();
 f32				FramerateLimiter_GetSync();	// Returns fraction of real n64 we're running at (1 = 100%)
 u32				FramerateLimiter_GetTvFrequencyHz();
 
-// Override the sync function, e.g. if the audio plugin wants to control sync.
-typedef void (*FramerateSyncFn)(void * arg);
-void			FramerateLimiter_SetAuxillarySyncFunction(FramerateSyncFn fn, void * arg);
-
 #endif // UTILITY_FRAMERATELIMITER_H_

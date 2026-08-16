@@ -27,9 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Utility/RefCounted.h"
 #include "HLEGraphics/DaedalusVtx.h"
 #include "HLEGraphics/TextureInfo.h"
-#include "Debug/DBGConsole.h"
 #include "Graphics/ColourValue.h"
-#include "Utility/Preferences.h"
 
 extern bool gUseRendererLegacy;
 
@@ -113,7 +111,6 @@ struct FiddledVtx
             };
         };
 };
-DAEDALUS_STATIC_ASSERT( sizeof(FiddledVtx) == 16 );
 
 ALIGNED_TYPE(struct, DaedalusLight, 16)
 {
@@ -181,7 +178,6 @@ ALIGNED_TYPE(struct, TnLParams, 16)
 	f32				FogMult;		//Fog mult
 	f32				FogOffs;		//Fog offset
 };
-//DAEDALUS_STATIC_ASSERT( sizeof( TnLParams ) == 32 );
 
 // Bits for clipping
 // 543210

@@ -45,7 +45,6 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Hide Menubar", // STR_MENU_MENUBAR
 	"Auto Update at Boot", // STR_MENU_AUTOUPDATE
 	"Update Compat List at Boot", // STR_MENU_COMPAT_LIST
-	"Console Logs", // STR_MENU_LOG
 	"Textures Dumper", // STR_MENU_TEX_DUMPER
 	"DynaRec", // STR_MENU_DYNAREC
 	"DynaRec Config", // STR_MENU_DYNAREC_CONFIG
@@ -63,7 +62,6 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Bilinear Filter", // STR_MENU_BILINEAR
 	"Mipmaps", // STR_MENU_MIPMAPS
 	"High-Res Textures", // STR_MENU_HIRES_TEX
-	"Use VRAM", // STR_MENU_VRAM
 	"Wait Rendering Done", // STR_MENU_WAIT_REND
 	"Files", // STR_MENU_FILES
 	"Cheats", // STR_MENU_CHEATS
@@ -107,7 +105,6 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Disables MP3 instructions for better performances.", // STR_DESC_MP3_INSTR
 	"Emulates L1/R1/L3/R3 through rearpad inputs.", // STR_DESC_REARPAD
 	"Blends a color filter on screen depending on daytime.", // STR_DESC_VFLUX
-	"Enables VRAM usage for textures storing.", // STR_DESC_VRAM
 	"Makes CPU wait GPU rendering end before elaborating the next frame.\nReduces artifacting at the cost of performances.", // STR_DESC_WAIT_REND
 	"Enables external high-res textures packs usage.", // STR_DESC_HIRES_TEX
 	"Forces mipmaps generation for 3D rendering.", // STR_DESC_MIPMAPS

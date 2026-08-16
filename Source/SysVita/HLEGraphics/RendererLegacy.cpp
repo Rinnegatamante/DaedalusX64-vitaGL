@@ -7,8 +7,6 @@
 #include "Combiner/CombinerTree.h"
 #include "Combiner/RenderSettings.h"
 #include "Core/ROM.h"
-#include "Debug/Dump.h"
-#include "Debug/DBGConsole.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/NativeTexture.h"
 #include "HLEGraphics/CachedTexture.h"
@@ -18,7 +16,6 @@
 #include "Math/MathUtil.h"
 #include "OSHLE/ultra_gbi.h"
 #include "Utility/IO.h"
-#include "Utility/Profiler.h"
 
 #define NORMALIZE_C1842XX(x) ((x) > 16.5f ? ((x) / ((x) / 16.0f)) : (x))
 
@@ -30,6 +27,7 @@ extern uint32_t *gColorBuffer;
 extern float *gTexCoordBuffer;
 extern u32 aux_draws;
 extern u32 aux_discard;
+extern bool gForceLinearFilter;
 
 bool gUseMipmaps = false;
 
@@ -240,11 +238,6 @@ void RendererLegacy::RestoreRenderStates()
 
 RendererLegacy::SBlendStateEntry RendererLegacy::LookupBlendState( u64 mux, bool two_cycles )
 {
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	DAEDALUS_PROFILE( "RendererPSP::LookupBlendState" );
-	mRecordedCombinerStates.insert( mux );
-#endif
-
 	REG64 key;
 	key._u64 = mux;
 
@@ -273,10 +266,6 @@ RendererLegacy::SBlendStateEntry RendererLegacy::LookupBlendState( u64 mux, bool
 		// This is for non-inexact blends, errg hacks and such to be more precise
 		entry.OverrideFunction = LookupOverrideBlendModeForced( mux );
 	}
-
-	#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-	printf( "Adding %08x%08x - %d cycles - %s\n", u32(mux>>32), u32(mux), two_cycles ? 2 : 1, entry.States->IsInexact() ?  IsCombinerStateDefault(mux) ? "Inexact(Default)" : "Inexact(Override)" : entry.OverrideFunction==nullptr ? "Auto" : "Forced");
-	#endif
 
 	//Add blend mode to the Blend States Map
 	mBlendStatesMap[ key._u64 ] = entry;
@@ -420,7 +409,7 @@ void RendererLegacy::RenderUsingRenderSettings( const CBlendStates * states, u32
 		
 		glEnableClientState(GL_COLOR_ARRAY);
 		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);	
-		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
+		vglDrawObjects(triangle_mode, num_vertices);
 	}
 }
 
@@ -468,7 +457,7 @@ void RendererLegacy::RenderUsingCurrentBlendMode(const float (&mat_project)[16],
 	// G_TF_AVERAGE : 1, G_TF_BILERP : 2 (linear)
 	// G_TF_POINT   : 0 (nearest)
 	//
-	if (((gRDPOtherMode.text_filt != G_TF_POINT) && cycle_mode != CYCLE_COPY) || (gGlobalPreferences.ForceLinearFilter))
+	if (((gRDPOtherMode.text_filt != G_TF_POINT) && cycle_mode != CYCLE_COPY) || (gForceLinearFilter))
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -554,7 +543,7 @@ void RendererLegacy::RenderUsingCurrentBlendMode(const float (&mat_project)[16],
 		details.ColourAdjuster.Process(p_vertices, num_vertices);
 		glEnableClientState(GL_COLOR_ARRAY);
 		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
-		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
+		vglDrawObjects(triangle_mode, num_vertices);
 	}
 	else if( blend_entry.States != nullptr )
 	{
@@ -562,14 +551,10 @@ void RendererLegacy::RenderUsingCurrentBlendMode(const float (&mat_project)[16],
 	}
 	else
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		// Set default states
-		DAEDALUS_ERROR( "Unhandled blend mode" );
-		#endif
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
 		vglColorPointerMapped(GL_UNSIGNED_BYTE, p_vertices);
-		vglDrawObjects(triangle_mode, num_vertices, GL_TRUE);
+		vglDrawObjects(triangle_mode, num_vertices);
 	}
 
 }
@@ -795,7 +780,7 @@ void RendererLegacy::DoGamma(float gamma)
 	glEnableClientState(GL_COLOR_ARRAY);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf((float*)mScreenToDevice.mRaw);
-	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4);
 	glDisable(GL_BLEND);
 }
 
@@ -836,7 +821,7 @@ void RendererLegacy::DrawUITexture()
 
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
-	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4);
 }
 
 void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
@@ -904,7 +889,7 @@ void RendererLegacy::Draw2DTexture(f32 x0, f32 y0, f32 x1, f32 y1,
 	
 	SetNegativeViewport();
 	
-	vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_STRIP, 4);
 }
 
 void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
@@ -966,7 +951,7 @@ void RendererLegacy::Draw2DTextureR(f32 x0, f32 y0, f32 x1, f32 y1, f32 x2,
 	
 	SetNegativeViewport();
 	
-	vglDrawObjects(GL_TRIANGLE_FAN, 4, GL_TRUE);
+	vglDrawObjects(GL_TRIANGLE_FAN, 4);
 }
 
 uint32_t RendererLegacy::PrepareTrisUnclipped(uint32_t **clr)

@@ -101,7 +101,6 @@ enum {
 	FUNC(STR_MENU_MENUBAR) \
 	FUNC(STR_MENU_AUTOUPDATE) \
 	FUNC(STR_MENU_COMPAT_LIST) \
-	FUNC(STR_MENU_LOG) \
 	FUNC(STR_MENU_TEX_DUMPER) \
 	FUNC(STR_MENU_DYNAREC) \
 	FUNC(STR_MENU_DYNAREC_CONFIG) \
@@ -119,7 +118,6 @@ enum {
 	FUNC(STR_MENU_BILINEAR) \
 	FUNC(STR_MENU_MIPMAPS) \
 	FUNC(STR_MENU_HIRES_TEX) \
-	FUNC(STR_MENU_VRAM) \
 	FUNC(STR_MENU_WAIT_REND) \
 	FUNC(STR_MENU_FILES) \
 	FUNC(STR_MENU_CHEATS) \
@@ -163,7 +161,6 @@ enum {
 	FUNC(STR_DESC_MP3_INSTR) \
 	FUNC(STR_DESC_REARPAD) \
 	FUNC(STR_DESC_VFLUX) \
-	FUNC(STR_DESC_VRAM) \
 	FUNC(STR_DESC_WAIT_REND) \
 	FUNC(STR_DESC_HIRES_TEX) \
 	FUNC(STR_DESC_MIPMAPS) \
@@ -353,7 +350,6 @@ extern PostProcessingEffect *effects_list;
 extern bool gUseRendererLegacy;
 extern bool gHideMenubar;
 extern int  gLanguageIndex;
-extern int  gUseCdram;
 extern int  gUseVSync;
 extern int  gCpuMode;
 extern int  gTexCacheMode;

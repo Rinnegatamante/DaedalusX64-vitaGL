@@ -1,18 +1,11 @@
-#define TEST_DISABLE_PI_FUNCS //return PATCH_RET_NOT_PROCESSED;
-
 //*****************************************************************************
 //
 //*****************************************************************************
 u32 Patch___osPiCreateAccessQueue()
 {
-TEST_DISABLE_PI_FUNCS
-
 #ifdef DAED_OS_MESSAGE_QUEUES
 	Write32Bits(VAR_ADDRESS(osPiAccessQueueCreated), 1);
 
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Creating Pi Access Queue");
-	#endif
 	OS_HLE_osCreateMesgQueue(VAR_ADDRESS(osPiAccessQueue), VAR_ADDRESS(osPiAccessQueueBuffer), 1);
 
 	//u32 dwQueue     = gGPR[REG_a0]._u32_0;
@@ -37,7 +30,6 @@ TEST_DISABLE_PI_FUNCS
 //*****************************************************************************
 u32 Patch___osPiGetAccess()
 {
-TEST_DISABLE_PI_FUNCS
 	u32 created = Read32Bits(VAR_ADDRESS(osPiAccessQueueCreated));
 
 	if (created == 0)
@@ -57,7 +49,6 @@ TEST_DISABLE_PI_FUNCS
 //*****************************************************************************
 u32 Patch___osPiRelAccess()
 {
-TEST_DISABLE_PI_FUNCS
 	gGPR[REG_a0]._u32_0 = VAR_ADDRESS(osPiAccessQueue);
 	gGPR[REG_a1]._u32_0 = 0;		// Place on stack and ignore
 	gGPR[REG_a2]._u32_0 = OS_MESG_NOBLOCK;
@@ -83,15 +74,11 @@ inline bool IsPiDeviceBusy()
 //*****************************************************************************
 u32 Patch_osPiRawStartDma()
 {
-TEST_DISABLE_PI_FUNCS
 	u32 RWflag = gGPR[REG_a0]._u32_0;
 	u32 PiAddr = gGPR[REG_a1]._u32_0;
 	u32 VAddr  = gGPR[REG_a2]._u32_0;
 	u32 len    = gGPR[REG_a3]._u32_0;
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !IsPiDeviceBusy(), "Pi Device is BUSY, Need to handle!");
-#endif
 	/*
 	if (IsPiDeviceBusy())
 	{

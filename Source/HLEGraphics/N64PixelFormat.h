@@ -73,7 +73,6 @@ struct N64Pf5551
 	static const u32	BitsB {5};
 	static const u32	BitsA {1};
 };
-DAEDALUS_STATIC_ASSERT( sizeof( N64Pf5551 ) == 2 );
 
 struct N64Pf8888
 {
@@ -137,7 +136,6 @@ struct N64Pf8888
 	static const u32	BitsB {8};
 	static const u32	BitsA {8};
 };
-DAEDALUS_STATIC_ASSERT( sizeof( N64Pf8888 ) == 4 );
 
 struct N64PfIA8
 {
@@ -163,7 +161,6 @@ struct N64PfIA8
 	static const u32	BitsI {4};
 	static const u32	BitsA {4};
 };
-DAEDALUS_STATIC_ASSERT( sizeof( N64PfIA8 ) == 1 );
 
 struct N64PfIA16
 {
@@ -195,7 +192,6 @@ struct N64PfIA16
 	static const u32	BitsI {8};
 	static const u32	BitsA {8};
 };
-DAEDALUS_STATIC_ASSERT( sizeof( N64PfIA16 ) == 2 );
 
 struct N64PfI8
 {
@@ -223,6 +219,5 @@ struct N64PfI8
 
 	static const u32	BitsI {};
 };
-DAEDALUS_STATIC_ASSERT( sizeof( N64PfI8 ) == 1 );
 
 #endif // HLEGRAPHICS_N64PIXELFORMAT_H_

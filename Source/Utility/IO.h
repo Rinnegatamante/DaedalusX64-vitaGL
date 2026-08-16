@@ -22,9 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Utility/DaedalusTypes.h"
 
-#if defined( DAEDALUS_PSP )
-#include <pspiofilemgr.h>
-#elif defined( DAEDALUS_VITA )
 #include <psp2/io/stat.h>
 #define DAEDALUS_PSP_MAIN_PATH_GENERIC "/pspemu/PSP/GAME/DaedalusX64/"
 #define DAEDALUS_VITA_MAIN_PATH_GENERIC "/data/DaedalusX64/"
@@ -32,7 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DAEDALUS_VITA_PATH(p) DAEDALUS_VITA_MAIN_PATH p
 #define DAEDALUS_VITA_PATH_EXT(p1, p2) p1 DAEDALUS_VITA_MAIN_PATH_GENERIC p2
 #define DAEDALUS_PSP_PATH_EXT(p1, p2) p1 DAEDALUS_PSP_MAIN_PATH_GENERIC p2
-#endif
 
 #include <string.h>
 
@@ -43,9 +39,7 @@ namespace IO
 		bool		Move( const char * p_existing, const char * p_new );
 		bool		Delete( const char * p_file );
 		bool		Exists( const char * p_path );
-#if defined( DAEDALUS_PSP ) || defined( DAEDALUS_VITA )
 		int			Stat( const char *p_file, SceIoStat *stat );
-#endif
 
 	}
 	namespace Directory
@@ -73,9 +67,7 @@ namespace IO
 		bool				RemoveFileSpec( char * p_path );
 		void				RemoveExtension( char * p_path );
 		void				AddExtension( char * p_path, const char * p_ext );
-#if defined( DAEDALUS_PSP ) || defined( DAEDALUS_VITA )
 		int					DeleteRecursive(const char* p_path, const char * p_extension);
-#endif
 
 		inline void SetExtension( char * p_path, const char * p_extension)
 		{
@@ -91,19 +83,13 @@ namespace IO
 		Filename	Name;
 	};
 
-#if defined( DAEDALUS_PSP ) || defined( DAEDALUS_VITA )
 	typedef SceUID FindHandleT;
-#elif defined( DAEDALUS_W32 )
-	typedef intptr_t FindHandleT;
-#elif defined( DAEDALUS_OSX ) || defined( DAEDALUS_LINUX )
-	typedef void * FindHandleT;
-#else
-#error Need to define FindHandleT for this platform
-#endif
 
 	bool	FindFileOpen( const char * path, FindHandleT * handle, FindDataT & data );
 	bool	FindFileNext( FindHandleT handle, FindDataT & data );
 	bool	FindFileClose( FindHandleT handle );
 }
+
+extern IO::Filename gDaedalusExePath;
 
 #endif // UTILITY_IO_H_

@@ -1,11 +1,9 @@
-#define TEST_DISABLE_TIMER_FUNCS DAEDALUS_PROFILE(__FUNCTION__);
 
 //*****************************************************************************
 //
 //*****************************************************************************
 u32 Patch___osSetTimerIntr()
 {
-TEST_DISABLE_TIMER_FUNCS
 	s64 TimeLo = (s64)gGPR[REG_a1]._s32_0;
 	//s64 qwTimeHi = (s64)(s32)gGPR[REG_a0];
 
@@ -25,7 +23,6 @@ TEST_DISABLE_TIMER_FUNCS
 //*****************************************************************************
 u32 Patch___osInsertTimer()
 {
-TEST_DISABLE_TIMER_FUNCS
 	u32 NewTimer    = gGPR[REG_a0]._u32_0;
 	u32 TopTimer    = Read32Bits(VAR_ADDRESS(osTopTimer));
 	u32 InsertTimer = Read32Bits(TopTimer + 0x00);	// Read next
@@ -35,9 +32,6 @@ TEST_DISABLE_TIMER_FUNCS
 
 	u64 NewValue    = QuickRead64Bits(pNewTimerBase, 0x10);	// Check ordering is correct?!
 	u64 InsertValue = QuickRead64Bits(pInsertTimerBase, 0x10);
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( InsertTimer, "osInsertTimer with NULL insert timer" );
-	#endif
 	/*
 	if ( InsertTimer == 0 )
 	{
@@ -98,14 +92,10 @@ TEST_DISABLE_TIMER_FUNCS
 //*****************************************************************************
 u32 Patch___osTimerServicesInit_Mario()
 {
-TEST_DISABLE_TIMER_FUNCS
-
 	// TimeHi/Lo share the same base addr by an offset of 4 bytes, perphaps they are the same u64 type?
 	// This avoids using VAR_ADDRESS(osSystemTimeLo) which is NULL for Killer Instinct..
 	u8 * pTimeBase	 = (u8 *)ReadAddress(VAR_ADDRESS(osSystemTimeHi));
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Initialising Timer Services");
-	#endif
+
 	QuickWrite32Bits(pTimeBase, 0x0, 0);	// TimeHi
 	QuickWrite32Bits(pTimeBase, 0x4, 0);	// TimeLo
 
@@ -135,7 +125,6 @@ TEST_DISABLE_TIMER_FUNCS
 // Same as above, but optimised
 u32 Patch___osTimerServicesInit_Rugrats()
 {
-TEST_DISABLE_TIMER_FUNCS
 	return Patch___osTimerServicesInit_Mario();
 }
 
@@ -144,10 +133,6 @@ TEST_DISABLE_TIMER_FUNCS
 //*****************************************************************************
 u32 Patch_osSetTime()
 {
-TEST_DISABLE_TIMER_FUNCS
-
-	//DBGConsole_Msg(0, "osSetTime(0x%08x%08x)", TimeHi, TimeLo);
-
 	u8 * pTimeBase	 = (u8 *)ReadAddress(VAR_ADDRESS(osSystemTimeHi));
 
 	QuickWrite32Bits(pTimeBase, 0x0, gGPR[REG_a1]._u32_0);	// TimeHi
@@ -161,7 +146,6 @@ TEST_DISABLE_TIMER_FUNCS
 //*****************************************************************************
 u32 Patch_osGetTime()
 {
-TEST_DISABLE_TIMER_FUNCS
 	u8 * pTimeBase = (u8 *)ReadAddress(VAR_ADDRESS(osSystemTimeHi));
 
 	u32 LastCount  = Read32Bits(VAR_ADDRESS(osSystemCount));

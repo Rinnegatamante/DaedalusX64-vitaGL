@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Debug/DBGConsole.h"
 #include "Memory.h"
 #include "RDRam.h"
 #include "OSHLE/ultra_sptask.h"
@@ -115,27 +114,12 @@ void jpeg_decode_PS0(OSTask *task)
 {
     s16 qtables[3][SUBBLOCK_SIZE];
 
-    #ifdef DAEDALUS_DEBUG_CONSOLE
-    if (task->t.flags & 0x1)
-    {
-        DBGConsole_Msg(0, "jpeg_decode_PS: task yielding not implemented");
-        return;
-    }
-    #endif
     u32       address          = rdram_read_u32((u32)task->t.data_ptr);
     const u32 macroblock_count = rdram_read_u32((u32)task->t.data_ptr + 4);
     const u32 mode             = rdram_read_u32((u32)task->t.data_ptr + 8);
     const u32 qtableY_ptr      = rdram_read_u32((u32)task->t.data_ptr + 12);
     const u32 qtableU_ptr      = rdram_read_u32((u32)task->t.data_ptr + 16);
     const u32 qtableV_ptr      = rdram_read_u32((u32)task->t.data_ptr + 20);
-
-    #ifdef DAEDALUS_DEBUG_CONSOLE
-    if (mode != 0 && mode != 2)
-    {
-        DBGConsole_Msg(0, "jpeg_decode_PS: invalid mode %d", mode);
-        return;
-    }
-    #endif
 
     rdram_read_many_u16((u16*)qtables[0], qtableY_ptr, SUBBLOCK_SIZE);
     rdram_read_many_u16((u16*)qtables[1], qtableU_ptr, SUBBLOCK_SIZE);
@@ -171,27 +155,12 @@ void jpeg_decode_PS(OSTask *task)
 {
     s16 qtables[3][SUBBLOCK_SIZE];
 
-    #ifdef DAEDALUS_DEBUG_CONSOLE
-    if (task->t.flags & 0x1)
-    {
-        DBGConsole_Msg(0, "jpeg_decode_PS: task yielding not implemented");
-        return;
-    }
-    #endif
     u32       address          = rdram_read_u32((u32)task->t.data_ptr);
     const u32 macroblock_count = rdram_read_u32((u32)task->t.data_ptr + 4);
     const u32 mode             = rdram_read_u32((u32)task->t.data_ptr + 8);
     const u32 qtableY_ptr      = rdram_read_u32((u32)task->t.data_ptr + 12);
     const u32 qtableU_ptr      = rdram_read_u32((u32)task->t.data_ptr + 16);
     const u32 qtableV_ptr      = rdram_read_u32((u32)task->t.data_ptr + 20);
-
-    #ifdef DAEDALUS_DEBUG_CONSOLE
-    if (mode != 0 && mode != 2)
-    {
-        DBGConsole_Msg(0, "jpeg_decode_PS: invalid mode %d", mode);
-        return;
-    }
-    #endif
 
     rdram_read_many_u16((u16*)qtables[0], qtableY_ptr, SUBBLOCK_SIZE);
     rdram_read_many_u16((u16*)qtables[1], qtableU_ptr, SUBBLOCK_SIZE);

@@ -19,8 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stdafx.h"
 
-#include "Debug/DBGConsole.h"
-
 #include "HLEGraphics/BaseRenderer.h"
 #include "HLEGraphics/TextureCache.h"
 #include "HLEGraphics/DLParser.h"
@@ -29,9 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Graphics/GraphicsContext.h"
 #include "Plugins/GraphicsPlugin.h"
 
-#include "Utility/Profiler.h"
 #include "Utility/FramerateLimiter.h"
-#include "Utility/Preferences.h"
 #include "Utility/Timing.h"
 
 #include "Core/Memory.h"
@@ -40,7 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //#define DAEDALUS_FRAMERATE_ANALYSIS
 
-extern bool gFrameskipActive;
 extern u32 gRDPFrame;
 u32 oldRDPFrame;
 bool gCPURendering = true;
@@ -50,7 +45,8 @@ u32		gVISyncRate = 1500;
 bool	gTakeScreenshot = false;
 bool	gTakeScreenshotSS = false;
 
-EFrameskipValue		gFrameskipValue = FV_DISABLED;
+extern bool gVideoRateMatch;
+extern bool gAudioRateMatch;
 
 namespace
 {
@@ -153,12 +149,6 @@ EProcessResult CGraphicsPluginImpl::ProcessDList()
 	return PR_COMPLETED;
 }
 
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-extern u32 gNumInstructionsExecuted;
-extern u32 gNumDListsCulled;
-extern u32 gNumRectsClipped;
-#endif
-
 #define FRAME_CHECK_RATIO 120
 uint32_t old_frame;
 uint8_t frame_idx = 0;
@@ -166,8 +156,6 @@ uint8_t frame_idx = 0;
 void CGraphicsPluginImpl::UpdateScreen()
 {
 	u32 current_origin = Memory_VI_GetRegister(VI_ORIGIN_REG);
-	static bool Old_FrameskipActive = false;
-	static bool Older_FrameskipActive = false;
 	
 	switch (frame_idx) {
 	case 0:
@@ -200,27 +188,6 @@ void CGraphicsPluginImpl::UpdateScreen()
 		
 		static u32 current_frame = 0;
 		current_frame++;
-	
-		Older_FrameskipActive = Old_FrameskipActive;
-		Old_FrameskipActive = gFrameskipActive;
-
-		switch(gFrameskipValue)
-		{
-		case FV_DISABLED:
-			gFrameskipActive = false;
-			break;
-		case FV_AUTO1:
-			if(!Old_FrameskipActive && (Fsync < 0.965f)) gFrameskipActive = true;
-			else gFrameskipActive = false;
-			break;
-		case FV_AUTO2:
-			if((!Old_FrameskipActive | !Older_FrameskipActive) && (Fsync < 0.965f)) gFrameskipActive = true;
-			else gFrameskipActive = false;
-			break;
-		default:
-			gFrameskipActive = (current_frame % (gFrameskipValue - 1)) != 0;
-			break;
-		}
 
 		LastOrigin = current_origin;
 	}
@@ -228,9 +195,6 @@ void CGraphicsPluginImpl::UpdateScreen()
 
 void CGraphicsPluginImpl::RomClosed()
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Finalising VitaGraphics");
-	#endif
 	DLParser_Finalise();
 	CTextureCache::Destroy();
 	if (gUseRendererLegacy) DestroyRendererLegacy();
@@ -239,10 +203,6 @@ void CGraphicsPluginImpl::RomClosed()
 
 CGraphicsPlugin * CreateGraphicsPlugin()
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg( 0, "Initialising Graphics Plugin [CVita]" );
-	#endif
-
 	CGraphicsPluginImpl * plugin = new CGraphicsPluginImpl;
 	if( !plugin->Initialise() )
 	{

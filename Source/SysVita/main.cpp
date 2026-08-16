@@ -22,18 +22,13 @@
 #include "Core/PIF.h"
 #include "Core/RomSettings.h"
 #include "Core/Save.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "Graphics/GraphicsContext.h"
 #include "HLEGraphics/TextureCache.h"
 #include "Input/InputManager.h"
 #include "Interface/RomDB.h"
-#include "System/Paths.h"
 #include "System/System.h"
 #include "Test/BatchTest.h"
 #include "Utility/IO.h"
-#include "Utility/Preferences.h"
-#include "Utility/Profiler.h"
 #include "Utility/Thread.h"
 #include "Utility/Timer.h"
 #include "UI/Menu.h"
@@ -41,9 +36,12 @@
 #include "soloud.h"
 #include "soloud_wavstream.h"
 
+IO::Filename gDaedalusExePath;
+
 #define NET_INIT_SIZE (1 * 1024 * 1024)
 #define MAX_ROM_SIZE (64 * 1024 * 1024)
 
+extern bool gForceLinearFilter;
 extern bool gSRGB;
 extern bool gRendererChanged;
 extern bool gSwapUseRendererLegacy;
@@ -66,7 +64,6 @@ Alert cur_alert;
 Download cur_download;
 
 extern "C" {
-	int32_t sceKernelChangeThreadVfpException(int32_t clear, int32_t set);
 	int _newlib_heap_size_user = 256 * 1024 * 1024;
 }
 
@@ -459,7 +456,6 @@ static void Initialize()
 	
 	// Initializing vitaGL
 	vglInitExtended(0, SCR_WIDTH, SCR_HEIGHT, 0x1800000, (SceGxmMultisampleMode)gAntiAliasing);
-	vglUseVram(gUseCdram);
 	vglWaitVblankStart(gUseVSync);
 	
 	// Initializing default wvp
@@ -766,7 +762,7 @@ void setTranslation(int idx) {
 		}
 		fclose(config);
 		gLanguageIndex = idx;
-	} else if (sys_initialized) DBGConsole_Msg(0, "Cannot find language file.");
+	}
 	
 	if (effects_list) strcpy(effects_list->name, lang_strings[STR_UNUSED]);
 	if (overlays_list) strcpy(overlays_list->name, lang_strings[STR_UNUSED]);
@@ -858,12 +854,11 @@ void loadConfig(const char *game) {
 			else if (strcmp("gAudioRateMatch", buffer) == 0) gAudioRateMatch = value;
 			else if (strcmp("gAspectRatio", buffer) == 0) gAspectRatio = value;
 			else if (strcmp("gTexCacheMode", buffer) == 0) gTexCacheMode = value;
-			else if (strcmp("gForceLinearFilter", buffer) == 0) gGlobalPreferences.ForceLinearFilter = value;
+			else if (strcmp("gForceLinearFilter", buffer) == 0) gForceLinearFilter = value;
 			else if (strcmp("gSRGB", buffer) == 0) gSRGB = (bool)value;
 
 			else if (strcmp("gUseMipmaps", buffer) == 0) gUseMipmaps = value;
 			else if (strcmp("gUseVSync", buffer) == 0) gUseVSync = value;
-			else if (strcmp("gUseCdram", buffer) == 0) gUseCdram = value;
 			else if (strcmp("gWaitRendering", buffer) == 0) gWaitRendering = value;
 			else if (strcmp("gAntiAliasing", buffer) == 0) gAntiAliasing = value;
 
@@ -898,7 +893,6 @@ void loadConfig(const char *game) {
 		setTexCacheMode(gTexCacheMode);
 		setOverlay(gTempOverlay, nullptr);
 		setPostProcessingEffect(gTempPostProcessing, nullptr);
-		vglUseVram(gUseCdram);
 		vglWaitVblankStart(gUseVSync);
 		CInputManager::Get()->SetConfiguration(gControllerIndex);
 

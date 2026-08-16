@@ -53,7 +53,6 @@ struct ROMHeader
 	s8		CountryID;
 	u8		Unknown5;
 };
-DAEDALUS_STATIC_ASSERT( sizeof(ROMHeader) == RAMROM_BOOTSTRAP_OFFSET );
 
 enum ECicType
 {

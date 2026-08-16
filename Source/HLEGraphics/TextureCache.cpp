@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "TextureCache.h"
 #include "TextureInfo.h"
 
-#include "Utility/Profiler.h"
-
 #include "DLDebug.h"
 
 #include <vector>
@@ -37,17 +35,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 template<> bool CSingleton< CTextureCache >::Create()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT_Q(mpInstance == nullptr);
-#endif
 	mpInstance = new CTextureCache();
 	return mpInstance != nullptr;
 }
 
 CTextureCache::CTextureCache()
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-:	mDebugMutex("TextureCache")
-#endif
 {
 	memset( mpCacheHashTable, 0, sizeof(mpCacheHashTable) );
 }
@@ -120,29 +112,6 @@ void CTextureCache::DropTextures()
 	}
 }
 
-#ifdef PROFILE_TEXTURE_CACHE
-#define RECORD_CACHE_HIT( a, b )		TextureCacheStat( a, b, mTextures.size() )
-
-static void TextureCacheStat( u32 l1_hit, u32 l2_hit, u32 size )
-{
-	static u32 total_lookups {}, total_l1_hits {}, total_l2_hits {};
-
-	total_l1_hits += l1_hit;
-	total_l2_hits += l2_hit;
-	++total_lookups;
-
-	if( total_lookups == 1000 )
-	{
-		printf( "L1 hits[%d] L2 hits[%d] Miss[%d] (%d entries)\n", total_l1_hits, total_l2_hits, total_lookups - (total_l1_hits+total_l2_hits), size );
-		total_lookups = total_l1_hits = total_l2_hits = 0;
-	}
-}
-#else
-
-#define RECORD_CACHE_HIT( a, b )
-
-#endif
-
 struct SSortTextureEntries
 {
 public:
@@ -182,7 +151,6 @@ CachedTexture * CTextureCache::GetOrCreateCachedTexture(const TextureInfo & ti)
 	u32	ixa = MakeHashIdxA( ti );
 	if( mpCacheHashTable[ixa] && mpCacheHashTable[ixa]->GetTextureInfo() == ti )
 	{
-		RECORD_CACHE_HIT( 1, 0 );
 		mpCacheHashTable[ixa]->UpdateIfNecessary();
 
 		return mpCacheHashTable[ixa];
@@ -191,7 +159,6 @@ CachedTexture * CTextureCache::GetOrCreateCachedTexture(const TextureInfo & ti)
 	u32 ixb {MakeHashIdxB( ti )};
 	if( mpCacheHashTable[ixb] && mpCacheHashTable[ixb]->GetTextureInfo() == ti )
 	{
-		RECORD_CACHE_HIT( 1, 0 );
 		mpCacheHashTable[ixb]->UpdateIfNecessary();
 
 		return mpCacheHashTable[ixb];
@@ -202,7 +169,6 @@ CachedTexture * CTextureCache::GetOrCreateCachedTexture(const TextureInfo & ti)
 	if( it != mTextures.end() && (*it)->GetTextureInfo() == ti )
 	{
 		texture = *it;
-		RECORD_CACHE_HIT( 0, 1 );
 	}
 	else
 	{
@@ -211,8 +177,6 @@ CachedTexture * CTextureCache::GetOrCreateCachedTexture(const TextureInfo & ti)
 		{
 			mTextures.insert( it, texture );
 		}
-
-		RECORD_CACHE_HIT( 0, 0 );
 	}
 
 	// Update the hashtable
@@ -235,18 +199,3 @@ CRefPtr<CNativeTexture> CTextureCache::GetOrCreateTexture(const TextureInfo & ti
 
 	return base_texture->GetTexture();
 }
-
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-void CTextureCache::Snapshot(const MutexLock & lock, std::vector< STextureInfoSnapshot > & snapshot) const
-{
-	DAEDALUS_ASSERT(lock.HasLock(mDebugMutex), "No debug lock");
-
-	snapshot.erase( snapshot.begin(), snapshot.end() );
-
-	for( TextureVec::const_iterator it = mTextures.begin(); it != mTextures.end(); ++it )
-	{
-		STextureInfoSnapshot	info( (*it)->GetTextureInfo(), (*it)->GetTexture() );
-		snapshot.push_back( info );
-	}
-}
-#endif // DAEDALUS_DEBUG_DISPLAYLIST

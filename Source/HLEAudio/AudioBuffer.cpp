@@ -21,14 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "AudioBuffer.h"
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
 #include "Utility/Thread.h"
-
-#ifdef DAEDALUS_PSP
-#include <pspsdk.h>
-#include <pspkernel.h>
-#include "SysPSP/Utility/CacheUtil.h"
-#endif
 
 #ifdef USE_SPEEXDSP
 #include <speex/speex_resampler.h>
@@ -68,10 +61,6 @@ u32 CAudioBuffer::GetNumBufferedSamples() const
 
 void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 frequency, u32 output_freq )
 {
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( frequency <= output_freq, "Input frequency is too high" );
-#endif
-
 	const Sample *	read_ptr( mReadPtr );		// No need to invalidate, as this is uncached/volatile
 	Sample *		write_ptr( mWritePtr );
 

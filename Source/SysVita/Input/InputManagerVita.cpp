@@ -8,13 +8,11 @@
 #include <vitasdk.h>
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
 #include "Math/Math.h"	// VFPU Math
 #include "Math/MathUtil.h"
 #include "Utility/IniFile.h"
 #include "Utility/IO.h"
 #include "Utility/Macros.h"
-#include "Utility/Preferences.h"
 #include "Utility/Stream.h"
 #include "Utility/Synchroniser.h"
 
@@ -25,8 +23,6 @@
 #define SCE_CTRL_RRIGHT SCE_CTRL_POWER
 
 extern bool gUseRearpad;
-
-v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone );
 
 namespace
 {
@@ -433,8 +429,6 @@ void IInputManager::GetState( OSContPad pPad[4] )
 		//
 		v2 stick( f32( normalised_x ) / VITA_ANALOGUE_STICK_RANGE, f32( normalised_y ) / VITA_ANALOGUE_STICK_RANGE );
 
-		stick = ApplyDeadzone( stick, gGlobalPreferences.StickMinDeadzone, gGlobalPreferences.StickMaxDeadzone );
-
 		//Smoother joystick sensitivity //Corn
 		
 		stick.x = (0.5f * stick.x) * (1 + stick.x * stick.x);
@@ -442,10 +436,6 @@ void IInputManager::GetState( OSContPad pPad[4] )
 
 		pPad[i].stick_x =  s8(stick.x * N64_ANALOGUE_STICK_RANGE);
 		pPad[i].stick_y = -s8(stick.y * N64_ANALOGUE_STICK_RANGE);
-
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( mpControllerConfig != NULL, "We should always have a valid controller" );
-		#endif
 
 		SwapJoyStick(&pPad[i], &pad);
 		
@@ -473,10 +463,6 @@ void IInputManager::GetState( OSContPad pPad[4] )
 //*****************************************************************************
 template<> bool	CSingleton< CInputManager >::Create()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT_Q(mpInstance == NULL);
-	#endif
-
 	IInputManager * manager( new IInputManager() );
 
 	if(manager->Initialise())
@@ -533,9 +519,6 @@ u32 GetOperatorPrecedence( char op )
 	case '&':		return 1;
 	case '|':		return 0;
 	default:
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Unhandled operator" );
-		#endif
 		return 0;
 	}
 }
@@ -635,11 +618,8 @@ void	CButtonMappingExpressionEvaluator::HandleOperator( char op, std::stack<CBut
 			}
 		}
 		break;
-		#ifdef DAEDALUS_ENABLE_ASSERTS
 	default:
-		DAEDALUS_ERROR( "Unhandled operator" );
 		break;
-		#endif
 	}
 }
 
@@ -959,9 +939,6 @@ const char *	IInputManager::GetConfigurationName( u32 configuration_idx ) const
 	}
 	else
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Invalid controller config" );
-		#endif
 		return "?";
 	}
 }
@@ -977,9 +954,6 @@ const char *	IInputManager::GetConfigurationDescription( u32 configuration_idx )
 	}
 	else
 	{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Invalid controller config" );
-		#endif
 		return "?";
 	}
 }
@@ -993,16 +967,7 @@ void			IInputManager::SetConfiguration( u32 configuration_idx )
 	{
 		mpControllerConfig = mControllerConfigs[ configuration_idx ];
 		gControllerIndex = configuration_idx;
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg( 0, "Setting the controller to [c%s]", mpControllerConfig->GetName() );
-		#endif
 	}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-	else
-	{
-		DAEDALUS_ERROR( "Invalid controller config" );
-	}
-	#endif
 }
 
 //*****************************************************************************
@@ -1049,25 +1014,4 @@ v2	ProjectToUnitSquare( const v2 & in )
 	}
 
 	return in * scale;
-}
-
-//*************************************************************************************
-//
-//*************************************************************************************
-v2	ApplyDeadzone( const v2 & in, f32 min_deadzone, f32 max_deadzone )
-{
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( min_deadzone >= 0.0f && min_deadzone <= 1.0f, "Invalid min deadzone" );
-	DAEDALUS_ASSERT( max_deadzone >= 0.0f && max_deadzone <= 1.0f, "Invalid max deadzone" );
-#endif
-	float	length( in.Length() );
-
-	if( length < min_deadzone )
-		return v2( 0,0 );
-
-	float	scale( ( length - min_deadzone ) / ( max_deadzone - min_deadzone )  );
-
-	scale = Clamp( scale, 0.0f, 1.0f );
-
-	return ProjectToUnitSquare( in * (scale / length) );
 }

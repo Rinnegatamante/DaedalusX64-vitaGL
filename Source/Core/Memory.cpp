@@ -30,10 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ROMBuffer.h"
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
-#include "Debug/DebugLog.h"
-#include "Debug/Dump.h"		// Dump_GetSaveDirectory()
 #include "OSHLE/ultra_R4300.h"
 #include "Plugins/AudioPlugin.h"
 #include "Plugins/GraphicsPlugin.h"
@@ -43,10 +39,6 @@ bool gUseExpansionPak = true;
 static const u32	kMaximumMemSize = MEMORY_8_MEG;
 
 #undef min
-
-#ifdef DAEDALUS_LOG
-static void DisplayVIControlInfo( u32 control_reg );
-#endif
 
 // VirtualAlloc is only supported on Win32 architectures
 #ifdef DAEDALUS_W32
@@ -89,11 +81,6 @@ const u32 MemoryRegionSizes[NUM_MEM_BUFFERS] =
 
 u32			gRamSize =  kMaximumMemSize;	// Size of emulated RAM
 
-#ifdef DAEDALUS_PROFILE_EXECUTION
-u32			gTLBReadHit;
-u32			gTLBWriteHit;
-#endif
-
 #ifdef DAED_USE_VIRTUAL_ALLOC
 static void *	gMemBase = nullptr;				// Virtual memory base
 #endif
@@ -113,10 +100,6 @@ void * 			g_pMemoryBuffers[NUM_MEM_BUFFERS];
 
 #include "Memory_Read.inl"
 #include "Memory_WriteValue.inl"
-
-#ifndef DAEDALUS_SILENT
-#include "Memory_ReadInternal.inl"
-#endif
 
 bool Memory_Init()
 {
@@ -195,9 +178,6 @@ bool Memory_Init()
 
 void Memory_Fini(void)
 {
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DPF(DEBUG_MEMORY, "Freeing Memory");
-#endif
 #ifdef DAED_USE_VIRTUAL_ALLOC
 
 	//
@@ -232,14 +212,9 @@ void Memory_Fini(void)
 bool Memory_Reset()
 {
 	u32 main_mem = gUseExpansionPak ? MEMORY_8_MEG : MEMORY_4_MEG;
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Reseting Memory - %d MB", main_mem/(1024*1024));
-#endif
+
 	if (main_mem > kMaximumMemSize)
 	{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg( 0, "Memory_Reset: Can't reset with more than %dMB ram", kMaximumMemSize / (1024*1024) );
-		#endif
 		main_mem = kMaximumMemSize;
 	}
 
@@ -365,9 +340,6 @@ void Memory_InitTables()
 	u32 rom_size = RomBuffer::GetRomSize();
 	u32 ram_size = gRamSize;
 
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Initialising %s main memory", (ram_size == MEMORY_8_MEG) ? "8Mb" : "4Mb");
-	#endif
 	// Init RDRAM
 	// By default we init with EPAK (8Mb)
 	Memory_InitFunc
@@ -594,45 +566,10 @@ void Memory_InitTables()
 
 	// Init/Reset flash Ram
 	Flash_Init();
-
-	// Debug only
-#ifndef DAEDALUS_SILENT
-	Memory_InitInternalTables( ram_size );
-#endif
 }
 
 void MemoryUpdateSPStatus( u32 flags )
 {
-#ifdef DEBUG_SP_STATUS_REG
-	DBGConsole_Msg( 0, "----------" );
-	if (flags & SP_CLR_HALT)				DBGConsole_Msg( 0, "SP: Clearing Halt" );
-	if (flags & SP_SET_HALT)				DBGConsole_Msg( 0, "SP: Setting Halt" );
-	if (flags & SP_CLR_BROKE)				DBGConsole_Msg( 0, "SP: Clearing Broke" );
-	// No SP_SET_BROKE
-	if (flags & SP_CLR_INTR)				DBGConsole_Msg( 0, "SP: Clearing Interrupt" );
-	if (flags & SP_SET_INTR)				DBGConsole_Msg( 0, "SP: Setting Interrupt" );
-	if (flags & SP_CLR_SSTEP)				DBGConsole_Msg( 0, "SP: Clearing Single Step" );
-	if (flags & SP_SET_SSTEP)				DBGConsole_Msg( 0, "SP: Setting Single Step" );
-	if (flags & SP_CLR_INTR_BREAK)			DBGConsole_Msg( 0, "SP: Clearing Interrupt on break" );
-	if (flags & SP_SET_INTR_BREAK)			DBGConsole_Msg( 0, "SP: Setting Interrupt on break" );
-	if (flags & SP_CLR_SIG0)				DBGConsole_Msg( 0, "SP: Clearing Sig0 (Yield)" );
-	if (flags & SP_SET_SIG0)				DBGConsole_Msg( 0, "SP: Setting Sig0 (Yield)" );
-	if (flags & SP_CLR_SIG1)				DBGConsole_Msg( 0, "SP: Clearing Sig1 (Yielded)" );
-	if (flags & SP_SET_SIG1)				DBGConsole_Msg( 0, "SP: Setting Sig1 (Yielded)" );
-	if (flags & SP_CLR_SIG2)				DBGConsole_Msg( 0, "SP: Clearing Sig2 (TaskDone)" );
-	if (flags & SP_SET_SIG2)				DBGConsole_Msg( 0, "SP: Setting Sig2 (TaskDone)" );
-	if (flags & SP_CLR_SIG3)				DBGConsole_Msg( 0, "SP: Clearing Sig3" );
-	if (flags & SP_SET_SIG3)				DBGConsole_Msg( 0, "SP: Setting Sig3" );
-	if (flags & SP_CLR_SIG4)				DBGConsole_Msg( 0, "SP: Clearing Sig4" );
-	if (flags & SP_SET_SIG4)				DBGConsole_Msg( 0, "SP: Setting Sig4" );
-	if (flags & SP_CLR_SIG5)				DBGConsole_Msg( 0, "SP: Clearing Sig5" );
-	if (flags & SP_SET_SIG5)				DBGConsole_Msg( 0, "SP: Setting Sig5" );
-	if (flags & SP_CLR_SIG6)				DBGConsole_Msg( 0, "SP: Clearing Sig6" );
-	if (flags & SP_SET_SIG6)				DBGConsole_Msg( 0, "SP: Setting Sig6" );
-	if (flags & SP_CLR_SIG7)				DBGConsole_Msg( 0, "SP: Clearing Sig7" );
-	if (flags & SP_SET_SIG7)				DBGConsole_Msg( 0, "SP: Setting Sig7" );
-#endif
-	
 	u32	clr_bits = 0, set_bits = 0;
 	
 	if (flags & SP_CLR_HALT)         clr_bits |= SP_STATUS_HALT;
@@ -685,8 +622,6 @@ void MemoryUpdateSPStatus( u32 flags )
 	}
 }
 
-#undef DISPLAY_DPC_WRITES
-
 void MemoryUpdateDP( u32 flags )
 {
 	// Ignore address, as this is only called with DPC_STATUS_REG write
@@ -710,21 +645,6 @@ void MemoryUpdateDP( u32 flags )
 	if (flags & DPC_CLR_CLOCK_CTR)				Memory_DPC_SetRegister(DPC_CLOCK_REG, 0);
 	*/
 
-#ifdef DISPLAY_DPC_WRITES
-	if ( flags & DPC_CLR_XBUS_DMEM_DMA )		DBGConsole_Msg( 0, "DPC_CLR_XBUS_DMEM_DMA" );
-	if ( flags & DPC_SET_XBUS_DMEM_DMA )		DBGConsole_Msg( 0, "DPC_SET_XBUS_DMEM_DMA" );
-	if ( flags & DPC_CLR_FREEZE )				DBGConsole_Msg( 0, "DPC_CLR_FREEZE" );
-	if ( flags & DPC_SET_FREEZE )				DBGConsole_Msg( 0, "DPC_SET_FREEZE" );
-	if ( flags & DPC_CLR_FLUSH )				DBGConsole_Msg( 0, "DPC_CLR_FLUSH" );
-	if ( flags & DPC_SET_FLUSH )				DBGConsole_Msg( 0, "DPC_SET_FLUSH" );
-	if ( flags & DPC_CLR_TMEM_CTR )				DBGConsole_Msg( 0, "DPC_CLR_TMEM_CTR" );
-	if ( flags & DPC_CLR_PIPE_CTR )				DBGConsole_Msg( 0, "DPC_CLR_PIPE_CTR" );
-	if ( flags & DPC_CLR_CMD_CTR )				DBGConsole_Msg( 0, "DPC_CLR_CMD_CTR" );
-	if ( flags & DPC_CLR_CLOCK_CTR )			DBGConsole_Msg( 0, "DPC_CLR_CLOCK_CTR" );
-
-	DBGConsole_Msg( 0, "Modified DPC_STATUS_REG - now %08x", dpc_status );
-#endif
-
 	Memory_DPC_SetRegister(DPC_STATUS_REG, dpc_status);
 
 	if (unfreeze_task)
@@ -732,9 +652,6 @@ void MemoryUpdateDP( u32 flags )
 		u32 status = Memory_SP_GetRegister( SP_STATUS_REG );
 		if((status & SP_STATUS_HALT) == 0)
 		{
-			#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT( (status & SP_STATUS_BROKE) == 0, "Unexpected RSP HLE status %08x", status );
-			#endif
 			RSP_HLE_ProcessTask();
 		}
 	}
@@ -798,41 +715,15 @@ void MemoryModeRegMI( u32 value )
 	}
 }
 
-#ifdef DAEDALUS_LOG
-static void DisplayVIControlInfo( u32 control_reg )
-{
-	DPF( DEBUG_VI, "VI Control:", (control_reg & VI_CTRL_GAMMA_DITHER_ON) ? "On" : "Off" );
-
-	const char *szMode = "Disabled/Unknown";
-	     if ((control_reg & VI_CTRL_TYPE_16) == VI_CTRL_TYPE_16) szMode = "16-bit";
-	else if ((control_reg & VI_CTRL_TYPE_32) == VI_CTRL_TYPE_32) szMode = "32-bit";
-
-	DPF( DEBUG_VI, "         ColorDepth: %s", szMode );
-	DPF( DEBUG_VI, "         Gamma Dither: %s", (control_reg & VI_CTRL_GAMMA_DITHER_ON) ? "On" : "Off" );
-	DPF( DEBUG_VI, "         Gamma: %s", (control_reg & VI_CTRL_GAMMA_ON) ? "On" : "Off" );
-	DPF( DEBUG_VI, "         Divot: %s", (control_reg & VI_CTRL_DIVOT_ON) ? "On" : "Off" );
-	DPF( DEBUG_VI, "         Interlace: %s", (control_reg & VI_CTRL_SERRATE_ON) ? "On" : "Off" );
-	DPF( DEBUG_VI, "         AAMask: 0x%02x", (control_reg&VI_CTRL_ANTIALIAS_MASK)>>8 );
-	DPF( DEBUG_VI, "         DitherFilter: %s", (control_reg & VI_CTRL_DITHER_FILTER_ON) ? "On" : "Off" );
-}
-#endif
-
 void MemoryUpdatePI( u32 value )
 {
 	if (value & PI_STATUS_RESET)
 	{
-		// What to do when is busy?
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-		DPF( DEBUG_PI, "PI: Resetting Status. PC: 0x%08x", gCPUState.CurrentPC );
-		#endif
 		// Reset PIC here
 		Memory_PI_SetRegister(PI_STATUS_REG, 0);
 	}
 	if (value & PI_STATUS_CLR_INTR)
 	{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-		DPF( DEBUG_PI, "PI: Clearing interrupt flag. PC: 0x%08x", gCPUState.CurrentPC );
-		#endif
 		Memory_MI_ClrRegisterBits(MI_INTR_REG, MI_INTR_PI);
 		R4300_Interrupt_UpdateCause3();
 	}
@@ -847,17 +738,8 @@ void MemoryUpdatePIF()
 	{
 		pPIFRam[ 0x3F ^ U8_TWIDDLE ] = 0x00;
 
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg( 0, "[GSI Interrupt control value: 0x%02x", command );
-		#endif
 		Memory_SI_SetRegisterBits(SI_STATUS_REG, SI_STATUS_INTERRUPT);
 		Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_SI);
 		R4300_Interrupt_UpdateCause3();
 	}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-	else
-	{
-		DBGConsole_Msg( 0, "[GUnknown control value: 0x%02x", command );
-	}
-	#endif
 }

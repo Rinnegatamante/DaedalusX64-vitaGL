@@ -1,12 +1,8 @@
-
-#define TEST_DISABLE_MATH_FUNCS DAEDALUS_PROFILE(__FUNCTION__);
-
 //*****************************************************************************
 //
 //*****************************************************************************
 u32 Patch___ull_mul()
 {
-TEST_DISABLE_MATH_FUNCS
 	u32 HiA = gGPR[REG_a0]._u32_0;
 	u32 LoA = gGPR[REG_a1]._u32_0;
 	u32 HiB = gGPR[REG_a2]._u32_0;
@@ -30,7 +26,6 @@ TEST_DISABLE_MATH_FUNCS
 // Used by SM64 and Space station Silicon Valley
 u32 Patch___ll_div()
 {
-TEST_DISABLE_MATH_FUNCS
 	// Fixed by  StrmnNrmn - regs cast to 32 bits so shift didn't work
 	// This was breaking 007
 	// Check if data is 32bit(cheap) or 64bit(expensive) //Corn
@@ -86,7 +81,6 @@ TEST_DISABLE_MATH_FUNCS
 //Used by AeroGauge
 u32 Patch___ull_div()
 {
-TEST_DISABLE_MATH_FUNCS
 	// Fixed by  StrmnNrmn - regs cast to 32 bits so shift didn't work
 	// Check if data is 32bit(cheap) or 64bit(expensive) //Corn
 
@@ -139,8 +133,6 @@ TEST_DISABLE_MATH_FUNCS
 //Used heavily by Super Smash Brothers
 u32 Patch___ull_rshift()
 {
-TEST_DISABLE_MATH_FUNCS
-
 	// Fixed by  StrmnNrmn - regs cast to 32 bits so shift didn't work
 	u64 op1 = (u64)((u64)gGPR[REG_a0]._u32_0 << 32 | (u64)gGPR[REG_a1]._u32_0);
 	//u64 op2 = (u64)((u64)gGPR[REG_a2]._u32_0 << 32 | (u64)gGPR[REG_a3]._u32_0);
@@ -162,8 +154,6 @@ TEST_DISABLE_MATH_FUNCS
 // By Jun Su
 u32 Patch___ll_lshift()
 {
-TEST_DISABLE_MATH_FUNCS
-
 	// Fixed by  StrmnNrmn - regs cast to 32 bits so shift didn't work
 	s64 op1 = (s64)((u64)gGPR[REG_a0]._u32_0 << 32 | (u64)gGPR[REG_a1]._u32_0);
 	//u64 op2 = (u64)((u64)gGPR[REG_a2]._u32_0 << 32 | (u64)gGPR[REG_a3]._u32_0);
@@ -184,8 +174,6 @@ TEST_DISABLE_MATH_FUNCS
 //Used by SSV
 u32 Patch___ll_rshift()
 {
-TEST_DISABLE_MATH_FUNCS
-
 	// Fixed by  StrmnNrmn - regs cast to 32 bits so shift didn't work
 	s64 op1 = (s64)((u64)gGPR[REG_a0]._u32_0 << 32 | (u64)gGPR[REG_a1]._u32_0);
 	//u64 op2 = (u64)((u64)gGPR[REG_a2]._u32_0 << 32 | (u64)gGPR[REG_a3]._u32_0);
@@ -205,8 +193,6 @@ TEST_DISABLE_MATH_FUNCS
 // By Jun Su
 u32 Patch___ll_mod()
 {
-TEST_DISABLE_MATH_FUNCS
-
 	// Fixed by  StrmnNrmn - regs cast to 32 bits so shift didn't work
 	s64 op1 = (s64)((u64)gGPR[REG_a0]._u32_0 << 32 | (u64)gGPR[REG_a1]._u32_0);
 	s64 op2 = (s64)((u64)gGPR[REG_a2]._u32_0 << 32 | (u64)gGPR[REG_a3]._u32_0);
@@ -231,7 +217,6 @@ TEST_DISABLE_MATH_FUNCS
 //*****************************************************************************
 u32 Patch_sqrtf()
 {
-TEST_DISABLE_MATH_FUNCS
 	// FP12 is input
 	// FP00 is output
 	f32 f = gCPUState.FPU[12]._f32;
@@ -246,7 +231,6 @@ TEST_DISABLE_MATH_FUNCS
 //*****************************************************************************
 u32 Patch_sinf()
 {
-TEST_DISABLE_MATH_FUNCS
 	// FP12 is input
 	// FP00 is output
 	f32 f = gCPUState.FPU[12]._f32;
@@ -261,7 +245,6 @@ TEST_DISABLE_MATH_FUNCS
 //*****************************************************************************
 u32 Patch_cosf()
 {
-TEST_DISABLE_MATH_FUNCS
 	// FP12 is input
 	// FP00 is output
 	f32 f = gCPUState.FPU[12]._f32;

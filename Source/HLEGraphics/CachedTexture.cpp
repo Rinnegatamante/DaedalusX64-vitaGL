@@ -33,14 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Config/ConfigOptions.h"
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/Dump.h"
 #include "Math/Math.h"
 #include "Math/MathUtil.h"
 #include "OSHLE/ultra_gbi.h"
 #include "Utility/AuxFunc.h"
 #include "Utility/IO.h"
-#include "Utility/Profiler.h"
 
 static std::vector<u8>		gTexelBuffer;
 static NativePf8888			gPaletteBuffer[ 256 ];
@@ -54,7 +51,7 @@ static NativePf8888			gPaletteBuffer[ 256 ];
 
 
 
-#if defined(DAEDALUS_GL) || defined(DAEDALUS_ACCURATE_TMEM) || defined(DAEDALUS_VITA)
+#if defined(DAEDALUS_ACCURATE_TMEM) || defined(__vita__)
 static ETextureFormat SelectNativeFormat(const TextureInfo & ti)
 {
 	// On OSX, always use RGBA 8888 textures.
@@ -107,9 +104,6 @@ static bool GenerateTexels(void ** p_texels,
 {
 	if( gTexelBuffer.size() < buffer_size ) //|| gTexelBuffer.size() > (128 * 1024))//Cut off for downsizing may need to be adjusted to prevent some thrashing
 	{
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-		printf( "Resizing texel buffer to %d bytes. Texture is %dx%d\n", buffer_size, ti.GetWidth(), ti.GetHeight() );
-#endif
 		gTexelBuffer.resize( buffer_size );
 	}
 
@@ -146,12 +140,6 @@ static bool GenerateTexels(void ** p_texels,
 
 static void UpdateTexture( const TextureInfo & ti, CNativeTexture * texture )
 {
-	#ifdef DAEDALUS_PROFILE
-	DAEDALUS_PROFILE( "Texture Conversion" );
-	#endif
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( texture != nullptr, "No texture" );
-	#endif
 	if ( texture != nullptr && texture->HasData() )
 	{
 		ETextureFormat	format = texture->GetFormat();
@@ -195,9 +183,6 @@ CachedTexture * CachedTexture::Create( const TextureInfo & ti )
 {
 	if( ti.GetWidth() == 0 || ti.GetHeight() == 0 )
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Trying to create 0 width/height texture" );
-		#endif
 		return nullptr;
 	}
 
@@ -225,9 +210,6 @@ CachedTexture::~CachedTexture()
 
 bool CachedTexture::Initialise()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT_Q(mpTexture == nullptr);
-	#endif
 	u32 width  = mTextureInfo.GetWidth();
 	u32 height = mTextureInfo.GetHeight();
 
@@ -310,7 +292,7 @@ bool CachedTexture::HasExpired() const
 		{
 			//Hack to make WONDER PROJECT J2 work (need to reload some textures every frame!) //Corn
 			if( (g_ROM.GameHacks == WONDER_PROJECTJ2) && (mTextureInfo.GetTLutFormat() == kTT_RGBA16) && (mTextureInfo.GetSize() == G_IM_SIZ_8b) ) return true;
-#ifndef DAEDALUS_VITA
+#ifndef __vita__
 			//Hack for Worms Armageddon
 			if( (g_ROM.GameHacks == WORMS_ARMAGEDDON) && (mTextureInfo.GetSize() == G_IM_SIZ_8b) && (mTextureContentsHash != mTextureInfo.GenerateHashValue()) ) return true;
 
@@ -327,46 +309,3 @@ bool CachedTexture::HasExpired() const
 	//Spread trashing them over time so not all get killed at once (lower value uses less VRAM) //Corn
 	return gRDPFrame - mFrameLastUsed > (20 + (FastRand() & 0x3));
 }
-
-#ifdef DAEDALUS_DEBUG_DISPLAYLIST
-void CachedTexture::DumpTexture( const TextureInfo & ti, const CNativeTexture * texture )
-{
-	DAEDALUS_ASSERT(texture != nullptr, "Should have a texture");
-
-	if( texture != nullptr && texture->HasData() )
-	{
-		IO::Filename filename;
-		IO::Filename filepath;
-		IO::Filename dumpdir;
-
-		IO::Path::Combine( dumpdir, g_ROM.settings.GameName.c_str(), "Textures" );
-
-		Dump_GetDumpDirectory( filepath, dumpdir );
-
-		sprintf( filename, "%08x-%s_%dbpp-%dx%d-%dx%d.png",
-							ti.GetLoadAddress(), ti.GetFormatName(), ti.GetSizeInBits(),
-							0, 0,		// Left/Top
-							ti.GetWidth(), ti.GetHeight() );
-
-		IO::Path::Append( filepath, filename );
-
-		void *	texels;
-		void *	palette;
-
-		// Note that we re-convert the texels because those in the native texture may well already
-		// be swizzle. Maybe we should just have an unswizzle routine?
-		if( GenerateTexels( &texels, &palette, ti, texture->GetFormat(), texture->GetStride(), texture->GetBytesRequired() ) )
-		{
-			// NB - this does not include the mirrored texels
-
-			// NB we use the palette from the native texture. This is a total hack.
-			// We have to do this because the palette texels come from emulated tmem, rather
-			// than ram. This means that when we dump out the texture here, tmem won't necessarily
-			// contain our pixels.
-			const void * native_palette = texture->GetPalette();
-
-			PngSaveImage( filepath, texels, native_palette, texture->GetFormat(), texture->GetStride(), ti.GetWidth(), ti.GetHeight(), true );
-		}
-	}
-}
-#endif // DAEDALUS_DEBUG_DISPLAYLIST

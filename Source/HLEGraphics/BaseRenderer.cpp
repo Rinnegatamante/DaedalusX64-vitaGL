@@ -29,9 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Math/MathUtil.h"
 
-#include "Debug/Dump.h"
-#include "Debug/DBGConsole.h"
-
 #include "Core/Memory.h"		// We access the memory buffers
 #include "Core/ROM.h"
 
@@ -40,7 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Math/Math.h"			// VFPU Math
 #include "Math/MathUtil.h"
 
-#include "Utility/Profiler.h"
 #include "Utility/AuxFunc.h"
 
 #include "SysVita/UI/Menu.h"

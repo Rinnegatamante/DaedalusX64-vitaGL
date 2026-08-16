@@ -282,9 +282,6 @@ static void Load_ObjSprite( const uObjSprite *sprite, const uObjTxtr *txtr )
 			break;
 		default:
 			// This should not happen!
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DAEDALUS_ERROR("Unhandled Obj texture\n");
-			#endif
 			return NULL;
 		}
 

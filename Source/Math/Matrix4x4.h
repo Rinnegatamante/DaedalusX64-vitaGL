@@ -46,8 +46,6 @@ ALIGNED_TYPE(class, Matrix4x4, 16)
 		};
 };
 
-DAEDALUS_STATIC_ASSERT( sizeof( Matrix4x4 ) == 16*4 );
-
 extern const Matrix4x4	gMatrixIdentity;
 
 void MatrixMultiplyUnaligned(Matrix4x4 * m_out, const Matrix4x4 *mat_a, const Matrix4x4 *mat_b);

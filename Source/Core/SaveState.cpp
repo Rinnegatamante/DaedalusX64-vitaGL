@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ROM.h"
 #include "R4300.h"
 
-#include "Debug/DBGConsole.h"
 #include "Interface/RomDB.h"
 #include "Math/MathUtil.h"
 #include "OSHLE/patch.h"
@@ -262,7 +261,6 @@ bool SaveState_LoadFromFile( const char * filename )
 	stream >> value;
 	if(value != SAVESTATE_PROJECT64_MAGIC_NUMBER)
 	{
-		DBGConsole_Msg(0, "Wrong magic number - savestate could be damaged or not in Daedalus/Project64 format" );
 		return false;
 	}
 	stream >> gRamSize;
@@ -275,8 +273,6 @@ bool SaveState_LoadFromFile( const char * filename )
 	if(g_ROM.mRomID != new_rom_id)
 	{
 		//ToDo: Give Option to switch Roms to one listed in SaveState if available.
-		DBGConsole_Msg(0, "ROM name in savestate is different from the name of the currently loaded ROM: %x-%x-%02x, %x-%x-%02x\n",
-			g_ROM.mRomID.CRC[0], g_ROM.mRomID.CRC[1], g_ROM.mRomID.CountryID, new_rom_id.CRC[0], new_rom_id.CRC[1], new_rom_id.CountryID);
 		return false;
 	}
 

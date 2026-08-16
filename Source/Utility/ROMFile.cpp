@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ROMFileUncompressed.h"
 #include "ROMFileNetwork.h"
 
-#include "Debug/DBGConsole.h"
-
 #include "Utility/Stream.h"
 #include "Utility/IO.h"
 
@@ -94,31 +92,12 @@ bool ROMFile::LoadData( u32 bytes_to_read, u8 *p_bytes, COutputStream & messages
 
 bool ROMFile::RequiresSwapping() const
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( mHeaderMagic != 0, "The header magic hasn't been set" );
-	#endif
 	return mHeaderMagic != 0x80371240;
 }
 
 bool ROMFile::SetHeaderMagic( u32 magic )
 {
 	mHeaderMagic = magic;
-
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	switch (mHeaderMagic)
-	{
-	case 0x80371240:
-	case 0x40123780:
-	case 0x12408037:
-		break;
-	default:
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Unhandled swapping mode %08x for %s", magic, mFilename );
-		DBGConsole_Msg(0, "[CUnknown ROM format for %s: 0x%08x", mFilename, magic);
-		#endif
-			return false;
-	}
-#endif
 
 	return true;
 }
@@ -137,9 +116,6 @@ void ROMFile::CorrectSwap( u8 * p_bytes, u32 length )
 		ByteSwap_2301( p_bytes, length );
 		break;
 	default:
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Unhandled swapping mode: %08x", mHeaderMagic );
-		#endif
 		break;
 	}
 }

@@ -24,9 +24,36 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Save.h"
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/Dump.h"
 #include "Utility/IO.h"
+
+// E.g. Dump_GetSaveDirectory([out], "c:\roms\test.rom", ".sra")
+// would first try to find the save in g_DaedalusConfig.mSaveDir. If this is not
+// found, g_DaedalusConfig.mRomsDir is checked.
+void Dump_GetSaveDirectory(char * rootdir, const char * rom_filename, const char * extension)
+{
+	// If the Save path has not yet been set up, prompt user
+	if (strlen(g_DaedalusConfig.mSaveDir) == 0)
+	{
+		// FIXME: missing prompt here!
+
+		// User may have cancelled
+		if (strlen(g_DaedalusConfig.mSaveDir) == 0)
+		{
+			// Default to rom path
+			IO::Path::Assign(g_DaedalusConfig.mSaveDir, rom_filename);
+			IO::Path::RemoveFileSpec(g_DaedalusConfig.mSaveDir);
+		}
+	}
+
+	IO::Directory::EnsureExists(g_DaedalusConfig.mSaveDir);
+
+	// Form the filename from the file spec (i.e. strip path and replace the extension)
+	IO::Filename file_name;
+	IO::Path::Assign(file_name, IO::Path::FindFileName(rom_filename));
+	IO::Path::SetExtension(file_name, extension);
+
+	IO::Path::Combine(rootdir, g_DaedalusConfig.mSaveDir, file_name);
+}
 
 static void InitMempackContent();
 
@@ -63,9 +90,6 @@ bool Save_Reset()
 		break;
 	}
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gSaveSize <= MemoryRegionSizes[MEM_SAVE], "Save size is larger than allocated memory");
-	#endif
 	gSaveDirty = false;
 	if (gSaveSize > 0)
 	{
@@ -74,9 +98,6 @@ bool Save_Reset()
 		FILE * fp = fopen(gSaveFileName, "rb");
 		if (fp != nullptr)
 		{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "Loading save from [C%s]", gSaveFileName);
-			#endif
 
 			u8 buffer[2048] {};
 			u8 * dst = (u8*)g_pMemoryBuffers[MEM_SAVE];
@@ -92,12 +113,6 @@ bool Save_Reset()
 			}
 			fclose(fp);
 		}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		else
-		{
-			DBGConsole_Msg(0, "Save File [C%s] cannot be found.", gSaveFileName);
-		}
-		#endif
 	}
 
 	// init mempack
@@ -106,18 +121,12 @@ bool Save_Reset()
 		FILE * fp = fopen(gMempackFileName, "rb");
 		if (fp != nullptr)
 		{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "Loading MemPack from [C%s]", gMempackFileName);
-			#endif
 			fread(g_pMemoryBuffers[MEM_MEMPACK], MemoryRegionSizes[MEM_MEMPACK], 1, fp);
 			fclose(fp);
 			gMempackDirty = false;
 		}
 		else
 		{
-			#ifdef DAEDALUS_DEBUG_CONSOLE
-			DBGConsole_Msg(0, "MemPack File [C%s] cannot be found.", gMempackFileName);
-			#endif
 			InitMempackContent();
 			gMempackDirty = true;
 		}
@@ -149,10 +158,6 @@ void Save_Flush()
 {
 	if (gSaveDirty && g_ROM.settings.SaveType != SAVE_TYPE_UNKNOWN)
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "Saving to [C%s]", gSaveFileName);
-		#endif
-
 		FILE * fp = fopen(gSaveFileName, "wb");
 		if (fp != nullptr)
 		{
@@ -174,10 +179,6 @@ void Save_Flush()
 
 	if (gMempackDirty)
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "Saving MemPack to [C%s]", gMempackFileName);
-		#endif
-
 		FILE * fp = fopen(gMempackFileName, "wb");
 		if (fp != nullptr)
 		{
@@ -227,10 +228,5 @@ static void InitMempackContent()
 			mempack[i]   = 0x00;
 			mempack[i+1] = 0x03;
 		}
-
-#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT(dst_off + 0x8000 <= MemoryRegionSizes[MEM_MEMPACK], "Buffer overflow");
-		DAEDALUS_ASSERT(dst_off + sizeof(gMempackInitialize) <= MemoryRegionSizes[MEM_MEMPACK], "Buffer overflow");
-#endif
 	}
 }

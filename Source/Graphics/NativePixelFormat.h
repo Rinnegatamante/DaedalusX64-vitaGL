@@ -29,10 +29,6 @@ struct NativePf5650
 	static u16 Make( u8 r, u8 g, u8 b, u8 a )
 	{
 		// Alpha is discarded
-
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_USE( a );
-		#endif
 		return ((r >> (8-BitsR)) << ShiftR) |
 			   ((g >> (8-BitsG)) << ShiftG) |
 			   ((b >> (8-BitsB)) << ShiftB);
@@ -68,7 +64,6 @@ struct NativePf5650
 	static const u32	BitsB = 5;
 	//static const u32	BitsA = 0;
 };
-DAEDALUS_STATIC_ASSERT( sizeof( NativePf5650 ) == 2 );
 
 struct NativePf5551
 {
@@ -112,7 +107,6 @@ struct NativePf5551
 	static const u32	BitsB = 5;
 	static const u32	BitsA = 1;
 };
-DAEDALUS_STATIC_ASSERT( sizeof( NativePf5551 ) == 2 );
 
 struct NativePf4444
 {
@@ -155,7 +149,6 @@ struct NativePf4444
 	static const u32	BitsB = 4;
 	static const u32	BitsA = 4;
 };
-DAEDALUS_STATIC_ASSERT( sizeof( NativePf4444 ) == 2 );
 
 struct NativePf8888
 {
@@ -220,7 +213,6 @@ struct NativePf8888
 	static const u32	BitsB = 8;
 	static const u32	BitsA = 8;
 };
-DAEDALUS_STATIC_ASSERT( sizeof( NativePf8888 ) == 4 );
 
 struct NativePfCI44		// This represents 2 pixels
 {
@@ -245,7 +237,6 @@ struct NativePfCI44		// This represents 2 pixels
 	static const u8	MaskPixelB = 0xf0;
 
 };
-DAEDALUS_STATIC_ASSERT( sizeof( NativePfCI44 ) == 1 );
 
 struct NativePfCI8
 {
@@ -260,6 +251,5 @@ struct NativePfCI8
 	{
 	}
 };
-DAEDALUS_STATIC_ASSERT( sizeof( NativePfCI8 ) == 1 );
 
 #endif // GRAPHICS_NATIVEPIXELFORMAT_H_

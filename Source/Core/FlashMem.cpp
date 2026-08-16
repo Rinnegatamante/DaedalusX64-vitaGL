@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "stdafx.h"
-#include "Debug/DBGConsole.h"
 #include "Core/FlashMem.h"
 #include "Memory.h"
 #include "DMA.h"
@@ -62,9 +61,6 @@ bool DMA_FLASH_CopyToDRAM(u32 dest, u32 StartOffset, u32 len)
 			return DMA_HandleTransfer( g_pu8RamBase, dest, gRamSize, (u8*)g_pMemoryBuffers[MEM_SAVE], StartOffset, MemoryRegionSizes[MEM_SAVE], len );
 		}
 	case FLASHRAM_MODE_STATUS:
-#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT(len == sizeof(u32) * 2, "Len is not correct when fetch status.");
-#endif
 		*(u32 *)(g_pu8RamBase + dest) = FlashStatus[0];
 		*(u32 *)(g_pu8RamBase + dest + sizeof(u32)) = FlashStatus[1];
 		return true;
@@ -130,7 +126,6 @@ void Flash_DoCommand(u32 FlashRAM_Command)
 	case 0x00000000:
 		break;
 	default:
-		DBGConsole_Msg(0, "Warning: Unknown FlashRam command: 0x%08x", FlashRAM_Command);
 		break;
 	}
 }

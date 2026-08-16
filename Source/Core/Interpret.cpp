@@ -30,12 +30,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Interpret.h"
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "OSHLE/patch.h"				// GetCorrectOp
 #include "OSHLE/ultra_R4300.h"
 #include "Utility/Macros.h"
-#include "Utility/Profiler.h"
 #include "Utility/Synchroniser.h"
 
 //*****************************************************************************
@@ -88,10 +85,6 @@ template< bool TranslateOp > DAEDALUS_FORCEINLINE void CPU_EXECUTE_OP()
 	R4300_ExecuteInstruction(op_code);
 	gGPR[0]._u64 = 0;	//Ensure r0 is zero
 
-#ifdef DAEDALUS_PROFILE_EXECUTION
-		gTotalInstructionsEmulated++;
-#endif
-
 	SYNCH_POINT( DAED_SYNC_REGS, CPU_ProduceRegisterHash(), "Registers don't match" );
 
 	// Increment count register
@@ -137,8 +130,6 @@ template< bool TranslateOp > DAEDALUS_FORCEINLINE void CPU_EXECUTE_OP()
 //*****************************************************************************
 void CPU_Go()
 {
-	DAEDALUS_PROFILE( __FUNCTION__ );
-
 	while (CPU_KeepRunning())
 	{
 		//
@@ -168,13 +159,6 @@ void Inter_SelectCore()
 //*****************************************************************************
 void CPU_Skip()
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	if (CPU_IsRunning())
-	{
-		DBGConsole_Msg(0, "Already Running");
-		return;
-	}
-#endif
 	INCREMENT_PC();
 }
 
@@ -183,14 +167,6 @@ void CPU_Skip()
 //*****************************************************************************
 void CPU_Step()
 {
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-	if (CPU_IsRunning())
-	{
-		DBGConsole_Msg(0, "Already Running");
-		return;
-	}
-#endif
-
 	CPU_CheckStuffToDo();
 
 	CPU_EXECUTE_OP< true >();

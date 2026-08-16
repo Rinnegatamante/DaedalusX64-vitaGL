@@ -8,16 +8,10 @@
 #include "Core/Memory.h"
 #include "Math/MathUtil.h"
 
-#include "Debug/DBGConsole.h"
-
 extern bool isZeldaABI;
 
 void FILTER2(AudioHLECommand command)
 {
-#ifdef DEBUG_AUDIO
-	DBGConsole_Msg(0, "FILTER2");
-#endif
-
 	static int cnt = 0;
 	static s16 *lutt6;
 	static s16 *lutt5;
@@ -138,7 +132,7 @@ void FILTER2(AudioHLECommand command)
 		inp2 += 8;
 		outp += 8;
 	}
-//	memmove (rdram+(command.cmd1&0xFFFFFF), dmem+0xFB0, 0x20);
-	memmove (save, inp2-8, 0x10);
-	memmove (gAudioHLEState.Buffer+(command.cmd0&0xffff), outbuff, cnt);
+//	sceClibMemmove (rdram+(command.cmd1&0xFFFFFF), dmem+0xFB0, 0x20);
+	sceClibMemmove (save, inp2-8, 0x10);
+	sceClibMemmove (gAudioHLEState.Buffer+(command.cmd0&0xffff), outbuff, cnt);
 }

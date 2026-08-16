@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/ROM.h"
 #include "Core/Memory.h"
 
-#include "Debug/DBGConsole.h"
 #include "Utility/AuxFunc.h"
 
 #include "OSHLE/ultra_gbi.h"
@@ -30,6 +29,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Limit cache ucode entries to 6
 // In theory we should never reach this max
 #define MAX_UCODE_CACHE_ENTRIES 6
+
+#define ARRAYSIZE(x) (sizeof(x) / sizeof (*x))
 
 char cur_gfx_ucode_str[256] = "";
 char cur_gfx_ucode[32] = "";
@@ -167,7 +168,6 @@ UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, const M
 	// 
 	if (index >= MAX_UCODE_CACHE_ENTRIES)
 	{
-		DBGConsole_Msg(0, "Reached max of ucode entries, spreading entry..");
 		index = FastRand() % MAX_UCODE_CACHE_ENTRIES;
 	}
 
@@ -230,7 +230,6 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	if (!is_custom_ucode) {
 		if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_gfx_ucode_str, 256)) {
 			sprintf(cur_gfx_ucode, "Unknown [Hash: 0x%08x]", code_hash);
-			DBGConsole_Msg(0, "Unknown GFX microcode, falling back to F3D");
 		} else {
 			const char  *ucodes[] { "F3D", "L3D", "S2D" };
 			char 		*match;

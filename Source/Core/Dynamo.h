@@ -22,9 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void Dynamo_SelectCore();
 void Dynamo_Reset();
 
-#ifdef DAEDALUS_DEBUG_DYNAREC
-	void			CPU_DumpFragmentCache();
-#endif
 void Dynarec_ClearedCPUStuffToDo();
 void Dynarec_SetCPUStuffToDo();
 

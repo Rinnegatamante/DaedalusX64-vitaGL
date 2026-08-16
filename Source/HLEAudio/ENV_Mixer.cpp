@@ -8,8 +8,6 @@
 #include "Core/Memory.h"
 #include "Math/MathUtil.h"
 
-#include "Debug/DBGConsole.h"
-
 extern bool isZeldaABI;
 
 static u32 gEnv_t3, gEnv_s5, gEnv_s6;

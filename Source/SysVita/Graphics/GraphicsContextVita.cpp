@@ -8,13 +8,9 @@
 
 #include "Config/ConfigOptions.h"
 #include "Core/ROM.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/Dump.h"
 #include "Graphics/ColourValue.h"
 #include "Graphics/PngUtil.h"
 #include "Utility/IO.h"
-#include "Utility/Preferences.h"
-#include "Utility/Profiler.h"
 #include "Utility/VolatileMem.h"
 #include "SysVita/UI/Menu.h"
 
@@ -86,9 +82,6 @@ private:
 //*************************************************************************************
 template<> bool CSingleton< CGraphicsContext >::Create()
 {
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT_Q(mpInstance == nullptr);
-#endif
 	mpInstance = new IGraphicsContext();
 	return mpInstance->Initialise();
 }
@@ -243,7 +236,7 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			
 		vglVertexAttribPointerMapped(0, vflux_vertices);
 		vglVertexAttribPointerMapped(1, vflux_texcoords);
-		vglDrawObjects(GL_TRIANGLE_FAN, 4, true);
+		vglDrawObjects(GL_TRIANGLE_FAN, 4);
 		glUseProgram(0);
 		glEnableClientState(GL_VERTEX_ARRAY);
 		if (gOverlay) {

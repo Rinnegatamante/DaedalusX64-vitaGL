@@ -72,8 +72,6 @@ static const u32 kPalette8BytesRequired = 256 * sizeof( NativePf8888 );
 
 static u32 GetTextureBlockWidth( u32 dimension, ETextureFormat texture_format )
 {
-	DAEDALUS_ASSERT( GetNextPowerOf2( dimension ) == dimension, "This is not a power of 2" );
-
 	// Ensure that the pitch is at least 16 bytes
 	while( CalcBytesRequired( dimension, texture_format ) < 16 )
 	{

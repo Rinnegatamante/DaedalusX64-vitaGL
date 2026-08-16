@@ -1,12 +1,5 @@
-#define TEST_DISABLE_UTIL_FUNCS //DAEDALUS_PROFILE(__FUNCTION__);
-
-
 u32 Patch___osAtomicDec()
 {
-TEST_DISABLE_UTIL_FUNCS
-#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "osAtomicDec");
-#endif
 	u8 *p = (u8*)ReadAddress(gGPR[REG_a0]._u32_0);
 	u32 value = QuickRead32Bits(p, 0x0);
 	u32 result= 0;
@@ -28,7 +21,6 @@ TEST_DISABLE_UTIL_FUNCS
 //*****************************************************************************
 u32 Patch_memcpy()
 {
-TEST_DISABLE_UTIL_FUNCS
 	u32 dst = gGPR[REG_a0]._u32_0;
 	u32 src = gGPR[REG_a1]._u32_0;
 	u32 len = gGPR[REG_a2]._u32_0;
@@ -43,7 +35,6 @@ TEST_DISABLE_UTIL_FUNCS
 #if 1	//1->Fast, 0->Old way
 	fast_memcpy_swizzle( (void *)ReadAddress(dst), (void *)ReadAddress(src), len);
 #else
-	//DBGConsole_Msg(0, "memcpy(0x%08x, 0x%08x, %d)", dst, src, len);
 	u8 *pdst = (u8*)ReadAddress(dst);
 	u8 *psrc = (u8*)ReadAddress(src);
 	while(len--)
@@ -61,7 +52,6 @@ TEST_DISABLE_UTIL_FUNCS
 // Used by Killer Instinct
 u32 Patch_strlen()
 {
-TEST_DISABLE_UTIL_FUNCS
 	u32 string = gGPR[REG_a0]._u32_0;
 	const u8 *psrc = (const u8*)ReadAddress(string);
 	const u8 *start = psrc;
@@ -79,7 +69,6 @@ TEST_DISABLE_UTIL_FUNCS
 //*****************************************************************************
 u32 Patch_strchr()
 {
-TEST_DISABLE_UTIL_FUNCS
 	u32 string = gGPR[REG_a0]._u32_0;
 	u8 MatchChar = (u8)(gGPR[REG_a1]._u32_0 & 0xFF);
 	u32 MatchAddr = 0;
@@ -116,10 +105,6 @@ u32 Patch_strcmp()
 	u32 sB = gGPR[REG_a1]._u32_0;
 	u32 len = gGPR[REG_a2]._u32_0;
 	u8 A, B;
-
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "strcmp(%s,%s,%d)", sA, sB, len);
-	#endif
 	
 	for (i = 0; (A = Read8Bits(sA+i)) != 0 && i < len; i++)
 	{
@@ -143,7 +128,6 @@ u32 Patch_strcmp()
 // Note different order to src/dst than memcpy!
 u32 Patch_bcopy()
 {
-TEST_DISABLE_UTIL_FUNCS
 	u32 src = gGPR[REG_a0]._u32_0;
 	u32 dst = gGPR[REG_a1]._u32_0;
 	u32 len = gGPR[REG_a2]._u32_0;
@@ -201,7 +185,7 @@ u32 Patch_bzero()
 	u8* dst8 = (u8*)ReadAddress(dst);
 
 #if (DAEDALUS_ENDIAN_MODE == DAEDALUS_ENDIAN_BIG)
-	memset( dst8, 0, len);
+	sceClibMemset( dst8, 0, len);
 #else
 	// Align dst on 4 bytes or just resume if already done
 	while(((u32)dst8 & 0x3) && len)

@@ -40,33 +40,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "SaveState.h"
 
 #include "Config/ConfigOptions.h"
-#include "Debug/DBGConsole.h"
-#include "Debug/DebugLog.h"
 #include "OSHLE/ultra_R4300.h"
 #include "System/System.h"
 #include "Utility/AtomicPrimitives.h"
 #include "Utility/FramerateLimiter.h"
 #include "Utility/Hash.h"
 #include "Utility/Macros.h"
-#include "Utility/PrintOpCode.h"
 #include "Utility/Synchroniser.h"
 #include "Utility/Thread.h"
 #include "Utility/Mutex.h"
-
-#ifdef DAEDALUS_W32
-#include "Plugins/AudioPlugin.h"
-#endif
 
 extern void R4300_Init();
 
 //
 //	New dynarec engine
 //
-#ifdef DAEDALUS_PROFILE_EXECUTION
-u64					gTotalInstructionsExecuted {};
-u64					gTotalInstructionsEmulated {};
-#endif
-
 #ifdef DAEDALUS_BREAKPOINTS_ENABLED
 std::vector< DBG_BreakPoint > g_BreakPoints;
 #endif
@@ -134,9 +122,6 @@ void CPU_SkipToNextEvent()
 {
 	LOCK_EVENT_QUEUE();
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gCPUState.NumEvents > 0, "There are no events" );
-	#endif
 	gCPUState.CPUControl[C0_COUNT]._u32 += (gCPUState.Events[ 0 ].mCount - 1);
 	gCPUState.Events[ 0 ].mCount = 1;
 }
@@ -153,10 +138,6 @@ static void CPU_ResetEventList()
 void CPU_AddEvent( s32 count, ECPUEventType event_type )
 {
 	LOCK_EVENT_QUEUE();
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( count > 0, "Count is invalid" );
-	DAEDALUS_ASSERT( gCPUState.NumEvents < MAX_CPU_EVENTS, "Too many events" );
-#endif
 	u32 event_idx {};
 	for( event_idx = 0; event_idx < gCPUState.NumEvents; ++event_idx )
 	{
@@ -183,9 +164,7 @@ void CPU_AddEvent( s32 count, ECPUEventType event_type )
 		//
 		count -= event.mCount;
 	}
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( event_idx <= gCPUState.NumEvents, "Invalid idx" );
-	#endif
+
 	gCPUState.Events[ event_idx ].mCount = count;
 	gCPUState.Events[ event_idx ].mEventType = event_type;
 	gCPUState.NumEvents++;
@@ -196,9 +175,6 @@ static void CPU_SetCompareEvent( s32 count )
 	{
 		LOCK_EVENT_QUEUE();
 
-#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( count > 0, "Count is invalid" );
-#endif
 		//
 		//	Remove any existing compare events. Need to adjust any subsequent timer's count.
 		//
@@ -227,12 +203,6 @@ static void CPU_SetCompareEvent( s32 count )
 static ECPUEventType CPU_PopEvent()
 {
 	LOCK_EVENT_QUEUE();
-
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gCPUState.NumEvents > 0, "Event queue empty" );
-	DAEDALUS_ASSERT( gCPUState.Events[ 0 ].mCount <= 0, "Popping event when cycles remain" );
-	//DAEDALUS_ASSERT( gCPUState.Events[ 0 ].mCount == 0, "Popping event with a bit of underflow" );
-#endif
 
 	ECPUEventType event_type = gCPUState.Events[ 0 ].mEventType;
 
@@ -330,10 +300,6 @@ void SCPUState::Dump()
 
 bool CPU_RomOpen()
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg(0, "Resetting CPU");
-#endif
-
 	gLastAddress = nullptr;
 	gCPURunning = false;
 	gCPUStopOnSimpleState = false;
@@ -421,9 +387,6 @@ void CPU_SelectCore()
 bool CPU_RequestSaveState( const char * filename )
 {
 	// Call SaveState_SaveToFile directly if the CPU is not running.
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(gCPURunning, "Expecting the CPU to be running at this point");
-	#endif
 	MutexLock lock( &gSaveStateMutex );
 
 	// Abort if already in the process of loading/saving
@@ -442,9 +405,6 @@ bool CPU_RequestSaveState( const char * filename )
 bool CPU_RequestLoadState( const char * filename )
 {
 	// Call SaveState_SaveToFile directly if the CPU is not running.
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(gCPURunning, "Expecting the CPU to be running at this point");
-	#endif
 	MutexLock lock( &gSaveStateMutex );
 
 	// Abort if already in the process of loading/saving
@@ -462,9 +422,6 @@ bool CPU_RequestLoadState( const char * filename )
 
 static void HandleSaveStateOperationOnVerticalBlank()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT(gCPURunning, "Expecting the CPU to be running at this point");
-	#endif
 	if( gSaveStateOperation == SSO_NONE )
 		return;
 
@@ -476,21 +433,12 @@ static void HandleSaveStateOperationOnVerticalBlank()
 	switch( gSaveStateOperation )
 	{
 	case SSO_NONE:
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DAEDALUS_ERROR( "Unreachable" );
-		#endif
 		break;
 	case SSO_SAVE:
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "Saving '%s'\n", gSaveStateFilename.c_str());
-		#endif
 		SaveState_SaveToFile( gSaveStateFilename.c_str() );
 		gSaveStateOperation = SSO_NONE;
 		break;
 	case SSO_LOAD:
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "Loading '%s'\n", gSaveStateFilename.c_str());
-		#endif
 		// Try to load the savestate immediately. If this fails, it
 		// usually means that we're running the correct rom (we should have a
 		// separate return code to check this case). In that case we
@@ -527,13 +475,6 @@ static bool HandleSaveStateOperationOnCPUStopRunning()
 		System_Open(rom_filename);
 		SaveState_LoadFromFile(gSaveStateFilename.c_str());
 	}
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	else
-	{
-		DBGConsole_Msg(0, "Couldn't find matching rom for %s\n", gSaveStateFilename.c_str());
-		// Keep running with the current rom.
-	}
-	#endif
 
 	return true;
 }
@@ -547,9 +488,6 @@ bool CPU_Run()
 	{
 		gCPURunning = true;
 		gCPUStopOnSimpleState = false;
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT(gSaveStateOperation == SSO_NONE, "Shouldn't have a save state operation queued.");
-		#endif
 		RESET_EVENT_QUEUE_LOCK();
 
 		while (gCPURunning)
@@ -561,17 +499,11 @@ bool CPU_Run()
 			break;
 	}
 
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT(!gCPURunning, "gCPURunning should be false by now.");
-	#endif
 	return true;
 }
 
 void CPU_Halt( const char * reason )
 {
-	#ifdef DAEDALUS_DEBUG_CONSOLE
-	DBGConsole_Msg( 0, "CPU Halting: %s", reason );
-	#endif
 	gCPUStopOnSimpleState = true;
 	gCPUState.AddJob( CPU_STOP_RUNNING );
 }
@@ -644,9 +576,6 @@ extern "C"
 {
 void CPU_HANDLE_COUNT_INTERRUPT()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( gCPUState.NumEvents > 0, "Should always have at least one event queued up" );
-	#endif
 	switch (CPU_PopEvent())
 	{
 	case CPU_EVENT_VBL:
@@ -675,10 +604,7 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 
 			if(!gFastForward)
 				FramerateLimiter_Limit();
-#ifdef DAEDALUS_W32
-			if (gAudioPlugin != nullptr)
-				gAudioPlugin->Update(false);
-#endif
+
 			Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_VI);
 			R4300_Interrupt_UpdateCause3();
 
@@ -687,7 +613,7 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 			// (strmnnrmn): I don't see what's so bad about checking these on a vbl,
 			//   because it means we can remain responsive even if the game is not rendering frames
 			//   (e.g. if it's slow starting up)
-			//   Alternatively, we could add a special-purpose CPU even that triggers every
+			//   Alternatively, we could add a special-purpose CPU event that triggers every
 			//   N cycles, but that would have a small impact on framerate (it would
 			//   interrupt the dynamo tracer for instance)
 			// TODO(strmnnrmn): should register this with CPU_RegisterVblCallback.
@@ -724,10 +650,6 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 	default:
 		NODEFAULT;
 	}
-
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gCPUState.NumEvents > 0, "Should always have at least one event queued up" );
-	#endif
 }
 }
 
@@ -735,10 +657,6 @@ void CPU_SetCompare(u32 value)
 {
 	gCPUState.CPUControl[C0_CAUSE]._u32 &= ~CAUSE_IP8;
 
-	#ifdef DAEDALUS_PROFILE
-	DPF( DEBUG_REGS, "COMPARE set to 0x%08x.", value );
-	//DBGConsole_Msg(0, "COMPARE set to 0x%08x Count is 0x%08x.", value, gCPUState.CPUControl[C0_COUNT]._u32);
-	#endif
 	// Add an event for this compare:
 	if (value == gCPUState.CPUControl[C0_COMPARE]._u32)
 	{
@@ -760,12 +678,6 @@ void CPU_SetCompare(u32 value)
 			// }
 			CPU_SetCompareEvent( delta );
 		}
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		else
-		{
-			//DBGConsole_Msg(0, "[RIgnoring SetCompare 0] - is this right?");
-		}
-		#endif
 		gCPUState.CPUControl[C0_COMPARE]._u32 = value;
 	}
 }
@@ -819,14 +731,7 @@ extern "C"
 {
 void R4300_CALL_TYPE CPU_UpdateCounter( u32 ops_executed )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( ops_executed > 0, "Expecting at least one op" );
-	#endif
 	//SYNCH_POINT( DAED_SYNC_FRAGMENT_PC, ops_executed, "Number of executed ops doesn't match" );
-
-#ifdef DAEDALUS_PROFILE_EXECUTION
-	gTotalInstructionsExecuted += ops_executed;
-#endif
 
 	const u32 cycles = ops_executed * g_ROM.settings.CountPerOp;
 
@@ -849,18 +754,8 @@ void CPU_UpdateCounterNoInterrupt( u32 ops_executed )
 	{
 		const u32 cycles {ops_executed * g_ROM.settings.CountPerOp};
 
-#ifdef DAEDALUS_PROFILE_EXECUTION
-		gTotalInstructionsExecuted += ops_executed;
-#endif
-
 		// Increment count register
 		gCPUState.CPUControl[C0_COUNT]._u32 += cycles;
-
-#ifdef DAEDALUS_ENABLE_ASSERTS
-		bool	ready = CPU_ProcessEventCycles( cycles );
-		use( ready );
-		DAEDALUS_ASSERT(!ready, "Ignoring Count interrupt");	// Just a test - remove eventually (needs to handle this)
-#endif
 	}
 }
 #endif

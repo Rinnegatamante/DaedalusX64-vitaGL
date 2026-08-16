@@ -25,13 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/CPU.h"			// For dubious use of PC/NewPC
 #include "Core/Registers.h"
 
-#include "Debug/DBGConsole.h"
-
-#include "Utility/Profiler.h"
-#include "Utility/PrintOpCode.h"
-
-//#define LOG_ABORTED_TRACES
-
 namespace
 {
 	const u32 INVALID_IDX = u32( ~0 );
@@ -59,12 +52,6 @@ CTraceRecorder::CTraceRecorder()
 
 void	CTraceRecorder::StartTrace( u32 address )
 {
-	#ifdef DAEDALUS_PROFILE
-	DAEDALUS_PROFILE( "CTraceRecorder::StartTrace" );
-#endif
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !mTracing, "We're already tracing" );
-#endif
 	mTraceBuffer.clear();
 	mBranchDetails.clear();
 	mNeedIndirectExitMap = false;
@@ -84,25 +71,16 @@ CTraceRecorder::EUpdateTraceStatus	CTraceRecorder::UpdateTrace( u32 address,
 																 OpCode op_code,
 																 CFragment * p_fragment )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( mTracing, "We're not tracing" );
-#endif
 	bool				want_to_stop( p_fragment != nullptr );
 
 	if( mTraceBuffer.size() > MAX_TRACE_LENGTH )
 	{
-		#ifdef DAEDALUS_DEBUG_CONSOLE
-		DBGConsole_Msg(0, "Hit max trace size!");
-		#endif
 		want_to_stop = true;
 	}
 
 	// Terminate if the current instruction is in the fragment cache or the trace reaches a specified size
 	if( want_to_stop && (mActiveBranchIdx == INVALID_IDX) )
 	{
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( mActiveBranchIdx == INVALID_IDX, "Exiting trace while in the middle of handling branch!" );
-		#endif
 		// Stop immediately so we can be sure of linking up with fragment
 		mTracing = false;
 		mExpectedExitTraceAddress = address;
@@ -119,9 +97,6 @@ CTraceRecorder::EUpdateTraceStatus	CTraceRecorder::UpdateTrace( u32 address,
 	//
 	if( mActiveBranchIdx != INVALID_IDX )
 	{
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( mActiveBranchIdx < mBranchDetails.size(), "Branch index is out of bounds" );
-		#endif
 		mBranchDetails[ mActiveBranchIdx ].DelaySlotTraceIndex = mTraceBuffer.size();
 
 		if (mBranchDetails[ mActiveBranchIdx ].SpeedHack == SHACK_POSSIBLE)
@@ -208,9 +183,6 @@ CTraceRecorder::EUpdateTraceStatus	CTraceRecorder::UpdateTrace( u32 address,
 		else
 		{
 			// Must be conditional, direct
-			#ifdef DAEDALUS_ENABLE_ASSERTS
-			DAEDALUS_ASSERT( IsBranchTypeDirect( branch_type ), "Not expecting an indirect branch here" );
-			#endif
 			if( branch_taken )
 			{
 				// XXXXXX should be able to get this some other way?
@@ -266,9 +238,6 @@ CTraceRecorder::EUpdateTraceStatus	CTraceRecorder::UpdateTrace( u32 address,
 
 	if( stop_trace_on_exit )
 	{
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-		DAEDALUS_ASSERT( branch_type == BT_ERET || mActiveBranchIdx == INVALID_IDX, "Exiting trace while in the middle of handling branch!" );
-#endif
 		mTracing = false;
 		return UTS_CREATE_FRAGMENT;
 	}
@@ -279,12 +248,8 @@ CTraceRecorder::EUpdateTraceStatus	CTraceRecorder::UpdateTrace( u32 address,
 
 //
 
-void	CTraceRecorder::StopTrace( u32 exit_address )
+void CTraceRecorder::StopTrace( u32 exit_address )
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( mTracing, "We're not tracing" );
-	DAEDALUS_ASSERT( mActiveBranchIdx == INVALID_IDX, "Stopping trace when a branch is active" );
-#endif
 	mTracing = false;
 	mExpectedExitTraceAddress = exit_address;
 }
@@ -292,15 +257,8 @@ void	CTraceRecorder::StopTrace( u32 exit_address )
 
 //
 
-CFragment *		CTraceRecorder::CreateFragment( CCodeBufferManager * p_manager )
+CFragment *CTraceRecorder::CreateFragment( CCodeBufferManager * p_manager )
 {
-	#ifdef DAEDALUS_ENABLE_DYNAREC_PROFILE
-	DAEDALUS_PROFILE( "CTraceRecorder::CreateFragment" );
-#endif
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( !mTraceBuffer.empty(), "No trace ready for creation?" );
-	#endif
-
 	SRegisterUsageInfo	register_usage;
 	Analyse( register_usage );
 
@@ -326,51 +284,8 @@ CFragment *		CTraceRecorder::CreateFragment( CCodeBufferManager * p_manager )
 
 void	CTraceRecorder::AbortTrace()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_PROFILE( "CTraceRecorder::AbortTrace" );
-#endif
 	if( mTracing )
 	{
-#ifdef LOG_ABORTED_TRACES
-		FILE * fh( fopen( "aborted_traces.txt", "a" ) );
-		if(fh)
-		{
-			fprintf( fh, "\n\nTrace: (%d ops)\n", mTraceBuffer.size() );
-
-			u32		last_address( mTraceBuffer.size() > 0 ? mTraceBuffer[ 0 ].Address-4 : 0 );
-			for(std::vector< STraceEntry >::const_iterator it = mTraceBuffer.begin(); it != mTraceBuffer.end(); ++it)
-			{
-				u32		address( it->Address );
-				OpCode	op_code( it->OpCode );
-				u32		branch_index( it->BranchIdx );
-
-				if( branch_index != INVALID_IDX )
-				{
-					#ifdef DAEDALUS_ENABLE_ASSERTS
-					DAEDALUS_ASSERT( branch_index < mBranchDetails.size(), "The branch index is out of range" );
-					#endif
-					const SBranchDetails &	details( mBranchDetails[ branch_index ] );
-					#ifdef DAEDALUS_DEBUG_CONSOLE
-					fprintf( fh, " BRANCH %d -> %08x\n", branch_index, details.TargetAddress );
-					#endif
-				}
-
-				char		buf[100];
-				SprintOpCodeInfo( buf, address, op_code );
-
-				bool		is_jump( address != last_address + 4 );
-				#ifdef DAEDALUS_DEBUG_CONSOLE
-				fprintf( fh, "%08x: %c%s\n", address, is_jump ? '*' : ' ', buf );
-				#endif
-				last_address = address;
-			}
-
-			fclose(fh);
-		}
-#endif
-
-
-		//DBGConsole_Msg( 0, "Aborting tracing of     [R%08x]", mStartTraceAddress );
 		mTracing = false;
 		mStartTraceAddress = 0;
 		mTraceBuffer.clear();
@@ -388,9 +303,6 @@ void	CTraceRecorder::AbortTrace()
 
 void CTraceRecorder::Analyse( SRegisterUsageInfo & register_usage )
 {
-	#ifdef DAEDALUS_ENABLE_DYNAREC_PROFILE
-	DAEDALUS_PROFILE( "CTraceRecorder::Analyse" );
-#endif
 	std::pair< s32, s32 >		reg_spans[ NUM_N64_REGS ];
 	std::pair< s32, s32 >		invalid_span( std::pair< s32, s32 >( mTraceBuffer.size(), -1 ) );
 

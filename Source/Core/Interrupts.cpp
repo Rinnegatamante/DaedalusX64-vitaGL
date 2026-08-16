@@ -20,26 +20,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Handle interrupts etc
 #include "stdafx.h"
 
-#include "Debug/DebugLog.h"
-
 #include "CPU.h"
 #include "Interrupt.h"
 #include "OSHLE/ultra_rcp.h"
 #include "OSHLE/ultra_R4300.h"
 #include "R4300.h"
 
-#include "Debug/DBGConsole.h"
-
 inline void SET_EXCEPTION(u32 mask, u32 exception)
 {
 	gCPUState.CPUControl[C0_CAUSE]._u32 &= ~mask;
 	gCPUState.CPUControl[C0_CAUSE]._u32 |= exception;
 }
-
-#ifdef DAEDALUS_PROFILE_EXECUTION
-u32 gNumExceptions {};
-u32 gNumInterrupts {};
-#endif
 
 static u32		gExceptionPC( ~0 );
 static bool		gExceptionWasDelay( false );		// Was exception operation in a branch-delay slot?
@@ -57,14 +48,6 @@ static u32		gExceptionVector( ~0 );
 //*****************************************************************************
 inline void R4300_JumpToInterruptVector(u32 exception_vector)
 {
-
-#if defined(DAEDALUS_ENABLE_ASSERTS) || defined(DAEDALUS_PROFILE_EXECUTION)
-	bool	mi_interrupt_set( (Memory_MI_GetRegister(MI_INTR_MASK_REG) & Memory_MI_GetRegister(MI_INTR_REG)) != 0 );
-	bool	cause_int_3_set( (gCPUState.CPUControl[C0_CAUSE]._u32 & CAUSE_IP3) != 0 );
-
-	DAEDALUS_ASSERT( mi_interrupt_set == cause_int_3_set, "CAUSE_IP3 inconsistant with MI_INTR_REG" );
-#endif
-
 	gCPUState.CPUControl[C0_SR]._u32 |= SR_EXL;
 	gCPUState.CPUControl[C0_EPC]._u32  = gCPUState.CurrentPC;
 
@@ -88,10 +71,6 @@ inline void R4300_JumpToInterruptVector(u32 exception_vector)
 //*****************************************************************************
 void R4300_Exception_Break()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gExceptionVector == u32(~0), "Exception vector already set" );
-	DAEDALUS_ASSERT( gExceptionPC == u32(~0), "Exception PC already set" );
-	#endif
 	SET_EXCEPTION( CAUSE_EXCMASK, EXC_BREAK );
 
 	gExceptionVector = E_VEC;
@@ -105,10 +84,6 @@ void R4300_Exception_Break()
 //*****************************************************************************
 void R4300_Exception_Syscall()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gExceptionVector == u32(~0), "Exception vector already set" );
-	DAEDALUS_ASSERT( gExceptionPC == u32(~0), "Exception PC already set" );
-	#endif
 	SET_EXCEPTION( CAUSE_EXCMASK, EXC_SYSCALL );
 
 	gExceptionVector = E_VEC;
@@ -122,10 +97,6 @@ void R4300_Exception_Syscall()
 //*****************************************************************************
 void R4300_Exception_CopUnusuable()
 {
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gExceptionVector == u32(~0), "Exception vector already set" );
-	DAEDALUS_ASSERT( gExceptionPC == u32(~0), "Exception PC already set" );
-	#endif
 	// XXXX check we're not inside exception handler before snuffing CAUSE reg?
 	SET_EXCEPTION( (CAUSE_EXCMASK|CAUSE_CEMASK), (EXC_CPU|SR_CU0) );
 
@@ -143,10 +114,6 @@ void R4300_Exception_CopUnusuable()
 //*****************************************************************************
 void R4300_Exception_TLB( u32 virtual_address, u32 exception_code, u32 exception_vector )
 {
-		#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gExceptionVector == u32(~0), "Exception vector already set" );
-	DAEDALUS_ASSERT( gExceptionPC == u32(~0), "Exception PC already set" );
-	#endif
 	gCPUState.CPUControl[C0_BADVADDR]._u32 = virtual_address;
 
 	gCPUState.CPUControl[C0_CONTEXT]._u32 &= 0xFF800000;	// Mask off bottom 23 bits
@@ -168,15 +135,6 @@ void R4300_Exception_TLB( u32 virtual_address, u32 exception_code, u32 exception
 //*****************************************************************************
 void R4300_Handle_Exception()
 {
-	// These should be set before we end up here...
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gExceptionVector != u32(~0), "Exception vector not set: %08x", gCPUState.GetStuffToDo() );
-	DAEDALUS_ASSERT( gExceptionPC != u32(~0), "Exception PC not set" );
-	#endif
-#ifdef DAEDALUS_PROFILE_EXECUTION
-	gNumExceptions++;
-#endif
-
 	gCPUState.CurrentPC = gExceptionPC;									// Restore this...
 	gCPUState.Delay = gExceptionWasDelay ? EXEC_DELAY : NO_DELAY;	// And this...
 	R4300_JumpToInterruptVector( gExceptionVector );
@@ -191,20 +149,10 @@ void R4300_Handle_Exception()
 //*****************************************************************************
 void R4300_Handle_Interrupt()
 {
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	bool	mi_interrupt_set( (Memory_MI_GetRegister(MI_INTR_MASK_REG) & Memory_MI_GetRegister(MI_INTR_REG)) != 0 );
-	bool	cause_int_3_set( (gCPUState.CPUControl[C0_CAUSE]._u32 & CAUSE_IP3) != 0 );
-
-	DAEDALUS_ASSERT( mi_interrupt_set == cause_int_3_set, "CAUSE_IP3 inconsistant with MI_INTR_REG (%08x)", Memory_MI_GetRegister(MI_INTR_MASK_REG) & Memory_MI_GetRegister(MI_INTR_REG) );
-#endif
-
 	if( (gCPUState.CPUControl[C0_SR]._u32 & (SR_EXL | SR_ERL | SR_IE)) == SR_IE ) // Ensure ERL/EXL are "0" and IE is "1"
 	{
 		if(gCPUState.CPUControl[C0_SR]._u32 & gCPUState.CPUControl[C0_CAUSE]._u32 & CAUSE_IPMASK)  // Are interrupts pending/wanted?
 		{
-#ifdef DAEDALUS_PROFILE_EXECUTION
-			gNumInterrupts++;
-#endif
 			SET_EXCEPTION( CAUSE_EXCMASK, EXC_INT );
 			R4300_JumpToInterruptVector( E_VEC );
 		}

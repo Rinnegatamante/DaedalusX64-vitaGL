@@ -8,8 +8,6 @@
 #include "Core/Memory.h"
 #include "Math/MathUtil.h"
 
-#include "Debug/DBGConsole.h"
-
 extern bool isZeldaABI;
 
 void ADPCM(AudioHLECommand command)
