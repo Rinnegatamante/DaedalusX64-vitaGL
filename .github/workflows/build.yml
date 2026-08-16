@@ -79,11 +79,27 @@ jobs:
             gnuton/vitasdk-docker:20250520 \
             bash /workspace/build.sh
 
+      - name: Generate changelog
+        run: |
+          PREV_SHA=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/git/ref/tags/Nightly \
+            | jq -r '.object.sha // empty')
+
+          echo "Changes:" > changelog.md
+          echo "" >> changelog.md
+
+          if [ -n "$PREV_SHA" ] && git cat-file -e "$PREV_SHA" 2>/dev/null; then
+            git log "$PREV_SHA"..HEAD --pretty=format:'- %s' >> changelog.md
+          else
+            git log -n 20 --pretty=format:'- %s' >> changelog.md
+          fi
+
       - name: Publish Nightly release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: Nightly
           name: "Nightly ${{ github.run_number }}"
+          body_path: changelog.md
           files: |
             daedbuild/DaedalusX64.vpk
             Data/DaedalusX64.zip
@@ -92,3 +108,12 @@ jobs:
             Launcher/builder.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Nightly to VitaDB
+        run: |
+          curl --fail-with-body --show-error \
+            -X POST \
+            -F "secret=${{ secrets.VITADB_SECRET }}" \
+            -F "vpk_url=https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.vpk" \
+            -F "zip_url=https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.zip" \
+            https://www.rinnegatamante.eu/vitadb/publish_nightly.php
