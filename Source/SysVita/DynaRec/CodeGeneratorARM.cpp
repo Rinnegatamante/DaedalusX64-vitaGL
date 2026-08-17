@@ -2041,7 +2041,7 @@ void CCodeGeneratorARM::GenerateDADDIU( EN64Reg rt, EN64Reg rs, s16 immediate )
 	EArmReg regs_hi = GetRegisterAndLoadHi(rs, ArmReg_R0);
 	EArmReg regt_hi = GetRegisterNoLoadHi(rt, ArmReg_R0);
 	ADC_IMM(regt_hi, regs_hi, (s64)immediate >> 32, ArmReg_R1);
-	StoreRegisterHi(rt, ArmReg_R1);
+	StoreRegisterHi(rt, regt_hi);
 }
 
 void CCodeGeneratorARM::GenerateDADDU( EN64Reg rd, EN64Reg rs, EN64Reg rt )
