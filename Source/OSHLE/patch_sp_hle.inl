@@ -294,6 +294,7 @@ u32 Patch___osSpTaskLoadInitTask()
 //
 u32 Patch_osSpTaskYield_Mario()
 {
+	MemoryUpdateSPStatus( SP_SET_YIELD );
 	gGPR[REG_v0]._s64 = 0;
 	return PATCH_RET_JR_RA;
 }
@@ -303,6 +304,7 @@ u32 Patch_osSpTaskYield_Mario()
 //*****************************************************************************
 u32 Patch_osSpTaskYield_Rugrats()
 {
+	MemoryUpdateSPStatus( SP_SET_YIELD );
 	gGPR[REG_v0]._s64 = 0;
 	return PATCH_RET_JR_RA;
 }

@@ -211,14 +211,20 @@ static void WriteValue_8450_845F( u32 address, u32 value )
 	switch (offset)
 	{
 	case 0x4:	//AI_LEN_REG
-		// LS 3 bits ignored
-		*(u32 *)((u8 *)g_pMemoryBuffers[MEM_AI_REG] + offset) = value;
+	{
+		const u32 ai_length = value & 0x0003FFF8;
 
-		if (gAudioPlugin != NULL)
+		if (CPU_AI_QueueDma(ai_length))
 		{
-			gAudioPlugin->LenChanged();
+			*(u32 *)((u8 *)g_pMemoryBuffers[MEM_AI_REG] + offset) = ai_length;
+
+			if (gAudioPlugin != NULL)
+			{
+				gAudioPlugin->LenChanged();
+			}
 		}
 		break;
+	}
 
 	case 0x0c:	//AI_STATUS_REG
 		Memory_MI_ClrRegisterBits(MI_INTR_REG, MI_INTR_AI);

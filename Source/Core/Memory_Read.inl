@@ -110,7 +110,12 @@ static void * Read_8440_844F( u32 address )
 // 0x0450 0000 to 0x045F FFFF Audio Interface (AI) Registers
 static void * Read_8450_845F( u32 address )
 {
-	return (u8 *)g_pMemoryBuffers[MEM_AI_REG] + (address & 0xFF);
+	const u32 offset = address & 0xFF;
+
+	if (offset == 0x04)
+		Memory_AI_SetRegister(AI_LEN_REG, CPU_AI_GetRemainingLength());
+
+	return (u8 *)g_pMemoryBuffers[MEM_AI_REG] + offset;
 }
 
 // 0x0460 0000 to 0x046F FFFF Peripheral Interface (PI) Registers

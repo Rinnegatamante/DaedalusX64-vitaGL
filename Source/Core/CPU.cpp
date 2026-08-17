@@ -81,6 +81,26 @@ const  u32			kInitialVIInterruptCycles = 62500;
 static u32			gVerticalInterrupts;
 static u32			VI_INTR_CYCLES = kInitialVIInterruptCycles;
 
+static u32 gAICurrentLength {0};
+static u32 gAIQueuedLength {0};
+u32 CPU_AI_GetRemainingLength()
+{
+	if (!gAIDmaActive || gAICurrentLength == 0 || gAIDmaCycles == 0)
+		return 0;
+
+	const u32 now = gCPUState.CPUControl[C0_COUNT]._u32;
+	const u32 elapsed = now - gAIDmaStartCount;
+
+	if (elapsed >= gAIDmaCycles)
+		return 0;
+
+	const u64 remaining_cycles = (u64)(gAIDmaCycles - elapsed);
+	u32 remaining = (u32)(((u64)gAICurrentLength * remaining_cycles) / (u64)gAIDmaCycles);
+	remaining &= 0x0003FFF8;
+
+	return remaining;
+}
+
 #ifdef USE_SCRATCH_PAD
 SCPUState *gPtrCPUState {(SCPUState*)0x10000};
 #else

@@ -7,7 +7,7 @@ u32 Patch_osAiGetLength()
 {
 TEST_DISABLE_AI_FUNCS
 	// Hardcoding 2880 here causes Aerogauge to get 40%+ speed up, yammy!
-	gGPR[REG_v0]._s64 = (s64)Memory_AI_GetRegister(AI_LEN_REG);
+	gGPR[REG_v0]._s64 = (s64)CPU_AI_GetRemainingLength();
 
 	return PATCH_RET_JR_RA;
 }
@@ -17,11 +17,7 @@ TEST_DISABLE_AI_FUNCS
 inline bool IsAiDeviceBusy()
 {
 	u32 status = Memory_AI_GetRegister( AI_STATUS_REG );
-
-	if (status & (AI_STATUS_DMA_BUSY | AI_STATUS_FIFO_FULL))
-		return true;
-	else
-		return false;
+	return (status & AI_STATUS_FIFO_FULL) != 0;
 }
 
 //*****************************************************************************
@@ -33,21 +29,21 @@ TEST_DISABLE_AI_FUNCS
 	u32 addr = gGPR[REG_a0]._u32_0;
 	u32 len  = gGPR[REG_a1]._u32_0;
 
-	// If Ai interface is busy, stop the dma operation, can this happen??
-	#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( IsAiDeviceBusy()==0, "Warning: AI Interace is busy, can't DMA'd" );
-	#endif
-	//DBGConsole_Msg(0, "osAiNextBuffer() %08X len %d bytes",addr,len);
+	const u32 ai_length = len & 0x0003FFF8;
 
-	Memory_AI_SetRegister( AI_LEN_REG, len );
-	Memory_AI_SetRegister( AI_DRAM_ADDR_REG, addr );
-#ifdef DAEDALUS_ENABLE_ASSERTS
-	DAEDALUS_ASSERT( gAudioPlugin, "Audio plugin is not initialized");
-	#endif
-	gAudioPlugin->LenChanged();
+	if (CPU_AI_QueueDma(ai_length))
+	{
+		Memory_AI_SetRegister(AI_DRAM_ADDR_REG, addr);
+		Memory_AI_SetRegister(AI_LEN_REG, ai_length);
+		if (gAudioPlugin != NULL)
+			gAudioPlugin->LenChanged();
 
-	// Return 0 if succesfully DMA'd audio, otherwise -1 if busy
-	gGPR[REG_v0]._s64 = 0;
+		gGPR[REG_v0]._s64 = 0;
+	}
+	else
+	{
+		gGPR[REG_v0]._s64 = -1;
+	}
 
 	return PATCH_RET_JR_RA;
 }
