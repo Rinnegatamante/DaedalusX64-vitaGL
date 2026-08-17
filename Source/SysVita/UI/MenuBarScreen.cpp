@@ -913,7 +913,7 @@ void DrawCommonWindows() {
 	
 	if (credits_window) {
 		ImGui::Begin(lang_strings[STR_MENU_CREDITS], &credits_window);
-		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Daedalus X64 v.%s (%s)", VERSION, stringify(GIT_VERSION));
+		ImGui::TextColored(ImVec4(255, 255, 0, 255), "Daedalus X64 (#%s)", stringify(GIT_VERSION));
 		ImGui::Text("%s: Rinnegatamante", lang_strings[STR_CREDITS_AUTHOR]);
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_PATRONERS]);
@@ -1161,7 +1161,7 @@ void DrawMenuBar() {
 		
 		if (calculate_ver_len) {
 			calculate_ver_len = false;
-			sprintf(ver_str, "v.%s (%s)", VERSION, stringify(GIT_VERSION));
+			sprintf(ver_str, "#%s", stringify(GIT_VERSION));
 			ImVec2 ver_sizes = ImGui::CalcTextSize(ver_str);
 			ver_len = ver_sizes.x;
 		}

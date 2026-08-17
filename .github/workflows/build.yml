@@ -54,6 +54,8 @@ jobs:
           make -j$(nproc) install
           cd ..
 
+          git config --global --add safe.directory /workspace
+
           echo "$(cat $VITASDK/version_info.txt)"
           echo "$(git describe --abbrev=6 --dirty --always --tags)"
           mkdir daedbuild
