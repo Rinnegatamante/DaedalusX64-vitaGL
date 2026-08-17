@@ -1368,8 +1368,8 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 
 				case SpecOp_MFLO:	GenerateMFLO( rd );			handled = true; break;
 				case SpecOp_MFHI:	GenerateMFHI( rd );			handled = true; break;
-				case SpecOp_MTLO:	GenerateMTLO( rd );			handled = true; break;
-				case SpecOp_MTHI:	GenerateMTHI( rd );			handled = true; break;
+				case SpecOp_MTLO:	GenerateMTLO( rs );			handled = true; break;
+				case SpecOp_MTHI:	GenerateMTHI( rs );			handled = true; break;
 
 				case SpecOp_DADD:	GenerateDADDU( rd, rs, rt );	handled = true; break;
 				case SpecOp_DADDU:	GenerateDADDU( rd, rs, rt );	handled = true; break;
