@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "Config/ConfigOptions.h"
 #include "OSHLE/ultra_R4300.h"
+#include "OSHLE/ultra_mbi.h"
+#include "OSHLE/ultra_sptask.h"
 #include "Plugins/AudioPlugin.h"
 #include "Plugins/GraphicsPlugin.h"
 
@@ -570,6 +572,17 @@ void Memory_InitTables()
 
 void MemoryUpdateSPStatus( u32 flags )
 {
+	// HACK: Due to some race conditioning into guest threads, all threads can start waiting for a never occurring interrupt. If that happens, artificially send this interrupt
+	const u32 old_status = Memory_SP_GetRegister( SP_STATUS_REG );
+	const OSTask *task = (const OSTask *)(g_pu8SpMemBase + 0x0FC0);
+	const bool replay_completed_gfx_yield =
+		(flags & SP_SET_YIELD) != 0 &&
+		(old_status & SP_STATUS_YIELD) == 0 &&
+		(old_status & (SP_STATUS_HALT | SP_STATUS_BROKE | SP_STATUS_TASKDONE)) == (SP_STATUS_HALT | SP_STATUS_BROKE | SP_STATUS_TASKDONE) &&
+		(old_status & SP_STATUS_INTR_BREAK) != 0 &&
+		task->t.type == M_GFXTASK &&
+		(Memory_MI_GetRegister(MI_INTR_REG) & MI_INTR_SP) == 0;
+
 	u32	clr_bits = 0, set_bits = 0;
 	
 	if (flags & SP_CLR_HALT)         clr_bits |= SP_STATUS_HALT;
@@ -610,6 +623,9 @@ void MemoryUpdateSPStatus( u32 flags )
 	if (flags & SP_SET_SIG7)         set_bits |= SP_STATUS_SIG7;
 
 	Memory_SP_SetRegisterBits( SP_STATUS_REG, ~clr_bits, set_bits );
+
+	if (replay_completed_gfx_yield)
+		CPU_AddEvent(4000, CPU_EVENT_SPINT);
 
 	//
 	// We execute the task here, after we've written to the SP status register.

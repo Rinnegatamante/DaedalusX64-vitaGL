@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 
 #include "RSP_HLE.h"
+#include "CPU.h"
 
 #include "Interrupt.h"
 #include "Memory.h"
@@ -217,7 +218,12 @@ void RSP_HLE_ProcessTask()
 
 	// Started and completed. No need to change cores. [synchronously]
 	if (result == PR_COMPLETED)
-		RSP_HLE_Finished(SP_STATUS_TASKDONE|SP_STATUS_BROKE|SP_STATUS_HALT);
+	{
+		if (pTask->t.type == M_AUDTASK)
+			CPU_AddEvent(1, CPU_EVENT_AUDIO_SYNC);
+		else
+			RSP_HLE_Finished(SP_STATUS_TASKDONE|SP_STATUS_BROKE|SP_STATUS_HALT);
+	}
 	//else
 		//printf("Unknown ucode\n");
 }
