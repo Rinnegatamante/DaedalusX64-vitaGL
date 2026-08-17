@@ -1005,9 +1005,9 @@ void CCodeGeneratorARM::GenerateIndirectExitCode( u32 num_instructions, CIndirec
 //*****************************************************************************
 void CCodeGeneratorARM::GenerateExceptionHander( ExceptionHandlerFn p_exception_handler_fn, const std::vector< CJumpLocation > & exception_handler_jumps, const std::vector< RegisterSnapshotHandle>& exception_handler_snapshots )
 {
+	SetBufferB();
 	CCodeLabel exception_handler( GetAssemblyBuffer()->GetLabel() );
 
-	SetBufferB();
 	MOV32(ArmReg_R0, (u32)p_exception_handler_fn );
 	BLX(ArmReg_R0);
 
