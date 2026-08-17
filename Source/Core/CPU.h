@@ -72,11 +72,13 @@ enum	ECPUEventType
 	CPU_EVENT_VBL = 1,
 	CPU_EVENT_COMPARE,
 	CPU_EVENT_AUDIO,
-	CPU_EVENT_SPINT
+	CPU_EVENT_SPINT,
+	CPU_EVENT_AI,
+	CPU_EVENT_AUDIO_SYNC
 };
 
 // In practice there should only ever be 2
-#define MAX_CPU_EVENTS 4
+#define MAX_CPU_EVENTS 8
 
 struct CPUEvent
 {
@@ -175,6 +177,8 @@ void	CPU_EnableBreakPoint( u32 address, bool enable );		// Enable/Disable the br
 #endif
 bool	CPU_IsRunning();
 void	CPU_AddEvent( s32 count, ECPUEventType event_type );
+bool	CPU_AI_QueueDma( u32 length );
+u32		CPU_AI_GetRemainingLength();
 void	CPU_SkipToNextEvent();
 bool	CPU_CheckStuffToDo();
 

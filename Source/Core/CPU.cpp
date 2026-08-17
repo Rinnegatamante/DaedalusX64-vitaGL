@@ -81,8 +81,25 @@ const  u32			kInitialVIInterruptCycles = 62500;
 static u32			gVerticalInterrupts;
 static u32			VI_INTR_CYCLES = kInitialVIInterruptCycles;
 
+static bool gAIDmaActive {false};
+static bool gAIDmaQueued {false};
 static u32 gAICurrentLength {0};
 static u32 gAIQueuedLength {0};
+static u32 gAIDmaStartCount {0};
+static u32 gAIDmaCycles {0};
+
+static u32 CPU_AI_GetDmaCycles(u32 length)
+{
+	const u64 ai_clock = g_ROM.TvType ? (u64)VI_NTSC_CLOCK : (u64)VI_PAL_CLOCK;
+	const u64 dacrate = (u64)Memory_AI_GetRegister(AI_DACRATE_REG) + 1;
+	u64 cycles = ((u64)length * 46875000ULL * dacrate) / (4ULL * ai_clock);
+
+	if (cycles == 0)
+		cycles = 1;
+
+	return (u32)cycles;
+}
+
 u32 CPU_AI_GetRemainingLength()
 {
 	if (!gAIDmaActive || gAICurrentLength == 0 || gAIDmaCycles == 0)
@@ -152,12 +169,25 @@ static void CPU_ResetEventList()
 	gCPUState.Events[ 0 ].mEventType = CPU_EVENT_VBL;
 	gCPUState.NumEvents = 1;
 
+	gAIDmaActive = false;
+	gAIDmaQueued = false;
+	gAICurrentLength = 0;
+	gAIQueuedLength = 0;
+	gAIDmaStartCount = 0;
+	gAIDmaCycles = 0;
+	Memory_AI_SetRegister(AI_LEN_REG, 0);
+	Memory_AI_SetRegister(AI_STATUS_REG, 0);
+
 	RESET_EVENT_QUEUE_LOCK();
 }
 
 void CPU_AddEvent( s32 count, ECPUEventType event_type )
 {
 	LOCK_EVENT_QUEUE();
+
+	if (gCPUState.NumEvents >= MAX_CPU_EVENTS)
+		return;
+
 	u32 event_idx {};
 	for( event_idx = 0; event_idx < gCPUState.NumEvents; ++event_idx )
 	{
@@ -188,6 +218,34 @@ void CPU_AddEvent( s32 count, ECPUEventType event_type )
 	gCPUState.Events[ event_idx ].mCount = count;
 	gCPUState.Events[ event_idx ].mEventType = event_type;
 	gCPUState.NumEvents++;
+}
+
+bool CPU_AI_QueueDma(u32 length)
+{
+	if (length == 0)
+		return false;
+
+	if (!gAIDmaActive)
+	{
+		gAIDmaActive = true;
+		gAICurrentLength = length;
+		gAIDmaStartCount = gCPUState.CPUControl[C0_COUNT]._u32;
+		gAIDmaCycles = CPU_AI_GetDmaCycles(length);
+		Memory_AI_SetRegisterBits(AI_STATUS_REG, AI_STATUS_DMA_BUSY);
+		Memory_AI_ClrRegisterBits(AI_STATUS_REG, AI_STATUS_FIFO_FULL);
+		CPU_AddEvent((s32)gAIDmaCycles, CPU_EVENT_AI);
+		return true;
+	}
+
+	if (!gAIDmaQueued)
+	{
+		gAIDmaQueued = true;
+		gAIQueuedLength = length;
+		Memory_AI_SetRegisterBits(AI_STATUS_REG, AI_STATUS_DMA_BUSY | AI_STATUS_FIFO_FULL);
+		return true;
+	}
+
+	return false;
 }
 
 static void CPU_SetCompareEvent( s32 count )
@@ -666,6 +724,41 @@ void CPU_HANDLE_COUNT_INTERRUPT()
 	case CPU_EVENT_SPINT:
 		Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_SP);
 		R4300_Interrupt_UpdateCause3();
+		break;
+	case CPU_EVENT_AUDIO_SYNC:
+		{
+			u32 status = Memory_SP_SetRegisterBits(SP_STATUS_REG, SP_STATUS_TASKDONE|SP_STATUS_BROKE|SP_STATUS_HALT);
+			if( status & SP_STATUS_INTR_BREAK )
+				CPU_AddEvent(4000, CPU_EVENT_SPINT);
+		}
+		break;
+	case CPU_EVENT_AI:
+		{
+			if (gAIDmaQueued)
+			{
+				gAICurrentLength = gAIQueuedLength;
+				gAIQueuedLength = 0;
+				gAIDmaQueued = false;
+				gAIDmaStartCount = gCPUState.CPUControl[C0_COUNT]._u32;
+				gAIDmaCycles = CPU_AI_GetDmaCycles(gAICurrentLength);
+				Memory_AI_SetRegister(AI_LEN_REG, gAICurrentLength);
+				Memory_AI_ClrRegisterBits(AI_STATUS_REG, AI_STATUS_FIFO_FULL);
+				Memory_AI_SetRegisterBits(AI_STATUS_REG, AI_STATUS_DMA_BUSY);
+				CPU_AddEvent((s32)gAIDmaCycles, CPU_EVENT_AI);
+			}
+			else
+			{
+				gAIDmaActive = false;
+				gAICurrentLength = 0;
+				gAIDmaStartCount = 0;
+				gAIDmaCycles = 0;
+				Memory_AI_SetRegister(AI_LEN_REG, 0);
+				Memory_AI_ClrRegisterBits(AI_STATUS_REG, AI_STATUS_DMA_BUSY | AI_STATUS_FIFO_FULL);
+			}
+
+			Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_AI);
+			R4300_Interrupt_UpdateCause3();
+		}
 		break;
 	default:
 		NODEFAULT;
