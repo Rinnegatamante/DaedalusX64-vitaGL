@@ -46,13 +46,13 @@ void resize_bilinear_task(OSTask *task)
 {
     int data_ptr = (u32)task->t.ucode_data;
 
-    int src_addr = *(u32*)(g_pu8RamBase + data_ptr);
-    int dst_addr = *(u32*)(g_pu8RamBase + data_ptr + 4);
-    int dst_width = *(u32*)(g_pu8RamBase + data_ptr + 8);
-    int dst_height = *(u32*)(g_pu8RamBase + data_ptr + 12);
-    int x_ratio = *(u32*)(g_pu8RamBase + data_ptr + 16);
-    int y_ratio = *(u32*)(g_pu8RamBase + data_ptr + 20);
-    int src_offset = *(u32*)(g_pu8RamBase + data_ptr + 36);
+    int src_addr = (int)rdram_read_u32(data_ptr);
+    int dst_addr = (int)rdram_read_u32(data_ptr + 4);
+    int dst_width = (int)rdram_read_u32(data_ptr + 8);
+    int dst_height = (int)rdram_read_u32(data_ptr + 12);
+    int x_ratio = (int)rdram_read_u32(data_ptr + 16);
+    int y_ratio = (int)rdram_read_u32(data_ptr + 20);
+    int src_offset = (int)rdram_read_u32(data_ptr + 36);
 
     int a, b, c ,d, index, y_index, xr, yr, blue, green, red, addr, i, j;
     long long x, y, x_diff, y_diff, one_min_x_diff, one_min_y_diff;
@@ -124,13 +124,13 @@ void decode_video_frame_task(OSTask *task)
 {
     int data_ptr = (u32)task->t.ucode_data;
 
-    int pLuminance = *(u32*)(g_pu8RamBase + data_ptr);
-    int pCb = *(u32*)(g_pu8RamBase + data_ptr + 4);
-    int pCr = *(u32*)(g_pu8RamBase + data_ptr + 8);
-    int pDestination = *(u32*)(g_pu8RamBase + data_ptr + 12);
-    int nMovieWidth = *(u32*)(g_pu8RamBase + data_ptr + 16);
-    int nMovieHeight = *(u32*)(g_pu8RamBase + data_ptr + 20);
-    int nScreenDMAIncrement = *(u32*)(g_pu8RamBase + data_ptr + 36);
+    int pLuminance = (int)rdram_read_u32(data_ptr);
+    int pCb = (int)rdram_read_u32(data_ptr + 4);
+    int pCr = (int)rdram_read_u32(data_ptr + 8);
+    int pDestination = (int)rdram_read_u32(data_ptr + 12);
+    int nMovieWidth = (int)rdram_read_u32(data_ptr + 16);
+    int nMovieHeight = (int)rdram_read_u32(data_ptr + 20);
+    int nScreenDMAIncrement = (int)rdram_read_u32(data_ptr + 36);
 
     int i, j;
     uint8_t Y, Cb, Cr;
@@ -181,11 +181,11 @@ void fill_video_double_buffer_task(OSTask *task)
 {
     int data_ptr = (u32)task->t.ucode_data;
 
-    int pSrc = *(u32*)(g_pu8RamBase + data_ptr);
-    int pDest = *(u32*)(g_pu8RamBase + data_ptr + 0x4);
-    int width = *(u32*)(g_pu8RamBase + data_ptr + 0x8) >> 1;
-    int height = *(u32*)(g_pu8RamBase + data_ptr + 0x10) << 1;
-    int stride = *(u32*)(g_pu8RamBase + data_ptr + 0x1c) >> 1;
+    int pSrc = (int)rdram_read_u32(data_ptr);
+    int pDest = (int)rdram_read_u32(data_ptr + 0x4);
+    int width = (int)(rdram_read_u32(data_ptr + 0x8) >> 1);
+    int height = (int)(rdram_read_u32(data_ptr + 0x10) << 1);
+    int stride = (int)(rdram_read_u32(data_ptr + 0x1c) >> 1);
 
     int i, j;
     int r, g, b;
@@ -195,8 +195,8 @@ void fill_video_double_buffer_task(OSTask *task)
     {
       for(j = 0; j < width; j=j+4)
       {
-        pixel1 = *(u32*)(g_pu8RamBase + (pSrc+j));
-        pixel2 = *(u32*)(g_pu8RamBase + (pDest+j));
+        pixel1 = rdram_read_u32(pSrc + j);
+        pixel2 = rdram_read_u32(pDest + j);
       
         r = (((pixel1 >> 24) & 0xff) + ((pixel2 >> 24) & 0xff)) >> 1;
         g = (((pixel1 >> 16) & 0xff) + ((pixel2 >> 16) & 0xff)) >> 1;
