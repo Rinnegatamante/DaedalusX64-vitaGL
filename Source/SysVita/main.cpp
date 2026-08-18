@@ -886,6 +886,10 @@ void loadConfig(const char *game) {
 			
 			else if (strcmp("gDynarecLoopsOptimisation", buffer) == 0) gDynarecLoopsOptimisation = (bool)value;
 			else if (strcmp("gDynarecWordsOptimisation", buffer) == 0) gDynarecWordsOptimisation = (bool)value;
+			else if (strcmp("gDynarecFastIntegerComparisons", buffer) == 0) gDynarecFastIntegerComparisons = (bool)value;
+			else if (strcmp("gDynarecNativeFPUComparisons", buffer) == 0) gDynarecNativeFPUComparisons = (bool)value;
+			else if (strcmp("gDynarecRelaxedFPRPairing", buffer) == 0) gDynarecRelaxedFPRPairing = (bool)value;
+			else if (strcmp("gDynarecNativeCTC1", buffer) == 0) gDynarecNativeCTC1 = (bool)value;
 		}
 		fclose(config);
 

@@ -8,6 +8,7 @@
 #include "Config/ConfigOptions.h"
 #include "Core/Cheats.h"
 #include "Core/CPU.h"
+#include "Core/Dynamo.h"
 #include "Core/Memory.h"
 #include "Core/PIF.h"
 #include "Core/RomSettings.h"
@@ -355,6 +356,10 @@ void saveConfig(const char *game)
 		
 		fprintf(config, "%s=%d\n", "gDynarecLoopsOptimisation", (int)gDynarecLoopsOptimisation);
 		fprintf(config, "%s=%d\n", "gDynarecWordsOptimisation", (int)gDynarecWordsOptimisation);
+		fprintf(config, "%s=%d\n", "gDynarecFastIntegerComparisons", (int)gDynarecFastIntegerComparisons);
+		fprintf(config, "%s=%d\n", "gDynarecNativeFPUComparisons", (int)gDynarecNativeFPUComparisons);
+		fprintf(config, "%s=%d\n", "gDynarecRelaxedFPRPairing", (int)gDynarecRelaxedFPRPairing);
+		fprintf(config, "%s=%d\n", "gDynarecNativeCTC1", (int)gDynarecNativeCTC1);
 		fclose(config);
 	}
 	
@@ -584,6 +589,22 @@ void DrawCommonMenuBar() {
 			}
 			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_LOOPS_OPT], nullptr, gDynarecLoopsOptimisation)) {
 				gDynarecLoopsOptimisation = !gDynarecLoopsOptimisation;
+				CPU_ResetFragmentCache();
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_INTEGER_OPT], nullptr, gDynarecFastIntegerComparisons)) {
+				gDynarecFastIntegerComparisons = !gDynarecFastIntegerComparisons;
+				CPU_ResetFragmentCache();
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_FPU_CMP_OPT], nullptr, gDynarecNativeFPUComparisons)) {
+				gDynarecNativeFPUComparisons = !gDynarecNativeFPUComparisons;
+				CPU_ResetFragmentCache();
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_FPU_REG_OPT], nullptr, gDynarecRelaxedFPRPairing)) {
+				gDynarecRelaxedFPRPairing = !gDynarecRelaxedFPRPairing;
+				CPU_ResetFragmentCache();
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_CTC1_OPT], nullptr, gDynarecNativeCTC1)) {
+				gDynarecNativeCTC1 = !gDynarecNativeCTC1;
 				CPU_ResetFragmentCache();
 			}
 			ImGui::EndMenu();

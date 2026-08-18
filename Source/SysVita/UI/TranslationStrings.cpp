@@ -177,4 +177,8 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"What's New", // STR_UPDATE_CHANGES
 	"Continue", // STR_CONTINUE
 	"sRGB Colorspace", // STR_MENU_SRGB
+	"Integer Comparisons Optimization", //STR_MENU_DYNAREC_INTEGER_OPT
+	"FPU Comparisons Optimization", // STR_MENU_DYNAREC_FPU_CMP_OPT
+	"FPU Registers Access Optimization", // STR_MENU_DYNAREC_FPU_REG_OPT
+	"CTC1 Opcode Optimization", // STR_MENU_DYNAREC_CTC1_OPT
 };

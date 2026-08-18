@@ -1311,7 +1311,7 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 		case OP_SB:		handled = GenerateSB(address, branch_delay_slot,rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SD:		handled = GenerateSD(address, branch_delay_slot,rt, base, s16(op_code.immediate));   exception = !handled; break;
 		case OP_SWC1:	if (gDynarecWordsOptimisation) { handled = GenerateSWC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
-		case OP_SDC1:	if (gDynarecWordsOptimisation) { handled = GenerateSDC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
+		case OP_SDC1:	if (gDynarecWordsOptimisation && (gDynarecRelaxedFPRPairing || ((ft & 1) == 0))) { handled = GenerateSDC1(address, branch_delay_slot,ft, base, s16(op_code.immediate)); exception = !handled; } break;
 
 		case OP_SLTIU: 	GenerateSLTI( rt, rs, s16( op_code.immediate ), true );  handled = true; break;
 		case OP_SLTI:	GenerateSLTI( rt, rs, s16( op_code.immediate ), false ); handled = true; break;
@@ -1400,41 +1400,40 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 				case Cop1Op_MTC1:	GenerateMTC1( op_code.fs, rt ); handled = true; break;
 
 				case Cop1Op_CFC1:	GenerateCFC1( rt, op_code.fs ); handled = true; break;
-				case Cop1Op_CTC1:	GenerateCTC1( op_code.fs, rt ); handled = true; break;
+				case Cop1Op_CTC1:	if (gDynarecNativeCTC1) { GenerateCTC1( op_code.fs, rt ); handled = true; } break;
 
 				case Cop1Op_DInstr:
 					switch( op_code.cop1_funct )
 					{
-						case Cop1OpFunc_ADD:	GenerateADD_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_SUB:	GenerateSUB_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_MUL:	GenerateMUL_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
-						case Cop1OpFunc_DIV:	GenerateDIV_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; break;
+						case Cop1OpFunc_ADD:	if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs | op_code.ft) & 1) == 0)) { GenerateADD_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; } break;
+						case Cop1OpFunc_SUB:	if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs | op_code.ft) & 1) == 0)) { GenerateSUB_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; } break;
+						case Cop1OpFunc_MUL:	if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs | op_code.ft) & 1) == 0)) { GenerateMUL_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; } break;
+						case Cop1OpFunc_DIV:	if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs | op_code.ft) & 1) == 0)) { GenerateDIV_D( op_code.fd, op_code.fs, op_code.ft ); handled = true; } break;
 						
-						case Cop1OpFunc_SQRT:		GenerateSQRT_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_ABS:		GenerateABS_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_MOV:		GenerateMOV_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_NEG:		GenerateNEG_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_SQRT:		if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs) & 1) == 0)) { GenerateSQRT_D( op_code.fd, op_code.fs ); handled = true; } break;
+						case Cop1OpFunc_ABS:		if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs) & 1) == 0)) { GenerateABS_D( op_code.fd, op_code.fs ); handled = true; } break;
+						case Cop1OpFunc_MOV:		if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs) & 1) == 0)) { GenerateMOV_D( op_code.fd, op_code.fs ); handled = true; } break;
+						case Cop1OpFunc_NEG:		if (gDynarecRelaxedFPRPairing || (((op_code.fd | op_code.fs) & 1) == 0)) { GenerateNEG_D( op_code.fd, op_code.fs ); handled = true; } break;
 						
-						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W_D( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_CVT_S:		GenerateCVT_S_D( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_TRUNC_W:	if (gDynarecRelaxedFPRPairing || ((op_code.fs & 1) == 0)) { GenerateTRUNC_W_D( op_code.fd, op_code.fs ); handled = true; } break;
+						case Cop1OpFunc_CVT_S:		if (gDynarecRelaxedFPRPairing || ((op_code.fs & 1) == 0)) { GenerateCVT_S_D( op_code.fd, op_code.fs ); handled = true; } break;
 						
-						case Cop1OpFunc_CMP_F:		GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_UN:		GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_EQ:		GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_UEQ:	GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_OLT:	GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_ULT:	GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_OLE:	GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_ULE:	GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
-
-						case Cop1OpFunc_CMP_SF:		GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGLE:	GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_SEQ:	GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGL:	GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_LT:		GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGE:	GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_LE:		GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGT:	GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
+						case Cop1OpFunc_CMP_F:		if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_UN:		if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_EQ:		if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_UEQ:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_OLT:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_ULT:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_OLE:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_ULE:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_SF:		if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGLE:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_SEQ:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGL:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_LT:		if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGE:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_LE:		if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGT:	if (gDynarecNativeFPUComparisons && (gDynarecRelaxedFPRPairing || (((op_code.fs | op_code.ft) & 1) == 0))) { GenerateCMP_D( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
 					}
 					break;
 
@@ -1451,25 +1450,24 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 						case Cop1OpFunc_NEG:		GenerateNEG_S( op_code.fd, op_code.fs ); handled = true; break;
 						
 						case Cop1OpFunc_TRUNC_W:	GenerateTRUNC_W_S( op_code.fd, op_code.fs ); handled = true; break;
-						case Cop1OpFunc_CVT_D:		GenerateCVT_D_S( op_code.fd, op_code.fs ); handled = true; break;
+						case Cop1OpFunc_CVT_D:		if (gDynarecRelaxedFPRPairing || ((op_code.fd & 1) == 0)) { GenerateCVT_D_S( op_code.fd, op_code.fs ); handled = true; } break;
 						
-						case Cop1OpFunc_CMP_F:		GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_UN:		GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_EQ:		if (!g_ROM.DISABLE_DYNA_CMP) { GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
-						case Cop1OpFunc_CMP_UEQ:	GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_OLT:	GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_ULT:	GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_OLE:	GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_ULE:	GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
-
-						case Cop1OpFunc_CMP_SF:		GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGLE:	GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_SEQ:	GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGL:	GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; break;
-						case Cop1OpFunc_CMP_LT:		GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGE:	GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_LE:		GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
-						case Cop1OpFunc_CMP_NGT:	GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; break;
+						case Cop1OpFunc_CMP_F:		if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_UN:		if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_EQ:		if (gDynarecNativeFPUComparisons && !g_ROM.DISABLE_DYNA_CMP) { GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_UEQ:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_OLT:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_ULT:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_OLE:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_ULE:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_SF:		if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGLE:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, NV, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_SEQ:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGL:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, EQ, 0 ); handled = true; } break;
+						case Cop1OpFunc_CMP_LT:		if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGE:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, MI, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_LE:		if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
+						case Cop1OpFunc_CMP_NGT:	if (gDynarecNativeFPUComparisons) { GenerateCMP_S( op_code.fs, op_code.ft, LS, 1 ); handled = true; } break;
 					}
 					break;
 
@@ -2094,46 +2092,76 @@ void CCodeGeneratorARM::GenerateORI( EN64Reg rt, EN64Reg rs, u16 immediate )
 {
 	if(rs == N64Reg_R0)
 	{
-		// If we're oring again 0, then we're just setting a constant value
 		SetRegister64( rt, immediate, 0 );
+		return;
 	}
-	else if(mRegisterCache.IsKnownValue( rs, 0 ))
-	{
-		s32		known_value_lo( mRegisterCache.GetKnownValue( rs, 0 )._u32 | (u32)immediate );
-		s32		known_value_hi( mRegisterCache.GetKnownValue( rs, 1 )._u32 );
 
-		SetRegister64( rt, known_value_lo, known_value_hi );
-	}
-	else
+	EArmReg regs_lo = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	EArmReg regt_lo = GetRegisterNoLoadLo(rt, ArmReg_R0);
+	ORR_IMM(regt_lo, regs_lo, immediate, ArmReg_R1);
+	StoreRegisterLo(rt, regt_lo);
+
+	EArmReg regs_hi = GetRegisterAndLoadHi(rs, ArmReg_R0);
+	EArmReg regt_hi = GetRegisterNoLoadHi(rt, ArmReg_R0);
+	if (regt_hi != regs_hi)
 	{
-		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-		EArmReg regt = GetRegisterNoLoadLo(rt, ArmReg_R0);
-		ORR_IMM(regt, regs, immediate, ArmReg_R1);
-		StoreRegisterLo( rt, regt );
+		MOV(regt_hi, regs_hi);
 	}
+	StoreRegisterHi(rt, regt_hi);
 }
 
 void CCodeGeneratorARM::GenerateXORI( EN64Reg rt, EN64Reg rs, u16 immediate )
 {
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-	EArmReg regt = GetRegisterNoLoadLo(rt, ArmReg_R0);
+	EArmReg regs_lo = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	EArmReg regt_lo = GetRegisterNoLoadLo(rt, ArmReg_R0);
+	XOR_IMM(regt_lo, regs_lo, immediate, ArmReg_R1);
+	StoreRegisterLo(rt, regt_lo);
 
-	XOR_IMM(regt, regs, immediate, ArmReg_R1);
-	StoreRegisterLo( rt, regt);
+	EArmReg regs_hi = GetRegisterAndLoadHi(rs, ArmReg_R0);
+	EArmReg regt_hi = GetRegisterNoLoadHi(rt, ArmReg_R0);
+	if (regt_hi != regs_hi)
+	{
+		MOV(regt_hi, regs_hi);
+	}
+	StoreRegisterHi(rt, regt_hi);
 }
 
 // Set on Less Than Immediate
 void CCodeGeneratorARM::GenerateSLTI( EN64Reg rt, EN64Reg rs, s16 immediate, bool is_unsigned )
 {
-	EArmReg regt = GetRegisterNoLoadLo(rt, ArmReg_R0);
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	if( gDynarecFastIntegerComparisons )
+	{
+		EArmReg regt = GetRegisterNoLoadLo(rt, ArmReg_R0);
+		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
 
-	MOV32(ArmReg_R1, immediate);
-	CMP(regs, ArmReg_R1);
-	MOV_IMM(regt, 0);
-	MOV_IMM(regt, 1, 0, is_unsigned ? CC : LT);
+		MOV32(ArmReg_R1, immediate);
+		CMP(regs, ArmReg_R1);
+		MOV_IMM(regt, 0);
+		MOV_IMM(regt, 1, 0, is_unsigned ? CC : LT);
 
-	UpdateRegister(rt, regt, URO_HI_CLEAR);
+		UpdateRegister(rt, regt, URO_HI_CLEAR);
+		return;
+	}
+
+	LoadRegister( ArmReg_R0, rs, 1 );
+	LoadRegister( ArmReg_R1, rs, 0 );
+
+	MOV32( ArmReg_R2, immediate < 0 ? 0xFFFFFFFFu : 0u );
+	MOV32( ArmReg_R3, (u32)(s32)immediate );
+
+	CMP( ArmReg_R0, ArmReg_R2 );
+	MOV_IMM( ArmReg_R4, 0 );
+	MOV_IMM( ArmReg_R4, 1, 0, is_unsigned ? CC : LT );
+	MOV_IMM( ArmReg_R2, 0 );
+	MOV_IMM( ArmReg_R2, 1, 0, EQ );
+
+	CMP( ArmReg_R1, ArmReg_R3 );
+	MOV_IMM( ArmReg_R3, 0 );
+	MOV_IMM( ArmReg_R3, 1, 0, CC );
+	AND( ArmReg_R3, ArmReg_R3, ArmReg_R2 );
+	ORR( ArmReg_R4, ArmReg_R4, ArmReg_R3 );
+
+	UpdateRegister( rt, ArmReg_R4, URO_HI_CLEAR );
 }
 
 //*****************************************************************************
@@ -2212,118 +2240,17 @@ void CCodeGeneratorARM::GenerateSRAV( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 
 void CCodeGeneratorARM::GenerateOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
 {
-	
-	bool HiIsDone = false;
+	EArmReg regt_lo = GetRegisterAndLoadLo(rt, ArmReg_R0);
+	EArmReg regs_lo = GetRegisterAndLoadLo(rs, ArmReg_R1);
+	EArmReg regd_lo = GetRegisterNoLoadLo(rd, ArmReg_R0);
+	ORR(regd_lo, regs_lo, regt_lo);
+	StoreRegisterLo(rd, regd_lo);
 
-	if (mRegisterCache.IsKnownValue(rs, 1) && mRegisterCache.IsKnownValue(rt, 1))
-	{
-		SetRegister(rd, 1, mRegisterCache.GetKnownValue(rs, 1)._u32 | mRegisterCache.GetKnownValue(rt, 1)._u32 );
-		HiIsDone = true;
-	}
-	else if ((mRegisterCache.IsKnownValue(rs, 1) && (mRegisterCache.GetKnownValue(rs, 1)._s32 == -1)) |
-		     (mRegisterCache.IsKnownValue(rt, 1) && (mRegisterCache.GetKnownValue(rt, 1)._s32 == -1)) )
-	{
-		SetRegister(rd, 1, ~0 );
-		HiIsDone = true;
-	}
-
-	if (mRegisterCache.IsKnownValue(rs, 0) && mRegisterCache.IsKnownValue(rt, 0))
-	{
-		SetRegister(rd, 0, mRegisterCache.GetKnownValue(rs, 0)._u32 | mRegisterCache.GetKnownValue(rt, 0)._u32);
-		return;
-	}
-
-	if( rs == N64Reg_R0 )
-	{
-		// This doesn't seem to happen
-		/*if (mRegisterCache.IsKnownValue(rt, 1))
-		{
-			SetRegister(rd, 1, mRegisterCache.GetKnownValue(rt, 1)._u32 );
-			HiIsDone = true;
-		}
-		*/
-		if(mRegisterCache.IsKnownValue(rt, 0))
-		{
-			SetRegister64(rd,
-				mRegisterCache.GetKnownValue(rt, 0)._u32, mRegisterCache.GetKnownValue(rt, 1)._u32);
-			return;
-		}
-
-		// This case rarely seems to happen...
-		// As RS is zero, the OR is just a copy of RT to RD.
-		// Try to avoid loading into a temp register if the dest is cached
-		EArmReg reg_lo_d( GetRegisterNoLoadLo( rd, ArmReg_R0 ) );
-		LoadRegisterLo( reg_lo_d, rt );
-		StoreRegisterLo( rd, reg_lo_d );
-		if(!HiIsDone)
-		{
-			EArmReg reg_hi_d( GetRegisterNoLoadHi( rd, ArmReg_R0 ) );
-			LoadRegisterHi( reg_hi_d, rt );
-			StoreRegisterHi( rd, reg_hi_d );
-		}
-	}
-	else if( rt == N64Reg_R0 )
-	{
-		if (mRegisterCache.IsKnownValue(rs, 1))
-		{
-			SetRegister(rd, 1, mRegisterCache.GetKnownValue(rs, 1)._u32 );
-			HiIsDone = true;
-		}
-
-		if(mRegisterCache.IsKnownValue(rs, 0))
-		{
-			SetRegister64(rd, mRegisterCache.GetKnownValue(rs, 0)._u32,
-				mRegisterCache.GetKnownValue(rs, 1)._u32);
-			return;
-		}
-
-		// As RT is zero, the OR is just a copy of RS to RD.
-		// Try to avoid loading into a temp register if the dest is cached
-		EArmReg reg_lo_d( GetRegisterNoLoadLo( rd, ArmReg_R0 ) );
-		LoadRegisterLo( reg_lo_d, rs );
-		StoreRegisterLo( rd, reg_lo_d );
-		if(!HiIsDone)
-		{
-			EArmReg reg_hi_d( GetRegisterNoLoadHi( rd, ArmReg_R0 ) );
-			LoadRegisterHi( reg_hi_d, rs );
-			StoreRegisterHi( rd, reg_hi_d );
-		}
-	}
-	else
-	{
-		EArmReg regt_lo = GetRegisterAndLoadLo(rt, ArmReg_R0);
-		EArmReg regs_lo = GetRegisterAndLoadLo(rs, ArmReg_R1);
-		EArmReg regd_lo = GetRegisterNoLoadLo(rd, ArmReg_R0);
-
-		ORR(regd_lo, regs_lo, regt_lo);
-
-		StoreRegisterLo(rd, regd_lo);
-
-		if(!HiIsDone)
-		{
-			if( mRegisterCache.IsKnownValue(rs, 1) & (mRegisterCache.GetKnownValue(rs, 1)._u32 == 0) )
-			{
-				EArmReg reg_hi_d( GetRegisterNoLoadHi( rd, ArmReg_R0 ) );
-				LoadRegisterHi( reg_hi_d, rt );
-				StoreRegisterHi( rd, reg_hi_d );
-			}
-			else if( mRegisterCache.IsKnownValue(rt, 1) & (mRegisterCache.GetKnownValue(rt, 1)._u32 == 0) )
-			{
-				EArmReg reg_hi_d( GetRegisterNoLoadHi( rd, ArmReg_R0 ) );
-				LoadRegisterHi( reg_hi_d, rs );
-				StoreRegisterHi( rd, reg_hi_d );
-			}
-			else
-			{
-				EArmReg regt_hi = GetRegisterAndLoadHi(rt, ArmReg_R0);
-				EArmReg regs_hi = GetRegisterAndLoadHi(rs, ArmReg_R1);
-				EArmReg regd_hi = GetRegisterNoLoadHi(rd, ArmReg_R0);
-				ORR(regd_hi, regs_hi, regt_hi);
-
-				StoreRegisterHi(rd, regd_hi);
-			}
-		}
-	}
+	EArmReg regt_hi = GetRegisterAndLoadHi(rt, ArmReg_R0);
+	EArmReg regs_hi = GetRegisterAndLoadHi(rs, ArmReg_R1);
+	EArmReg regd_hi = GetRegisterNoLoadHi(rd, ArmReg_R0);
+	ORR(regd_hi, regs_hi, regt_hi);
+	StoreRegisterHi(rd, regd_hi);
 }
 
 void CCodeGeneratorARM::GenerateXOR( EN64Reg rd, EN64Reg rs, EN64Reg rt )
@@ -2535,16 +2462,38 @@ void CCodeGeneratorARM::GenerateMTHI( EN64Reg rs )
 
 void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is_unsigned )
 {
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-	EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R1);
-	EArmReg regd = GetRegisterNoLoadLo(rd, ArmReg_R0);
-	
+	if( gDynarecFastIntegerComparisons )
+	{
+		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+		EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R1);
+		EArmReg regd = GetRegisterNoLoadLo(rd, ArmReg_R0);
 
-	CMP(regs, regt);
-	MOV_IMM(regd, 0);
-	MOV_IMM(regd, 1, 0, is_unsigned ? CC : LT);
+		CMP(regs, regt);
+		MOV_IMM(regd, 0);
+		MOV_IMM(regd, 1, 0, is_unsigned ? CC : LT);
 
-	UpdateRegister(rd, regd, URO_HI_CLEAR);
+		UpdateRegister(rd, regd, URO_HI_CLEAR);
+		return;
+	}
+
+	LoadRegister( ArmReg_R0, rs, 1 );
+	LoadRegister( ArmReg_R1, rt, 1 );
+	LoadRegister( ArmReg_R2, rs, 0 );
+	LoadRegister( ArmReg_R3, rt, 0 );
+
+	CMP( ArmReg_R0, ArmReg_R1 );
+	MOV_IMM( ArmReg_R4, 0 );
+	MOV_IMM( ArmReg_R4, 1, 0, is_unsigned ? CC : LT );
+	MOV_IMM( ArmReg_R0, 0 );
+	MOV_IMM( ArmReg_R0, 1, 0, EQ );
+
+	CMP( ArmReg_R2, ArmReg_R3 );
+	MOV_IMM( ArmReg_R1, 0 );
+	MOV_IMM( ArmReg_R1, 1, 0, CC );
+	AND( ArmReg_R1, ArmReg_R1, ArmReg_R0 );
+	ORR( ArmReg_R4, ArmReg_R4, ArmReg_R1 );
+
+	UpdateRegister( rd, ArmReg_R4, URO_HI_CLEAR );
 }
 
 //*****************************************************************************
@@ -2555,138 +2504,194 @@ void CCodeGeneratorARM::GenerateSLT( EN64Reg rd, EN64Reg rs, EN64Reg rt, bool is
 
 void CCodeGeneratorARM::GenerateBEQ( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	if (rt == N64Reg_R0)
+	if( gDynarecFastIntegerComparisons )
 	{
-		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-		CMP_IMM(regs, 0);
-	}
-	else if (rs == N64Reg_R0)
-	{
-		EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R0);
-		CMP_IMM(regt, 0);
+		if (rt == N64Reg_R0)
+		{
+			EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+			CMP_IMM(regs, 0);
+		}
+		else if (rs == N64Reg_R0)
+		{
+			EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R0);
+			CMP_IMM(regt, 0);
+		}
+		else
+		{
+			EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+			EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R1);
+			CMP(regs, regt);
+		}
 	}
 	else
 	{
-		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-		EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R1);
-
-		// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-		CMP(regs, regt);
+		LoadRegister( ArmReg_R0, rs, 0 );
+		LoadRegister( ArmReg_R1, rt, 0 );
+		XOR( ArmReg_R0, ArmReg_R0, ArmReg_R1 );
+		LoadRegister( ArmReg_R1, rs, 1 );
+		LoadRegister( ArmReg_R2, rt, 1 );
+		XOR( ArmReg_R1, ArmReg_R1, ArmReg_R2 );
+		ORR( ArmReg_R0, ArmReg_R0, ArmReg_R1 );
+		CMP_IMM( ArmReg_R0, 0 );
 	}
 
 	if( p_branch->ConditionalBranchTaken )
-	{
-		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), NE);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), NE );
 	else
-	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), EQ);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), EQ );
 }
 
 void CCodeGeneratorARM::GenerateBNE( EN64Reg rs, EN64Reg rt, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	if (rt == N64Reg_R0)
+	if( gDynarecFastIntegerComparisons )
 	{
-		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-		CMP_IMM(regs, 0);
-	}
-	else if (rs == N64Reg_R0)
-	{
-		EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R0);
-		CMP_IMM(regt, 0);
+		if (rt == N64Reg_R0)
+		{
+			EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+			CMP_IMM(regs, 0);
+		}
+		else if (rs == N64Reg_R0)
+		{
+			EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R0);
+			CMP_IMM(regt, 0);
+		}
+		else
+		{
+			EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+			EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R1);
+			CMP(regs, regt);
+		}
 	}
 	else
 	{
-		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
-		EArmReg regt = GetRegisterAndLoadLo(rt, ArmReg_R1);
-
-		// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-		CMP(regs, regt);
+		LoadRegister( ArmReg_R0, rs, 0 );
+		LoadRegister( ArmReg_R1, rt, 0 );
+		XOR( ArmReg_R0, ArmReg_R0, ArmReg_R1 );
+		LoadRegister( ArmReg_R1, rs, 1 );
+		LoadRegister( ArmReg_R2, rt, 1 );
+		XOR( ArmReg_R1, ArmReg_R1, ArmReg_R2 );
+		ORR( ArmReg_R0, ArmReg_R0, ArmReg_R1 );
+		CMP_IMM( ArmReg_R0, 0 );
 	}
 
 	if( p_branch->ConditionalBranchTaken )
-	{
-		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), EQ);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), EQ );
 	else
-	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), NE);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), NE );
 }
 
 void CCodeGeneratorARM::GenerateBLEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	if( gDynarecFastIntegerComparisons )
+	{
+		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+		CMP_IMM(regs, 0);
 
-	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-	CMP_IMM(regs, 0);
+		if( p_branch->ConditionalBranchTaken )
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GT);
+		else
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LE);
+		return;
+	}
+
+	LoadRegister( ArmReg_R0, rs, 1 );
+	LoadRegister( ArmReg_R1, rs, 0 );
+	CMP_IMM( ArmReg_R0, 0 );
+	MOV_IMM( ArmReg_R2, 0 );
+	MOV_IMM( ArmReg_R2, 1, 0, GT );
+	MOV_IMM( ArmReg_R3, 0 );
+	MOV_IMM( ArmReg_R3, 1, 0, EQ );
+	CMP_IMM( ArmReg_R1, 0 );
+	MOV_IMM( ArmReg_R0, 0 );
+	MOV_IMM( ArmReg_R0, 1, 0, NE );
+	AND( ArmReg_R0, ArmReg_R0, ArmReg_R3 );
+	ORR( ArmReg_R2, ArmReg_R2, ArmReg_R0 );
+	CMP_IMM( ArmReg_R2, 0 );
 
 	if( p_branch->ConditionalBranchTaken )
-	{
-		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GT);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), NE );
 	else
-	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LE);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), EQ );
 }
 
 void CCodeGeneratorARM::GenerateBGEZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	if( gDynarecFastIntegerComparisons )
+	{
+		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+		CMP_IMM(regs, 0);
 
-	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-	CMP_IMM(regs, 0);
+		if( p_branch->ConditionalBranchTaken )
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+		else
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
+		return;
+	}
+
+	LoadRegister( ArmReg_R0, rs, 1 );
+	CMP_IMM( ArmReg_R0, 0 );
 
 	if( p_branch->ConditionalBranchTaken )
-	{
-		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), LT );
 	else
-	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), GE );
 }
 
 void CCodeGeneratorARM::GenerateBLTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	if( gDynarecFastIntegerComparisons )
+	{
+		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+		CMP_IMM(regs, 0);
 
-	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-	CMP_IMM(regs, 0);
+		if( p_branch->ConditionalBranchTaken )
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
+		else
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
+		return;
+	}
+
+	LoadRegister( ArmReg_R0, rs, 1 );
+	CMP_IMM( ArmReg_R0, 0 );
 
 	if( p_branch->ConditionalBranchTaken )
-	{
-		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GE);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), GE );
 	else
-	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LT);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), LT );
 }
 
 void CCodeGeneratorARM::GenerateBGTZ( EN64Reg rs, const SBranchDetails * p_branch, CJumpLocation * p_branch_jump )
 {
-	EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+	if( gDynarecFastIntegerComparisons )
+	{
+		EArmReg regs = GetRegisterAndLoadLo(rs, ArmReg_R0);
+		CMP_IMM(regs, 0);
 
-	// XXXX This may actually need to be a 64 bit compare, but this is what R4300.cpp does
-	CMP_IMM(regs, 0);
+		if( p_branch->ConditionalBranchTaken )
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LE);
+		else
+			*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GT);
+		return;
+	}
+
+	LoadRegister( ArmReg_R0, rs, 1 );
+	LoadRegister( ArmReg_R1, rs, 0 );
+	CMP_IMM( ArmReg_R0, 0 );
+	MOV_IMM( ArmReg_R2, 0 );
+	MOV_IMM( ArmReg_R2, 1, 0, GT );
+	MOV_IMM( ArmReg_R3, 0 );
+	MOV_IMM( ArmReg_R3, 1, 0, EQ );
+	CMP_IMM( ArmReg_R1, 0 );
+	MOV_IMM( ArmReg_R0, 0 );
+	MOV_IMM( ArmReg_R0, 1, 0, NE );
+	AND( ArmReg_R0, ArmReg_R0, ArmReg_R3 );
+	ORR( ArmReg_R2, ArmReg_R2, ArmReg_R0 );
+	CMP_IMM( ArmReg_R2, 0 );
 
 	if( p_branch->ConditionalBranchTaken )
-	{
-		// Flip the sign of the test -
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), LE);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), EQ );
 	else
-	{
-		*p_branch_jump = BX_IMM(CCodeLabel(nullptr), GT);
-	}
+		*p_branch_jump = BX_IMM( CCodeLabel(nullptr), NE );
 }
 
 //*****************************************************************************
