@@ -70,7 +70,7 @@ static bool has_cached_saveslots = false;
 
 extern bool pause_emu;
 extern bool has_rumblepak[4];
-extern char cur_gfx_ucode[32];
+extern char cur_gfx_ucode[64];
 extern char cur_gfx_ucode_str[256];
 extern char cur_audio_ucode[32];
 extern char rom_game_name[256];

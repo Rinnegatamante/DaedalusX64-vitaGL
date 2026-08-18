@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ARRAYSIZE(x) (sizeof(x) / sizeof (*x))
 
 char cur_gfx_ucode_str[256] = "";
-char cur_gfx_ucode[32] = "";
+char cur_gfx_ucode[64] = "";
 
 //*****************************************************************************
 //
