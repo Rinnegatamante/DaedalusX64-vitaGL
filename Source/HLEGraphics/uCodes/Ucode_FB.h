@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef HLEGRAPHICS_UCODES_UCODE_FB_H_
 #define HLEGRAPHICS_UCODES_UCODE_FB_H_
 
+#include "Core/RDRam.h"
+
 #define FB_WIDTH  320
 #define FB_HEIGHT 240
 
@@ -27,38 +29,70 @@ static float fb_ratio;
 
 static bool LoadFrameBuffer(u32 origin)
 {
-	u32 width  = Memory_VI_GetRegister( VI_WIDTH_REG );
-	
-	if (width == 0 || (origin <= width*2) || g_ROM.SKIP_CPU_REND_HACK)
+	// TODO: This whole function could be optimized by adopting a double/triple buffering approach and re-usage of the pixels buffers
+	u32 width = Memory_VI_GetRegister(VI_WIDTH_REG);
+	u32 vi_control = Memory_VI_GetRegister(VI_CONTROL_REG);
+	u32 vi_type = vi_control & 0x3;
+
+	if (width == 0 || (origin <= width * 2) || g_ROM.SKIP_CPU_REND_HACK)
 		return false;
-	
+
+	if (vi_type != 2 && vi_type != 3)
+		return false;
+
 	fb_ratio = (float)FB_WIDTH / (float)width;
 	u32 height = (u32)((float)FB_HEIGHT * fb_ratio);
-	
-	CRefPtr<CNativeTexture> texture = CNativeTexture::Create(width, height, TexFmt_8888 );
+
+	CRefPtr<CNativeTexture> texture = CNativeTexture::Create(width, height, TexFmt_8888);
 	u32 tex_width = texture->GetCorrectedWidth();
 	u32 tex_height = texture->GetCorrectedHeight();
 	texture->InstallTexture();
 	gRenderer->mBoundTexture[0] = texture;
-	
-	u16 *pixels = (u16*)malloc(tex_width * tex_height * sizeof(u16));
-	u32 src_offset = 0;
 
-	for (u32 y = 0; y < height; ++y)
+	if (vi_type == 2) // RGBA5551
 	{
-		u32 dst_row_offset = y * tex_width;
-		u32 dst_offset     = dst_row_offset;
+		u16 *pixels = (u16 *)malloc(tex_width * tex_height * sizeof(u16));
 
-		for (u32 x = 0; x < width; ++x)
+		for (u32 y = 0; y < height; ++y)
 		{
-			pixels[dst_offset] = (g_pu8RamBase[(origin + src_offset)^U8_TWIDDLE]<<8) | g_pu8RamBase[(origin + src_offset+  1)^U8_TWIDDLE] | 1;  // NB: or 1 to ensure we have alpha
-			dst_offset += 1;
-			src_offset += 2;
+			u32 src_offset = y * width * 2;
+			for (u32 x = 0; x < width; ++x)
+			{
+				u32 addr = origin + src_offset;
+				pixels[y * tex_width + x] =
+					(g_pu8RamBase[addr ^ U8_TWIDDLE] << 8) |
+					g_pu8RamBase[(addr + 1) ^ U8_TWIDDLE] | 1;
+				src_offset += 2;
+			}
 		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0,
+			GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
+		free(pixels);
 	}
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, pixels);
-	free(pixels);
-	
+	else // RGBA8888
+	{
+		u8 *pixels = (u8 *)malloc(tex_width * tex_height * 4);
+
+		for (u32 y = 0; y < height; ++y)
+		{
+			u32 src_offset = y * width * 4;
+			for (u32 x = 0; x < width; ++x)
+			{
+				u32 addr = origin + src_offset;
+				u8 *dst = pixels + ((y * tex_width + x) << 2);
+				dst[0] = g_pu8RamBase[addr ^ U8_TWIDDLE];
+				dst[1] = g_pu8RamBase[(addr + 1) ^ U8_TWIDDLE];
+				dst[2] = g_pu8RamBase[(addr + 2) ^ U8_TWIDDLE];
+				dst[3] = 0xff;
+				src_offset += 4;
+			}
+		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		free(pixels);
+	}
+
 	return true;
 }
 
