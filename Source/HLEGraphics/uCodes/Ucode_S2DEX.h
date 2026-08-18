@@ -215,15 +215,15 @@ static uObjTxtr *gObjTxtr = NULL;
 //*****************************************************************************
 //
 //*****************************************************************************
-static void Load_BgSprite( const uObjScaleBg *objBg )
+static void Load_BgSprite( const uObjScaleBg *objBg, u32 override_width = 0, u32 override_height = 0 )
 {
 	TextureInfo ti;
 	ti.SetLoadAddress(RDPSegAddr(objBg->imagePtr));
 	ti.SetFormat(objBg->imageFmt);
 	ti.SetSize(objBg->imageSiz);
 
-	u32 width = objBg->imageW >> 2;
-	u32 height = objBg->imageH >> 2;
+	u32 width = override_width != 0 ? override_width : (objBg->imageW >> 2);
+	u32 height = override_height != 0 ? override_height : (objBg->imageH >> 2);
 
 	ti.SetWidth(width);
 	ti.SetHeight(height);
@@ -235,6 +235,27 @@ static void Load_BgSprite( const uObjScaleBg *objBg )
 	ti.SetTLutFormat(kTT_RGBA16);
 
 	gRenderer->LoadTextureDirectly(ti);
+}
+
+static bool RE2_GetBgCopyDimensions( const uObjScaleBg *objBg, u32 *real_width, u32 *real_height )
+{
+	if( g_ROM.rh.CartID != 0x4552 )
+		return false;
+
+	const u32 packed_width = objBg->imageW >> 2;
+	const u32 packed_height = objBg->imageH >> 2;
+	const u32 vi_width = Memory_VI_GetRegister( VI_WIDTH_REG );
+
+	if( packed_width != 512 || packed_height == 0 || vi_width == 0 || vi_width >= packed_width )
+		return false;
+
+	const u32 total_pixels = packed_width * packed_height;
+	if( total_pixels % vi_width != 0 )
+		return false;
+
+	*real_width = vi_width;
+	*real_height = total_pixels / vi_width;
+	return *real_height != 0;
 }
 
 
@@ -652,14 +673,9 @@ void DLParser_S2DEX_SelectDl( MicroCodeCommand command )
 void DLParser_S2DEX_BgCopy( MicroCodeCommand command )
 {
 	const uObjScaleBg *objBg = (const uObjScaleBg*)(g_pu8RamBase + RDPSegAddr(command.inst.cmd1));
-	
-	TextureInfo ti;
-
-	Load_BgSprite(objBg);
 
 	u16 imageX = objBg->imageX >> 5;
 	u16 imageY = objBg->imageY >> 5;
-
 	u16 imageW = objBg->imageW >> 2;
 	u16 imageH = objBg->imageH >> 2;
 
@@ -667,6 +683,22 @@ void DLParser_S2DEX_BgCopy( MicroCodeCommand command )
 	s16 frameY = objBg->frameY >> 2;
 	u16 frameW = (objBg->frameW >> 2) + frameX;
 	u16 frameH = (objBg->frameH >> 2) + frameY;
+
+	u32 realW = 0;
+	u32 realH = 0;
+	const bool re2_reshape = RE2_GetBgCopyDimensions(objBg, &realW, &realH);
+	const bool re2_full_copy = re2_reshape && imageX == 0 && imageY == 0 && frameX == 0 && frameY == 0;
+
+
+	if( re2_full_copy )
+	{
+		Load_BgSprite(objBg, realW, realH);
+		gRenderer->Draw2DTexture(0.0f, 0.0f, (float)realW, (float)realH,
+							  0.0f, 0.0f, (float)realW, (float)realH);
+		return;
+	}
+
+	Load_BgSprite(objBg);
 
 	gRenderer->Draw2DTexture( (float)frameX, (float)frameY, (float)frameW, (float)frameH,
 							  (float)imageX, (float)imageY, (float)imageW, (float)imageH);
