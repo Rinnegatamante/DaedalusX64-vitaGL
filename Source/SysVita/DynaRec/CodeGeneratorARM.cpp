@@ -1542,7 +1542,7 @@ CJumpLocation	CCodeGeneratorARM::GenerateOpCode( const STraceEntry& ti, bool bra
 			exception_handler = GenerateBranchIfSet( const_cast< u32 * >( &gCPUState.StuffToDo ), CCodeLabel(NULL) );
 		}
 
-		if( p_branch && branch_delay_slot )
+		if( branch_delay_slot )
 		{
 			SetVar( &gCPUState.Delay, NO_DELAY );
 		}
