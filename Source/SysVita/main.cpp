@@ -39,7 +39,7 @@
 IO::Filename gDaedalusExePath;
 
 #define NET_INIT_SIZE (1 * 1024 * 1024)
-#define MAX_ROM_SIZE (64 * 1024 * 1024)
+#define MAX_ROM_SIZE (128 * 1024 * 1024)
 
 extern bool gForceLinearFilter;
 extern bool gSRGB;

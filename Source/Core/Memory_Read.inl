@@ -156,7 +156,7 @@ static void * ReadROM( u32 address )
 		return (u8 *)&g_pWriteRom;
 	}
 	
-	void * p_mem = RomBuffer::GetAddressRaw( (address & 0x03FFFFFF) );
+	void * p_mem = RomBuffer::GetAddressRaw( (address & 0x0FFFFFFF) );
 	if (p_mem != nullptr)
 	{
 		return p_mem;
