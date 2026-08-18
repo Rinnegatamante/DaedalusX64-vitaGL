@@ -44,7 +44,7 @@ extern "C" {
 
 void resize_bilinear_task(OSTask *task)
 {
-    int data_ptr = (u32)task->t.ucode;
+    int data_ptr = (u32)task->t.ucode_data;
 
     int src_addr = *(u32*)(g_pu8RamBase + data_ptr);
     int dst_addr = *(u32*)(g_pu8RamBase + data_ptr + 4);
@@ -122,7 +122,7 @@ static uint32_t YCbCr_to_RGBA(uint8_t Y, uint8_t Cb, uint8_t Cr)
 
 void decode_video_frame_task(OSTask *task)
 {
-    int data_ptr = (u32)task->t.ucode;
+    int data_ptr = (u32)task->t.ucode_data;
 
     int pLuminance = *(u32*)(g_pu8RamBase + data_ptr);
     int pCb = *(u32*)(g_pu8RamBase + data_ptr + 4);
@@ -179,7 +179,7 @@ void decode_video_frame_task(OSTask *task)
 
 void fill_video_double_buffer_task(OSTask *task)
 {
-    int data_ptr = (u32)task->t.ucode;
+    int data_ptr = (u32)task->t.ucode_data;
 
     int pSrc = *(u32*)(g_pu8RamBase + data_ptr);
     int pDest = *(u32*)(g_pu8RamBase + data_ptr + 0x4);
