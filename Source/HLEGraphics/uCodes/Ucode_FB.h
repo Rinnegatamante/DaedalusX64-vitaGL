@@ -20,19 +20,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef HLEGRAPHICS_UCODES_UCODE_FB_H_
 #define HLEGRAPHICS_UCODES_UCODE_FB_H_
 
-#include "Core/RDRam.h"
-
 #define FB_WIDTH  320
 #define FB_HEIGHT 240
 
 static float fb_ratio;
+static bool fb_re2_video_hack;
+static u32 fb_source_width;
+static u32 fb_source_height;
+static u32 fb_source_stride;
 
 static bool LoadFrameBuffer(u32 origin)
 {
 	// TODO: This whole function could be optimized by adopting a double/triple buffering approach and re-usage of the pixels buffers
 	u32 width = Memory_VI_GetRegister(VI_WIDTH_REG);
-	u32 vi_control = Memory_VI_GetRegister(VI_CONTROL_REG);
-	u32 vi_type = vi_control & 0x3;
+	u32 vi_type = Memory_VI_GetRegister(VI_CONTROL_REG) & 0x3;
 
 	if (width == 0 || (origin <= width * 2) || g_ROM.SKIP_CPU_REND_HACK)
 		return false;
@@ -40,10 +41,24 @@ static bool LoadFrameBuffer(u32 origin)
 	if (vi_type != 2 && vi_type != 3)
 		return false;
 
-	fb_ratio = (float)FB_WIDTH / (float)width;
-	u32 height = (u32)((float)FB_HEIGHT * fb_ratio);
+	fb_re2_video_hack = g_ROM.rh.CartID == 0x4552 && vi_type == 3 && width == 264;
 
-	CRefPtr<CNativeTexture> texture = CNativeTexture::Create(width, height, TexFmt_8888);
+	// Hack to deal with RE2 real fraembuffer size during video playback
+	if (fb_re2_video_hack)
+	{
+		fb_ratio = 1.0f;
+		fb_source_width = 240;
+		fb_source_height = 120;
+	}
+	else
+	{
+		fb_ratio = (float)FB_WIDTH / (float)width;
+		fb_source_width = width;
+		fb_source_height = (u32)((float)FB_HEIGHT * fb_ratio);
+	}
+	fb_source_stride = width;
+
+	CRefPtr<CNativeTexture> texture = CNativeTexture::Create(fb_source_width, fb_source_height, TexFmt_8888);
 	u32 tex_width = texture->GetCorrectedWidth();
 	u32 tex_height = texture->GetCorrectedHeight();
 	texture->InstallTexture();
@@ -52,17 +67,17 @@ static bool LoadFrameBuffer(u32 origin)
 	if (vi_type == 2) // RGBA5551
 	{
 		u16 *pixels = (u16 *)malloc(tex_width * tex_height * sizeof(u16));
+		memset(pixels, 0, tex_width * tex_height * sizeof(u16));
 
-		for (u32 y = 0; y < height; ++y)
+		for (u32 y = 0; y < fb_source_height; ++y)
 		{
-			u32 src_offset = y * width * 2;
-			for (u32 x = 0; x < width; ++x)
+			u32 src_offset = y * fb_source_stride * 2;
+			for (u32 x = 0; x < fb_source_width; ++x)
 			{
-				u32 addr = origin + src_offset;
+				u32 addr = origin + src_offset + x * 2;
 				pixels[y * tex_width + x] =
 					(g_pu8RamBase[addr ^ U8_TWIDDLE] << 8) |
 					g_pu8RamBase[(addr + 1) ^ U8_TWIDDLE] | 1;
-				src_offset += 2;
 			}
 		}
 
@@ -73,19 +88,19 @@ static bool LoadFrameBuffer(u32 origin)
 	else // RGBA8888
 	{
 		u8 *pixels = (u8 *)malloc(tex_width * tex_height * 4);
+		memset(pixels, 0, tex_width * tex_height * 4);
 
-		for (u32 y = 0; y < height; ++y)
+		for (u32 y = 0; y < fb_source_height; ++y)
 		{
-			u32 src_offset = y * width * 4;
-			for (u32 x = 0; x < width; ++x)
+			u32 src_offset = y * fb_source_stride * 4;
+			for (u32 x = 0; x < fb_source_width; ++x)
 			{
-				u32 addr = origin + src_offset;
+				u32 addr = origin + src_offset + x * 4;
 				u8 *dst = pixels + ((y * tex_width + x) << 2);
 				dst[0] = g_pu8RamBase[addr ^ U8_TWIDDLE];
 				dst[1] = g_pu8RamBase[(addr + 1) ^ U8_TWIDDLE];
 				dst[2] = g_pu8RamBase[(addr + 2) ^ U8_TWIDDLE];
 				dst[3] = 0xff;
-				src_offset += 4;
 			}
 		}
 
@@ -99,14 +114,28 @@ static bool LoadFrameBuffer(u32 origin)
 void RenderFrameBuffer(u32 origin)
 {
 	gRenderer->BeginScene();
-	
-	if (LoadFrameBuffer(origin)) {
-		gRenderer->ForceViewport(Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio);
-		gRenderer->Draw2DTexture(0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), (float)FB_HEIGHT * fb_ratio, 0, 0, Memory_VI_GetRegister( VI_WIDTH_REG ), FB_HEIGHT);
+
+	if (LoadFrameBuffer(origin))
+	{
+		// HACK: Upscaling to fullscreen RE2 video playback frames
+		if (fb_re2_video_hack)
+		{
+			gRenderer->ForceViewport(320.0f, 240.0f);
+			gRenderer->Draw2DTexture(
+				0.0f, 40.0f, 320.0f, 200.0f,
+				0.0f, 0.0f, 240.0f, 120.0f);
+		}
+		else
+		{
+			gRenderer->ForceViewport((float)fb_source_width, (float)fb_source_height);
+			gRenderer->Draw2DTexture(
+				0.0f, 0.0f, (float)fb_source_width, (float)fb_source_height,
+				0.0f, 0.0f, (float)fb_source_width, (float)fb_source_height);
+		}
 	}
 
 	gRenderer->EndScene();
-	CGraphicsContext::Get()->UpdateFrame( false );
+	CGraphicsContext::Get()->UpdateFrame(false);
 }
 
 #endif // HLEGRAPHICS_UCODES_UCODE_FB_H_
