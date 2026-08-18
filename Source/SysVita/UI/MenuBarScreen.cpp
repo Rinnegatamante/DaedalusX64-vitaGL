@@ -580,9 +580,11 @@ void DrawCommonMenuBar() {
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_DYNAREC_CONFIG], gDynarecEnabled && !gUseCachedInterpreter)) {
 			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_WORDS_OPT], nullptr, gDynarecWordsOptimisation)) {
 				gDynarecWordsOptimisation = !gDynarecWordsOptimisation;
+				CPU_ResetFragmentCache();
 			}
 			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_LOOPS_OPT], nullptr, gDynarecLoopsOptimisation)) {
 				gDynarecLoopsOptimisation = !gDynarecLoopsOptimisation;
+				CPU_ResetFragmentCache();
 			}
 			ImGui::EndMenu();
 		}
