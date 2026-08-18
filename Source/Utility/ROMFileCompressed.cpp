@@ -111,6 +111,7 @@ bool ROMFileCompressed::Open( COutputStream & messages )
 							magic == 0x40123780 ||
 							magic == 0x12408037)
 						{
+							SetHeaderMagic(magic);
 							unzCloseCurrentFile(mZipFile);
 							mRomSize = file_info.uncompressed_size;
 							mFoundRom = true;
