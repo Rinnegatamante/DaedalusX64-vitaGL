@@ -1324,9 +1324,6 @@ void Interpreter::ImportTexture(int i, int tile, bool importReplacement) {
                 ImportTextureRgba16(tile, importReplacement);
             } else if (siz == G_IM_SIZ_32b) {
                 ImportTextureRgba32(tile, importReplacement);
-            } else {
-                // OTRTODO: Sometimes, seemingly randomly, we end up here. Could be a bad dlist, could be
-                // something F3D does not have supported. Further investigation is needed.
             }
             break;
         case G_IM_FMT_IA:
@@ -2474,9 +2471,6 @@ void Interpreter::GfxDpSetTextureImage(uint32_t format, uint32_t size, uint32_t 
 void Interpreter::GfxDpSetTile(uint8_t fmt, uint32_t siz, uint32_t line, uint32_t tmem, uint8_t tile, uint32_t palette,
                                uint32_t cmt, uint32_t maskt, uint32_t shiftt, uint32_t cms, uint32_t masks,
                                uint32_t shifts) {
-    // OTRTODO:
-    // SUPPORT_CHECK(tmem == 0 || tmem == 256);
-
     if (cms == G_TX_WRAP && masks == G_TX_NOMASK) {
         cms = G_TX_CLAMP;
     }
@@ -3146,20 +3140,6 @@ void Interpreter::Gfxs2dexBgCopy(F3DuObjBg* bg) {
     uint32_t texFlags = 0;
     RawTexMetadata rawTexMetadata = {};
 
-    if ((bool)gfx_check_image_signature((char*)data)) {
-		
-        std::shared_ptr<Fast::Texture> tex = std::static_pointer_cast<Fast::Texture>(
-            Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcessFast((char*)data + 7));
-        texFlags = tex->Flags;
-        rawTexMetadata.width = tex->Width;
-        rawTexMetadata.height = tex->Height;
-        rawTexMetadata.h_byte_scale = tex->HByteScale;
-        rawTexMetadata.v_pixel_scale = tex->VPixelScale;
-        rawTexMetadata.type = tex->Type;
-        rawTexMetadata.resource = tex;
-        data = (uintptr_t) reinterpret_cast<char*>(tex->ImageData);
-    }
-
     s16 dsdx = 4 << 10;
     s16 uls = bg->b.imageX << 3;
     // Flip flag only flips horizontally
@@ -3183,19 +3163,6 @@ void Interpreter::Gfxs2dexBg1cyc(F3DuObjBg* bg) {
 
     uint32_t texFlags = 0;
     RawTexMetadata rawTexMetadata = {};
-
-    if ((bool)gfx_check_image_signature((char*)data)) {
-        std::shared_ptr<Fast::Texture> tex = std::static_pointer_cast<Fast::Texture>(
-            Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcessFast((char*)data + 7));
-        texFlags = tex->Flags;
-        rawTexMetadata.width = tex->Width;
-        rawTexMetadata.height = tex->Height;
-        rawTexMetadata.h_byte_scale = tex->HByteScale;
-        rawTexMetadata.v_pixel_scale = tex->VPixelScale;
-        rawTexMetadata.type = tex->Type;
-        rawTexMetadata.resource = tex;
-        data = (uintptr_t) reinterpret_cast<char*>(tex->ImageData);
-    }
 
     // TODO: Implement bg scaling correctly
     s16 uls = bg->b.imageX >> 2;
@@ -3334,14 +3301,6 @@ bool gfx_cull_dl_handler_f3dex2(F3DGfx** cmd) {
     return false;
 }
 
-bool gfx_marker_handler_otr(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    (*cmd0)++;
-    F3DGfx* cmd = (*cmd0);
-    gfx->mMarkerOn = true;
-    return false;
-}
-
 bool gfx_invalidate_tex_cache_handler_f3dex2(F3DGfx** cmd) {
     Interpreter* gfx = gInstance;
     const uintptr_t texAddr = (*cmd)->words.w1;
@@ -3388,84 +3347,6 @@ bool gfx_mtx_handler_f3d(F3DGfx** cmd0) {
     return false;
 }
 
-bool gfx_mtx_otr_filepath_handler_custom_f3dex2(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-    const char* fileName = (const char*)cmd->words.w1;
-    const int32_t* mtx = (const int32_t*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(
-        (const char*)fileName);
-
-    if (mtx != NULL) {
-        gfx->GfxSpMatrix(C0(0, 8) ^ F3DEX2_G_MTX_PUSH, mtx);
-    }
-
-    return false;
-}
-
-bool gfx_mtx_otr_filepath_handler_custom_f3d(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-    const char* fileName = (const char*)cmd->words.w1;
-    const int32_t* mtx = (const int32_t*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(
-        (const char*)fileName);
-
-    if (mtx != NULL) {
-        gfx->GfxSpMatrix(C0(16, 8), mtx);
-    }
-
-    return false;
-}
-
-bool gfx_mtx_otr_filepath_handler_custom(F3DGfx** cmd0) {
-    if (ucode_handler_index == ucode_f3dex2) {
-        return gfx_mtx_otr_filepath_handler_custom_f3dex2(cmd0);
-    } else {
-        return gfx_mtx_otr_filepath_handler_custom_f3d(cmd0);
-    }
-}
-
-bool gfx_mtx_otr_handler_custom_f3dex2(F3DGfx** cmd0) {
-    (*cmd0)++;
-    F3DGfx* cmd = *cmd0;
-
-    const uint64_t hash = ((uint64_t)cmd->words.w0 << 32) + cmd->words.w1;
-    const int32_t* mtx =
-        (const int32_t*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash);
-
-    if (mtx != NULL) {
-        Interpreter* gfx = gInstance;
-        cmd--;
-        gfx->GfxSpMatrix(C0(0, 8) ^ F3DEX2_G_MTX_PUSH, mtx);
-        cmd++;
-    }
-
-    return false;
-}
-
-bool gfx_mtx_otr_handler_custom_f3d(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    (*cmd0)++;
-    F3DGfx* cmd = *cmd0;
-
-    const uint64_t hash = ((uint64_t)cmd->words.w0 << 32) + cmd->words.w1;
-    const int32_t* mtx =
-        (const int32_t*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash);
-    if (mtx != nullptr) {
-        cmd--;
-        gfx->GfxSpMatrix(C0(16, 8), mtx);
-        cmd++;
-    }
-    return false;
-}
-
-bool gfx_mtx_otr_handler_custom(F3DGfx** cmd0) {
-    if (ucode_handler_index == ucode_f3dex2) {
-        return gfx_mtx_otr_handler_custom_f3dex2(cmd0);
-    } else {
-        return gfx_mtx_otr_handler_custom_f3d(cmd0);
-    }
-}
-
 bool gfx_pop_mtx_handler_f3dex2(F3DGfx** cmd0) {
     Interpreter* gfx = gInstance;
     F3DGfx* cmd = *cmd0;
@@ -3502,54 +3383,10 @@ bool gfx_movemem_handler_f3d(F3DGfx** cmd0) {
     return false;
 }
 
-bool gfx_movemem_handler_otr(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-
-    const uint8_t index = C1(24, 8);
-    const uint8_t offset = C1(16, 8);
-    const uint8_t hasOffset = C1(8, 8);
-
-    (*cmd0)++;
-
-    const uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
-
-    if (ucode_handler_index == ucode_f3dex2) {
-        gfx->GfxSpMovememF3dex2(index, offset,
-                                Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash));
-    } else {
-        auto light = (Fast::LightEntry*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash);
-        uintptr_t data = (uintptr_t)&light->Ambient;
-        gfx->GfxSpMovememF3d(index, offset, (void*)(data + (hasOffset == 1 ? 0x8 : 0)));
-    }
-    return false;
-}
-
 bool gfx_push_shader(F3DGfx** cmd0) {
     Interpreter* gfx = gInstance;
     F3DGfx* cmd = *cmd0;
     const char* path = (const char*)gfx->SegAddr(cmd->words.w1);
-
-    if (!gfx_check_image_signature(path)) {
-        return false;
-    }
-
-    path = &path[7];
-
-    size_t shaderId = static_cast<size_t>(-1);
-    for (const auto& shader : gfx->mShaders) {
-        if (strcmp(shader.second, path) == 0) {
-            shaderId = shader.first;
-            break;
-        }
-    }
-
-    if (shaderId == static_cast<size_t>(-1)) {
-        shaderId = gfx->mShadersIndex++;
-        gfx->mShaders[shaderId] = path;
-    }
-
-    gfx->mShaderStack.push(shaderId);
 
     return false;
 }
@@ -3639,80 +3476,6 @@ bool gfx_vtx_handler_f3d(F3DGfx** cmd0) {
     return false;
 }
 
-bool gfx_vtx_hash_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    // Offset added to the start of the vertices
-    const uintptr_t offset = (*cmd0)->words.w1;
-    // This is a two-part display list command, so increment the instruction pointer so we can get the CRC64
-    // hash from the second
-    (*cmd0)++;
-    const uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
-
-    // We need to know if the offset is a cached pointer or not. An offset greater than one million is not a
-    // real offset, so it must be a real pointer
-    if (offset > 0xFFFFF) {
-        (*cmd0)--;
-        F3DGfx* cmd = *cmd0;
-        gfx->GfxSpVertex(C0(12, 8), C0(1, 7) - C0(12, 8), (F3DVtx*)offset);
-        (*cmd0)++;
-    } else {
-        F3DVtx* vtx = (F3DVtx*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash);
-
-        if (vtx != NULL) {
-            vtx = (F3DVtx*)((char*)vtx + offset);
-
-            (*cmd0)--;
-            F3DGfx* cmd = *cmd0;
-
-            // TODO: WTF??
-            cmd->words.w1 = (uintptr_t)vtx;
-
-            gfx->GfxSpVertex(C0(12, 8), C0(1, 7) - C0(12, 8), vtx);
-            (*cmd0)++;
-        }
-    }
-    return false;
-}
-
-bool gfx_vtx_otr_filepath_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-    char* fileName = (char*)cmd->words.w1;
-    (*cmd0)++;
-    cmd = *cmd0;
-    size_t vtxCnt = cmd->words.w0;
-    size_t vtxIdxOff = cmd->words.w1 >> 16;
-    size_t vtxDataOff = cmd->words.w1 & 0xFFFF;
-    F3DVtx* vtx =
-        (F3DVtx*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer((const char*)fileName);
-    vtx += vtxDataOff;
-
-    gfx->GfxSpVertex(vtxCnt, vtxIdxOff, vtx);
-    return false;
-}
-
-bool gfx_dl_otr_filepath_handler_custom(F3DGfx** cmd0) {
-    F3DGfx* cmd = *cmd0;
-    char* fileName = (char*)cmd->words.w1;
-    F3DGfx* nDL =
-        (F3DGfx*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer((const char*)fileName);
-
-    if (C0(16, 1) == 0 && nDL != nullptr) {
-        g_exec_stack.call(*cmd0, nDL);
-    } else {
-        if (nDL != nullptr) {
-            (*cmd0) = nDL;
-            g_exec_stack.branch(cmd);
-            return true; // shortcut cmd increment
-        } else {
-            assert(0 && "???");
-            // cmd = cmd_stack.top();
-            // cmd_stack.pop();
-        }
-    }
-    return false;
-}
-
 // The original F3D microcode doesn't seem to have this opcode. Glide handles it as part of moveword
 bool gfx_modify_vtx_handler_f3dex2(F3DGfx** cmd0) {
     Interpreter* gfx = gInstance;
@@ -3739,27 +3502,6 @@ bool gfx_dl_handler_common(F3DGfx** cmd0) {
     return false;
 }
 
-bool gfx_dl_otr_hash_handler_custom(F3DGfx** cmd0) {
-    F3DGfx* cmd = *cmd0;
-    if (C0(16, 1) == 0) {
-        // Push return address
-        (*cmd0)++;
-
-        uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
-
-        F3DGfx* gfx = (F3DGfx*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash);
-
-        if (gfx != 0) {
-            g_exec_stack.call(cmd, gfx);
-        }
-    } else {
-        Interpreter* gfx = gInstance;
-        assert(0 && "????");
-        (*cmd0) = (F3DGfx*)gfx->SegAddr((*cmd0)->words.w1);
-        return true;
-    }
-    return false;
-}
 bool gfx_dl_index_handler(F3DGfx** cmd0) {
     // Compute seg addr by converting an index value to a offset value
     // handling 32 vs 64 bit size differences for Gfx
@@ -3780,38 +3522,6 @@ bool gfx_dl_index_handler(F3DGfx** cmd0) {
         (*cmd0) = subGFX;
         g_exec_stack.branch(cmd);
         return true; // shortcut cmd increment
-    }
-    return false;
-}
-
-// TODO handle special OTR opcodes later...
-bool gfx_pushcd_handler_custom(F3DGfx** cmd0) {
-    gfx_push_current_dir((char*)(*cmd0)->words.w1);
-    return false;
-}
-
-// TODO handle special OTR opcodes later...
-bool gfx_branch_z_otr_handler_f3dex2(F3DGfx** cmd0) {
-    // Push return address
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = (*cmd0);
-
-    uint8_t vbidx = (uint8_t)((*cmd0)->words.w0 & 0x00000FFF);
-    uint32_t zval = (uint32_t)((*cmd0)->words.w1);
-
-    (*cmd0)++;
-
-    if (gfx->mRsp->loaded_vertices[vbidx].z <= zval ||
-        (gfx->mRsp->extra_geometry_mode & G_EX_ALWAYS_EXECUTE_BRANCH) != 0) {
-        uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (*cmd0)->words.w1;
-
-        F3DGfx* gfx = (F3DGfx*)Ship::Context::GetInstance()->GetResourceManager()->GetResourceRawPointer(hash);
-
-        if (gfx != 0) {
-            (*cmd0) = gfx;
-            g_exec_stack.branch(cmd);
-            return true; // shortcut cmd increment
-        }
     }
     return false;
 }
@@ -3855,18 +3565,6 @@ bool gfx_clear_geometry_mode_handler_f3d(F3DGfx** cmd0) {
     F3DGfx* cmd = *cmd0;
 
     gfx->GfxSpGeometryMode((uint32_t)cmd->words.w1, 0);
-    return false;
-}
-
-bool gfx_tri1_otr_handler_f3dex2(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-
-    F3DGfx* cmd = *cmd0;
-    uint8_t v00 = (uint8_t)(cmd->words.w0 & 0x0000FFFF);
-    uint8_t v01 = (uint8_t)(cmd->words.w1 >> 16);
-    uint8_t v02 = (uint8_t)(cmd->words.w1 & 0x0000FFFF);
-    gfx->GfxSpTri1(v00, v01, v02, false);
-
     return false;
 }
 
@@ -3987,264 +3685,19 @@ bool gfx_set_timg_handler_rdp(F3DGfx** cmd0) {
     char* imgData = (char*)i;
     uint32_t texFlags = 0;
     RawTexMetadata rawTexMetdata = {};
-    // Default scale factors to 1 for raw N64 textures. OTR textures set these
-    // from the resource, but raw textures would leave them at 0.
+    // Default scale factors to 1 for raw N64 textures.
     rawTexMetdata.h_byte_scale = 1;
     rawTexMetdata.v_pixel_scale = 1;
-
-    if ((i & 1) != 1) {
-        if (gfx_check_image_signature(imgData) == 1) {
-            std::shared_ptr<Fast::Texture> tex = std::static_pointer_cast<Fast::Texture>(
-                Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcessFast(imgData + 7));
-
-            if (tex == nullptr) {
-                (*cmd0)++;
-                return false;
-            }
-
-            i = (uintptr_t) reinterpret_cast<char*>(tex->ImageData);
-            texFlags = tex->Flags;
-            rawTexMetdata.width = tex->Width;
-            rawTexMetdata.height = tex->Height;
-            rawTexMetdata.h_byte_scale = tex->HByteScale;
-            rawTexMetdata.v_pixel_scale = tex->VPixelScale;
-            rawTexMetdata.type = tex->Type;
-            rawTexMetdata.resource = tex;
-        }
-    }
 
     // If the resolved address is still in the N64 segmented range, SegAddr
     // failed to resolve it (segment not set up). Skip to avoid dereferencing
     // invalid memory.
-    // For Windows, also check if the address is not from a dll because this validation returns a false positive caused
-    // by how the virtual memory is allocated.
-#ifdef _WIN32
-    HMODULE module = nullptr;
-    if (i <= 0x0FFFFFFF &&
-        !(GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                             reinterpret_cast<LPCSTR>(i), &module))) {
-        return false;
-    }
-#else
     if (i <= 0x0FFFFFFF) {
         return false;
     }
-#endif
 
     gfx->GfxDpSetTextureImage(C0(21, 3), C0(19, 2), C0(0, 12) + 1, imgData, texFlags, rawTexMetdata, (void*)i);
 
-    return false;
-}
-
-bool gfx_set_timg_otr_hash_handler_custom(F3DGfx** cmd0) {
-    uintptr_t addr = (*cmd0)->words.w1;
-    (*cmd0)++;
-    uint64_t hash = ((uint64_t)(*cmd0)->words.w0 << 32) + (uint64_t)(*cmd0)->words.w1;
-
-    auto fileName = Ship::Context::GetInstance()->GetResourceManager()->GetArchiveManager()->HashToString(hash);
-    uint32_t texFlags = 0;
-    RawTexMetadata rawTexMetadata = {};
-
-    if (fileName == nullptr) {
-        (*cmd0)++;
-        return false;
-    }
-
-    std::shared_ptr<Fast::Texture> texture = std::static_pointer_cast<Fast::Texture>(Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcess(*fileName));
-    if (texture != nullptr) {
-        texFlags = texture->Flags;
-        rawTexMetadata.width = texture->Width;
-        rawTexMetadata.height = texture->Height;
-        rawTexMetadata.h_byte_scale = texture->HByteScale;
-        rawTexMetadata.v_pixel_scale = texture->VPixelScale;
-        rawTexMetadata.type = texture->Type;
-        rawTexMetadata.resource = texture;
-
-        // OTRTODO: We have disabled caching for now to fix a texture corruption issue with HD texture
-        // support. In doing so, there is a potential performance hit since we are not caching lookups. We
-        // need to do proper profiling to see whether or not it is worth it to keep the caching system.
-
-        char* tex = reinterpret_cast<char*>(texture->ImageData);
-
-        if (tex != nullptr) {
-            (*cmd0)--;
-            uintptr_t oldData = (*cmd0)->words.w1;
-            // TODO: wtf??
-            (*cmd0)->words.w1 = (uintptr_t)tex;
-
-            // if (ourHash != (uint64_t)-1) {
-            //     auto res = ResourceLoad(ourHash);
-            // }
-
-            (*cmd0)++;
-        }
-
-        (*cmd0)--;
-        F3DGfx* cmd = (*cmd0);
-        uint32_t fmt = C0(21, 3);
-        uint32_t size = C0(19, 2);
-        uint32_t width = C0(0, 12) + 1;
-
-        if (tex != NULL) {
-            Interpreter* gfx = gInstance;
-            gfx->GfxDpSetTextureImage(fmt, size, width, nullptr, texFlags, rawTexMetadata, tex);
-        }
-    } else {
-    }
-
-    (*cmd0)++;
-    return false;
-}
-
-bool gfx_set_timg_otr_filepath_handler_custom(F3DGfx** cmd0) {
-    F3DGfx* cmd = *cmd0;
-    const char* fileName = (char*)cmd->words.w1;
-
-    uint32_t texFlags = 0;
-    RawTexMetadata rawTexMetadata = {};
-
-    std::shared_ptr<Fast::Texture> texture = std::static_pointer_cast<Fast::Texture>(
-        Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcess(fileName));
-    if (texture != nullptr) {
-        Interpreter* gfx = gInstance;
-        texFlags = texture->Flags;
-        rawTexMetadata.width = texture->Width;
-        rawTexMetadata.height = texture->Height;
-        rawTexMetadata.h_byte_scale = texture->HByteScale;
-        rawTexMetadata.v_pixel_scale = texture->VPixelScale;
-        rawTexMetadata.type = texture->Type;
-        rawTexMetadata.resource = texture;
-
-        uint32_t fmt = C0(21, 3);
-        uint32_t size = C0(19, 2);
-        uint32_t width = C0(0, 12) + 1;
-
-        gfx->GfxDpSetTextureImage(fmt, size, width, fileName, texFlags, rawTexMetadata,
-                                  reinterpret_cast<char*>(texture->ImageData));
-    } else {
-    }
-    return false;
-}
-
-bool gfx_set_fb_handler_custom(F3DGfx** cmd0) {
-    F3DGfx* cmd = *cmd0;
-    Interpreter* gfx = gInstance;
-    gfx->Flush();
-
-    if (cmd->words.w1) {
-        gfx->SetFrameBuffer((int32_t)cmd->words.w1, 1.0f);
-        gfx->mActiveFrameBuffer = gfx->mFrameBuffers.find((int32_t)cmd->words.w1);
-        gfx->mFbActive = true;
-    } else {
-        gfx->ResetFrameBuffer();
-        gfx->mFbActive = false;
-        gfx->mActiveFrameBuffer = gfx->mFrameBuffers.end();
-    }
-    return false;
-}
-
-bool gfx_reset_fb_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    gfx->Flush();
-    gfx->mFbActive = false;
-    gfx->mActiveFrameBuffer = gfx->mFrameBuffers.end();
-    gfx->mRapi->StartDrawToFramebuffer(gfx->mRendersToFb ? gfx->mGameFb : 0,
-                                       (float)gfx->mCurDimensions.height / gfx->mNativeDimensions.height);
-    // Force viewport and scissor to reapply against the main framebuffer, in case a previous smaller
-    // framebuffer truncated the values
-    gfx->mRdp->viewport_or_scissor_changed = true;
-    gfx->mRenderingState.viewport = {};
-    gfx->mRenderingState.scissor = {};
-    return false;
-}
-
-bool gfx_copy_fb_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-    bool* hasCopiedPtr = (bool*)cmd->words.w1;
-
-    gfx->Flush();
-    gfx->CopyFrameBuffer(C0(11, 11), C0(0, 11), (bool)C0(22, 1), hasCopiedPtr);
-    return false;
-}
-
-bool gfx_read_fb_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-
-    int32_t width, height;
-    [[maybe_unused]] int32_t ulx, uly;
-    uint16_t* rgba16Buffer = (uint16_t*)cmd->words.w1;
-    int fbId = C0(0, 8);
-    bool bswap = C0(8, 1);
-    ++(*cmd0);
-    cmd = *cmd0;
-    // Specifying the upper left origin value is unused and unsupported at the renderer level
-    ulx = C0(0, 16);
-    uly = C0(16, 16);
-    width = C1(0, 16);
-    height = C1(16, 16);
-
-    gfx->Flush();
-    gfx->mRapi->ReadFramebufferToCPU(fbId, width, height, rgba16Buffer);
-
-#ifndef IS_BIGENDIAN
-    // byteswap the output to BE
-    if (bswap) {
-        for (size_t i = 0; i < (size_t)width * height; i++) {
-            rgba16Buffer[i] = BE16SWAP(rgba16Buffer[i]);
-        }
-    }
-#endif
-
-    return false;
-}
-
-bool gfx_register_blended_texture_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-
-    // Flush incase we are replacing a previous blended texture that hasn't been finialized to the GPU
-    gfx->Flush();
-
-    char* timg = (char*)cmd->words.w1;
-
-    ++(*cmd0);
-    cmd = *cmd0;
-
-    uint8_t* mask = (uint8_t*)cmd->words.w0;
-    uint8_t* replacementTex = (uint8_t*)cmd->words.w1;
-
-    if (!gfx_check_image_signature(timg)) {
-        return false;
-    }
-
-    // With no mask, we should clear the blended texture
-    if (mask == nullptr) {
-        gfx->UnregisterBlendedTexture(timg);
-    } else {
-        gfx->RegisterBlendedTexture(timg, mask, replacementTex);
-    }
-
-    return false;
-}
-
-bool gfx_set_timg_fb_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-
-    gfx->Flush();
-    gfx->mRapi->SelectTextureFb((uint32_t)cmd->words.w1);
-    gfx->mRdp->textures_changed[0] = false;
-    gfx->mRdp->textures_changed[1] = false;
-    return false;
-}
-
-bool gfx_set_grayscale_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-
-    gfx->mRdp->grayscale = cmd->words.w1;
     return false;
 }
 
@@ -4418,14 +3871,6 @@ bool gfx_set_fill_color_handler_rdp(F3DGfx** cmd0) {
     return false;
 }
 
-bool gfx_set_intensity_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-
-    gfx->GfxDpSetGrayscaleColor(C1(24, 8), C1(16, 8), C1(8, 8), C1(0, 8));
-    return false;
-}
-
 bool gfx_set_combine_handler_rdp(F3DGfx** cmd0) {
     Interpreter* gfx = gInstance;
     F3DGfx* cmd = *cmd0;
@@ -4462,74 +3907,11 @@ bool gfx_tex_rect_and_flip_handler_rdp(F3DGfx** cmd0) {
     return false;
 }
 
-bool gfx_tex_rect_wide_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-    int8_t opcode = (int8_t)(cmd->words.w0 >> 24);
-    int32_t lrx, lry, tile, ulx, uly;
-    uint32_t uls, ult, dsdx, dtdy;
-
-    lrx = static_cast<int32_t>((C0(0, 24) << 8)) >> 8;
-    lry = static_cast<int32_t>((C1(0, 24) << 8)) >> 8;
-    tile = C1(24, 3);
-    ++(*cmd0);
-    cmd = *cmd0;
-    ulx = static_cast<int32_t>((C0(0, 24) << 8)) >> 8;
-    uly = static_cast<int32_t>((C1(0, 24) << 8)) >> 8;
-    ++(*cmd0);
-    cmd = *cmd0;
-    uls = C0(16, 16);
-    ult = C0(0, 16);
-    dsdx = C1(16, 16);
-    dtdy = C1(0, 16);
-    gfx->GfxDpTextureRectangle(ulx, uly, lrx, lry, tile, uls, ult, dsdx, dtdy, opcode == RDP_G_TEXRECTFLIP);
-    return false;
-}
-
-bool gfx_image_rect_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *cmd0;
-    int16_t tile, iw, ih;
-    int16_t x0, y0, s0, t0;
-    int16_t x1, y1, s1, t1;
-    tile = C0(0, 3);
-    iw = C1(16, 16);
-    ih = C1(0, 16);
-    cmd = ++(*cmd0);
-    x0 = C0(16, 16);
-    y0 = C0(0, 16);
-    s0 = C1(16, 16);
-    t0 = C1(0, 16);
-    cmd = ++(*cmd0);
-    x1 = C0(16, 16);
-    y1 = C0(0, 16);
-    s1 = C1(16, 16);
-    t1 = C1(0, 16);
-    gfx->GfxDpImageRectangle(tile, iw, ih, x0, y0, s0, t0, x1, y1, s1, t1);
-
-    return false;
-}
-
 bool gfx_fill_rect_handler_rdp(F3DGfx** cmd0) {
     Interpreter* gfx = gInstance;
     F3DGfx* cmd = *(cmd0);
 
     gfx->GfxDpFillRectangle(C1(12, 12), C1(0, 12), C0(12, 12), C0(0, 12));
-    return false;
-}
-
-bool gfx_fill_wide_rect_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *(cmd0);
-    int32_t lrx, lry, ulx, uly;
-
-    lrx = (int32_t)(C0(0, 24) << 8) >> 8;
-    lry = (int32_t)(C1(0, 24) << 8) >> 8;
-    cmd = ++(*cmd0);
-    ulx = (int32_t)(C0(0, 24) << 8) >> 8;
-    uly = (int32_t)(C1(0, 24) << 8) >> 8;
-    gfx->GfxDpFillRectangle(ulx, uly, lrx, lry);
-
     return false;
 }
 
@@ -4590,14 +3972,6 @@ bool gfx_obj_rectangle_handler_s2dex(F3DGfx** cmd0) {
     if (!gfx->mMarkerOn) {
         gfx->Gfxs2dexRecyCopy((F3DuObjSprite*)cmd->words.w1); // not gfx->SegAddr here it seems
     }
-    return false;
-}
-
-bool gfx_extra_geometry_mode_handler_custom(F3DGfx** cmd0) {
-    Interpreter* gfx = gInstance;
-    F3DGfx* cmd = *(cmd0);
-
-    gfx->GfxSpExtraGeometryMode(~C0(0, 24), (uint32_t)cmd->words.w1);
     return false;
 }
 
@@ -4665,47 +4039,6 @@ static const UcodeHandler rdpHandlers = {
     { RDP_G_SETTIMG, { "G_SETTIMG", gfx_set_timg_handler_rdp } },                    // G_SETTIMG (-3)
     { RDP_G_SETZIMG, { "G_SETZIMG", gfx_set_z_img_handler_rdp } },                   // G_SETZIMG (-2)
     { RDP_G_SETCIMG, { "G_SETCIMG", gfx_set_c_img_handler_rdp } },                   // G_SETCIMG (-1)
-};
-
-static const UcodeHandler otrHandlers = {
-    { OTR_G_SETTIMG_OTR_HASH,
-      { "G_SETTIMG_OTR_HASH", gfx_set_timg_otr_hash_handler_custom } },       // G_SETTIMG_OTR_HASH (0x20)
-    { OTR_G_SETFB, { "G_SETFB", gfx_set_fb_handler_custom } },                // G_SETFB (0x21)
-    { OTR_G_RESETFB, { "G_RESETFB", gfx_reset_fb_handler_custom } },          // G_RESETFB (0x22)
-    { OTR_G_SETTIMG_FB, { "G_SETTIMG_FB", gfx_set_timg_fb_handler_custom } }, // G_SETTIMG_FB (0x23)
-    { OTR_G_VTX_OTR_FILEPATH,
-      { "G_VTX_OTR_FILEPATH", gfx_vtx_otr_filepath_handler_custom } }, // G_VTX_OTR_FILEPATH (0x24)
-    { OTR_G_SETTIMG_OTR_FILEPATH,
-      { "G_SETTIMG_OTR_FILEPATH", gfx_set_timg_otr_filepath_handler_custom } }, // G_SETTIMG_OTR_FILEPATH (0x25)
-    { OTR_G_TRI1_OTR, { "G_TRI1_OTR", gfx_tri1_otr_handler_f3dex2 } },          // G_TRI1_OTR (0x26)
-    { OTR_G_DL_OTR_FILEPATH, { "G_DL_OTR_FILEPATH", gfx_dl_otr_filepath_handler_custom } }, // G_DL_OTR_FILEPATH (0x27)
-    { OTR_G_PUSHCD, { "G_PUSHCD", gfx_pushcd_handler_custom } },                            // G_PUSHCD (0x28)
-    { OTR_G_MTX_OTR_FILEPATH,
-      { "G_MTX_OTR_FILEPATH", gfx_mtx_otr_filepath_handler_custom } },          // G_MTX_OTR_FILEPATH (0x29)
-    { OTR_G_DL_OTR_HASH, { "G_DL_OTR_HASH", gfx_dl_otr_hash_handler_custom } }, // G_DL_OTR_HASH (0x31)
-    { OTR_G_VTX_OTR_HASH, { "G_VTX_OTR_HASH", gfx_vtx_hash_handler_custom } },  // G_VTX_OTR_HASH (0x32)
-    { OTR_G_MARKER, { "G_MARKER", gfx_marker_handler_otr } },                   // G_MARKER (0X33)
-    { OTR_G_INVALTEXCACHE, { "G_INVALTEXCACHE", gfx_invalidate_tex_cache_handler_f3dex2 } }, // G_INVALTEXCACHE (0X34)
-    { OTR_G_BRANCH_Z_OTR, { "G_BRANCH_Z_OTR", gfx_branch_z_otr_handler_f3dex2 } },           // G_BRANCH_Z_OTR (0x35)
-    { OTR_G_MTX_OTR, { "G_MTX_OTR", gfx_mtx_otr_handler_custom } },                          // G_MTX_OTR (0x36)
-    { OTR_G_TEXRECT_WIDE, { "G_TEXRECT_WIDE", gfx_tex_rect_wide_handler_custom } },          // G_TEXRECT_WIDE (0x37)
-    { OTR_G_FILLWIDERECT, { "G_FILLWIDERECT", gfx_fill_wide_rect_handler_custom } },         // G_FILLWIDERECT (0x38)
-    { OTR_G_SETGRAYSCALE, { "G_SETGRAYSCALE", gfx_set_grayscale_handler_custom } },          // G_SETGRAYSCALE (0x39)
-    { OTR_G_EXTRAGEOMETRYMODE,
-      { "G_EXTRAGEOMETRYMODE", gfx_extra_geometry_mode_handler_custom } }, // G_EXTRAGEOMETRYMODE (0x3a)
-    { OTR_G_COPYFB, { "G_COPYFB", gfx_copy_fb_handler_custom } },          // G_COPYFB (0x3b)
-    { OTR_G_IMAGERECT, { "G_IMAGERECT", gfx_image_rect_handler_custom } }, // G_IMAGERECT (0x3c)
-    { OTR_G_DL_INDEX, { "G_DL_INDEX", gfx_dl_index_handler } },            // G_DL_INDEX (0x3d)
-    { OTR_G_READFB, { "G_READFB", gfx_read_fb_handler_custom } },          // G_READFB (0x3e)
-    { OTR_G_REGBLENDEDTEX,
-      { "G_REGBLENDEDTEX", gfx_register_blended_texture_handler_custom } },         // G_REGBLENDEDTEX (0x3f)
-    { OTR_G_SETINTENSITY, { "G_SETINTENSITY", gfx_set_intensity_handler_custom } }, // G_SETINTENSITY (0x40)
-    { OTR_G_MOVEMEM_HASH, { "OTR_G_MOVEMEM_HASH", gfx_movemem_handler_otr } },      // OTR_G_MOVEMEM_HASH
-    { OTR_G_PUSH_SHADER, { "G_PUSH_SHADER", gfx_push_shader } },
-    { OTR_G_POP_SHADER, { "G_POP_SHADER", gfx_pop_shader } },
-    { RDP_G_LOADBLOCK_WIDE, { "G_LOADBLOCK_WIDE", gfx_load_block_wide_handler_rdp } }, // RDP_G_LOADBLOCK_WIDE (-15)
-    { RDP_G_VTX_WIDE, { "G_VTX_WIDE", gfx_vtx_handler_f3dex2 } },                      // RDP_G_VTX_WIDE (-16)
-    { RDP_G_TRI1_WIDE, { "G_TRI1_WIDE", gfx_tri1_handler_f3dex2 } },                   // RDP_G_TRI1_WIDE (-17)
 };
 
 static const UcodeHandler f3dex2Handlers = {
@@ -4796,10 +4129,6 @@ static const UcodeHandler* ucode_handlers[] = {
 };
 
 const char* GfxGetOpcodeName(int8_t opcode) {
-    if (otrHandlers.contains(opcode)) {
-        return otrHandlers.at(opcode).first;
-    }
-
     if (rdpHandlers.contains(opcode)) {
         return rdpHandlers.at(opcode).first;
     }
@@ -4850,26 +4179,7 @@ static void gfx_step() {
         // Instead of having a handler for each ucode for switching ucode, just check for it early and return.
     }
 
-    if (otrHandlers.contains(opcode)) {
-        // OTR filepath handlers expect w1 to be a valid string pointer.
-        // Guard against null or N64-segment addresses that would crash in strlen/strncmp.
-        if (opcode == OTR_G_VTX_OTR_FILEPATH || opcode == OTR_G_SETTIMG_OTR_FILEPATH ||
-            opcode == OTR_G_DL_OTR_FILEPATH || opcode == OTR_G_PUSHCD || opcode == OTR_G_MTX_OTR_FILEPATH) {
-            uintptr_t w1 = (uintptr_t)cmd->words.w1;
-            if (w1 < 0x10000
-#if UINTPTR_MAX > 0xFFFFFFFFu
-                // On 64-bit: filter kernel/sentinel addresses.
-                || w1 > 0x0000FFFFFFFFFFFFull
-#endif
-            ) {
-                ++g_exec_stack.currCmd();
-                return;
-            }
-        }
-        if (otrHandlers.at(opcode).second(&cmd)) {
-            return;
-        }
-    } else if (rdpHandlers.contains(opcode)) {
+    if (rdpHandlers.contains(opcode)) {
         if (rdpHandlers.at(opcode).second(&cmd)) {
             return;
         }
@@ -4973,16 +4283,10 @@ bool Interpreter::IsFrameReady() {
 }
 
 bool Interpreter::ViewportMatchesRendererResolution() {
-#ifdef __APPLE__
-    // Always treat the viewport as not matching the render resolution on mac
-    // to avoid issues with retina scaling.
-    return false;
-#else
     if (mCurDimensions.width == mGameWindowViewport.width && mCurDimensions.height == mGameWindowViewport.height) {
         return true;
     }
     return false;
-#endif
 }
 
 void Interpreter::StartFrame() {
@@ -5111,9 +4415,7 @@ void Interpreter::EndFrame() {
     mWapi->SwapBuffersBegin();
     mRapi->FinishRender();
     mWapi->SwapBuffersEnd();
-#ifdef __vita__
 	mBufVbo = (float*)vglAllocFromScratch(10 * 1024 * 1024);
-#endif
 }
 
 void gfx_set_target_ucode(UcodeHandlers ucode) {
@@ -5230,58 +4532,11 @@ uint16_t Interpreter::GetPixelDepth(float x, float y) {
     return mGetPixelDepthCached.find(std::make_pair(x, y))->second;
 }
 
-void gfx_push_current_dir(char* path) {
-    if (gfx_check_image_signature(path) == 1)
-        path = &path[7];
-
-    currentDir.push(GetPathWithoutFileName(path));
-}
-
-int32_t gfx_check_image_signature(const char* imgData) {
-    uintptr_t i = (uintptr_t)(imgData);
-
-    if ((i & 1) == 1) {
-        return 0;
-    }
-
-    // Filter addresses that are obviously not valid string pointers before
-    // attempting to dereference for the "__OTR__" check.
-    if (i == 0 || i < 0x10000) {
-        return 0;
-    }
-#if UINTPTR_MAX > 0xFFFFFFFFu
-    // On 64-bit: filter kernel/sentinel addresses. Upper bound covers all
-    // user-space layouts (x86_64 47-bit canonical, ARM64 48-bit VA, etc.).
-    if (i > 0x0000FFFFFFFFFFFFull) {
-        return 0;
-    }
-#endif
-
-    return Ship::Context::GetInstance()->GetResourceManager()->OtrSignatureCheck(imgData);
-}
-
 void Interpreter::RegisterBlendedTexture(const char* name, uint8_t* mask, uint8_t* replacement) {
-    if (gfx_check_image_signature(name)) {
-        name += 7;
-    }
-
-    if (gfx_check_image_signature(reinterpret_cast<char*>(replacement))) {
-        Fast::Texture* tex = std::static_pointer_cast<Fast::Texture>(
-                                 Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcess(
-                                     reinterpret_cast<char*>(replacement)))
-                                 .get();
-
-        replacement = tex->ImageData;
-    }
-
     mMaskedTextures[name] = MaskedTextureEntry{ mask, replacement };
 }
 
 void Interpreter::UnregisterBlendedTexture(const char* name) {
-    if (gfx_check_image_signature(name)) {
-        name += 7;
-    }
-
     mMaskedTextures.erase(name);
 }
 
