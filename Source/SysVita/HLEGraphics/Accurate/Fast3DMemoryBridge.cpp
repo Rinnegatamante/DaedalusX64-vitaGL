@@ -396,7 +396,8 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
     const u32 commandCount = CountListCommands(address, version);
     if (commandCount == 0) return nullptr;
 
-    HostGfx* out = (HostGfx*)Alloc(sizeof(HostGfx) * commandCount * 2, 8);
+    const u32 outputMultiplier = version == GBI_GE ? 5 : 2;
+    HostGfx* out = (HostGfx*)Alloc(sizeof(HostGfx) * commandCount * outputMultiplier, 8);
     if (!out) return nullptr;
     u32 outIndex = 0;
 
@@ -524,6 +525,27 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
             ++outIndex;
         }
 
+        if (version == GBI_GE && op == 0xB1) {
+            u32 triW0 = w0;
+            u32 triW1 = w1;
+            u32 triangleCount = 0;
+            while (triW1 != 0) {
+                const u32 v0 = triW1 & 0xF;
+                triW1 >>= 4;
+                const u32 v1 = triW1 & 0xF;
+                triW1 >>= 4;
+                const u32 v2 = triW0 & 0xF;
+                triW0 >>= 4;
+
+                HostGfx* tri = &out[outIndex++];
+                tri->w0 = 0xBF000000u;
+                tri->w1 = ((v0 * 10) << 16) | ((v1 * 10) << 8) | (v2 * 10);
+                ++triangleCount;
+            }
+            if (triangleCount == 0) return fail();
+            continue;
+        }
+
         HostGfx* dst = &out[outIndex++];
         dst->w0 = w0;
         dst->w1 = w1;
@@ -612,7 +634,17 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
             }
             if (op == 0xDF) break;
         } else {
-            if (op == 0xAF) {
+            if (version == GBI_GE && op == 0xBD) {
+                if ((w0 & 0xFF) == G_MW_SEGMENT) {
+                    const u32 offset = (w0 >> 8) & 0xFFFF;
+                    const u32 seg = (offset >> 2) & 0xF;
+                    mSegments[seg] = w1 & 0x00FFFFFF;
+                    dst->w0 = 0;
+                    dst->w1 = 0;
+                } else {
+                    dst->w0 = (0xBCu << 24) | (w0 & 0x00FFFFFFu);
+                }
+            } else if (op == 0xAF) {
                 return fail();
             } else if (op == 0xBC && (w0 & 0xFF) == G_MW_SEGMENT) {
                 const u32 offset = (w0 >> 8) & 0xFFFF;
@@ -625,9 +657,10 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
                 if (!ptr) return fail();
                 dst->w1 = (u32)(uintptr_t)ptr;
             } else if (op == 0x04) {
-                const u32 count = version == GBI_0 ? ((w0 >> 20) & 0xF) + 1 : (w0 >> 10) & 0x3F;
+                const bool gbi0Layout = version == GBI_0 || version == GBI_GE;
+                const u32 count = gbi0Layout ? ((w0 >> 20) & 0xF) + 1 : (w0 >> 10) & 0x3F;
                 if (count == 0 || count > 32) return fail();
-                if (version == GBI_0) dst->w0 = (w0 & 0xFFFF0000u) | (count * sizeof(HostVtx));
+                if (gbi0Layout) dst->w0 = (w0 & 0xFFFF0000u) | (count * sizeof(HostVtx));
                 void* ptr = ConvertVertices(w1, count);
                 if (!ptr) return fail();
                 dst->w1 = (u32)(uintptr_t)ptr;

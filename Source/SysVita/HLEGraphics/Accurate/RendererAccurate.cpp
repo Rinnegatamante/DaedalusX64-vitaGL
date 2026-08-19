@@ -174,6 +174,7 @@ private:
     static int MapUcode(GBIVersion version) {
         switch (version) {
         case GBI_0: return 1;
+        case GBI_GE: return 1;
         case GBI_1: return 2;
         case GBI_2: return 4;
         case GBI_2_S2DEX: return 5;
@@ -184,6 +185,8 @@ private:
     bool mInitialised = false;
     bool mFrameStarted = false;
     int mLastAspectRatio = -1;
+    u32 mLastNativeWidth = 0;
+    u32 mLastNativeHeight = 0;
     std::shared_ptr<Fast::Interpreter> mInterpreter;
     Fast3DMemoryBridge mBridge;
     robin_hood::unordered_map<Mtx*, MtxF> mDummyMatrixReplacements;
