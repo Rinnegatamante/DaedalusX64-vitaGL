@@ -26,8 +26,11 @@ private:
     void* ConvertVertices(u32 address, u32 count);
     void* ConvertViewport(u32 address);
     void* ConvertLight(u32 address, u32 size);
+    void* StageS2DEXImage(u32 address, u16 imageW, u16 imageH, u8 imageSiz);
+    void* ConvertS2DEXBg(u32 address);
+    void* ConvertS2DEXSprite(u32 address);
     u32 CountListCommands(u32 address, GBIVersion version) const;
-    void* TranslateList(u32 address, GBIVersion version, u32 depth);
+    void* TranslateList(u32 address, GBIVersion& version, u32 depth);
     void CopyRdramBytes(u8* dst, u32 address, u32 size) const;
     u32 HashRdramBytes(u32 address, u32 size) const;
     bool StageTextureImage(u32 requiredBytes, bool palette = false, u32 sourceOffset = 0,

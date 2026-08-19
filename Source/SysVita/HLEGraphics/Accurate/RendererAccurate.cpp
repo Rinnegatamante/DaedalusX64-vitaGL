@@ -125,6 +125,7 @@ private:
         case GBI_0: return 1;
         case GBI_1: return 2;
         case GBI_2: return 4;
+        case GBI_2_S2DEX: return 5;
         default: return -1;
         }
     }

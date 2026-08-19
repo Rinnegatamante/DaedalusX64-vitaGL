@@ -288,6 +288,82 @@ void* Fast3DMemoryBridge::ConvertLight(u32 address, u32 size) {
     return light;
 }
 
+void* Fast3DMemoryBridge::StageS2DEXImage(u32 address, u16 imageW, u16 imageH, u8 imageSiz) {
+    if (imageSiz > G_IM_SIZ_32b) return nullptr;
+
+    const u32 width = imageW >> 2;
+    const u32 height = imageH >> 2;
+    if (width == 0 || height == 0) return nullptr;
+
+    const u64 pixels = (u64)width * height;
+    const u64 bytes64 = ((pixels << imageSiz) + 1) >> 1;
+    if (bytes64 == 0 || bytes64 > 0xFFFFFFFFu) return nullptr;
+
+    address = Resolve(address);
+    const u32 bytes = (u32)bytes64;
+    if (address >= gRamSize || bytes > gRamSize - address) return nullptr;
+
+    u8* data = (u8*)Alloc(bytes, 16);
+    if (!data) return nullptr;
+    CopyRdramBytes(data, address, bytes);
+    return data;
+}
+
+void* Fast3DMemoryBridge::ConvertS2DEXBg(u32 address) {
+    address = Resolve(address);
+    if (address >= gRamSize || 40 > gRamSize - address) return nullptr;
+
+    Fast::F3DuObjBg* bg = (Fast::F3DuObjBg*)Alloc(sizeof(Fast::F3DuObjBg), 8);
+    if (!bg) return nullptr;
+    memset(bg, 0, sizeof(*bg));
+
+    bg->b.imageX = ReadU16(address + 0);
+    bg->b.imageW = ReadU16(address + 2);
+    bg->b.frameX = ReadS16(address + 4);
+    bg->b.frameW = ReadU16(address + 6);
+    bg->b.imageY = ReadU16(address + 8);
+    bg->b.imageH = ReadU16(address + 10);
+    bg->b.frameY = ReadS16(address + 12);
+    bg->b.frameH = ReadU16(address + 14);
+
+    const u32 imageAddress = Read32(address + 16);
+    bg->b.imageLoad = ReadU16(address + 20);
+    bg->b.imageFmt = ReadU8(address + 22);
+    bg->b.imageSiz = ReadU8(address + 23);
+    bg->b.imagePal = ReadU16(address + 24);
+    bg->b.imageFlip = ReadU16(address + 26);
+
+    void* image = StageS2DEXImage(imageAddress, bg->b.imageW, bg->b.imageH, bg->b.imageSiz);
+    if (!image) return nullptr;
+    bg->b.imagePtr = (unsigned long long int*)image;
+    return bg;
+}
+
+void* Fast3DMemoryBridge::ConvertS2DEXSprite(u32 address) {
+    address = Resolve(address);
+    if (address >= gRamSize || 24 > gRamSize - address) return nullptr;
+
+    Fast::F3DuObjSprite* sprite = (Fast::F3DuObjSprite*)Alloc(sizeof(Fast::F3DuObjSprite), 8);
+    if (!sprite) return nullptr;
+    memset(sprite, 0, sizeof(*sprite));
+
+    sprite->s.objX = ReadS16(address + 0);
+    sprite->s.scaleW = ReadU16(address + 2);
+    sprite->s.imageW = ReadU16(address + 4);
+    sprite->s.paddingX = ReadU16(address + 6);
+    sprite->s.objY = ReadS16(address + 8);
+    sprite->s.scaleH = ReadU16(address + 10);
+    sprite->s.imageH = ReadU16(address + 12);
+    sprite->s.paddingY = ReadU16(address + 14);
+    sprite->s.imageStride = ReadU16(address + 16);
+    sprite->s.imageAdrs = ReadU16(address + 18);
+    sprite->s.imageFmt = ReadU8(address + 20);
+    sprite->s.imageSiz = ReadU8(address + 21);
+    sprite->s.imagePal = ReadU8(address + 22);
+    sprite->s.imageFlags = ReadU8(address + 23);
+    return sprite;
+}
+
 u32 Fast3DMemoryBridge::CountListCommands(u32 address, GBIVersion version) const {
     if (address >= gRamSize) return 0;
 
@@ -300,7 +376,7 @@ u32 Fast3DMemoryBridge::CountListCommands(u32 address, GBIVersion version) const
         const u32 w0 = Read32(pc);
         const u8 op = (u8)(w0 >> 24);
 
-        if (version == GBI_2) {
+        if (version == GBI_2 || version == GBI_2_S2DEX) {
             if (op == 0xDF) return n + 1;
             if (op == 0xDE && (((w0 >> 16) & 0xFF) == G_DL_NOPUSH)) return n + 1;
         } else {
@@ -311,7 +387,7 @@ u32 Fast3DMemoryBridge::CountListCommands(u32 address, GBIVersion version) const
     return 0;
 }
 
-void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion version, u32 depth) {
+void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 depth) {
     if (depth > 24) return nullptr;
 
     address = Resolve(address);
@@ -334,6 +410,11 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion version, u32 dep
             mTranslationFailed = true;
             return nullptr;
         };
+
+        if ((version == GBI_2 || version == GBI_2_S2DEX) && op == 0xE1 && n + 1 < commandCount) {
+            const u32 nextW0 = Read32(pc + 8);
+            if ((u8)(nextW0 >> 24) == 0xDD) continue;
+        }
 
         if (op == G_RDP_RDPFULLSYNC) mSawFullSync = true;
 
@@ -456,33 +537,39 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion version, u32 dep
             dst->w1 = Resolve(w1);
         }
 
-        if (version == GBI_2) {
+        if (version == GBI_2 || version == GBI_2_S2DEX) {
             if (op == 0xDD) {
-                return fail();
+                if (n == 0) return fail();
+
+                const u32 previousPC = pc - 8;
+                const u32 previousW0 = Read32(previousPC);
+                const u32 previousW1 = Read32(previousPC + 4);
+                if ((u8)(previousW0 >> 24) != 0xE1) return fail();
+
+                const u32 codeBase = Resolve(w1);
+                const u32 dataBase = Resolve(previousW1);
+                const u32 dataSize = (w0 & 0xFFFF) + 1;
+                if (codeBase >= gRamSize || dataBase >= gRamSize || dataSize > gRamSize - dataBase) return fail();
+
+                const UcodeInfo loadedUcode = GBIMicrocode_DetectVersion(codeBase, 0, dataBase, dataSize);
+                u32 fastUcode = 0;
+                if (loadedUcode.version == GBI_2) {
+                    fastUcode = (u32)ucode_f3dex2;
+                } else if (loadedUcode.version == GBI_2_S2DEX) {
+                    fastUcode = (u32)ucode_s2dex;
+                } else {
+                    return fail();
+                }
+
+                dst->w0 = (0xDDu << 24) | fastUcode;
+                dst->w1 = 0;
+                version = loadedUcode.version;
             } else if (op == 0xDB && ((w0 >> 16) & 0xFF) == G_MW_SEGMENT) {
                 const u32 offset = w0 & 0xFFFF;
                 const u32 seg = (offset >> 2) & 0xF;
                 mSegments[seg] = w1 & 0x00FFFFFF;
                 dst->w0 = 0;
                 dst->w1 = 0;
-            } else if (op == 0xDA) {
-                void* ptr = ConvertMatrix(w1);
-                if (!ptr) return fail();
-                dst->w1 = (u32)(uintptr_t)ptr;
-            } else if (op == 0x01) {
-                const u32 count = (w0 >> 12) & 0xFF;
-                if (count == 0 || count > 32) return fail();
-                void* ptr = ConvertVertices(w1, count);
-                if (!ptr) return fail();
-                dst->w1 = (u32)(uintptr_t)ptr;
-            } else if (op == 0xDC) {
-                const u32 type = w0 & 0xFE;
-                void* ptr = nullptr;
-                if (type == G_GBI2_MV_VIEWPORT) ptr = ConvertViewport(w1);
-                else if (type == G_GBI2_MV_LIGHT) ptr = ConvertLight(w1, 24);
-                else return fail();
-                if (!ptr) return fail();
-                dst->w1 = (u32)(uintptr_t)ptr;
             } else if (op == 0xDE) {
                 const u32 param = (w0 >> 16) & 0xFF;
                 void* ptr = TranslateList(w1, version, depth + 1);
@@ -492,6 +579,36 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion version, u32 dep
                 }
                 dst->w1 = (u32)(uintptr_t)ptr;
                 if (param == G_DL_NOPUSH) break;
+            } else if (version == GBI_2) {
+                if (op == 0xDA) {
+                    void* ptr = ConvertMatrix(w1);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0x01) {
+                    const u32 count = (w0 >> 12) & 0xFF;
+                    if (count == 0 || count > 32) return fail();
+                    void* ptr = ConvertVertices(w1, count);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0xDC) {
+                    const u32 type = w0 & 0xFE;
+                    void* ptr = nullptr;
+                    if (type == G_GBI2_MV_VIEWPORT) ptr = ConvertViewport(w1);
+                    else if (type == G_GBI2_MV_LIGHT) ptr = ConvertLight(w1, 24);
+                    else return fail();
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                }
+            } else if (version == GBI_2_S2DEX) {
+                if (op == 0x01 || op == 0xDA) {
+                    void* ptr = ConvertS2DEXSprite(w1);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0x09 || op == 0x0A) {
+                    void* ptr = ConvertS2DEXBg(w1);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                }
             }
             if (op == 0xDF) break;
         } else {
@@ -554,6 +671,7 @@ void* Fast3DMemoryBridge::BuildDisplayList(u32 address, GBIVersion version) {
     mTextureImageCommand = nullptr;
     mTextureImageStaging = nullptr;
 
-    void* list = TranslateList(address, version, 0);
+    GBIVersion activeVersion = version;
+    void* list = TranslateList(address, activeVersion, 0);
     return mTranslationFailed ? nullptr : list;
 }
