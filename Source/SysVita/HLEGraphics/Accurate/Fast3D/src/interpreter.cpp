@@ -1137,7 +1137,104 @@ void Interpreter::ImportTextureRaw(int tile, bool importReplacement) {
     mRapi->UploadTexture(mTexUploadBuffer, resultNewLineSize / 4, resultNewHeight);
 }
 
+bool Interpreter::PrepareTextureView(int tile) {
+    if (tile < 0 || tile >= 8) {
+        return false;
+    }
+
+    const uint16_t requestedTmem = mRdp->texture_tile[tile].tmem;
+    const uint32_t targetIndex = mRdp->texture_tile[tile].tmem_index;
+    if (mRdp->loaded_texture[targetIndex].addr != nullptr &&
+        mRdp->loaded_texture[targetIndex].tmem == requestedTmem &&
+        !mRdp->loaded_texture[targetIndex].derived_view) {
+        return true;
+    }
+
+    for (uint32_t sourceIndex = 0; sourceIndex < 2; ++sourceIndex) {
+        const auto source = mRdp->loaded_texture[sourceIndex];
+        if (source.addr == nullptr || source.orig_size_bytes == 0 || source.derived_view) {
+            continue;
+        }
+
+        const uint32_t sourceWords = (source.orig_size_bytes + 7) >> 3;
+        const uint32_t sourceEnd = static_cast<uint32_t>(source.tmem) + sourceWords;
+        if (requestedTmem < source.tmem || requestedTmem >= sourceEnd) {
+            continue;
+        }
+
+        const uint32_t sourceOffsetBytes = (static_cast<uint32_t>(requestedTmem) - source.tmem) << 3;
+        if (sourceOffsetBytes >= source.orig_size_bytes) {
+            continue;
+        }
+
+        uint32_t viewOrigSize = source.orig_size_bytes - sourceOffsetBytes;
+        uint32_t viewLineSize = mRdp->texture_tile[tile].line_size_bytes;
+        if (mRdp->texture_tile[tile].siz == G_IM_SIZ_32b) {
+            viewLineSize *= 2;
+        }
+
+        uint32_t viewHeight = 0;
+        if (mRdp->texture_tile[tile].lrt >= mRdp->texture_tile[tile].ult) {
+            viewHeight = static_cast<uint32_t>(
+                (mRdp->texture_tile[tile].lrt - mRdp->texture_tile[tile].ult + 4.0f) / 4.0f);
+        }
+        if (viewHeight <= 1 && mRdp->texture_tile[tile].maskt != 0) {
+            viewHeight = 1u << mRdp->texture_tile[tile].maskt;
+        }
+
+        if (viewLineSize != 0 && viewHeight != 0) {
+            const uint64_t requestedSize = static_cast<uint64_t>(viewLineSize) * viewHeight;
+            if (requestedSize <= viewOrigSize) {
+                viewOrigSize = static_cast<uint32_t>(requestedSize);
+            }
+        }
+
+        uint32_t scaledOffsetBytes = sourceOffsetBytes;
+        uint32_t viewSize = viewOrigSize;
+        uint32_t scaledLineSize = viewLineSize;
+        if (source.orig_size_bytes != 0 && source.size_bytes != source.orig_size_bytes) {
+            scaledOffsetBytes = static_cast<uint32_t>(
+                (static_cast<uint64_t>(sourceOffsetBytes) * source.size_bytes) / source.orig_size_bytes);
+            viewSize = static_cast<uint32_t>(
+                (static_cast<uint64_t>(viewOrigSize) * source.size_bytes) / source.orig_size_bytes);
+            scaledLineSize = static_cast<uint32_t>(
+                (static_cast<uint64_t>(viewLineSize) * source.size_bytes) / source.orig_size_bytes);
+        }
+
+        auto view = source;
+        view.addr = source.addr + scaledOffsetBytes;
+        view.orig_size_bytes = viewOrigSize;
+        view.size_bytes = viewSize;
+        view.tmem = requestedTmem;
+        view.derived_view = true;
+        if (scaledLineSize != 0) {
+            view.line_size_bytes = scaledLineSize;
+            view.full_image_line_size_bytes = scaledLineSize;
+        }
+        mRdp->loaded_texture[targetIndex] = view;
+
+        if (mRdp->texture_tile[tile].lrs == mRdp->texture_tile[tile].uls &&
+            mRdp->texture_tile[tile].masks != 0) {
+            mRdp->texture_tile[tile].lrs = mRdp->texture_tile[tile].uls +
+                                           static_cast<float>(((1u << mRdp->texture_tile[tile].masks) - 1u) << 2);
+        }
+        if (mRdp->texture_tile[tile].lrt == mRdp->texture_tile[tile].ult &&
+            mRdp->texture_tile[tile].maskt != 0) {
+            mRdp->texture_tile[tile].lrt = mRdp->texture_tile[tile].ult +
+                                           static_cast<float>(((1u << mRdp->texture_tile[tile].maskt) - 1u) << 2);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 void Interpreter::ImportTexture(int i, int tile, bool importReplacement) {
+    if (!PrepareTextureView(tile)) {
+        return;
+    }
+
     uint8_t fmt = mRdp->texture_tile[tile].fmt;
     uint8_t siz = mRdp->texture_tile[tile].siz;
     uint32_t texFlags = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].tex_flags;
@@ -2515,10 +2612,29 @@ void Interpreter::GfxDpLoadBlock(uint8_t tile, uint32_t uls, uint32_t ult, uint3
     }
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes = actual_line_bytes;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].full_image_line_size_bytes = actual_line_bytes;
+    mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].tmem = mRdp->texture_tile[tile].tmem;
+    mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].derived_view = false;
     // assert(size_bytes <= 4096 && "bug: too big texture");
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].tex_flags = mRdp->texture_to_load.tex_flags;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].raw_tex_metadata = mRdp->texture_to_load.raw_tex_metadata;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].addr = mRdp->texture_to_load.addr;
+
+    {
+        const uint32_t loadedIndex = mRdp->texture_tile[tile].tmem_index;
+        const uint32_t otherIndex = loadedIndex ^ 1u;
+        const uint32_t loadBegin = mRdp->texture_tile[tile].tmem;
+        const uint32_t loadEnd = loadBegin + ((orig_size_bytes + 7u) >> 3);
+        const auto& other = mRdp->loaded_texture[otherIndex];
+        if (other.addr != nullptr) {
+            const uint32_t otherBegin = other.tmem;
+            const uint32_t otherEnd = otherBegin + ((other.orig_size_bytes + 7u) >> 3);
+            if (loadBegin < otherEnd && otherBegin < loadEnd) {
+                mRdp->loaded_texture[otherIndex].addr = nullptr;
+                mRdp->loaded_texture[otherIndex].orig_size_bytes = 0;
+                mRdp->loaded_texture[otherIndex].size_bytes = 0;
+            }
+        }
+    }
     //         mRdp->texture_to_load.siz, lrs);
 
     const std::string texPath =
@@ -2535,7 +2651,8 @@ void Interpreter::GfxDpLoadBlock(uint8_t tile, uint32_t uls, uint32_t ult, uint3
         mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].blended = false;
     }
 
-    mRdp->textures_changed[mRdp->texture_tile[tile].tmem_index] = true;
+    mRdp->textures_changed[0] = true;
+    mRdp->textures_changed[1] = true;
 }
 
 void Interpreter::GfxDpLoadTile(uint8_t tile, uint32_t uls, uint32_t ult, uint32_t lrs, uint32_t lrt) {
@@ -2585,11 +2702,30 @@ void Interpreter::GfxDpLoadTile(uint8_t tile, uint32_t uls, uint32_t ult, uint32
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].size_bytes = size_bytes;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].full_image_line_size_bytes = full_image_line_size_bytes;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes = tile_line_size_bytes;
+    mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].tmem = mRdp->texture_tile[tile].tmem;
+    mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].derived_view = false;
 
     //    assert(size_bytes <= 4096 && "bug: too big texture");
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].tex_flags = mRdp->texture_to_load.tex_flags;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].raw_tex_metadata = mRdp->texture_to_load.raw_tex_metadata;
     mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].addr = mRdp->texture_to_load.addr + start_offset_bytes;
+
+    {
+        const uint32_t loadedIndex = mRdp->texture_tile[tile].tmem_index;
+        const uint32_t otherIndex = loadedIndex ^ 1u;
+        const uint32_t loadBegin = mRdp->texture_tile[tile].tmem;
+        const uint32_t loadEnd = loadBegin + ((orig_size_bytes + 7u) >> 3);
+        const auto& other = mRdp->loaded_texture[otherIndex];
+        if (other.addr != nullptr) {
+            const uint32_t otherBegin = other.tmem;
+            const uint32_t otherEnd = otherBegin + ((other.orig_size_bytes + 7u) >> 3);
+            if (loadBegin < otherEnd && otherBegin < loadEnd) {
+                mRdp->loaded_texture[otherIndex].addr = nullptr;
+                mRdp->loaded_texture[otherIndex].orig_size_bytes = 0;
+                mRdp->loaded_texture[otherIndex].size_bytes = 0;
+            }
+        }
+    }
 
     const std::string texPath =
         mRdp->texture_to_load.raw_tex_metadata.resource != nullptr
@@ -2610,7 +2746,8 @@ void Interpreter::GfxDpLoadTile(uint8_t tile, uint32_t uls, uint32_t ult, uint32
     mRdp->texture_tile[tile].lrs = lrs;
     mRdp->texture_tile[tile].lrt = lrt;
 
-    mRdp->textures_changed[mRdp->texture_tile[tile].tmem_index] = true;
+    mRdp->textures_changed[0] = true;
+    mRdp->textures_changed[1] = true;
 }
 
 /*static uint8_t color_comb_component(uint32_t v) {

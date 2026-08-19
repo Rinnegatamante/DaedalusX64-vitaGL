@@ -300,6 +300,8 @@ struct RDP {
         uint32_t size_bytes;
         uint32_t full_image_line_size_bytes;
         uint32_t line_size_bytes;
+        uint16_t tmem;
+        bool derived_view;
         uint32_t tex_flags;
         struct RawTexMetadata raw_tex_metadata;
         bool masked;
@@ -451,6 +453,7 @@ class Interpreter {
     void ImportTextureCi8(int tile, bool importReplacement);
     void ImportTextureRaw(int tile, bool importReplacement);
     void ImportTextureImg(int tile, bool importReplacement);
+    bool PrepareTextureView(int tile);
     void ImportTexture(int i, int tile, bool importReplacement);
     void ImportTextureMask(int i, int tile);
     void CalculateNormalDir(const F3DLight_t*, float coeffs[3]);
