@@ -673,7 +673,7 @@ void DrawCommonMenuBar() {
 				gRendererType = RENDERER_MODERN;
 			}
 			SetDescription(lang_strings[STR_DESC_MODERN_REND]);
-			if (ImGui::MenuItem(lang_strings[STR_DESC_ACCURATE_REND], nullptr, gRendererType == RENDERER_ACCURATE)) {
+			if (ImGui::MenuItem(lang_strings[STR_MENU_ACCURATE_REND], nullptr, gRendererType == RENDERER_ACCURATE)) {
 				if (!is_main_menu && gRendererType != RENDERER_ACCURATE) gRendererChanged = true;
 				gRendererType = RENDERER_ACCURATE;
 			}
