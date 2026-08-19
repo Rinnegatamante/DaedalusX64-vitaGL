@@ -76,6 +76,7 @@ public:
         if (fastUcode < 0) return false;
 
         if (gGraphicsPlugin) gGraphicsPlugin->UpdateScreen();
+        UpdateNativeDimensionsFromVI();
         const bool firstTaskInFrame = !mFrameStarted;
 
         const u32 dlist = static_cast<u32>(reinterpret_cast<uintptr_t>(task->t.data_ptr));
@@ -120,6 +121,56 @@ public:
     }
 
 private:
+    void UpdateNativeDimensionsFromVI() {
+        const u32 viWidthReg = Memory_VI_GetRegister(VI_WIDTH_REG);
+        const u32 viXScaleReg = Memory_VI_GetRegister(VI_X_SCALE_REG);
+        const u32 viYScaleReg = Memory_VI_GetRegister(VI_Y_SCALE_REG);
+        const u32 vScale = viYScaleReg & 0x0FFFu;
+        if (viWidthReg == 0 || vScale == 0) return;
+
+        const u32 vStartReg = Memory_VI_GetRegister(VI_V_START_REG);
+        const u32 vStart = (vStartReg >> 16) & 0x03FFu;
+        u32 vEnd = vStartReg & 0x03FFu;
+        const bool pal = (Memory_VI_GetRegister(VI_V_SYNC_REG) & 0x03FFu) > 550u;
+        if (vEnd < vStart) vEnd = pal ? 620u : 514u;
+        if (vEnd <= vStart) return;
+
+        u32 nativeWidth = viWidthReg;
+        u32 realHeight = (((vEnd - vStart) >> 1) * vScale) >> 10;
+        const bool interlaced = (Memory_VI_GetRegister(VI_STATUS_REG) & VI_CTRL_SERRATE_ON) != 0;
+
+        if (interlaced) {
+            const float xScale = static_cast<float>(viXScaleReg & 0x0FFFu) / 1024.0f;
+            float fullWidth = 640.0f;
+            if ((viXScaleReg % 512u) == 0) fullWidth *= xScale;
+            if (fullWidth > 0.0f && static_cast<float>(nativeWidth) > fullWidth) {
+                const u32 scale = static_cast<u32>(static_cast<float>(nativeWidth) / fullWidth + 0.5f);
+                if (scale > 0) {
+                    nativeWidth /= scale;
+                    realHeight *= scale;
+                }
+            }
+            if (realHeight & 1u) --realHeight;
+        }
+
+        u32 nativeHeight;
+        if (pal && (vEnd - vStart) > 478u) {
+            nativeHeight = static_cast<u32>(static_cast<float>(realHeight) * 1.0041841f);
+            if (nativeHeight > 576u) nativeHeight = 576u;
+        } else {
+            nativeHeight = static_cast<u32>(static_cast<float>(realHeight) * 1.0126582f);
+            if (nativeHeight > 480u) nativeHeight = 480u;
+        }
+        if (nativeHeight & 1u) --nativeHeight;
+        if (nativeWidth == 0 || nativeHeight == 0) return;
+
+        if (nativeWidth != mLastNativeWidth || nativeHeight != mLastNativeHeight) {
+            mInterpreter->SetNativeDimensions(static_cast<float>(nativeWidth), static_cast<float>(nativeHeight));
+            mLastNativeWidth = nativeWidth;
+            mLastNativeHeight = nativeHeight;
+        }
+    }
+
     static int MapUcode(GBIVersion version) {
         switch (version) {
         case GBI_0: return 1;
