@@ -37,6 +37,23 @@ extern float gamma_val;
 
 static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex, emu_depth_buf_tex;
 
+u32 GraphicsContextVita_GetPostProcessFramebuffer()
+{
+	if (emu_fb == 0xDEADBEEF) {
+		glGenTextures(1, &emu_fb_tex);
+		glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glGenFramebuffers(1, &emu_fb);
+		glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, emu_fb_tex, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	return emu_fb;
+}
+
 class IGraphicsContext : public CGraphicsContext
 {
 public:
@@ -153,19 +170,7 @@ void IGraphicsContext::ClearColBufferAndDepth(const c32 & colour)
 void IGraphicsContext::BeginFrame()
 {
 	if (gPostProcessing) {
-		if (emu_fb == 0xDEADBEEF) {
-			glGenTextures(1, &emu_fb_tex);
-			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-			/*glActiveTexture(GL_TEXTURE1);
-			glGenTextures(1, &emu_depth_buf_tex);
-			glBindTexture(GL_TEXTURE_2D, emu_depth_buf_tex);
-			vglTexImageDepthBuffer(GL_TEXTURE_2D);
-			glActiveTexture(GL_TEXTURE0);*/
-			glGenFramebuffers(1, &emu_fb);
-			glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
-			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, emu_fb_tex, 0);
-		} else glBindFramebuffer(GL_FRAMEBUFFER, emu_fb);
+		glBindFramebuffer(GL_FRAMEBUFFER, GraphicsContextVita_GetPostProcessFramebuffer());
 	} else glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	if (g_ROM.CLEAR_SCENE_HACK) ClearColBuffer( c32(0xff000000) );
 	glEnableClientState(GL_VERTEX_ARRAY);

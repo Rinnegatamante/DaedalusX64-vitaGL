@@ -28,8 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "HLEGraphics/DaedalusVtx.h"
 #include "HLEGraphics/TextureInfo.h"
 #include "Graphics/ColourValue.h"
-
-extern bool gUseRendererLegacy;
+#include "Graphics/GraphicsContext.h"
 
 #include <vitaGL.h>
 
@@ -227,7 +226,7 @@ public:
 	// Fog stuff
 	inline void			SetFogMultOffs(f32 Mult, f32 Offs)		{ mTnL.FogMult=Mult/255.0f; mTnL.FogOffs=Offs/255.0f;}
 	inline void			SetFogMinMax(f32 fog_near, f32 fog_far)	{ 
-																	if (gUseRendererLegacy) {
+																	if (gRendererType == RENDERER_LEGACY) {
 																		glFogf(GL_FOG_START, fog_near / 1000.0f); glFogf(GL_FOG_END, fog_far / 1000.0f);
 																	} else {
 																		mFogNear = fog_near / 1000.0f;
@@ -235,7 +234,7 @@ public:
 																	}
 																}
 	inline void			SetFogColour( c32 colour )				{ 
-																	if (gUseRendererLegacy) {
+																	if (gRendererType == RENDERER_LEGACY) {
 																		float fog_clr[4] = {colour.GetRf(), colour.GetGf(), colour.GetBf(), colour.GetAf()};
 																		glFogfv(GL_FOG_COLOR, &fog_clr[0]);
 																	} else {
@@ -346,7 +345,7 @@ public:
 	v2					mVpTrans;
 
 protected:
-	inline void			UpdateFogEnable()						{ if (gUseRendererLegacy) { mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); } }
+	inline void			UpdateFogEnable()						{ if (gRendererType == RENDERER_LEGACY) { mTnL.Flags.Fog ? glEnable(GL_FOG) : glDisable(GL_FOG); } }
 	inline void			UpdateShadeModel() {}
 	void				UpdateTileSnapshots( u32 tile_idx );
 	void				UpdateTileSnapshot( u32 index, u32 tile_idx );

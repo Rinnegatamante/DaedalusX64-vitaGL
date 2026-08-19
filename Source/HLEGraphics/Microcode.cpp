@@ -68,6 +68,7 @@ struct UcodeUsage
 	
 	u32 code_base;
 	u32 data_base;
+	u32 code_hash;
 	
 	UcodeInfo info;
 };
@@ -160,7 +161,7 @@ static const MicrocodeData gMicrocodeData[] =
 	{ GBI_0,        GBI_0,  0xe908848d, true,  "GBI_CU (F3D)  "},   // Cruise'n USA
 };
 
-UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, const MicroCodeInstruction * ucode_function)
+UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, u32 code_hash, const MicroCodeInstruction * ucode_function, GBIVersion version)
 {
 	//
 	// If the max of ucode entries is reached, spread it randomly
@@ -175,8 +176,10 @@ UcodeInfo GBIMicrocode_SetCache(u32 index, u32 code_base, u32 data_base, const M
 	used.ucode_set = true;
 	used.code_base = code_base;
 	used.data_base = data_base;
+	used.code_hash = code_hash;
 	
 	used.info.func = ucode_function;
+	used.info.version = version;
 	return used.info;
 }
 
@@ -185,6 +188,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	// Cheap way to cache ucodes, don't check for strings (too slow!) but check last used ucode entries which is alot faster than string comparison.
 	// This only needed for GBI1/2/SDEX ucodes that use LoadUcode, else we only check when code_base changes, which usually never happens
 	//
+	u32 code_hash = GBIMicrocode_MicrocodeHash( code_base, code_size );
 	u32 i;
 	for( i = 0; i < MAX_UCODE_CACHE_ENTRIES; i++ )
 	{
@@ -195,12 +199,13 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 			break;
 
 		if( used.data_base == data_base && used.code_base == code_base)
+		{
 			return used.info; // Found a match!
+		}
 	}
 	
-	// It wasn't the same as the last time around, we'll hash it and check if is a custom ucode.
+	// It wasn't the same as the last time around, check if it is a custom ucode.
 	//
-	u32 code_hash = GBIMicrocode_MicrocodeHash( code_base, code_size );
 	bool is_custom_ucode = false;
 	
 	// Select Fast3D ucode in case there's no match or if the version string its missing
@@ -213,7 +218,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 		if ( code_hash == gMicrocodeData[index].hash )
 		{
 			is_custom_ucode = true;
-			sprintf(cur_gfx_ucode, "%s [Hash: 0x%08x]", gMicrocodeData[index].name, code_hash);
+			snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "%s [Hash: 0x%08x]", gMicrocodeData[index].name, code_hash);
 			
 			ucode_version = gMicrocodeData[index].ucode;
 			ucode_offset = gMicrocodeData[index].offset;
@@ -229,7 +234,7 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 	//
 	if (!is_custom_ucode) {
 		if (!GBIMicrocode_DetectVersionString(data_base, data_size, cur_gfx_ucode_str, 256)) {
-			sprintf(cur_gfx_ucode, "Unknown [Hash: 0x%08x]", code_hash);
+			snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "Unknown [Hash: 0x%08x]", code_hash);
 		} else {
 			const char  *ucodes[] { "F3D", "L3D", "S2D" };
 			char 		*match;
@@ -250,19 +255,19 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 						ucode_version = GBI_AM;
 						ucode_offset = GBI_2;
 						is_custom_ucode = true;
-						sprintf(cur_gfx_ucode, "GBI_2 (F3DAM) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2 (F3DAM) [Hash: 0x%08x]", code_hash);
 					} else if (!strncmp(match, "F3DFLX", 6)) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_gfx_ucode, "GBI_2 (F3DFLX) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2 (F3DFLX) [Hash: 0x%08x]", code_hash);
 					} else if (!strncmp(match, "F3DZEX", 6)) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_gfx_ucode, "GBI_2 (F3DZEX2) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2 (F3DZEX2) [Hash: 0x%08x]", code_hash);
 					} else if( strstr(match, "fifo") || strstr(match, "xbus") ) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_gfx_ucode, "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2 (F3DEX2) [Hash: 0x%08x]", code_hash);
 					} else {
 						ucode_version = ucode_offset = GBI_1;
-						sprintf(cur_gfx_ucode, "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_1 (F3DEX) [Hash: 0x%08x]", code_hash);
 					}
 				}
 				break;
@@ -271,10 +276,10 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 				{
 					if ( strstr(match, "fifo") || strstr(match, "xbus") ) {
 						ucode_version = ucode_offset = GBI_2;
-						sprintf(cur_gfx_ucode, "GBI_2 (L3DEX2) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2 (L3DEX2) [Hash: 0x%08x]", code_hash);
 					} else {
 						ucode_version = ucode_offset = GBI_1;
-						sprintf(cur_gfx_ucode, "GBI_2 (L3DEX) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2 (L3DEX) [Hash: 0x%08x]", code_hash);
 					}
 				}
 				break;
@@ -282,22 +287,22 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 				{
 					if( strstr(match, "fifo") || strstr(match, "xbus") ) {
 						ucode_version = ucode_offset = GBI_2_S2DEX;
-						sprintf(cur_gfx_ucode, "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_2_S2DEX (S2DEX2) [Hash: 0x%08x]", code_hash);
 					} else {
 						ucode_version = ucode_offset = GBI_1_S2DEX;
-						sprintf(cur_gfx_ucode, "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
+						snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_1_S2DEX (S2DEX) [Hash: 0x%08x]", code_hash);
 					}
 				}
 				break;
 			default:
 				{
-					sprintf(cur_gfx_ucode, "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
+					snprintf(cur_gfx_ucode, sizeof(cur_gfx_ucode), "GBI_0 (F3D) [Hash: 0x%08x]", code_hash);
 				}
 				break;
 			}
 		}
 	}
-	
+
 	if (is_custom_ucode) {
 		GBIMicrocode_SetCustomArray(ucode_version, ucode_offset);
 		if (ucode_beta_persp) {
@@ -305,10 +310,10 @@ UcodeInfo GBIMicrocode_DetectVersion( u32 code_base, u32 code_size, u32 data_bas
 			SetCommand(G_GBI1_RDPHALF_2, DLParser_GBI1_RDPHalf_2);
 			SetCommand(G_GBI1_RDPHALF_1, DLParser_GBI0_PerspNorm_Beta);
 		}
-		return GBIMicrocode_SetCache(i, code_base, data_base, gCustomInstruction);
+		return GBIMicrocode_SetCache(i, code_base, data_base, code_hash, gCustomInstruction, (GBIVersion)ucode_version);
 	}
 	
-	return GBIMicrocode_SetCache(i, code_base, data_base, gNormalInstruction[ucode_version]);
+	return GBIMicrocode_SetCache(i, code_base, data_base, code_hash, gNormalInstruction[ucode_version], (GBIVersion)ucode_version);
 }
 
 //****************************************************'*********************************

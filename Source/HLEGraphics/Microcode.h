@@ -46,6 +46,7 @@ enum GBIVersion
 struct UcodeInfo
 {
 	const MicroCodeInstruction * func;
+	GBIVersion version;
 };
 
 //*****************************************************************************

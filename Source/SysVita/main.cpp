@@ -44,7 +44,7 @@ IO::Filename gDaedalusExePath;
 extern bool gForceLinearFilter;
 extern bool gSRGB;
 extern bool gRendererChanged;
-extern bool gSwapUseRendererLegacy;
+extern int gSwapRendererType;
 extern char rom_game_name[256];
 
 bool gSkipCompatListUpdate = false;
@@ -873,7 +873,7 @@ void loadConfig(const char *game) {
 			else if (strcmp("gUseHighResTextures", buffer) == 0) gUseHighResTextures = (bool)value;
 			else if (strcmp("gPostProcessing", buffer) == 0) gTempPostProcessing = value;
 			else if (strcmp("gOverlay", buffer) == 0) gTempOverlay = value;
-			else if (strcmp("gUseRendererLegacy", buffer) == 0) gUseRendererLegacy = (bool)value;
+			else if (strcmp("gRendererType", buffer) == 0) gRendererType = value;
 
 			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
@@ -999,8 +999,9 @@ int main(int argc, char* argv[]) {
 
 		if (restart_rom) {
 			restart_rom = false;
-			if (gRendererChanged)
-				gUseRendererLegacy = gSwapUseRendererLegacy;
+			if (gRendererChanged) {
+				gRendererType = gSwapRendererType;
+			}
 		} else if (gStandaloneMode) {
 			rom = nullptr;
 			
@@ -1041,8 +1042,9 @@ int main(int argc, char* argv[]) {
 		EnableMenuButtons(false);
 		System_Open(rom);
 
-		if (gRendererChanged)
-			gUseRendererLegacy = gSwapUseRendererLegacy;
+		if (gRendererChanged) {
+			gRendererType = gSwapRendererType;
+		}
 		is_main_menu = false;
 		if (gSRGB) {
 			glEnable(GL_FRAMEBUFFER_SRGB);

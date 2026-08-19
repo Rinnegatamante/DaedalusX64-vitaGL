@@ -36,7 +36,16 @@ enum {
 	RATIO_16_9_HACK
 };
 
+enum {
+	RENDERER_LEGACY,
+	RENDERER_MODERN,
+	RENDERER_ACCURATE
+};
+
 extern int gAspectRatio;
+extern int gRendererType;
+
+u32 GraphicsContextVita_GetPostProcessFramebuffer();
 #endif
 
 class c32;

@@ -33,6 +33,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/Memory.h"
 
 #include "SysVita/UI/Menu.h"
+#include "SysVita/HLEGraphics/Accurate/RendererAccurate.h"
+
+#include <vitaGL.h>
 
 //#define DAEDALUS_FRAMERATE_ANALYSIS
 
@@ -47,6 +50,7 @@ bool	gTakeScreenshotSS = false;
 
 extern bool gVideoRateMatch;
 extern bool gAudioRateMatch;
+extern float gamma_val;
 
 namespace
 {
@@ -106,9 +110,10 @@ class CGraphicsPluginImpl : public CGraphicsPlugin
 		virtual void			RomClosed();
 private:
 		u32						LastOrigin;
+		int						mRendererType;
 };
 
-CGraphicsPluginImpl::CGraphicsPluginImpl():	LastOrigin( 0 )
+CGraphicsPluginImpl::CGraphicsPluginImpl():	LastOrigin( 0 ), mRendererType( RENDERER_LEGACY )
 {
 }
 
@@ -118,14 +123,25 @@ CGraphicsPluginImpl::~CGraphicsPluginImpl()
 
 bool CGraphicsPluginImpl::Initialise()
 {
-	if (gUseRendererLegacy) {
+	mRendererType = gRendererType;
+	if (mRendererType == RENDERER_LEGACY) {
 		if(!CreateRendererLegacy())
+		{
+			return false;
+		}
+	} else if (mRendererType == RENDERER_MODERN) {
+		if(!CreateRendererModern())
 		{
 			return false;
 		}
 	} else {
 		if(!CreateRendererModern())
 		{
+			return false;
+		}
+		if(!CreateRendererAccurate())
+		{
+			DestroyRendererModern();
 			return false;
 		}
 	}
@@ -140,11 +156,20 @@ bool CGraphicsPluginImpl::Initialise()
 		return false;
 	}
 
+	if (mRendererType == RENDERER_ACCURATE)
+	{
+		gCPURendering = false;
+	}
+
 	return true;
 }
 
 EProcessResult CGraphicsPluginImpl::ProcessDList()
 {
+	if (mRendererType == RENDERER_ACCURATE) {
+		return ProcessDListAccurate() ? PR_COMPLETED : PR_NOT_STARTED;
+	}
+
 	DLParser_Process();
 	return PR_COMPLETED;
 }
@@ -153,26 +178,28 @@ EProcessResult CGraphicsPluginImpl::ProcessDList()
 uint32_t old_frame;
 uint8_t frame_idx = 0;
 
-void CGraphicsPluginImpl::UpdateScreen()
-{
+void CGraphicsPluginImpl::UpdateScreen() {
 	u32 current_origin = Memory_VI_GetRegister(VI_ORIGIN_REG);
 	
-	switch (frame_idx) {
-	case 0:
-		old_frame = gRDPFrame;
-		frame_idx++;
-		break;
-	case FRAME_CHECK_RATIO:
-		if (old_frame == gRDPFrame) gCPURendering = true;
-		frame_idx = 0;
-		break;
-	default:
-		frame_idx++;
-		break;
+	if (mRendererType == RENDERER_ACCURATE) {
+		gCPURendering = false;
+	} else {
+		switch (frame_idx) {
+		case 0:
+			old_frame = gRDPFrame;
+			frame_idx++;
+			break;
+		case FRAME_CHECK_RATIO:
+			if (old_frame == gRDPFrame) gCPURendering = true;
+			frame_idx = 0;
+			break;
+		default:
+			frame_idx++;
+			break;
+		}
 	}
 	
-	if( current_origin != LastOrigin)
-	{
+	if( current_origin != LastOrigin) {
 		const f32 Fsync = FramerateLimiter_GetSync();
 		
 		//Calc sync rates for audio and game speed //Corn
@@ -184,7 +211,43 @@ void CGraphicsPluginImpl::UpdateScreen()
 			else if ( gVISyncRate < 1500 ) gVISyncRate = 1500;
 		}
 		
+		if (mRendererType == RENDERER_ACCURATE) {
+			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+			glScissor(0, 0, SCR_WIDTH, SCR_HEIGHT);
+			glUseProgram(0);
+			glActiveTexture(GL_TEXTURE0);
+			glClientActiveTexture(GL_TEXTURE0);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glDisableClientState(GL_NORMAL_ARRAY);
+
+			if (gPostProcessing) {
+				glBindFramebuffer(GL_FRAMEBUFFER, GraphicsContextVita_GetPostProcessFramebuffer());
+				if (gamma_val != 1.0f)
+					gRenderer->DoGamma(gamma_val);
+				DrawPendingDialog();
+			} else {
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				if (gamma_val != 1.0f)
+					gRenderer->DoGamma(gamma_val);
+				if (gOverlay) {
+					glBindTexture(GL_TEXTURE_2D, cur_overlay);
+					glMatrixMode(GL_PROJECTION);
+					glLoadIdentity();
+					glOrtho(0, SCR_WIDTH, SCR_HEIGHT, 0, -1, 1);
+					gRenderer->DrawUITexture();
+				}
+				DrawInGameMenu();
+				glDisableClientState(GL_COLOR_ARRAY);
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+				DrawPendingDialog();
+			}
+		}
+
 		CGraphicsContext::Get()->UpdateFrame( false );
+		if (mRendererType == RENDERER_ACCURATE) {
+			FinishRendererAccurateFrame();
+			InvalidateRendererAccurateExternalState();
+		}
 		
 		static u32 current_frame = 0;
 		current_frame++;
@@ -193,19 +256,20 @@ void CGraphicsPluginImpl::UpdateScreen()
 	}
 }
 
-void CGraphicsPluginImpl::RomClosed()
-{
+void CGraphicsPluginImpl::RomClosed() {
 	DLParser_Finalise();
 	CTextureCache::Destroy();
-	if (gUseRendererLegacy) DestroyRendererLegacy();
+	if (mRendererType == RENDERER_ACCURATE) {
+		DestroyRendererAccurate();
+		DestroyRendererModern();
+	}
+	else if (mRendererType == RENDERER_LEGACY) DestroyRendererLegacy();
 	else DestroyRendererModern();
 }
 
-CGraphicsPlugin * CreateGraphicsPlugin()
-{
+CGraphicsPlugin * CreateGraphicsPlugin() {
 	CGraphicsPluginImpl * plugin = new CGraphicsPluginImpl;
-	if( !plugin->Initialise() )
-	{
+	if( !plugin->Initialise() ) {
 		delete plugin;
 		plugin = nullptr;
 	}

@@ -165,8 +165,10 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Online", // STR_GAME_ONLINE
 	"Legacy", // STR_MENU_LEGACY_REND
 	"Modern", // STR_MENU_MODERN_REND
+	"Accurate", // STR_MENU_ACCURATE_REND
 	"Original renderer based on GL1 fixed function pipeline.", // STR_DESC_LEGACY_REND
-	"Modern renderer based on GL2+ shaders. Requires libshacccg.suprx.", // STR_DESC_MODERN_REND
+	"Modern renderer based on GL2+ shaders.", // STR_DESC_MODERN_REND
+	"Experimental renderer based on the Fast3D implementation used in libultraship.", // STR_DESC_ACCURATE_REND
 	"Playtime", // STR_PLAYTIME
 	"Most Played", // STR_PLAYTIME_DESC
 	"Least Played", // STR_PLAYTIME_ASC

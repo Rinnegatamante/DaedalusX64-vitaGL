@@ -2,6 +2,7 @@
 #include <vitaGL.h>
 #include <imgui_vita.h>
 #include "stdafx.h"
+#include "Graphics/GraphicsContext.h"
 
 #define TEMP_DOWNLOAD_NAME "ux0:data/daedalusx64.tmp"
 #define LOG_DOWNLOAD_NAME "ux0:data/daedalusx64.log"
@@ -59,7 +60,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 175
+#define LANG_STRINGS_NUM 177
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -221,8 +222,10 @@ enum {
 	FUNC(STR_GAME_ONLINE) \
 	FUNC(STR_MENU_LEGACY_REND) \
 	FUNC(STR_MENU_MODERN_REND) \
+	FUNC(STR_MENU_ACCURATE_REND) \
 	FUNC(STR_DESC_LEGACY_REND) \
 	FUNC(STR_DESC_MODERN_REND) \
+	FUNC(STR_DESC_ACCURATE_REND) \
 	FUNC(STR_PLAYTIME) \
 	FUNC(STR_PLAYTIME_DESC) \
 	FUNC(STR_PLAYTIME_ASC) \
@@ -351,7 +354,6 @@ extern PostProcessingEffect *effects_list;
 #define SCE_SYSTEM_PARAM_LANG_UKRAINIAN 24
 
 // Config Variables
-extern bool gUseRendererLegacy;
 extern bool gHideMenubar;
 extern int  gLanguageIndex;
 extern int  gUseVSync;

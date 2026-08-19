@@ -58,13 +58,6 @@ int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks)
 }
 
 void DrawInGameMenu() {
-	DrawInGameMenuBar();
-	DrawPendingAlert();
-	if (gFastForward) DrawFastForwardIcon();
-	
-	ImGui::Render();
-	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
-	
 	// Handling menubar disappear
 	SceTouchData touch;
 	sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	
@@ -77,6 +70,13 @@ void DrawInGameMenu() {
 		ImGui::GetIO().MouseDrawCursor = false;
 		show_menubar = !gHideMenubar;
 	}
+
+	DrawInGameMenuBar();
+	DrawPendingAlert();
+	if (gFastForward) DrawFastForwardIcon();
+	
+	ImGui::Render();
+	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
 	
 	// Handling select button (menu pause and fast-forward)
 	SceCtrlData pad;

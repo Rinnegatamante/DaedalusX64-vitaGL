@@ -47,7 +47,7 @@ int gOverlay = 0;
 bool gTexturesDumper = false;
 bool gUseHighResTextures = false;
 bool gUseRearpad = false;
-bool gUseRendererLegacy = true;
+int gRendererType = RENDERER_LEGACY;
 bool gRendererChanged = false;
 bool gNetBoot = false;
 bool gSRGB = false;
@@ -343,7 +343,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gUseHighResTextures", (int)gUseHighResTextures);
 		fprintf(config, "%s=%d\n", "gPostProcessing", gPostProcessing);
 		fprintf(config, "%s=%d\n", "gOverlay", gOverlay);
-		fprintf(config, "%s=%d\n", "gUseRendererLegacy", (int)gUseRendererLegacy);
+		fprintf(config, "%s=%d\n", "gRendererType", gRendererType);
 		
 		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
@@ -663,16 +663,21 @@ void DrawCommonMenuBar() {
 		}
 		ImGui::Separator();
 		if (ImGui::BeginMenu("Renderer")) {
-			if (ImGui::MenuItem(lang_strings[STR_MENU_LEGACY_REND], nullptr, gUseRendererLegacy)) {
-				if (!is_main_menu && !gUseRendererLegacy) gRendererChanged = true;
-				gUseRendererLegacy = true;
+			if (ImGui::MenuItem(lang_strings[STR_MENU_LEGACY_REND], nullptr, gRendererType == RENDERER_LEGACY)) {
+				if (!is_main_menu && gRendererType != RENDERER_LEGACY) gRendererChanged = true;
+				gRendererType = RENDERER_LEGACY;
 			}
 			SetDescription(lang_strings[STR_DESC_LEGACY_REND]);
-			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, !gUseRendererLegacy)) {
-				if (!is_main_menu && gUseRendererLegacy) gRendererChanged = true;
-				gUseRendererLegacy = false;
+			if (ImGui::MenuItem(lang_strings[STR_MENU_MODERN_REND], nullptr, gRendererType == RENDERER_MODERN)) {
+				if (!is_main_menu && gRendererType != RENDERER_MODERN) gRendererChanged = true;
+				gRendererType = RENDERER_MODERN;
 			}
 			SetDescription(lang_strings[STR_DESC_MODERN_REND]);
+			if (ImGui::MenuItem(lang_strings[STR_DESC_ACCURATE_REND], nullptr, gRendererType == RENDERER_ACCURATE)) {
+				if (!is_main_menu && gRendererType != RENDERER_ACCURATE) gRendererChanged = true;
+				gRendererType = RENDERER_ACCURATE;
+			}
+			SetDescription(lang_strings[STR_DESC_ACCURATE_REND]);
 			ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_TEX_CACHE])) {
@@ -1202,7 +1207,7 @@ enum {
 };
 
 int gSwapState = SWAP_STARTED;
-bool gSwapUseRendererLegacy;
+int gSwapRendererType;
 int gSwapCounter = 0;
 
 void SwapRenderer() {
@@ -1211,7 +1216,7 @@ void SwapRenderer() {
 		if (sceIoGetstat("ux0:data/swap.d64", &st)) {
 			// Executing temp savestate
 			CPU_RequestSaveState("ux0:data/swap.d64");
-			gSwapUseRendererLegacy = gUseRendererLegacy;
+			gSwapRendererType = gRendererType;
 		} else {
 			if (gSwapState == SWAP_STARTED) {
 				// Restarting rom

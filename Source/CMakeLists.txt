@@ -44,7 +44,19 @@ set (BUILD ${CONFIG_FILES} ${CORE_FILES} ${DYNAREC_FILES} ${SYSTEM_FILES} ${GRAP
 set (VITA_MAIN_FILES SysVita/main.cpp)
 set (VITA_DYNAREC_FILES SysVita/DynaRec/DynarecStubARM.S SysVita/DynaRec/CodeGeneratorARM.cpp SysVita/DynaRec/CodeBufferManagerARM.cpp SysVita/DynaRec/AssemblyWriterARM.cpp SysVita/DynaRec/AssemblyUtilsARM.cpp SysVita/DynaRec/N64RegisterCacheARM.cpp)
 set (VITA_GRAPHICS_FILES SysVita/Graphics/GraphicsContextVita.cpp SysVita/Graphics/NativeTextureVita.cpp)
-set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererLegacy.cpp SysVita/HLEGraphics/RendererModern.cpp SysVita/HLEGraphics/ColourAdjuster.cpp SysVita/HLEGraphics/BlendModes.cpp SysVita/HLEGraphics/Combiner/BlendConstant.cpp SysVita/HLEGraphics/Combiner/CombinerExpression.cpp SysVita/HLEGraphics/Combiner/CombinerTree.cpp SysVita/HLEGraphics/Combiner/RenderSettings.cpp)
+set (FAST3D_ACCURATE_SOURCES
+	SysVita/HLEGraphics/Accurate/Fast3D/src/interpreter.cpp
+	SysVita/HLEGraphics/Accurate/Fast3D/src/gfx_opengl.cpp
+)
+set_source_files_properties(${FAST3D_ACCURATE_SOURCES} PROPERTIES COMPILE_DEFINITIONS "ENABLE_OPENGL;GBI_FLOATS")
+set_source_files_properties(
+	SysVita/HLEGraphics/Accurate/RendererAccurate.cpp
+	SysVita/HLEGraphics/Accurate/Fast3DCompat.cpp
+	SysVita/HLEGraphics/Accurate/Fast3DMemoryBridge.cpp
+	PROPERTIES COMPILE_DEFINITIONS GBI_FLOATS
+)
+
+set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererLegacy.cpp SysVita/HLEGraphics/RendererModern.cpp SysVita/HLEGraphics/ColourAdjuster.cpp SysVita/HLEGraphics/BlendModes.cpp SysVita/HLEGraphics/Combiner/BlendConstant.cpp SysVita/HLEGraphics/Combiner/CombinerExpression.cpp SysVita/HLEGraphics/Combiner/CombinerTree.cpp SysVita/HLEGraphics/Combiner/RenderSettings.cpp SysVita/HLEGraphics/Accurate/RendererAccurate.cpp SysVita/HLEGraphics/Accurate/Fast3DCompat.cpp SysVita/HLEGraphics/Accurate/Fast3DMemoryBridge.cpp ${FAST3D_ACCURATE_SOURCES})
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp SysVita/HLEAudio/AudioOutput.cpp)
 set (VITA_INPUT_FILES SysVita/Input/InputManagerVita.cpp)
 set (VITA_UI_FILES SysVita/UI/TranslationStrings.cpp SysVita/UI/MainMenuScreen.cpp SysVita/UI/InGameMenuScreen.cpp SysVita/UI/MenuBarScreen.cpp SysVita/UI/DownloaderScreen.cpp)
@@ -83,6 +95,7 @@ target_include_directories(daedalus PRIVATE
 	${PROJECT_SOURCE_DIR}
 	${PROJECT_SOURCE_DIR}/SysVita/Include
 	${PROJECT_SOURCE_DIR}/Config/Dev
+	${PROJECT_SOURCE_DIR}/SysVita/HLEGraphics/Accurate/Fast3D/include
 )
 
 target_link_libraries(daedalus
