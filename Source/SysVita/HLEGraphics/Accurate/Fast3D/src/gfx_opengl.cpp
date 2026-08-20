@@ -37,13 +37,7 @@ extern "C" uint32_t DaedalusFast3D_GetFramebufferOverride(int fbId);
 
 namespace Fast {
 int GfxRenderingAPIOGL::GetMaxTextureSize() {
-#ifdef __vita__
     return 1024;
-#else
-    GLint max_texture_size;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-    return max_texture_size;
-#endif
 }
 
 const char* GfxRenderingAPIOGL::GetName() {
@@ -222,36 +216,17 @@ static std::string BuildVsShaderInline(const CCFeatures& cc_features, size_t& ou
     size_t vs_len = 0;
     size_t num_floats = 4;
 
-#if defined(__APPLE__)
-    append_line(vs_buf, &vs_len, "#version 410 core");
-    append_line(vs_buf, &vs_len, "in vec4 aVtxPos;");
-#elif defined(USE_OPENGLES)
-    append_line(vs_buf, &vs_len, "#version 300 es");
-    append_line(vs_buf, &vs_len, "in vec4 aVtxPos;");
-#else
-    append_line(vs_buf, &vs_len, "#version 110");
     append_line(vs_buf, &vs_len, "attribute vec4 aVtxPos;");
-#endif
 
     for (int i = 0; i < 2; i++) {
         if (cc_features.usedTextures[i]) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-            vs_len += sprintf(vs_buf + vs_len, "in vec2 aTexCoord%d;\n", i);
-            vs_len += sprintf(vs_buf + vs_len, "out vec2 vTexCoord%d;\n", i);
-#else
             vs_len += sprintf(vs_buf + vs_len, "attribute vec2 aTexCoord%d;\n", i);
             vs_len += sprintf(vs_buf + vs_len, "varying vec2 vTexCoord%d;\n", i);
-#endif
             num_floats += 2;
             for (int j = 0; j < 2; j++) {
                 if (cc_features.clamp[i][j]) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-                    vs_len += sprintf(vs_buf + vs_len, "in float aTexClamp%s%d;\n", j == 0 ? "S" : "T", i);
-                    vs_len += sprintf(vs_buf + vs_len, "out float vTexClamp%s%d;\n", j == 0 ? "S" : "T", i);
-#else
                     vs_len += sprintf(vs_buf + vs_len, "attribute float aTexClamp%s%d;\n", j == 0 ? "S" : "T", i);
                     vs_len += sprintf(vs_buf + vs_len, "varying float vTexClamp%s%d;\n", j == 0 ? "S" : "T", i);
-#endif
                     num_floats += 1;
                 }
             }
@@ -259,35 +234,20 @@ static std::string BuildVsShaderInline(const CCFeatures& cc_features, size_t& ou
     }
 
     if (cc_features.opt_fog) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(vs_buf, &vs_len, "in vec4 aFog;");
-        append_line(vs_buf, &vs_len, "out vec4 vFog;");
-#else
         append_line(vs_buf, &vs_len, "attribute vec4 aFog;");
         append_line(vs_buf, &vs_len, "varying vec4 vFog;");
-#endif
         num_floats += 4;
     }
 
     if (cc_features.opt_grayscale) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(vs_buf, &vs_len, "in vec4 aGrayscaleColor;");
-        append_line(vs_buf, &vs_len, "out vec4 vGrayscaleColor;");
-#else
         append_line(vs_buf, &vs_len, "attribute vec4 aGrayscaleColor;");
         append_line(vs_buf, &vs_len, "varying vec4 vGrayscaleColor;");
-#endif
         num_floats += 4;
     }
 
     for (int i = 0; i < cc_features.numInputs; i++) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        vs_len += sprintf(vs_buf + vs_len, "in vec%d aInput%d;\n", cc_features.opt_alpha ? 4 : 3, i + 1);
-        vs_len += sprintf(vs_buf + vs_len, "out vec%d vInput%d;\n", cc_features.opt_alpha ? 4 : 3, i + 1);
-#else
         vs_len += sprintf(vs_buf + vs_len, "attribute vec%d aInput%d;\n", cc_features.opt_alpha ? 4 : 3, i + 1);
         vs_len += sprintf(vs_buf + vs_len, "varying vec%d vInput%d;\n", cc_features.opt_alpha ? 4 : 3, i + 1);
-#endif
         num_floats += cc_features.opt_alpha ? 4 : 3;
     }
 
@@ -313,10 +273,7 @@ static std::string BuildVsShaderInline(const CCFeatures& cc_features, size_t& ou
     }
 
     append_line(vs_buf, &vs_len, "gl_Position = aVtxPos;");
-
-#if defined(USE_OPENGLES) || defined(__vita__)
     append_line(vs_buf, &vs_len, "gl_Position.z *= 0.3f;");
-#endif
 
     append_line(vs_buf, &vs_len, "}");
 
@@ -329,56 +286,27 @@ static std::string BuildFsShaderInline(const CCFeatures& cc_features, FilteringM
     char fs_buf[16384];
     size_t fs_len = 0;
 
-#if defined(__APPLE__)
-    append_line(fs_buf, &fs_len, "#version 410 core");
-#elif defined(USE_OPENGLES)
-    append_line(fs_buf, &fs_len, "#version 300 es");
-    append_line(fs_buf, &fs_len, "precision mediump float;");
-#else
-    append_line(fs_buf, &fs_len, "#version 130");
-#endif
-
     for (int i = 0; i < 2; i++) {
         if (cc_features.usedTextures[i]) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-            fs_len += sprintf(fs_buf + fs_len, "in vec2 vTexCoord%d;\n", i);
-#else
             fs_len += sprintf(fs_buf + fs_len, "varying vec2 vTexCoord%d;\n", i);
-#endif
             for (int j = 0; j < 2; j++) {
                 if (cc_features.clamp[i][j]) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-                    fs_len += sprintf(fs_buf + fs_len, "in float vTexClamp%s%d;\n", j == 0 ? "S" : "T", i);
-#else
                     fs_len += sprintf(fs_buf + fs_len, "varying float vTexClamp%s%d;\n", j == 0 ? "S" : "T", i);
-#endif
                 }
             }
         }
     }
 
     if (cc_features.opt_fog) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "in vec4 vFog;");
-#else
         append_line(fs_buf, &fs_len, "varying vec4 vFog;");
-#endif
     }
 
     if (cc_features.opt_grayscale) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "in vec4 vGrayscaleColor;");
-#else
         append_line(fs_buf, &fs_len, "varying vec4 vGrayscaleColor;");
-#endif
     }
 
     for (int i = 0; i < cc_features.numInputs; i++) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        fs_len += sprintf(fs_buf + fs_len, "in vec%d vInput%d;\n", cc_features.opt_alpha ? 4 : 3, i + 1);
-#else
         fs_len += sprintf(fs_buf + fs_len, "varying vec%d vInput%d;\n", cc_features.opt_alpha ? 4 : 3, i + 1);
-#endif
     }
 
     if (cc_features.usedTextures[0]) append_line(fs_buf, &fs_len, "uniform sampler2D uTex0;");
@@ -397,11 +325,7 @@ static std::string BuildFsShaderInline(const CCFeatures& cc_features, FilteringM
     append_line(fs_buf, &fs_len, "}");
 
     if (filter_mode == FILTER_THREE_POINT) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "#define TEX_OFFSET(off) texture(tex, texCoord - (off)/texSize)");
-#else
         append_line(fs_buf, &fs_len, "#define TEX_OFFSET(off) texture2D(tex, texCoord - (off)/texSize)");
-#endif
         append_line(fs_buf, &fs_len, "vec4 filter3point(in sampler2D tex, in vec2 texCoord, in vec2 texSize) {");
         append_line(fs_buf, &fs_len, "    vec2 offset = fract(texCoord*texSize - vec2(0.5));");
         append_line(fs_buf, &fs_len, "    offset -= step(1.0, offset.x + offset.y);");
@@ -415,17 +339,9 @@ static std::string BuildFsShaderInline(const CCFeatures& cc_features, FilteringM
         append_line(fs_buf, &fs_len, "}");
     } else {
         append_line(fs_buf, &fs_len, "vec4 hookTexture2D(in sampler2D tex, in vec2 uv, in vec2 texSize) {");
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "    return texture(tex, uv);");
-#else
         append_line(fs_buf, &fs_len, "    return texture2D(tex, uv);");
-#endif
         append_line(fs_buf, &fs_len, "}");
     }
-
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-    append_line(fs_buf, &fs_len, "out vec4 outColor;");
-#endif
 
     if (srgb_mode) {
         append_line(fs_buf, &fs_len, "vec4 fromLinear(vec4 linearRGB){");
@@ -441,11 +357,7 @@ static std::string BuildFsShaderInline(const CCFeatures& cc_features, FilteringM
     for (int i = 0; i < 2; i++) {
         if (cc_features.usedTextures[i]) {
             bool s = cc_features.clamp[i][0], t = cc_features.clamp[i][1];
-#if defined(USE_OPENGLES)
-            fs_len += sprintf(fs_buf + fs_len, "vec2 texSize%d = vec2(textureSize(uTex%d, 0));\n", i, i);
-#else
             fs_len += sprintf(fs_buf + fs_len, "vec2 texSize%d = textureSize(uTex%d, 0);\n", i, i);
-#endif
 
             if (!s && !t) {
                 fs_len += sprintf(fs_buf + fs_len, "vec2 vTexCoordAdj%d = vTexCoord%d;\n", i, i);
@@ -467,11 +379,7 @@ static std::string BuildFsShaderInline(const CCFeatures& cc_features, FilteringM
                 "vec4 texVal%d = hookTexture2D(uTex%d, vTexCoordAdj%d, texSize%d);\n", i, i, i, i);
 
             if (cc_features.used_masks[i]) {
-#if defined(USE_OPENGLES)
-                fs_len += sprintf(fs_buf + fs_len, "vec2 maskSize%d = vec2(textureSize(uTexMask%d, 0));\n", i, i);
-#else
                 fs_len += sprintf(fs_buf + fs_len, "vec2 maskSize%d = textureSize(uTexMask%d, 0);\n", i, i);
-#endif
                 fs_len += sprintf(fs_buf + fs_len,
                     "vec4 maskVal%d = hookTexture2D(uTexMask%d, vTexCoordAdj%d, maskSize%d);\n", i, i, i, i);
 
@@ -550,25 +458,13 @@ static std::string BuildFsShaderInline(const CCFeatures& cc_features, FilteringM
             append_line(fs_buf, &fs_len, "if (texel.a < 8.0 / 256.0) discard;");
         if (cc_features.opt_invisible)
             append_line(fs_buf, &fs_len, "texel.a = 0.0;");
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "outColor = texel;");
-#else
         append_line(fs_buf, &fs_len, "gl_FragColor = texel;");
-#endif
     } else {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "outColor = vec4(texel, 1.0);");
-#else
         append_line(fs_buf, &fs_len, "gl_FragColor = vec4(texel, 1.0);");
-#endif
     }
 
     if (srgb_mode) {
-#if defined(__APPLE__) || defined(USE_OPENGLES)
-        append_line(fs_buf, &fs_len, "outColor = fromLinear(outColor);");
-#else
         append_line(fs_buf, &fs_len, "gl_FragColor = fromLinear(gl_FragColor);");
-#endif
     }
 
     append_line(fs_buf, &fs_len, "}");
@@ -592,7 +488,6 @@ ShaderProgram* GfxRenderingAPIOGL::CreateAndLoadNewShader(uint64_t shader_id0, u
     const GLint  lengths[2]  = { (GLint)vs_buf.size(), (GLint)fs_buf.size() };
     GLint success;
 
-#ifdef __vita__
     GLuint shader_program = 0;
     int prog_size = 0, prog_len = 0;
     unsigned int prog_format = 0;
@@ -613,7 +508,6 @@ ShaderProgram* GfxRenderingAPIOGL::CreateAndLoadNewShader(uint64_t shader_id0, u
         free(prog_bin);
         goto program_ready;
     }
-#endif
 
     {
         GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -632,16 +526,11 @@ ShaderProgram* GfxRenderingAPIOGL::CreateAndLoadNewShader(uint64_t shader_id0, u
             abort();
         }
 
-#ifdef __vita__
         shader_program = glCreateProgram();
-#else
-        GLuint shader_program = glCreateProgram();
-#endif
         glAttachShader(shader_program, vertex_shader);
         glAttachShader(shader_program, fragment_shader);
         glLinkProgram(shader_program);
 
-#ifdef __vita__
         f = fopen(fname, "wb");
         if (f) {
             glGetProgramiv(shader_program, GL_PROGRAM_BINARY_LENGTH, &prog_size);
@@ -655,10 +544,6 @@ ShaderProgram* GfxRenderingAPIOGL::CreateAndLoadNewShader(uint64_t shader_id0, u
     }
 
 program_ready:
-#else
-    }
-#endif
-
     size_t cnt = 0;
 
     struct ShaderProgram* prg = &mShaderProgramPool[std::make_pair(shader_id0, shader_id1)];
@@ -794,10 +679,6 @@ void GfxRenderingAPIOGL::UploadTexture(const uint8_t* rgba32_buf, uint32_t width
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba32_buf);
 }
 
-#ifndef GL_MIRROR_CLAMP_TO_EDGE
-#define GL_MIRROR_CLAMP_TO_EDGE 0x8743
-#endif
-
 static uint32_t gfx_cm_to_opengl(uint32_t val) {
     switch (val) {
         case G_TX_NOMIRROR | G_TX_CLAMP:
@@ -805,7 +686,7 @@ static uint32_t gfx_cm_to_opengl(uint32_t val) {
         case G_TX_MIRROR | G_TX_WRAP:
             return GL_MIRRORED_REPEAT;
         case G_TX_MIRROR | G_TX_CLAMP:
-            return GL_MIRROR_CLAMP_TO_EDGE;
+            return GL_MIRROR_CLAMP_EXT;
         case G_TX_NOMIRROR | G_TX_WRAP:
             return GL_REPEAT;
     }
@@ -915,30 +796,14 @@ void GfxRenderingAPIOGL::DrawTriangles(float buf_vbo[], size_t buf_vbo_len, size
 
     SetPerDrawUniforms();
 
-#ifdef __vita__
     vglBufferData(GL_ARRAY_BUFFER, buf_vbo);
-#else
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buf_vbo_len, buf_vbo, GL_STREAM_DRAW);
-#endif
     glDrawArrays(GL_TRIANGLES, 0, 3 * buf_vbo_num_tris);
 }
 
 void GfxRenderingAPIOGL::Init() {
-#if !defined(__linux__) && !defined(__vita__) && !defined(__OpenBSD__)
-    glewInit();
-#endif
-
     glGenBuffers(1, &mOpenglVbo);
     glBindBuffer(GL_ARRAY_BUFFER, mOpenglVbo);
 
-#if defined(__APPLE__) || (defined(USE_OPENGLES) && !defined(__vita__))
-    glGenVertexArrays(1, &mOpenglVao);
-    glBindVertexArray(mOpenglVao);
-#endif
-
-#if !defined(USE_OPENGLES) && !defined(__vita__)
-    glEnable(GL_DEPTH_CLAMP);
-#endif
     glDepthFunc(GL_LEQUAL);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -955,11 +820,6 @@ void GfxRenderingAPIOGL::Init() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     mPixelDepthRbSize = 1;
-#ifdef __vita__
-    mMaxMsaaLevel = 1;
-#else
-    glGetIntegerv(GL_MAX_SAMPLES, &mMaxMsaaLevel);
-#endif
 }
 
 void GfxRenderingAPIOGL::OnResize() {
@@ -970,9 +830,6 @@ void GfxRenderingAPIOGL::StartFrame() {
 }
 
 void GfxRenderingAPIOGL::EndFrame() {
-#ifndef __vita__
-    glFlush();
-#endif
 }
 
 void GfxRenderingAPIOGL::FinishRender() {
@@ -1055,17 +912,16 @@ void GfxRenderingAPIOGL::StartDrawToFramebuffer(int fb_id, float noise_scale) {
         mCurrentNoiseScale = 1.0f / noise_scale;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo);
-#ifdef __vita__
+
     uint32_t overrideFb = DaedalusFast3D_GetFramebufferOverride(fb_id);
     if (overrideFb != 0) glBindFramebuffer(GL_FRAMEBUFFER, overrideFb);
-#endif
+
     mCurrentFrameBuffer = fb_id;
 }
 
 void GfxRenderingAPIOGL::ClearFramebuffer(bool color, bool depth) {
-#ifdef __vita__
     if (DaedalusFast3D_ShouldSuppressFramebufferClear(color, depth)) return;
-#endif
+
     if (mLastScissorEnabled != 0) {
         mLastScissorEnabled = 0;
         glDisable(GL_SCISSOR_TEST);
@@ -1161,6 +1017,7 @@ void GfxRenderingAPIOGL::CopyFramebuffer(int fb_dst_id, int fb_src_id, int srcX0
     GLuint srcFbo = src.fbo;
     GLuint dstFbo = dst.fbo;
     GLuint currentFbo = mFrameBuffers[mCurrentFrameBuffer].fbo;
+
     const uint32_t srcOverride = DaedalusFast3D_GetFramebufferOverride(fb_src_id);
     const uint32_t dstOverride = DaedalusFast3D_GetFramebufferOverride(fb_dst_id);
     const uint32_t currentOverride = DaedalusFast3D_GetFramebufferOverride(mCurrentFrameBuffer);
@@ -1191,6 +1048,7 @@ void GfxRenderingAPIOGL::ReadFramebufferToCPU(int fb_id, uint32_t width, uint32_
 
     GLuint readFbo = mFrameBuffers[fb_id].fbo;
     GLuint currentFbo = mFrameBuffers[mCurrentFrameBuffer].fbo;
+
     const uint32_t readOverride = DaedalusFast3D_GetFramebufferOverride(fb_id);
     const uint32_t currentOverride = DaedalusFast3D_GetFramebufferOverride(mCurrentFrameBuffer);
     if (readOverride != 0) readFbo = readOverride;
@@ -1207,80 +1065,11 @@ void GfxRenderingAPIOGL::ReadFramebufferToCPU(int fb_id, uint32_t width, uint32_
 std::unordered_map<std::pair<float, float>, uint16_t, hash_pair_ff>
 GfxRenderingAPIOGL::GetPixelDepth(int fb_id, const std::set<std::pair<float, float>>& coordinates) {
     std::unordered_map<std::pair<float, float>, uint16_t, hash_pair_ff> res;
-#ifdef __vita__
-    return res;
-#endif
-
-    FramebufferOGL& fb = mFrameBuffers[fb_id];
-
-    // When looking up one value and the framebuffer is single-sampled, we can read pixels directly
-    // Otherwise we need to blit first to a new buffer then read it
-    if (coordinates.size() == 1) {
-        uint32_t depth_stencil_value;
-        glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo);
-        int x = coordinates.begin()->first;
-        int y = coordinates.begin()->second;
-#if !defined(USE_OPENGLES) && !defined(__vita__)
-        glReadPixels(x, fb.invertY ? fb.height - y : y, 1, 1, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8,
-                     &depth_stencil_value);
-#endif
-        res.emplace(*coordinates.begin(), (depth_stencil_value >> 18) << 2);
-    } else {
-        if (mPixelDepthRbSize < coordinates.size()) {
-            // Resizing a renderbuffer seems broken with Intel's driver, so recreate one instead.
-            glBindFramebuffer(GL_FRAMEBUFFER, mPixelDepthFb);
-            glDeleteRenderbuffers(1, &mPixelDepthRb);
-            glGenRenderbuffers(1, &mPixelDepthRb);
-            glBindRenderbuffer(GL_RENDERBUFFER, mPixelDepthRb);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, coordinates.size(), 1);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mPixelDepthRb);
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-            mPixelDepthRbSize = coordinates.size();
-        }
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.fbo);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mPixelDepthFb);
-
-        glDisable(GL_SCISSOR_TEST); // needed for the blit operation
-
-        {
-            size_t i = 0;
-            for (const auto& coord : coordinates) {
-                int x = coord.first;
-                int y = coord.second;
-                if (fb.invertY) {
-                    y = fb.height - y;
-                }
-                glBlitFramebuffer(x, y, x + 1, y + 1, i, 0, i + 1, 1, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
-                                  GL_NEAREST);
-                ++i;
-            }
-        }
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, mPixelDepthFb);
-        std::vector<uint32_t> depth_stencil_values(coordinates.size());
-#if !defined(USE_OPENGLES) && !defined(__vita__)
-        glReadPixels(0, 0, coordinates.size(), 1, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, depth_stencil_values.data());
-#endif
-        {
-            size_t i = 0;
-            for (const auto& coord : coordinates) {
-                res.emplace(coord, (depth_stencil_values[i++] >> 18) << 2);
-            }
-        }
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, mCurrentFrameBuffer);
-
+	// FIXME: Needs to be implemented with vglTexImageDepthBuffer
     return res;
 }
 
 void GfxRenderingAPIOGL::SetTextureFilter(FilteringMode mode) {
-#ifdef __vita__
-    if (mode == FILTER_THREE_POINT)
-        mode = FILTER_LINEAR;
-#endif
     gfx_texture_cache_clear();
     mCurrentFilterMode = mode;
 }
