@@ -120,7 +120,6 @@ void DaedalusFast3D_PrepareTask(bool firstTaskInFrame) {
 }
 
 void DaedalusFast3D_RestoreGLState() {
-    glFinish();
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
