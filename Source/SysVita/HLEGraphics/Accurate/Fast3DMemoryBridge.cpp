@@ -11,6 +11,7 @@
 #include <arm_neon.h>
 #endif
 
+
 namespace {
 struct HostGfx { u32 w0; u32 w1; };
 struct HostVtx {
@@ -28,7 +29,7 @@ struct HostViewport { s16 scale[4]; s16 trans[4]; };
 Fast3DMemoryBridge::Fast3DMemoryBridge()
     : mInterpreter(nullptr), mArenaChunks(nullptr), mArenaChunkCount(0), mArenaChunkCapacity(0),
       mTextureStages(nullptr), mTextureStageCount(0), mTextureStageCapacity(0),
-      mTranslationFailed(false), mSawFullSync(false), mHaveTextureImage(false),
+      mBuildSerial(0), mTranslationFailed(false), mSawFullSync(false), mHaveTextureImage(false),
       mTextureImageW0(0), mTextureImageResolved(0), mTextureImageCommand(nullptr),
       mTextureImageStaging(nullptr) {
     memset(mSegments, 0, sizeof(mSegments));
@@ -101,7 +102,6 @@ u8 Fast3DMemoryBridge::ReadU8(u32 address) const { return g_pu8RamBase[(address 
 void Fast3DMemoryBridge::CopyRdramBytes(u8* dst, u32 address, u32 size) const {
     if (!dst || size == 0) return;
 
-#if U8_TWIDDLE == 3
     u32 offset = 0;
 
     while (offset < size && ((address + offset) & 3)) {
@@ -109,13 +109,11 @@ void Fast3DMemoryBridge::CopyRdramBytes(u8* dst, u32 address, u32 size) const {
         ++offset;
     }
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
     for (; offset + 16 <= size; offset += 16) {
         const uint8x16_t src = vld1q_u8(g_pu8RamBase + address + offset);
         const uint8x16_t swapped = vrev32q_u8(src);
         vst1q_u8(dst + offset, swapped);
     }
-#endif
 
     for (; offset + 4 <= size; offset += 4) {
         const u32 value = *(const u32*)(g_pu8RamBase + address + offset);
@@ -125,32 +123,44 @@ void Fast3DMemoryBridge::CopyRdramBytes(u8* dst, u32 address, u32 size) const {
     for (; offset < size; ++offset) {
         dst[offset] = ReadU8(address + offset);
     }
-#else
-    memcpy(dst, g_pu8RamBase + address, size);
-#endif
 }
 
-u32 Fast3DMemoryBridge::HashRdramBytes(u32 address, u32 size) const {
-    u32 hash = 2166136261u;
+void Fast3DMemoryBridge::HashRdramBytes(u32 address, u32 size, u32 hash[4]) const {
+    const u8* src = g_pu8RamBase + address;
     u32 offset = 0;
 
-    while (offset < size && ((address + offset) & 3)) {
-        hash ^= ReadU8(address + offset);
-        hash *= 16777619u;
-        ++offset;
+    static const u32 kSeed[4] = { 2166136261u, 2246822519u, 3266489917u, 668265263u };
+    static const u32 kPrime[4] = { 16777619u, 2246822519u, 3266489917u, 374761393u };
+
+    uint32x4_t h = vld1q_u32(kSeed);
+    const uint32x4_t prime = vld1q_u32(kPrime);
+
+    for (; offset + 16 <= size; offset += 16) {
+        const uint32x4_t value = vreinterpretq_u32_u8(vld1q_u8(src + offset));
+        h = veorq_u32(h, value);
+        h = vmulq_u32(h, prime);
+        h = vaddq_u32(h, vextq_u32(value, value, 1));
     }
 
+    vst1q_u32(hash, h);
+
+    u32 lane = (offset >> 2) & 3u;
     for (; offset + 4 <= size; offset += 4) {
-        const u32 value = *(const u32*)(g_pu8RamBase + address + offset);
-        hash ^= value;
-        hash *= 16777619u;
+        u32 value;
+        memcpy(&value, src + offset, sizeof(value));
+        hash[lane] = (hash[lane] ^ value) * 16777619u;
+        lane = (lane + 1) & 3u;
     }
 
     for (; offset < size; ++offset) {
-        hash ^= ReadU8(address + offset);
-        hash *= 16777619u;
+        hash[lane] = (hash[lane] ^ src[offset]) * 16777619u;
+        lane = (lane + 1) & 3u;
     }
-    return hash;
+
+    hash[0] ^= size * 0x9E3779B1u;
+    hash[1] ^= (size << 7) | (size >> 25);
+    hash[2] ^= size * 0x85EBCA77u;
+    hash[3] ^= size * 0xC2B2AE3Du;
 }
 
 bool Fast3DMemoryBridge::StageTextureImage(u32 requiredBytes, bool palette, u32 sourceOffset,
@@ -179,7 +189,12 @@ bool Fast3DMemoryBridge::StageTextureImage(u32 requiredBytes, bool palette, u32 
         }
     }
 
-    const u32 hash = HashRdramBytes(sourceAddress, requiredBytes);
+    u32 hash[4] = {};
+    bool hashComputed = false;
+    if ((!stage || stage->dirty) && !(stage && stage->validatedBuild == mBuildSerial)) {
+        HashRdramBytes(sourceAddress, requiredBytes, hash);
+        hashComputed = true;
+    }
 
     const auto copyTexture = [&](u8* data) {
         CopyRdramBytes(data, sourceAddress, requiredBytes);
@@ -214,19 +229,31 @@ bool Fast3DMemoryBridge::StageTextureImage(u32 requiredBytes, bool palette, u32 
         stage = &mTextureStages[mTextureStageCount++];
         stage->address = sourceAddress;
         stage->size = requiredBytes;
-        stage->hash = hash;
+        stage->hash[0] = hash[0];
+        stage->hash[1] = hash[1];
+        stage->hash[2] = hash[2];
+        stage->hash[3] = hash[3];
+        stage->validatedBuild = mBuildSerial;
         stage->rowBytes = rowBytes;
         stage->swizzleGroup = swizzleGroup;
+        stage->dirty = false;
         stage->data = data;
-    } else if (stage->hash != hash) {
+    } else if (hashComputed &&
+               (stage->hash[0] != hash[0] || stage->hash[1] != hash[1] ||
+                stage->hash[2] != hash[2] || stage->hash[3] != hash[3])) {
         if (mInterpreter) {
             if (palette) mInterpreter->TextureCacheClear();
             else mInterpreter->TextureCacheDelete(stage->data);
         }
         copyTexture(stage->data);
-        stage->hash = hash;
+        stage->hash[0] = hash[0];
+        stage->hash[1] = hash[1];
+        stage->hash[2] = hash[2];
+        stage->hash[3] = hash[3];
     }
 
+    stage->dirty = false;
+    stage->validatedBuild = mBuildSerial;
     mTextureImageStaging = stage->data;
     ((HostGfx*)mTextureImageCommand)->w1 = (u32)(uintptr_t)stage->data;
     return true;
@@ -377,11 +404,13 @@ u32 Fast3DMemoryBridge::CountListCommands(u32 address, GBIVersion version) const
         const u8 op = (u8)(w0 >> 24);
 
         if (version == GBI_2 || version == GBI_2_S2DEX) {
-            if (op == 0xDF) return n + 1;
-            if (op == 0xDE && (((w0 >> 16) & 0xFF) == G_DL_NOPUSH)) return n + 1;
+            if (op == 0xDF || (op == 0xDE && (((w0 >> 16) & 0xFF) == G_DL_NOPUSH))) {
+                return n + 1;
+            }
         } else {
-            if (op == 0xB8) return n + 1;
-            if (op == 0x06 && (((w0 >> 16) & 0xFF) == G_DL_NOPUSH)) return n + 1;
+            if (op == 0xB8 || (op == 0x06 && (((w0 >> 16) & 0xFF) == G_DL_NOPUSH))) {
+                return n + 1;
+            }
         }
     }
     return 0;
@@ -695,6 +724,24 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
 
 void* Fast3DMemoryBridge::BuildDisplayList(u32 address, GBIVersion version) {
     Reset();
+
+    ++mBuildSerial;
+    if (mBuildSerial == 0) ++mBuildSerial;
+
+    for (u32 i = 0; i < mTextureStageCount; ++i) {
+        TextureStage& stage = mTextureStages[i];
+        if (stage.dirty || stage.size == 0) continue;
+
+        const u32 firstPage = stage.address >> RDRAM_DIRTY_PAGE_SHIFT;
+        const u32 lastPage = (stage.address + stage.size - 1) >> RDRAM_DIRTY_PAGE_SHIFT;
+        for (u32 page = firstPage; page <= lastPage && page < RDRAM_DIRTY_PAGE_COUNT; ++page) {
+            if (g_RDRAMDirtyPages[page]) {
+                stage.dirty = true;
+                break;
+            }
+        }
+    }
+    RDRAM_ClearDirtyPages();
 
     mTranslationFailed = false;
     mSawFullSync = false;
