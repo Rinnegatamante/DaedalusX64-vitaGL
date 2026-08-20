@@ -340,6 +340,9 @@ struct RDP {
     bool viewport_or_scissor_changed;
     void* z_buf_address;
     void* color_image_address;
+    uint32_t color_image_width;
+    uint8_t color_image_format;
+    uint8_t color_image_size;
 };
 
 typedef enum Attribute {
@@ -428,6 +431,7 @@ class Interpreter {
     // of reading from CPU memory — giving full GPU resolution with no readback.
     void RegisterFbTexture(const void* cpuAddr, int fbId);
     void UnregisterFbTexture(const void* cpuAddr);
+    bool SyncColorImageToRdram(uint8_t* rdramBase, uint32_t rdramSize);
 
     void SetNativeDimensions(float width, float height);
     void SetDisplayConfiguration(uint32_t width, uint32_t height, int32_t x, int32_t y, float aspectDelta);
@@ -558,6 +562,10 @@ class Interpreter {
     std::map<int, FBInfo> mFrameBuffers;
 
     int mGameFb{};             // game_framebuffer;
+    int mRdramReadbackFb = -1;
+    uint32_t mRdramReadbackWidth = 0;
+    uint32_t mRdramReadbackHeight = 0;
+    std::vector<uint16_t> mRdramReadbackBuffer;
 
     std::set<std::pair<float, float>> mGetPixelDepthPending; // get_pixel_depth_pending;
     std::unordered_map<std::pair<float, float>, uint16_t, hash_pair_ff> mGetPixelDepthCached; // get_pixel_depth_cached;

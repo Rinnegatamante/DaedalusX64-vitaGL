@@ -66,6 +66,7 @@ std::stack<std::string> currentDir;
 
 #ifdef __vita__
 #include <vitasdk.h>
+#include "Utility/Endian.h"
 extern "C" void* vglAllocFromScratch(size_t size);
 #endif
 
@@ -3104,6 +3105,10 @@ void Interpreter::GfxDpSetZImage(void* zBufAddr) {
 
 void Interpreter::GfxDpSetColorImage(uint32_t format, uint32_t size, uint32_t width, void* address) {
     mRdp->color_image_address = address;
+    mRdp->color_image_width = width;
+    mRdp->color_image_format = (uint8_t)format;
+    mRdp->color_image_size = (uint8_t)size;
+
 }
 
 void Interpreter::GfxSpSetOtherMode(uint32_t shift, uint32_t num_bits, uint64_t mode) {
@@ -3935,7 +3940,7 @@ bool gfx_set_c_img_handler_rdp(F3DGfx** cmd0) {
     Interpreter* gfx = gInstance;
     F3DGfx* cmd = *(cmd0);
 
-    gfx->GfxDpSetColorImage(C0(21, 3), C0(19, 2), C0(0, 11), gfx->SegAddr(cmd->words.w1));
+    gfx->GfxDpSetColorImage(C0(21, 3), C0(19, 2), C0(0, 12) + 1, gfx->SegAddr(cmd->words.w1));
     return false;
 }
 
@@ -4219,6 +4224,78 @@ void Interpreter::RegisterFbTexture(const void* cpuAddr, int fbId) {
 
 void Interpreter::UnregisterFbTexture(const void* cpuAddr) {
     mFbTextures.erase((uintptr_t)cpuAddr);
+}
+
+bool Interpreter::SyncColorImageToRdram(uint8_t* rdramBase, uint32_t rdramSize) {
+    if (rdramBase == nullptr || rdramSize == 0 || mRdp->color_image_address == nullptr) {
+        return false;
+    }
+    if (mRdp->color_image_format != G_IM_FMT_RGBA || mRdp->color_image_size != G_IM_SIZ_16b) {
+        return false;
+    }
+
+    const uintptr_t base = (uintptr_t)rdramBase;
+    const uintptr_t rawAddress = (uintptr_t)mRdp->color_image_address;
+    uint32_t rdramOffset;
+    if (rawAddress < rdramSize) {
+        rdramOffset = (uint32_t)rawAddress;
+    } else if (rawAddress >= base && rawAddress - base < rdramSize) {
+        rdramOffset = (uint32_t)(rawAddress - base);
+    } else {
+        return false;
+    }
+
+    const uint32_t width = mRdp->color_image_width;
+    uint32_t height = mNativeDimensions.height > 0.0f ? (uint32_t)(mNativeDimensions.height + 0.5f) : SCREEN_HEIGHT;
+    if (width == 0 || width > 1024 || height == 0 || height > 1024) {
+        return false;
+    }
+
+    const uint64_t pixelCount = (uint64_t)width * height;
+    const uint64_t byteCount = pixelCount * sizeof(uint16_t);
+    if (byteCount > rdramSize || rdramOffset > rdramSize - byteCount) {
+        return false;
+    }
+
+    if (mRdramReadbackFb < 0) {
+        mRdramReadbackFb = CreateFrameBuffer(width, height, width, height, 0, true);
+        mRdramReadbackWidth = width;
+        mRdramReadbackHeight = height;
+    } else if (mRdramReadbackWidth != width || mRdramReadbackHeight != height) {
+        mRapi->UpdateFramebufferParameters(mRdramReadbackFb, width, height, true, true, false, false);
+        auto fbIt = mFrameBuffers.find(mRdramReadbackFb);
+        if (fbIt != mFrameBuffers.end()) {
+            fbIt->second.orig_width = width;
+            fbIt->second.orig_height = height;
+            fbIt->second.applied_width = width;
+            fbIt->second.applied_height = height;
+            fbIt->second.native_width = width;
+            fbIt->second.native_height = height;
+        }
+        mRdramReadbackWidth = width;
+        mRdramReadbackHeight = height;
+    }
+
+    const int srcFb = mRendersToFb ? mGameFb : 0;
+    const uint32_t srcWidth = mCurDimensions.width > 0 ? mCurDimensions.width : width;
+    const uint32_t srcHeight = mCurDimensions.height > 0 ? mCurDimensions.height : height;
+
+    mRapi->CopyFramebuffer(mRdramReadbackFb, srcFb,
+                           0, 0, srcWidth, srcHeight,
+                           0, 0, width, height);
+
+    mRdramReadbackBuffer.resize((size_t)pixelCount);
+    mRapi->ReadFramebufferToCPU(mRdramReadbackFb, width, height, mRdramReadbackBuffer.data());
+
+    for (uint32_t y = 0; y < height; ++y) {
+        const uint16_t* srcRow = mRdramReadbackBuffer.data() + (size_t)y * width;
+        const uint32_t rowOffset = rdramOffset + y * width * 2u;
+        for (uint32_t x = 0; x < width; ++x) {
+            *(uint16_t*)((uintptr_t)(rdramBase + rowOffset + x * 2u) ^ U16_TWIDDLE) = srcRow[x];
+        }
+    }
+
+    return true;
 }
 
 void Interpreter::GetDimensions(uint32_t* width, uint32_t* height, int32_t* posX, int32_t* posY) {

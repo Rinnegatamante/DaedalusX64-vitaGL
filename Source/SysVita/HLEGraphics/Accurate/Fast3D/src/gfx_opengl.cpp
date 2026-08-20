@@ -1158,19 +1158,25 @@ void GfxRenderingAPIOGL::CopyFramebuffer(int fb_dst_id, int fb_src_id, int srcX0
         glDisable(GL_SCISSOR_TEST);
     }
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, src.fbo);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst.fbo);
+    GLuint srcFbo = src.fbo;
+    GLuint dstFbo = dst.fbo;
+    GLuint currentFbo = mFrameBuffers[mCurrentFrameBuffer].fbo;
+    const uint32_t srcOverride = DaedalusFast3D_GetFramebufferOverride(fb_src_id);
+    const uint32_t dstOverride = DaedalusFast3D_GetFramebufferOverride(fb_dst_id);
+    const uint32_t currentOverride = DaedalusFast3D_GetFramebufferOverride(mCurrentFrameBuffer);
+    if (srcOverride != 0) srcFbo = srcOverride;
+    if (dstOverride != 0) dstFbo = dstOverride;
+    if (currentOverride != 0) currentFbo = currentOverride;
 
-    if (fb_src_id == 0) {
-        glReadBuffer(GL_BACK);
-    } else {
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-    }
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFbo);
+
+    glReadBuffer(srcFbo == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
     glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, mFrameBuffers[mCurrentFrameBuffer].fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 
-    glReadBuffer(GL_BACK);
+    glReadBuffer(currentFbo == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
 
     if (mLastScissorEnabled != 1) {
         mLastScissorEnabled = 1;
@@ -1179,12 +1185,23 @@ void GfxRenderingAPIOGL::CopyFramebuffer(int fb_dst_id, int fb_src_id, int srcX0
 }
 
 void GfxRenderingAPIOGL::ReadFramebufferToCPU(int fb_id, uint32_t width, uint32_t height, uint16_t* rgba16_buf) {
-    if (fb_id >= (int)mFrameBuffers.size()) {
+    if (fb_id >= (int)mFrameBuffers.size() || rgba16_buf == nullptr) {
         return;
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, mFrameBuffers[fb_id].fbo);
-	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, rgba16_buf);
-    glBindFramebuffer(GL_FRAMEBUFFER, mFrameBuffers[mCurrentFrameBuffer].fbo);
+
+    GLuint readFbo = mFrameBuffers[fb_id].fbo;
+    GLuint currentFbo = mFrameBuffers[mCurrentFrameBuffer].fbo;
+    const uint32_t readOverride = DaedalusFast3D_GetFramebufferOverride(fb_id);
+    const uint32_t currentOverride = DaedalusFast3D_GetFramebufferOverride(mCurrentFrameBuffer);
+    if (readOverride != 0) readFbo = readOverride;
+    if (currentOverride != 0) currentFbo = currentOverride;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, readFbo);
+    glReadBuffer(readFbo == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, rgba16_buf);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
+    glReadBuffer(currentFbo == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
 }
 
 std::unordered_map<std::pair<float, float>, uint16_t, hash_pair_ff>

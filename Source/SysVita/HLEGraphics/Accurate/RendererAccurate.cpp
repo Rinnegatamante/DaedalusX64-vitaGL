@@ -97,6 +97,7 @@ public:
 
         DaedalusFast3D_PrepareTask(firstTaskInFrame);
         mInterpreter->Run(reinterpret_cast<Gfx*>(translated), mDummyMatrixReplacements);
+        mInterpreter->SyncColorImageToRdram(g_pu8RamBase, gRamSize);
 
         if (mBridge.SawFullSync()) {
             Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_DP);
