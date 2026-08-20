@@ -28,7 +28,9 @@ static void WriteValueMapped( u32 address, u32 value )
 	u32 physical_addr {TLBEntry::Translate(address, missing)};
 	if (physical_addr != 0)
 	{
-		*(u32*)(g_pu8RamBase + (physical_addr & 0x007FFFFF)) = value;
+		const u32 rdram_addr = physical_addr & 0x007FFFFF;
+		*(u32*)(g_pu8RamBase + rdram_addr) = value;
+		RDRAM_MarkDirtyRange(rdram_addr, sizeof(u32));
 	}
 	else
 	{
@@ -39,7 +41,9 @@ static void WriteValueMapped( u32 address, u32 value )
 static void WriteValue_8000_807F( u32 address, u32 value )
 {
 	// Note: Mask is slighty different when EPAK isn't used 0x003FFFFF
-	*(u32 *)((u8 *)g_pMemoryBuffers[MEM_RD_RAM] + (address & 0x007FFFFF)) = value;
+	const u32 rdram_addr = address & 0x007FFFFF;
+	*(u32 *)((u8 *)g_pMemoryBuffers[MEM_RD_RAM] + rdram_addr) = value;
+	RDRAM_MarkDirtyRange(rdram_addr, sizeof(u32));
 }
 
 // 0x03F0 0000 to 0x03FF FFFF  RDRAM registers

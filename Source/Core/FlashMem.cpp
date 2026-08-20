@@ -63,6 +63,7 @@ bool DMA_FLASH_CopyToDRAM(u32 dest, u32 StartOffset, u32 len)
 	case FLASHRAM_MODE_STATUS:
 		*(u32 *)(g_pu8RamBase + dest) = FlashStatus[0];
 		*(u32 *)(g_pu8RamBase + dest + sizeof(u32)) = FlashStatus[1];
+		RDRAM_MarkDirtyRange(dest, sizeof(FlashStatus));
 		return true;
 	default:
 		return false;

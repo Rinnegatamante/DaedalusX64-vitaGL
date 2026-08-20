@@ -82,6 +82,31 @@ const u32 MemoryRegionSizes[NUM_MEM_BUFFERS] =
 };
 
 u32			gRamSize =  kMaximumMemSize;	// Size of emulated RAM
+u8 g_RDRAMDirtyPages[RDRAM_DIRTY_PAGE_COUNT] = {};
+
+void RDRAM_MarkDirtyRange(u32 address, u32 size)
+{
+	if (size == 0 || gRamSize == 0)
+		return;
+
+	address &= (MEMORY_8_MEG - 1);
+	if (address >= gRamSize)
+		return;
+
+	u32 end = address + size - 1;
+	if (end < address || end >= gRamSize)
+		end = gRamSize - 1;
+
+	const u32 first_page = address >> RDRAM_DIRTY_PAGE_SHIFT;
+	const u32 last_page = end >> RDRAM_DIRTY_PAGE_SHIFT;
+	for (u32 page = first_page; page <= last_page; ++page)
+		g_RDRAMDirtyPages[page] = 1;
+}
+
+void RDRAM_ClearDirtyPages()
+{
+	memset(g_RDRAMDirtyPages, 0, sizeof(g_RDRAMDirtyPages));
+}
 
 #ifdef DAED_USE_VIRTUAL_ALLOC
 static void *	gMemBase = nullptr;				// Virtual memory base
@@ -106,6 +131,7 @@ void * 			g_pMemoryBuffers[NUM_MEM_BUFFERS];
 bool Memory_Init()
 {
 	gRamSize = gUseExpansionPak ? MEMORY_8_MEG : MEMORY_4_MEG;
+	RDRAM_ClearDirtyPages();
 
 #ifdef DAED_USE_VIRTUAL_ALLOC
 	gMemBase = VirtualAlloc(0, 512*1024*1024, MEM_RESERVE, PAGE_READWRITE);
@@ -237,6 +263,8 @@ bool Memory_Reset()
 		}
 	}
 
+	RDRAM_ClearDirtyPages();
+	RDRAM_MarkDirtyRange(0, gRamSize);
 	gDMAUsed = false;
 	return true;
 }

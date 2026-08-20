@@ -145,6 +145,7 @@ class CCodeGeneratorARM : public CCodeGenerator, public CAssemblyWriterARM
 				typedef u32 (*ReadMemoryFunction)( u32 address, u32 current_pc );
 				typedef void (*WriteMemoryFunction)( u32 address, u32 value, u32 current_pc );
 				
+				void	GenerateMarkRdramDirty( EArmReg address_reg );
 				void	GenerateStore( u32 address, EArmReg arm_src, EN64Reg base, s16 offset, u8 twiddle, u8 bits, WriteMemoryFunction p_write_memory );
 				bool	GenerateSW(u32 address, bool branch_delay_slot, EN64Reg rt, EN64Reg base, s16 offset );
 				bool	GenerateSWC1( u32 address, bool branch_delay_slot, u32 ft, EN64Reg base, s16 offset );

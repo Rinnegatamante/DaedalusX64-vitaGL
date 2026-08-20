@@ -1798,6 +1798,18 @@ void CCodeGeneratorARM::GenerateLUI( EN64Reg rt, s16 immediate )
 //*****************************************************************************
 
 //Helper function, stores register R1 into memory
+inline void CCodeGeneratorARM::GenerateMarkRdramDirty(EArmReg address_reg)
+{
+	if (address_reg != ArmReg_R0)
+		MOV(ArmReg_R0, address_reg);
+
+	MOV_LSL_IMM(ArmReg_R0, ArmReg_R0, 9);
+	MOV_LSR_IMM(ArmReg_R0, ArmReg_R0, 21);
+	MOV32(ArmReg_R1, (u32)g_RDRAMDirtyPages);
+	MOV_IMM(ArmReg_R2, 1);
+	STRB_REG(ArmReg_R2, ArmReg_R0, ArmReg_R1);
+}
+
 inline void CCodeGeneratorARM::GenerateStore(u32 address, EArmReg arm_src, EN64Reg base, s16 offset, u8 twiddle, u8 bits, WriteMemoryFunction p_write_memory )
 {
 	if ((gDynarecStackOptimisation && base == N64Reg_SP) || (gMemoryAccessOptimisation && mQuickLoad))
@@ -1823,6 +1835,7 @@ inline void CCodeGeneratorARM::GenerateStore(u32 address, EArmReg arm_src, EN64R
 			case 16:	STRH_REG(arm_src, store_reg, gMemoryBaseReg); break; 
 			case 8:		STRB_REG(arm_src, store_reg, gMemoryBaseReg); break; 
 		}
+		GenerateMarkRdramDirty(store_reg);
 	}
 	else
 	{	
@@ -1850,6 +1863,7 @@ inline void CCodeGeneratorARM::GenerateStore(u32 address, EArmReg arm_src, EN64R
 			case 16:	STRH_REG(arm_src, store_reg, gMemoryBaseReg); break; 
 			case 8:		STRB_REG(arm_src, store_reg, gMemoryBaseReg); break; 
 		}
+		GenerateMarkRdramDirty(store_reg);
 
 		CJumpLocation skip;
 		CCodeLabel current; 

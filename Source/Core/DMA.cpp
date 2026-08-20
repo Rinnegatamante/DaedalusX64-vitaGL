@@ -124,6 +124,8 @@ void DMA_SP_CopyToRDRAM()
 	}
 #endif
 
+	RDRAM_MarkDirtyRange(rdram_address, length);
+
 	//Clear the DMA Busy
 	Memory_SP_SetRegister(SP_DMA_BUSY_REG, 0);
 	Memory_SP_ClrRegisterBits(SP_STATUS_REG, SP_STATUS_DMA_BUSY);
@@ -142,6 +144,7 @@ void DMA_SI_CopyFromDRAM( )
 	{
 		dst[i] = BSWAP32(src[i]);
 	}
+	RDRAM_MarkDirtyRange(mem, 64);
 
 	Memory_SI_SetRegisterBits(SI_STATUS_REG, SI_STATUS_INTERRUPT);
 	Memory_MI_SetRegisterBits(MI_INTR_REG, MI_INTR_SI);
@@ -203,6 +206,7 @@ bool DMA_HandleTransfer( u8 * p_dst, u32 dst_offset, u32 dst_size, const u8 * p_
 	}
 
 	fast_memcpy_swizzle(&p_dst[dst_offset], &p_src[src_offset], length);
+	RDRAM_MarkDirtyHostPointer(&p_dst[dst_offset], length);
 	return true;
 }
 
@@ -224,10 +228,14 @@ static void OnCopiedRom()
 		// Set RDRAM size
 		u32 addr = (g_ROM.cic_chip != CIC_6105) ? (u32)0x318 : (u32)0x3F0;
 		*(u32 *)(g_pu8RamBase + addr) = gRamSize;
+		RDRAM_MarkDirtyRange(addr, sizeof(u32));
 
 		// Azimer's DK64 hack, it makes DK64 boot!
 		if(g_ROM.GameHacks == DK64)
+		{
 			*(u32 *)(g_pu8RamBase + 0x2FE1C0) = 0xAD170014;
+			RDRAM_MarkDirtyRange(0x2FE1C0, sizeof(u32));
+		}
 	}
 }
 
@@ -284,6 +292,7 @@ void DMA_PI_CopyToRDRAM()
 
 	if(copy_succeeded)
 	{
+		RDRAM_MarkDirtyRange(mem_address, pi_length_reg);
 		OnCopiedRom();
 	}
 

@@ -74,11 +74,44 @@ struct MemFuncRead
 };
 
 extern u32		gRamSize;
+extern void *	g_pMemoryBuffers[NUM_MEM_BUFFERS];
+
+static const u32 RDRAM_DIRTY_PAGE_SHIFT = 12;
+static const u32 RDRAM_DIRTY_PAGE_SIZE = 1u << RDRAM_DIRTY_PAGE_SHIFT;
+static const u32 RDRAM_DIRTY_PAGE_COUNT = MEMORY_8_MEG >> RDRAM_DIRTY_PAGE_SHIFT;
+extern u8 g_RDRAMDirtyPages[RDRAM_DIRTY_PAGE_COUNT];
+
+inline void RDRAM_MarkDirtyOffset(u32 offset)
+{
+	g_RDRAMDirtyPages[(offset & (MEMORY_8_MEG - 1)) >> RDRAM_DIRTY_PAGE_SHIFT] = 1;
+}
+
+inline void RDRAM_MarkDirtyHostPointer(const void* ptr, u32 size)
+{
+	if (ptr == nullptr || size == 0 || g_pMemoryBuffers[MEM_RD_RAM] == nullptr)
+		return;
+
+	const uintptr_t base = reinterpret_cast<uintptr_t>(g_pMemoryBuffers[MEM_RD_RAM]);
+	const uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+	if (address < base || address >= base + gRamSize)
+		return;
+
+	const u32 start = static_cast<u32>(address - base);
+	const u64 end64 = (u64)start + size - 1;
+	const u32 end = end64 >= gRamSize ? gRamSize - 1 : (u32)end64;
+
+	const u32 first_page = start >> RDRAM_DIRTY_PAGE_SHIFT;
+	const u32 last_page = end >> RDRAM_DIRTY_PAGE_SHIFT;
+	for (u32 page = first_page; page <= last_page; ++page)
+		g_RDRAMDirtyPages[page] = 1;
+}
+
+void RDRAM_MarkDirtyRange(u32 address, u32 size);
+void RDRAM_ClearDirtyPages();
 #ifdef DAEDALUS_PROFILE_EXECUTION
 extern u32		gTLBReadHit;
 extern u32		gTLBWriteHit;
 #endif
-extern void *	g_pMemoryBuffers[NUM_MEM_BUFFERS];
 extern const u32 MemoryRegionSizes[NUM_MEM_BUFFERS];
 
 bool			Memory_Init();
@@ -117,7 +150,9 @@ inline void WriteAddress( u32 address, u32 value )
 	// Access through pointer with no function calls at all (Fast)
 	if( m.pWrite )
 	{
-		*(u32*)( m.pWrite + address ) = value;
+		u8* const p = m.pWrite + address;
+		*(u32*)p = value;
+		RDRAM_MarkDirtyHostPointer(p, sizeof(u32));
 		return;
 	}
 	// Need to go through the HW access handlers or TLB (Slow)
@@ -151,23 +186,30 @@ inline u16 QuickRead16Bits( u8 *p_base, u32 offset )
 
 inline void QuickWrite16Bits( u8 *p_base, u32 offset, u16 value)
 {
-	*(u16 *)((uintptr_t)(p_base + offset) ^ U16_TWIDDLE) = value;
+	void* const p = (void*)((uintptr_t)(p_base + offset) ^ U16_TWIDDLE);
+	*(u16 *)p = value;
+	RDRAM_MarkDirtyHostPointer(p, sizeof(u16));
 }
 
 inline void QuickWrite64Bits( u8 *p_base, u32 offset, u64 value )
 {
 	u64 data = (value>>32) + (value<<32);
-	*(u64 *)(p_base + offset) = data;
+	void* const p = p_base + offset;
+	*(u64 *)p = data;
+	RDRAM_MarkDirtyHostPointer(p, sizeof(u64));
 }
 
 inline void QuickWrite32Bits( u8 *p_base, u32 offset, u32 value )
 {
-	*(u32 *)(p_base + offset) = value;
+	void* const p = p_base + offset;
+	*(u32 *)p = value;
+	RDRAM_MarkDirtyHostPointer(p, sizeof(u32));
 }
 
 inline void QuickWrite32Bits( u8 *p_base, u32 value )
 {
 	*(u32 *)(p_base) = value;
+	RDRAM_MarkDirtyHostPointer(p_base, sizeof(u32));
 }
 
 // Useful defines for making code look nicer:
@@ -250,10 +292,10 @@ inline u32 Read32Bits( u32 address )				{ MEMORY_CHECK_ALIGN( address, 4 ); retu
 inline u16 Read16Bits( u32 address )				{ MEMORY_CHECK_ALIGN( address, 2 ); return *(u16 *)ReadAddress( address ); }
 inline u8 Read8Bits( u32 address )					{                                   return *(u8  *)ReadAddress( address ); }
 
-inline void Write64Bits( u32 address, u64 data )	{ MEMORY_CHECK_ALIGN( address, 8 ); *(u64 *)ReadAddress( address ) = data; }
+inline void Write64Bits( u32 address, u64 data )	{ MEMORY_CHECK_ALIGN( address, 8 ); void* p = ReadAddress( address ); *(u64 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u64)); }
 inline void Write32Bits( u32 address, u32 data )	{ MEMORY_CHECK_ALIGN( address, 4 ); WriteAddress(address, data); }
-inline void Write16Bits( u32 address, u16 data )	{ MEMORY_CHECK_ALIGN( address, 2 ); *(u16 *)ReadAddress(address) = data; }
-inline void Write8Bits( u32 address, u8 data )		{                                   *(u8 *)ReadAddress(address) = data;}
+inline void Write16Bits( u32 address, u16 data )	{ MEMORY_CHECK_ALIGN( address, 2 ); void* p = ReadAddress(address); *(u16 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u16)); }
+inline void Write8Bits( u32 address, u8 data )		{ void* p = ReadAddress(address); *(u8 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u8)); }
 
 #elif (DAEDALUS_ENDIAN_MODE == DAEDALUS_ENDIAN_LITTLE)
 
@@ -262,10 +304,10 @@ inline u32 Read32Bits( u32 address )				{ MEMORY_CHECK_ALIGN( address, 4 ); retu
 inline u16 Read16Bits( u32 address )				{ MEMORY_CHECK_ALIGN( address, 2 ); return *(u16 *)ReadAddress( address ^ U16_TWIDDLE ); }
 inline u8 Read8Bits( u32 address )					{                                   return *(u8  *)ReadAddress( address ^ U8_TWIDDLE ); }
 
-inline void Write64Bits( u32 address, u64 data )	{ MEMORY_CHECK_ALIGN( address, 8 ); *(u64 *)ReadAddress( address ) = (data>>32) + (data<<32); }
+inline void Write64Bits( u32 address, u64 data )	{ MEMORY_CHECK_ALIGN( address, 8 ); void* p = ReadAddress( address ); *(u64 *)p = (data>>32) + (data<<32); RDRAM_MarkDirtyHostPointer(p, sizeof(u64)); }
 inline void Write32Bits( u32 address, u32 data )	{ MEMORY_CHECK_ALIGN( address, 4 ); WriteAddress(address, data); }
-inline void Write16Bits( u32 address, u16 data )	{ MEMORY_CHECK_ALIGN( address, 2 ); *(u16 *)ReadAddress(address ^ U16_TWIDDLE) = data; }
-inline void Write8Bits( u32 address, u8 data )		{                                   *(u8 *)ReadAddress(address ^ U8_TWIDDLE) = data;}
+inline void Write16Bits( u32 address, u16 data )	{ MEMORY_CHECK_ALIGN( address, 2 ); void* p = ReadAddress(address ^ U16_TWIDDLE); *(u16 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u16)); }
+inline void Write8Bits( u32 address, u8 data )		{ void* p = ReadAddress(address ^ U8_TWIDDLE); *(u8 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u8)); }
 
 #else
 #error No DAEDALUS_ENDIAN_MODE specified
@@ -273,8 +315,8 @@ inline void Write8Bits( u32 address, u8 data )		{                               
 
 //inline void Write64Bits_NoSwizzle( u32 address, u64 data ){ MEMORY_CHECK_ALIGN( address, 8 ); *(u64 *)WriteAddress( address ) = (data>>32) + (data<<32); }
 inline void Write32Bits_NoSwizzle( u32 address, u32 data )	{ MEMORY_CHECK_ALIGN( address, 4 ); WriteAddress(address, data); }
-inline void Write16Bits_NoSwizzle( u32 address, u16 data )	{ MEMORY_CHECK_ALIGN( address, 2 ); *(u16 *)ReadAddress(address) = data; }
-inline void Write8Bits_NoSwizzle( u32 address, u8 data )	{                                   *(u8 *)ReadAddress(address) = data;}
+inline void Write16Bits_NoSwizzle( u32 address, u16 data )	{ MEMORY_CHECK_ALIGN( address, 2 ); void* p = ReadAddress(address); *(u16 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u16)); }
+inline void Write8Bits_NoSwizzle( u32 address, u8 data )	{ void* p = ReadAddress(address); *(u8 *)p = data; RDRAM_MarkDirtyHostPointer(p, sizeof(u8)); }
 
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////

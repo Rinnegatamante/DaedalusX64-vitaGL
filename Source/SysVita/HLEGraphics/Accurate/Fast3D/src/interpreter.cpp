@@ -17,6 +17,7 @@
 #include "fast/resource/type/Light.h"
 #ifdef __vita__
 #include "fast/vita_compat.h"
+void RDRAM_MarkDirtyRange(uint32_t address, uint32_t size);
 #endif
 
 #ifndef _LANGUAGE_C
@@ -4305,6 +4306,7 @@ bool Interpreter::SyncColorImageToRdram(uint8_t* rdramBase, uint32_t rdramSize) 
             *(uint16_t*)((uintptr_t)(rdramBase + rowOffset + x * 2u) ^ U16_TWIDDLE) = srcRow[x];
         }
     }
+    RDRAM_MarkDirtyRange(rdramOffset, (uint32_t)byteCount);
 
     return true;
 }

@@ -32,7 +32,7 @@ private:
     u32 CountListCommands(u32 address, GBIVersion version) const;
     void* TranslateList(u32 address, GBIVersion& version, u32 depth);
     void CopyRdramBytes(u8* dst, u32 address, u32 size) const;
-    u32 HashRdramBytes(u32 address, u32 size) const;
+    void HashRdramBytes(u32 address, u32 size, u32 hash[4]) const;
     bool StageTextureImage(u32 requiredBytes, bool palette = false, u32 sourceOffset = 0,
                            u32 rowBytes = 0, u8 swizzleGroup = 0);
 
@@ -45,9 +45,11 @@ private:
     struct TextureStage {
         u32 address;
         u32 size;
-        u32 hash;
+        u32 hash[4];
+        u32 validatedBuild;
         u32 rowBytes;
         u8 swizzleGroup;
+        bool dirty;
         u8* data;
     };
 
@@ -59,6 +61,7 @@ private:
     TextureStage* mTextureStages;
     u32 mTextureStageCount;
     u32 mTextureStageCapacity;
+    u32 mBuildSerial;
     bool mTranslationFailed;
     bool mSawFullSync;
     bool mHaveTextureImage;
