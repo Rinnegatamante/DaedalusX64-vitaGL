@@ -4289,11 +4289,20 @@ bool Interpreter::SyncColorImageToRdram(uint8_t* rdramBase, uint32_t rdramSize) 
     }
 
     const int srcFb = mRendersToFb ? mGameFb : 0;
-    const uint32_t srcWidth = mCurDimensions.width > 0 ? mCurDimensions.width : width;
-    const uint32_t srcHeight = mCurDimensions.height > 0 ? mCurDimensions.height : height;
+    int srcX0 = 0;
+    int srcY0 = 0;
+    int srcX1 = static_cast<int>(mCurDimensions.width > 0 ? mCurDimensions.width : width);
+    int srcY1 = static_cast<int>(mCurDimensions.height > 0 ? mCurDimensions.height : height);
+
+    if (srcFb == 0) {
+        srcX0 = mGameWindowViewport.x;
+        srcY0 = mGameWindowViewport.y;
+        srcX1 = mGameWindowViewport.x + static_cast<int>(mGameWindowViewport.width);
+        srcY1 = mGameWindowViewport.y + static_cast<int>(mGameWindowViewport.height);
+    }
 
     mRapi->CopyFramebuffer(mRdramReadbackFb, srcFb,
-                           0, 0, srcWidth, srcHeight,
+                           srcX0, srcY0, srcX1, srcY1,
                            0, 0, width, height);
 
     mRdramReadbackBuffer.resize((size_t)pixelCount);
