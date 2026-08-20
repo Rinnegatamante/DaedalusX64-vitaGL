@@ -1864,17 +1864,28 @@ void Interpreter::GfxSpTri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx
     }
 
     if (mRdp->viewport_or_scissor_changed) {
-		// In SM64 viewport and scissor change always together, so no need to memcp
-        //if (memcmp(&mRdp->viewport, &mRenderingState.viewport, sizeof(mRdp->viewport)) != 0) {
+        const bool viewportChanged =
+            mRdp->viewport.x != mRenderingState.viewport.x ||
+            mRdp->viewport.y != mRenderingState.viewport.y ||
+            mRdp->viewport.width != mRenderingState.viewport.width ||
+            mRdp->viewport.height != mRenderingState.viewport.height;
+        const bool scissorChanged =
+            mRdp->scissor.x != mRenderingState.scissor.x ||
+            mRdp->scissor.y != mRenderingState.scissor.y ||
+            mRdp->scissor.width != mRenderingState.scissor.width ||
+            mRdp->scissor.height != mRenderingState.scissor.height;
+
+        if (viewportChanged || scissorChanged) {
             Flush();
+        }
+        if (viewportChanged) {
             mRapi->SetViewport(mRdp->viewport.x, mRdp->viewport.y, mRdp->viewport.width, mRdp->viewport.height);
             mRenderingState.viewport = mRdp->viewport;
-        //}
-        //if (memcmp(&mRdp->scissor, &mRenderingState.scissor, sizeof(mRdp->scissor)) != 0) {
-        //    Flush();
+        }
+        if (scissorChanged) {
             mRapi->SetScissor(mRdp->scissor.x, mRdp->scissor.y, mRdp->scissor.width, mRdp->scissor.height);
             mRenderingState.scissor = mRdp->scissor;
-        //}
+        }
         mRdp->viewport_or_scissor_changed = false;
     }
 
