@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/R4300.h"
 #include "Core/Interrupt.h"
 #include "Core/Memory.h"
+#include "Core/ROM.h"
 
 #include "DynaRec/CodeBufferManager.h"
 #include "DynaRec/CodeGenerator.h"
@@ -198,10 +199,30 @@ EGuestCodeValidation CFragment::ValidateGuestCodeRange( u32 address, u32 length,
 	if( length == 0 )
 		return GCV_NO_OVERLAP;
 
-	if( mNativeFragment )
-		return GCV_NO_OVERLAP;
-
 	const u32 physical_start = address & 0x1fffffffu;
+
+	if( mNativeFragment )
+	{
+		const u64 physical_end64 = (u64)physical_start + (u64)length;
+		if( physical_end64 > 0x20000000ULL )
+			return GCV_UNVERIFIABLE;
+
+		const u32 fragment_start = mEntryAddress & 0x1fffffffu;
+		const u64 fragment_end64 = (u64)fragment_start + (u64)mInputLength;
+		const bool overlaps = (u64)fragment_start < physical_end64 && fragment_end64 > (u64)physical_start;
+		if( !overlaps )
+			return GCV_NO_OVERLAP;
+
+		if( g_ROM.GameHacks == PMARIO )
+		{
+			const u32 range_end = (u32)physical_end64;
+			if( physical_start < 0x0000f000u && range_end > 0x0000e000u )
+				return GCV_NO_OVERLAP;
+		}
+
+		return GCV_UNVERIFIABLE;
+	}
+
 	const u64 physical_end64 = (u64)physical_start + (u64)length;
 	if( physical_end64 > 0x20000000ULL )
 		return GCV_UNVERIFIABLE;
