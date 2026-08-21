@@ -89,6 +89,9 @@ static bool CPU_IsVolatileCodeAddress( u32 address )
 
 	const u32 page_idx = physical >> VOLATILE_CODE_PAGE_SHIFT;
 
+	if( g_ROM.GameHacks == PMARIO && page_idx == (0x0000e000u >> VOLATILE_CODE_PAGE_SHIFT) )
+		return true;
+
 	if( !gDynarecVolatileCodeProtection )
 		return false;
 
@@ -121,6 +124,12 @@ static void CPU_ResetVolatileCodeState()
 	memset( gVolatileCodeStrikes, 0, sizeof(gVolatileCodeStrikes) );
 	memset( gVolatileCodePages, 0, sizeof(gVolatileCodePages) );
 
+	// HACK: Paper Mario has this specific page that is marked unverifiable and contains SMC that fires everytime you change Mario movement direction
+	if (g_ROM.GameHacks == PMARIO)
+	{
+		const u32 paper_mario_page = 0x0000e000u >> VOLATILE_CODE_PAGE_SHIFT;
+		gVolatileCodePages[paper_mario_page] = true;
+	}
 }
 
 static void CPU_QueueICacheValidationRange( u32 address, u32 length )
