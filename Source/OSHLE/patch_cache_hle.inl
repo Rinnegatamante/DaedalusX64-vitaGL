@@ -4,10 +4,7 @@ u32 Patch_osInvalICache_Mario()
 	u32 p = gGPR[REG_a0]._u32_0;
 	u32 len = gGPR[REG_a1]._u32_0;
 
-	if (len < 0x4000)
-		CPU_InvalidateICacheRange(p, len);
-	else
-		CPU_InvalidateICache();
+	CPU_InvalidateICacheRange(p, len);
 #endif
 
 	return PATCH_RET_JR_RA;
