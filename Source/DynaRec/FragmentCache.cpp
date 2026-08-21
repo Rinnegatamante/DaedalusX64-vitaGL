@@ -203,7 +203,7 @@ bool CFragmentCache::ShouldInvalidateOnWrite( u32 address, u32 length ) const
 void CFragmentCacheCoverage::ExtendCoverage( u32 address, u32 len )
 {
 	u32 first_entry( AddressToIndex( address ) );
-	u32 last_entry( AddressToIndex( address + len ) );
+	u32 last_entry( AddressToIndex( address + len - 1 ) );
 
 	// Mark all entries as true
 	for( u32 i = first_entry; i <= last_entry && i < NUM_MEM_USAGE_ENTRIES; ++i )
@@ -218,7 +218,7 @@ void CFragmentCacheCoverage::ExtendCoverage( u32 address, u32 len )
 bool CFragmentCacheCoverage::IsCovered( u32 address, u32 len ) const
 {
 	u32 first_entry( AddressToIndex( address ) );
-	u32 last_entry( AddressToIndex( address + len ) );
+	u32 last_entry( AddressToIndex( address + len - 1 ) );
 
 	// Mark all entries as true
 	for( u32 i = first_entry; i <= last_entry && i < NUM_MEM_USAGE_ENTRIES; ++i )
