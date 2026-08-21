@@ -67,35 +67,26 @@ CFragmentCache::~CFragmentCache()
 //*************************************************************************************
 CFragment * CFragmentCache::LookupFragmentQ( u32 address ) const
 {
-	if( address != mCachedFragmentAddress )
+	if( address == mCachedFragmentAddress )
+		return mpCachedFragment;
+
+	mCachedFragmentAddress = address;
+	mpCachedFragment = nullptr;
+
+	u32 ix = MakeHashIdx( address );
+	for( u32 probe = 0; probe < HASH_TABLE_SIZE; ++probe )
 	{
-		mCachedFragmentAddress = address;
+		const FHashT & slot = mpCacheHashTable[ ix ];
+		if( slot.ptr == 0 )
+			break;
 
-		// check if in hash table
-		u32 ix {MakeHashIdx( address )};
-
-		if ( address != mpCacheHashTable[ix].addr )
+		if( slot.addr == address )
 		{
-			SFragmentEntry				entry( address, nullptr );
-			FragmentVec::const_iterator	it( std::lower_bound( mFragments.begin(), mFragments.end(), entry ) );
-			if( it != mFragments.end() && it->Address == address )
-			{
-				mpCachedFragment = it->Fragment;
-			}
-			else
-			{
-				mpCachedFragment = nullptr;
-			}
-
-			// put in hash table
-			mpCacheHashTable[ix].addr = address;
-			mpCacheHashTable[ix].ptr = reinterpret_cast< u32 >( mpCachedFragment );
-		}
-		else
-		{
-			mpCachedFragment = reinterpret_cast< CFragment * >( mpCacheHashTable[ix].ptr );
+			mpCachedFragment = reinterpret_cast< CFragment * >( slot.ptr );
+			break;
 		}
 
+		ix = (ix + 1) & (HASH_TABLE_SIZE - 1);
 	}
 
 	return mpCachedFragment;
@@ -108,18 +99,31 @@ void CFragmentCache::InsertFragment( CFragment * p_fragment )
 {
 	u32		fragment_address( p_fragment->GetEntryAddress() );
 
-	mCacheCoverage.ExtendCoverage( fragment_address, p_fragment->GetInputLength() );
+	const std::vector<u32> & code_pages = p_fragment->GetCodePages();
+	for( u32 page : code_pages )
+	{
+		mCacheCoverage.ExtendCoverage( page, 1 );
+	}
 
-	SFragmentEntry				entry( fragment_address, nullptr );
-	FragmentVec::iterator		it( std::lower_bound( mFragments.begin(), mFragments.end(), entry ) );
+	mFragments.push_back( SFragmentEntry( fragment_address, p_fragment ) );
 
-	entry.Fragment = p_fragment;
-	mFragments.insert( it, entry );
+	u32 ix = MakeHashIdx( fragment_address );
+	for( u32 probe = 0; probe < HASH_TABLE_SIZE; ++probe )
+	{
+		FHashT & slot = mpCacheHashTable[ ix ];
+		if( slot.ptr == 0 || slot.addr == fragment_address )
+		{
+			slot.addr = fragment_address;
+			slot.ptr = reinterpret_cast< u32 >( p_fragment );
+			break;
+		}
 
-	// Update the hash table (it stores failed lookups now, so we need to be sure to purge any stale entries in there
-	u32 ix {MakeHashIdx( fragment_address )};
-	mpCacheHashTable[ix].addr = fragment_address;
-	mpCacheHashTable[ix].ptr = reinterpret_cast< u32 >( p_fragment );
+		ix = (ix + 1) & (HASH_TABLE_SIZE - 1);
+	}
+
+	// A failed lookup for this exact address may be cached in the one-entry fast path.
+	if( mCachedFragmentAddress == fragment_address )
+		mpCachedFragment = p_fragment;
 
 	// Process any jumps for this before inserting new ones
 	JumpMap::iterator	jump_it( mJumpMap.find( fragment_address ) );
@@ -173,7 +177,7 @@ void CFragmentCache::Clear()
 		delete it->Fragment;
 	}
 
-	mFragments.erase( mFragments.begin(), mFragments.end() );
+	mFragments.clear();
 	mCachedFragmentAddress = 0;
 	mpCachedFragment = nullptr;
 	memset( mpCacheHashTable, 0, sizeof(mpCacheHashTable) );
@@ -195,18 +199,76 @@ bool CFragmentCache::ShouldInvalidateOnWrite( u32 address, u32 length ) const
 //*************************************************************************************
 //
 //*************************************************************************************
-#define AddressToIndex( addr ) ((addr - BASE_ADDRESS) >> MEM_USAGE_SHIFT)
+EFragmentCacheInvalidationResult CFragmentCache::ValidateInvalidation( u32 address, u32 length, u32 * checked_words,
+	u32 * changed_address, u32 * expected_opcode, u32 * current_opcode ) const
+{
+	if( checked_words != nullptr )
+		*checked_words = 0;
+
+	if( !mCacheCoverage.IsCovered( address, length ) )
+		return FCIR_NO_OVERLAP;
+
+	u32 total_checked = 0;
+	bool exact_overlap = false;
+
+	for( const SFragmentEntry & entry : mFragments )
+	{
+		u32 fragment_checked = 0;
+		const EGuestCodeValidation result = entry.Fragment->ValidateGuestCodeRange( address, length, &fragment_checked,
+			changed_address, expected_opcode, current_opcode );
+		total_checked += fragment_checked;
+
+		switch( result )
+		{
+		case GCV_NO_OVERLAP:
+			break;
+		case GCV_UNCHANGED:
+			exact_overlap = true;
+			break;
+		case GCV_CHANGED:
+			if( checked_words != nullptr )
+				*checked_words = total_checked;
+			return FCIR_CHANGED;
+		case GCV_UNVERIFIABLE:
+			if( checked_words != nullptr )
+				*checked_words = total_checked;
+			return FCIR_UNVERIFIABLE;
+		default:
+			return FCIR_UNVERIFIABLE;
+		}
+	}
+
+	if( checked_words != nullptr )
+		*checked_words = total_checked;
+	return exact_overlap ? FCIR_UNCHANGED : FCIR_NO_OVERLAP;
+}
+
+//*************************************************************************************
+//
+//*************************************************************************************
+u32 CFragmentCacheCoverage::AddressToIndex( u32 address )
+{
+	return (address & 0x1fffffffu) >> MEM_USAGE_SHIFT;
+}
 
 //*************************************************************************************
 //
 //*************************************************************************************
 void CFragmentCacheCoverage::ExtendCoverage( u32 address, u32 len )
 {
+	if( len == 0 )
+		return;
+
 	u32 first_entry( AddressToIndex( address ) );
 	u32 last_entry( AddressToIndex( address + len - 1 ) );
 
-	// Mark all entries as true
-	for( u32 i = first_entry; i <= last_entry && i < NUM_MEM_USAGE_ENTRIES; ++i )
+	if( first_entry >= NUM_MEM_USAGE_ENTRIES )
+		return;
+
+	if( last_entry >= NUM_MEM_USAGE_ENTRIES )
+		last_entry = NUM_MEM_USAGE_ENTRIES - 1;
+
+	for( u32 i = first_entry; i <= last_entry; ++i )
 	{
 		mCacheCoverage[ i ] = true;
 	}
@@ -217,11 +279,19 @@ void CFragmentCacheCoverage::ExtendCoverage( u32 address, u32 len )
 //*************************************************************************************
 bool CFragmentCacheCoverage::IsCovered( u32 address, u32 len ) const
 {
+	if( len == 0 )
+		return false;
+
 	u32 first_entry( AddressToIndex( address ) );
 	u32 last_entry( AddressToIndex( address + len - 1 ) );
 
-	// Mark all entries as true
-	for( u32 i = first_entry; i <= last_entry && i < NUM_MEM_USAGE_ENTRIES; ++i )
+	if( first_entry >= NUM_MEM_USAGE_ENTRIES )
+		return false;
+
+	if( last_entry >= NUM_MEM_USAGE_ENTRIES )
+		last_entry = NUM_MEM_USAGE_ENTRIES - 1;
+
+	for( u32 i = first_entry; i <= last_entry; ++i )
 	{
 		if( mCacheCoverage[ i ] )
 			return true;

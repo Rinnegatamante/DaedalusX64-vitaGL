@@ -57,6 +57,20 @@ struct SFragmentPatchDetails
 };
 typedef std::vector<SFragmentPatchDetails>	FragmentPatchList;
 
+enum EGuestCodeValidation
+{
+	GCV_NO_OVERLAP,
+	GCV_UNCHANGED,
+	GCV_CHANGED,
+	GCV_UNVERIFIABLE
+};
+
+struct SGuestCodeWord
+{
+	u32 PhysicalAddress;
+	u32 ExpectedOpCode;
+};
+
 //*************************************************************************************
 //
 //*************************************************************************************
@@ -85,6 +99,9 @@ public:
 		u32			GetMemoryUsage() const;
 		u32			GetInputLength() const						{ return mInputLength; }
 		u32			GetOutputLength() const						{ return mOutputLength; }
+		const std::vector<u32> & GetCodePages() const			{ return mCodePages; }
+		EGuestCodeValidation ValidateGuestCodeRange( u32 address, u32 length, u32 * checked_words,
+			u32 * changed_address, u32 * expected_opcode, u32 * current_opcode ) const;
 
 		void		SetCache( const CFragmentCache * p_cache );
 
@@ -110,6 +127,9 @@ private:
 
 private:
 		u32								mEntryAddress;
+		std::vector<u32>					mCodePages;
+		std::vector<SGuestCodeWord>			mGuestCodeWords;
+		bool								mGuestCodeFullyVerifiable;
 
 		std::vector< SFragmentPatchDetails >	mPatchList;
 

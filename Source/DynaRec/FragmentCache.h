@@ -35,6 +35,14 @@ struct FHashT
 	u32 ptr;
 };
 
+enum EFragmentCacheInvalidationResult
+{
+	FCIR_NO_OVERLAP,
+	FCIR_UNCHANGED,
+	FCIR_CHANGED,
+	FCIR_UNVERIFIABLE
+};
+
 //*************************************************************************************
 //
 //*************************************************************************************
@@ -79,6 +87,8 @@ public:
 	CCodeBufferManager *	GetCodeBufferManager() const			{ return mpCodeBufferManager; }
 
 	bool					ShouldInvalidateOnWrite( u32 address, u32 length ) const;
+	EFragmentCacheInvalidationResult ValidateInvalidation( u32 address, u32 length, u32 * checked_words,
+		u32 * changed_address, u32 * expected_opcode, u32 * current_opcode ) const;
 
 private:
 	struct SFragmentEntry
@@ -89,17 +99,12 @@ private:
 		{
 		}
 
-		bool operator<( const SFragmentEntry & rhs ) const
-		{
-			return Address < rhs.Address;
-		}
-
 		u32			Address;
 		CFragment *	Fragment;
 	};
 
 	typedef std::vector< SFragmentEntry >	FragmentVec;
-	FragmentVec				mFragments;			// Sorted on Address
+	FragmentVec				mFragments;			// Ownership list; lookup is handled by the hash table
 
 	typedef std::vector< CJumpLocation >	JumpList;
 	typedef std::map< u32, JumpList >		JumpMap;

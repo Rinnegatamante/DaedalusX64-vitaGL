@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 
 #include <algorithm>
+#include <vector>
 
 #include "ROM.h"
 #include "CPU.h"
@@ -58,10 +59,90 @@ static const u32					gHotTraceThreshold = 10;	//How many times interpreter has t
 std::map< u32, u32 >				gHotTraceCountMap {};
 CFragmentCache						gFragmentCache {};
 static bool							gResetFragmentCache = false;
+struct SPendingICacheRange
+{
+	u32 Address;
+	u32 Length;
+};
+
+static std::vector<SPendingICacheRange> gPendingICacheRanges {};
 
 static void							CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled );
 static void							CPU_UpdateTrace( u32 address, OpCode op_code, bool branch_delay_slot, bool branch_taken );
 static void							CPU_CreateAndAddFragment();
+static void							CPU_QueueICacheValidationRange( u32 address, u32 length );
+static void							CPU_ResolvePendingICacheInvalidations();
+
+static void CPU_QueueICacheValidationRange( u32 address, u32 length )
+{
+	if( length == 0 )
+		return;
+
+	const u32 physical_start = address & 0x1fffffffu;
+	const u64 physical_end64 = (u64)physical_start + (u64)length;
+	if( physical_end64 > 0x20000000ULL )
+	{
+		gPendingICacheRanges.clear();
+		gResetFragmentCache = true;
+		return;
+	}
+
+	u32 merged_start = physical_start;
+	u32 merged_end = (u32)physical_end64;
+
+	for( auto it = gPendingICacheRanges.begin(); it != gPendingICacheRanges.end(); )
+	{
+		const u32 range_start = it->Address & 0x1fffffffu;
+		const u32 range_end = range_start + it->Length;
+		if( merged_end < range_start || merged_start > range_end )
+		{
+			++it;
+			continue;
+		}
+
+		merged_start = std::min( merged_start, range_start );
+		merged_end = std::max( merged_end, range_end );
+		it = gPendingICacheRanges.erase( it );
+	}
+
+	SPendingICacheRange merged;
+	merged.Address = 0x80000000u | merged_start;
+	merged.Length = merged_end - merged_start;
+	gPendingICacheRanges.push_back( merged );
+}
+
+static void CPU_ResolvePendingICacheInvalidations()
+{
+	if( gPendingICacheRanges.empty() )
+		return;
+
+	if( gResetFragmentCache )
+	{
+		gPendingICacheRanges.clear();
+		return;
+	}
+
+	EFragmentCacheInvalidationResult final_result = FCIR_NO_OVERLAP;
+
+	for( const SPendingICacheRange & range : gPendingICacheRanges )
+	{
+		const EFragmentCacheInvalidationResult result = gFragmentCache.ValidateInvalidation(
+			range.Address, range.Length, nullptr, nullptr, nullptr, nullptr );
+
+		if( result == FCIR_CHANGED || result == FCIR_UNVERIFIABLE )
+		{
+			final_result = result;
+			break;
+		}
+		if( result == FCIR_UNCHANGED )
+			final_result = FCIR_UNCHANGED;
+	}
+
+	if( final_result == FCIR_CHANGED || final_result == FCIR_UNVERIFIABLE )
+		gResetFragmentCache = true;
+
+	gPendingICacheRanges.clear();
+}
 
 //*****************************************************************************
 //	Indicate that the instruction cache is invalid
@@ -70,6 +151,7 @@ static void							CPU_CreateAndAddFragment();
 //*****************************************************************************
 void R4300_CALL_TYPE CPU_InvalidateICache()
 {
+	gPendingICacheRanges.clear();
 	CPU_ResetFragmentCache();
 }
 
@@ -89,7 +171,7 @@ void R4300_CALL_TYPE CPU_InvalidateICacheRange( u32 address, u32 length )
 {
 	if( gFragmentCache.ShouldInvalidateOnWrite( address, length ) )
 	{
-		CPU_ResetFragmentCache();
+		CPU_QueueICacheValidationRange( address, length );
 	}
 }
 
@@ -177,6 +259,7 @@ template< bool TraceEnabled > DAEDALUS_FORCEINLINE void CPU_EXECUTE_OP()
 void	CPU_ResetFragmentCache()
 {
 	// Need to make sure this happens at a safe point, so we use a flag
+	gPendingICacheRanges.clear();
 	gResetFragmentCache	= true;
 }
 
@@ -295,6 +378,8 @@ void CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled )
 
 				if( !gTraceRecorder.IsTraceActive() )
 				{
+					CPU_ResolvePendingICacheInvalidations();
+
 					if (gResetFragmentCache)
 					{
 #ifdef DAEDALUS_ENABLE_OS_HOOKS
@@ -306,6 +391,7 @@ void CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled )
 						{
 							gFragmentCache.Clear();
 							gHotTraceCountMap.clear();		// Makes sense to clear this now, to get accurate usage stats
+							gPendingICacheRanges.clear();
 #ifdef DAEDALUS_ENABLE_OS_HOOKS
 							Patch_PatchAll();
 #endif
@@ -317,6 +403,7 @@ void CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled )
 					{
 						gFragmentCache.Clear();
 						gHotTraceCountMap.clear();		// Makes sense to clear this now, to get accurate usage stats
+						gPendingICacheRanges.clear();
 #ifdef DAEDALUS_ENABLE_OS_HOOKS
 						Patch_PatchAll();
 #endif
@@ -353,6 +440,7 @@ void CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled )
 void Dynamo_Reset()
 {
 	gHotTraceCountMap.clear();
+	gPendingICacheRanges.clear();
 	gFragmentCache.Clear();
 	gResetFragmentCache = false;
 	gTraceRecorder.AbortTrace();

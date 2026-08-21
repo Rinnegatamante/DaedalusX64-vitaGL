@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "Core/CPU.h"			// Try to remove this cyclic dependency
 #include "Core/R4300.h"
 #include "Core/Interrupt.h"
+#include "Core/Memory.h"
 
 #include "DynaRec/CodeBufferManager.h"
 #include "DynaRec/CodeGenerator.h"
@@ -83,6 +84,7 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 					  const BranchBuffer & branch_details,
 					  bool need_indirect_exit_map )
 :	mEntryAddress( entry_address )
+,	mGuestCodeFullyVerifiable( true )
 ,	mEntryPoint( nullptr )
 ,	mInputLength( trace.size() * sizeof( OpCode ) )
 ,	mOutputLength( 0 )
@@ -98,6 +100,47 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 ,	mpCache( nullptr )
 #endif
 {
+	mCodePages.reserve( trace.size() );
+	mGuestCodeWords.reserve( trace.size() );
+	for( const STraceEntry & entry : trace )
+	{
+		mCodePages.push_back( entry.Address & ~0xfffu );
+
+		const u32 physical_address = entry.Address & 0x1fffffffu;
+		const bool direct_rdram = (entry.Address & 0xc0000000u) == 0x80000000u &&
+			physical_address + sizeof(u32) <= gRamSize;
+		if( !direct_rdram )
+		{
+			mGuestCodeFullyVerifiable = false;
+		}
+
+		SGuestCodeWord word;
+		word.PhysicalAddress = physical_address;
+		word.ExpectedOpCode = entry.OpCode._u32;
+		mGuestCodeWords.push_back( word );
+	}
+	std::sort( mCodePages.begin(), mCodePages.end() );
+	mCodePages.erase( std::unique( mCodePages.begin(), mCodePages.end() ), mCodePages.end() );
+
+	std::sort( mGuestCodeWords.begin(), mGuestCodeWords.end(), []( const SGuestCodeWord & lhs, const SGuestCodeWord & rhs )
+	{
+		return lhs.PhysicalAddress < rhs.PhysicalAddress;
+	} );
+
+	for( size_t i = 1; i < mGuestCodeWords.size(); ++i )
+	{
+		if( mGuestCodeWords[i - 1].PhysicalAddress == mGuestCodeWords[i].PhysicalAddress &&
+			mGuestCodeWords[i - 1].ExpectedOpCode != mGuestCodeWords[i].ExpectedOpCode )
+		{
+			mGuestCodeFullyVerifiable = false;
+		}
+	}
+	mGuestCodeWords.erase( std::unique( mGuestCodeWords.begin(), mGuestCodeWords.end(),
+		[]( const SGuestCodeWord & lhs, const SGuestCodeWord & rhs )
+		{
+			return lhs.PhysicalAddress == rhs.PhysicalAddress;
+		} ), mGuestCodeWords.end() );
+
 #ifdef FRAGMENT_RETAIN_ADDITIONAL_INFO
 	mRegisterUsage = register_usage;
 #endif
@@ -112,6 +155,7 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 CFragment::CFragment(CCodeBufferManager * p_manager, u32 entry_address,
 						u32 function_length, void* function_Ptr)
 	:	mEntryAddress( entry_address )
+	,	mGuestCodeFullyVerifiable( false )
 	,	mInputLength(function_length  * sizeof( OpCode ) )
 	,	mOutputLength( 0 )
 	,	mFragmentFunctionLength( 0 )
@@ -126,9 +170,94 @@ CFragment::CFragment(CCodeBufferManager * p_manager, u32 entry_address,
 	,	mpCache( nullptr )
 #endif
 {
+	if( mInputLength != 0 )
+	{
+		const u32 first_page = mEntryAddress & ~0xfffu;
+		const u32 last_page = (mEntryAddress + mInputLength - 1) & ~0xfffu;
+		for( u32 page = first_page; page <= last_page; page += 0x1000 )
+		{
+			mCodePages.push_back( page );
+		}
+	}
+
 	Assemble(p_manager, CCodeLabel(function_Ptr));
 }
 #endif
+//*************************************************************************************
+//
+//*************************************************************************************
+EGuestCodeValidation CFragment::ValidateGuestCodeRange( u32 address, u32 length, u32 * checked_words,
+	u32 * changed_address, u32 * expected_opcode, u32 * current_opcode ) const
+{
+	if( checked_words != nullptr )
+		*checked_words = 0;
+
+	if( length == 0 )
+		return GCV_NO_OVERLAP;
+
+	const u32 physical_start = address & 0x1fffffffu;
+	const u64 physical_end64 = (u64)physical_start + (u64)length;
+	if( physical_end64 > 0x20000000ULL )
+		return GCV_UNVERIFIABLE;
+
+	const u32 physical_end = (u32)physical_end64;
+
+	if( !mGuestCodeFullyVerifiable )
+	{
+		for( u32 page : mCodePages )
+		{
+			const u32 page_start = page & 0x1fffffffu;
+			const u32 page_end = page_start + 0x1000u;
+			if( page_start < physical_end && page_end > physical_start )
+				return GCV_UNVERIFIABLE;
+		}
+		return GCV_NO_OVERLAP;
+	}
+
+	SGuestCodeWord key;
+	key.PhysicalAddress = physical_start > 3 ? physical_start - 3 : 0;
+	key.ExpectedOpCode = 0;
+	auto it = std::lower_bound( mGuestCodeWords.begin(), mGuestCodeWords.end(), key,
+		[]( const SGuestCodeWord & lhs, const SGuestCodeWord & rhs )
+		{
+			return lhs.PhysicalAddress < rhs.PhysicalAddress;
+		} );
+
+	u32 checked = 0;
+	for( ; it != mGuestCodeWords.end(); ++it )
+	{
+		const u32 word_start = it->PhysicalAddress;
+		if( word_start >= physical_end )
+			break;
+
+		const u32 word_end = word_start + sizeof(u32);
+		if( word_start < physical_end && word_end > physical_start )
+		{
+			++checked;
+			if( word_end > gRamSize )
+				return GCV_UNVERIFIABLE;
+
+			const u32 current = *(const u32 *)(g_pu8RamBase + word_start);
+			if( current != it->ExpectedOpCode )
+			{
+				if( checked_words != nullptr )
+					*checked_words = checked;
+				if( changed_address != nullptr )
+					*changed_address = 0x80000000u | word_start;
+				if( expected_opcode != nullptr )
+					*expected_opcode = it->ExpectedOpCode;
+				if( current_opcode != nullptr )
+					*current_opcode = current;
+				return GCV_CHANGED;
+			}
+		}
+	}
+
+	if( checked_words != nullptr )
+		*checked_words = checked;
+	return checked != 0 ? GCV_UNCHANGED : GCV_NO_OVERLAP;
+}
+
 //*************************************************************************************
 //
 //*************************************************************************************
