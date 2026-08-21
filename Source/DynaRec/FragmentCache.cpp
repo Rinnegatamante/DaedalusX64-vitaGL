@@ -42,7 +42,7 @@ CFragmentCache::CFragmentCache()
 {
 	memset( mpCacheHashTable, 0, sizeof(mpCacheHashTable) );
 
-	mFragments.reserve( 2000 );
+	mFragments.reserve( 10000 );
 
 	mpCodeBufferManager = CCodeBufferManager::Create();
 	if(mpCodeBufferManager != nullptr)
