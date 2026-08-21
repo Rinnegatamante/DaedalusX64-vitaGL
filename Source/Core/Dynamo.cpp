@@ -89,9 +89,6 @@ void R4300_CALL_TYPE CPU_InvalidateICacheRange( u32 address, u32 length )
 {
 	if( gFragmentCache.ShouldInvalidateOnWrite( address, length ) )
 	{
-#ifndef DAEDALUS_SILENT
-		sceClibPrintf( "Write to %08x (%d bytes) overlaps fragment cache entries\n", address, length );
-#endif
 		CPU_ResetFragmentCache();
 	}
 }
@@ -237,8 +234,6 @@ void CPU_CreateAndAddFragment()
 	{
 		gHotTraceCountMap.erase( p_fragment->GetEntryAddress() );
 		gFragmentCache.InsertFragment( p_fragment );
-
-		//DBGConsole_Msg( 0, "Inserted hot trace at [R%08x]! (size is %d. %dKB)", p_fragment->GetEntryAddress(), gFragmentCache.GetCacheSize(), gFragmentCache.GetMemoryUsage() / 1024 );
 	}
 }
 
@@ -332,10 +327,6 @@ void CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled )
 					if( gHotTraceCountMap.size() >= gMaxHotTraceMapSize )
 					{
 						gHotTraceCountMap.clear();
-						gFragmentCache.Clear();
-#ifdef DAEDALUS_ENABLE_OS_HOOKS
-						Patch_PatchAll();
-#endif
 					}
 					else if( trace_count == gHotTraceThreshold )
 					{
