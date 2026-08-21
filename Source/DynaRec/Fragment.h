@@ -65,10 +65,18 @@ enum EGuestCodeValidation
 	GCV_UNVERIFIABLE
 };
 
+enum EGuestCodeWordValidation
+{
+	GCWV_VERIFIABLE = 0,
+	GCWV_NON_DIRECT = 1,
+	GCWV_CONFLICTING_OPCODE = 2
+};
+
 struct SGuestCodeWord
 {
 	u32 PhysicalAddress;
 	u32 ExpectedOpCode;
+	u8 Validation;
 };
 
 //*************************************************************************************
@@ -129,7 +137,7 @@ private:
 		u32								mEntryAddress;
 		std::vector<u32>					mCodePages;
 		std::vector<SGuestCodeWord>			mGuestCodeWords;
-		bool								mGuestCodeFullyVerifiable;
+		bool								mNativeFragment;
 
 		std::vector< SFragmentPatchDetails >	mPatchList;
 

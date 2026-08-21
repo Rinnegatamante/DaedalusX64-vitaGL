@@ -84,7 +84,7 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 					  const BranchBuffer & branch_details,
 					  bool need_indirect_exit_map )
 :	mEntryAddress( entry_address )
-,	mGuestCodeFullyVerifiable( true )
+,	mNativeFragment( false )
 ,	mEntryPoint( nullptr )
 ,	mInputLength( trace.size() * sizeof( OpCode ) )
 ,	mOutputLength( 0 )
@@ -109,14 +109,11 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 		const u32 physical_address = entry.Address & 0x1fffffffu;
 		const bool direct_rdram = (entry.Address & 0xc0000000u) == 0x80000000u &&
 			physical_address + sizeof(u32) <= gRamSize;
-		if( !direct_rdram )
-		{
-			mGuestCodeFullyVerifiable = false;
-		}
 
 		SGuestCodeWord word;
 		word.PhysicalAddress = physical_address;
 		word.ExpectedOpCode = entry.OpCode._u32;
+		word.Validation = direct_rdram ? GCWV_VERIFIABLE : GCWV_NON_DIRECT;
 		mGuestCodeWords.push_back( word );
 	}
 	std::sort( mCodePages.begin(), mCodePages.end() );
@@ -127,19 +124,25 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 		return lhs.PhysicalAddress < rhs.PhysicalAddress;
 	} );
 
-	for( size_t i = 1; i < mGuestCodeWords.size(); ++i )
+	std::vector<SGuestCodeWord> merged_words;
+	merged_words.reserve( mGuestCodeWords.size() );
+	for( size_t begin = 0; begin < mGuestCodeWords.size(); )
 	{
-		if( mGuestCodeWords[i - 1].PhysicalAddress == mGuestCodeWords[i].PhysicalAddress &&
-			mGuestCodeWords[i - 1].ExpectedOpCode != mGuestCodeWords[i].ExpectedOpCode )
+		size_t end = begin + 1;
+		SGuestCodeWord merged = mGuestCodeWords[begin];
+		while( end < mGuestCodeWords.size() &&
+			mGuestCodeWords[end].PhysicalAddress == merged.PhysicalAddress )
 		{
-			mGuestCodeFullyVerifiable = false;
+			if( mGuestCodeWords[end].Validation != GCWV_VERIFIABLE )
+				merged.Validation = mGuestCodeWords[end].Validation;
+			if( mGuestCodeWords[end].ExpectedOpCode != merged.ExpectedOpCode )
+				merged.Validation = GCWV_CONFLICTING_OPCODE;
+			++end;
 		}
+		merged_words.push_back( merged );
+		begin = end;
 	}
-	mGuestCodeWords.erase( std::unique( mGuestCodeWords.begin(), mGuestCodeWords.end(),
-		[]( const SGuestCodeWord & lhs, const SGuestCodeWord & rhs )
-		{
-			return lhs.PhysicalAddress == rhs.PhysicalAddress;
-		} ), mGuestCodeWords.end() );
+	mGuestCodeWords.swap( merged_words );
 
 #ifdef FRAGMENT_RETAIN_ADDITIONAL_INFO
 	mRegisterUsage = register_usage;
@@ -155,7 +158,7 @@ CFragment::CFragment( CCodeBufferManager * p_manager,
 CFragment::CFragment(CCodeBufferManager * p_manager, u32 entry_address,
 						u32 function_length, void* function_Ptr)
 	:	mEntryAddress( entry_address )
-	,	mGuestCodeFullyVerifiable( false )
+	,	mNativeFragment( true )
 	,	mInputLength(function_length  * sizeof( OpCode ) )
 	,	mOutputLength( 0 )
 	,	mFragmentFunctionLength( 0 )
@@ -195,6 +198,9 @@ EGuestCodeValidation CFragment::ValidateGuestCodeRange( u32 address, u32 length,
 	if( length == 0 )
 		return GCV_NO_OVERLAP;
 
+	if( mNativeFragment )
+		return GCV_NO_OVERLAP;
+
 	const u32 physical_start = address & 0x1fffffffu;
 	const u64 physical_end64 = (u64)physical_start + (u64)length;
 	if( physical_end64 > 0x20000000ULL )
@@ -202,21 +208,10 @@ EGuestCodeValidation CFragment::ValidateGuestCodeRange( u32 address, u32 length,
 
 	const u32 physical_end = (u32)physical_end64;
 
-	if( !mGuestCodeFullyVerifiable )
-	{
-		for( u32 page : mCodePages )
-		{
-			const u32 page_start = page & 0x1fffffffu;
-			const u32 page_end = page_start + 0x1000u;
-			if( page_start < physical_end && page_end > physical_start )
-				return GCV_UNVERIFIABLE;
-		}
-		return GCV_NO_OVERLAP;
-	}
-
 	SGuestCodeWord key;
 	key.PhysicalAddress = physical_start > 3 ? physical_start - 3 : 0;
 	key.ExpectedOpCode = 0;
+	key.Validation = GCWV_VERIFIABLE;
 	auto it = std::lower_bound( mGuestCodeWords.begin(), mGuestCodeWords.end(), key,
 		[]( const SGuestCodeWord & lhs, const SGuestCodeWord & rhs )
 		{
@@ -233,10 +228,10 @@ EGuestCodeValidation CFragment::ValidateGuestCodeRange( u32 address, u32 length,
 		const u32 word_end = word_start + sizeof(u32);
 		if( word_start < physical_end && word_end > physical_start )
 		{
-			++checked;
-			if( word_end > gRamSize )
+			if( it->Validation != GCWV_VERIFIABLE || word_end > gRamSize )
 				return GCV_UNVERIFIABLE;
 
+			++checked;
 			const u32 current = *(const u32 *)(g_pu8RamBase + word_start);
 			if( current != it->ExpectedOpCode )
 			{

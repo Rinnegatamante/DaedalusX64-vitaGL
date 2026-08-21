@@ -360,6 +360,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gDynarecNativeFPUComparisons", (int)gDynarecNativeFPUComparisons);
 		fprintf(config, "%s=%d\n", "gDynarecRelaxedFPRPairing", (int)gDynarecRelaxedFPRPairing);
 		fprintf(config, "%s=%d\n", "gDynarecNativeCTC1", (int)gDynarecNativeCTC1);
+		fprintf(config, "%s=%d\n", "gDynarecVolatileCodeProtection", (int)gDynarecVolatileCodeProtection);
 		fclose(config);
 	}
 	
@@ -606,6 +607,10 @@ void DrawCommonMenuBar() {
 			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_CTC1_OPT], nullptr, gDynarecNativeCTC1)) {
 				gDynarecNativeCTC1 = !gDynarecNativeCTC1;
 				CPU_ResetFragmentCache();
+			}
+			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC_SMC_OPT], nullptr, gDynarecVolatileCodeProtection)) {
+				gDynarecVolatileCodeProtection = !gDynarecVolatileCodeProtection;
+				Dynamo_RefreshVolatileCodeProtection();
 			}
 			ImGui::EndMenu();
 		}

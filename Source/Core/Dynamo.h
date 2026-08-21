@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void Dynamo_SelectCore();
 void Dynamo_Reset();
+void Dynamo_RefreshVolatileCodeProtection();
 
 void Dynarec_ClearedCPUStuffToDo();
 void Dynarec_SetCPUStuffToDo();

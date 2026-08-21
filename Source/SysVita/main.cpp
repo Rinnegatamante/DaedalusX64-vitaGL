@@ -890,6 +890,7 @@ void loadConfig(const char *game) {
 			else if (strcmp("gDynarecNativeFPUComparisons", buffer) == 0) gDynarecNativeFPUComparisons = (bool)value;
 			else if (strcmp("gDynarecRelaxedFPRPairing", buffer) == 0) gDynarecRelaxedFPRPairing = (bool)value;
 			else if (strcmp("gDynarecNativeCTC1", buffer) == 0) gDynarecNativeCTC1 = (bool)value;
+			else if (strcmp("gDynarecVolatileCodeProtection", buffer) == 0) gDynarecVolatileCodeProtection = (bool)value;
 		}
 		fclose(config);
 

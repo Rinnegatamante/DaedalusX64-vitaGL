@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stdafx.h"
 #include "Dynamo.h"
 
-#include <stdio.h>
-
 #include <algorithm>
 #include <vector>
 
@@ -59,6 +57,13 @@ static const u32					gHotTraceThreshold = 10;	//How many times interpreter has t
 std::map< u32, u32 >				gHotTraceCountMap {};
 CFragmentCache						gFragmentCache {};
 static bool							gResetFragmentCache = false;
+
+static const u32					VOLATILE_CODE_PAGE_SHIFT = 12;
+static const u32					VOLATILE_CODE_PAGE_COUNT = (8u * 1024u * 1024u) >> VOLATILE_CODE_PAGE_SHIFT;
+static const u8					VOLATILE_CODE_STRIKE_THRESHOLD = 2;
+static u8						gVolatileCodeStrikes[VOLATILE_CODE_PAGE_COUNT] = {};
+static bool						gVolatileCodePages[VOLATILE_CODE_PAGE_COUNT] = {};
+
 struct SPendingICacheRange
 {
 	u32 Address;
@@ -72,6 +77,51 @@ static void							CPU_UpdateTrace( u32 address, OpCode op_code, bool branch_dela
 static void							CPU_CreateAndAddFragment();
 static void							CPU_QueueICacheValidationRange( u32 address, u32 length );
 static void							CPU_ResolvePendingICacheInvalidations();
+static bool							CPU_IsVolatileCodeAddress( u32 address );
+static void							CPU_RecordVolatileCodeChange( u32 address );
+static void							CPU_ResetVolatileCodeState();
+
+static bool CPU_IsVolatileCodeAddress( u32 address )
+{
+	const u32 physical = address & 0x1fffffffu;
+	if( physical >= 8u * 1024u * 1024u )
+		return false;
+
+	const u32 page_idx = physical >> VOLATILE_CODE_PAGE_SHIFT;
+
+	if( !gDynarecVolatileCodeProtection )
+		return false;
+
+	return gVolatileCodePages[page_idx];
+}
+
+static void CPU_RecordVolatileCodeChange( u32 address )
+{
+	if( !gDynarecVolatileCodeProtection )
+		return;
+
+	const u32 physical = address & 0x1fffffffu;
+	if( physical >= 8u * 1024u * 1024u )
+		return;
+
+	const u32 page_idx = physical >> VOLATILE_CODE_PAGE_SHIFT;
+	if( gVolatileCodePages[ page_idx ] )
+		return;
+
+	u8 & strikes = gVolatileCodeStrikes[ page_idx ];
+	if( strikes != 0xffu )
+		++strikes;
+
+	if( strikes >= VOLATILE_CODE_STRIKE_THRESHOLD )
+		gVolatileCodePages[ page_idx ] = true;
+}
+
+static void CPU_ResetVolatileCodeState()
+{
+	memset( gVolatileCodeStrikes, 0, sizeof(gVolatileCodeStrikes) );
+	memset( gVolatileCodePages, 0, sizeof(gVolatileCodePages) );
+
+}
 
 static void CPU_QueueICacheValidationRange( u32 address, u32 length )
 {
@@ -123,11 +173,12 @@ static void CPU_ResolvePendingICacheInvalidations()
 	}
 
 	EFragmentCacheInvalidationResult final_result = FCIR_NO_OVERLAP;
+	u32 changed_address = 0;
 
 	for( const SPendingICacheRange & range : gPendingICacheRanges )
 	{
 		const EFragmentCacheInvalidationResult result = gFragmentCache.ValidateInvalidation(
-			range.Address, range.Length, nullptr, nullptr, nullptr, nullptr );
+			range.Address, range.Length, nullptr, &changed_address, nullptr, nullptr );
 
 		if( result == FCIR_CHANGED || result == FCIR_UNVERIFIABLE )
 		{
@@ -138,8 +189,15 @@ static void CPU_ResolvePendingICacheInvalidations()
 			final_result = FCIR_UNCHANGED;
 	}
 
-	if( final_result == FCIR_CHANGED || final_result == FCIR_UNVERIFIABLE )
+	if( final_result == FCIR_CHANGED )
+	{
+		CPU_RecordVolatileCodeChange( changed_address );
 		gResetFragmentCache = true;
+	}
+	else if( final_result == FCIR_UNVERIFIABLE )
+	{
+		gResetFragmentCache = true;
+	}
 
 	gPendingICacheRanges.clear();
 }
@@ -315,7 +373,8 @@ void CPU_CreateAndAddFragment()
 
 	if( p_fragment != nullptr )
 	{
-		gHotTraceCountMap.erase( p_fragment->GetEntryAddress() );
+		const u32 entry_address = p_fragment->GetEntryAddress();
+		gHotTraceCountMap.erase( entry_address );
 		gFragmentCache.InsertFragment( p_fragment );
 	}
 }
@@ -325,6 +384,16 @@ void CPU_CreateAndAddFragment()
 //*****************************************************************************
 void CPU_UpdateTrace( u32 address, OpCode op_code, bool branch_delay_slot, bool branch_taken )
 {
+	if( CPU_IsVolatileCodeAddress( address ) )
+	{
+		if( gTraceRecorder.IsTraceActive() )
+		{
+			gTraceRecorder.AbortTrace();
+			CPU_SelectCore();
+		}
+		return;
+	}
+
 	CFragment * p_address_fragment( gFragmentCache.LookupFragmentQ( address ) );
 
 	if( gTraceRecorder.UpdateTrace( address, branch_delay_slot, branch_taken, op_code, p_address_fragment ) == CTraceRecorder::UTS_CREATE_FRAGMENT )
@@ -409,6 +478,11 @@ void CPU_HandleDynaRecOnBranch( bool backwards, bool trace_already_enabled )
 #endif
 					}
 
+					if( CPU_IsVolatileCodeAddress( gCPUState.CurrentPC ) )
+					{
+						break;
+					}
+
 					// If there is no fragment for this target, start tracing
 					u32 trace_count( ++gHotTraceCountMap[ gCPUState.CurrentPC ] );
 					if( gHotTraceCountMap.size() >= gMaxHotTraceMapSize )
@@ -441,9 +515,16 @@ void Dynamo_Reset()
 {
 	gHotTraceCountMap.clear();
 	gPendingICacheRanges.clear();
+	CPU_ResetVolatileCodeState();
 	gFragmentCache.Clear();
 	gResetFragmentCache = false;
 	gTraceRecorder.AbortTrace();
+}
+
+void Dynamo_RefreshVolatileCodeProtection()
+{
+	CPU_ResetVolatileCodeState();
+	CPU_ResetFragmentCache();
 }
 
 void Dynamo_SelectCore()
@@ -464,6 +545,7 @@ void Dynamo_SelectCore()
 
 void CPU_ResetFragmentCache() {}
 void Dynamo_Reset() {}
+void Dynamo_RefreshVolatileCodeProtection() {}
 void R4300_CALL_TYPE CPU_InvalidateICacheRange( u32 address, u32 length ) {}
 
 #endif //DAEDALUS_ENABLE_DYNAREC

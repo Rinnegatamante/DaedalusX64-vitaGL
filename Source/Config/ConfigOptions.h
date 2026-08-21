@@ -45,6 +45,7 @@ extern bool gDynarecFastIntegerComparisons;
 extern bool gDynarecNativeFPUComparisons;
 extern bool gDynarecRelaxedFPRPairing;
 extern bool gDynarecNativeCTC1;
+extern bool gDynarecVolatileCodeProtection;
 extern bool gOSHooksEnabled;			// Apply os-hooks
 extern u32	gSpeedSyncEnabled;
 extern bool gDoubleDisplayEnabled;
