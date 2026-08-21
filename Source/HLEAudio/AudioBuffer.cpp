@@ -106,25 +106,26 @@ void CAudioBuffer::AddSamples( const Sample * samples, u32 num_samples, u32 freq
 		i--;
 #endif
 
-		write_ptr++;
-		if( write_ptr >= mBufferEnd )
-			write_ptr = mBufferBegin;
+		Sample * next_write = write_ptr + 1;
+		if( next_write >= mBufferEnd )
+			next_write = mBufferBegin;
 
-		while( write_ptr == read_ptr && !gFastForward)
+		while( next_write == read_ptr && !gFastForward )
 		{
-			// The buffer is full - spin until the read pointer advances.
-			//    Note - spends a lot of time here if program is running
-			//    fast. This loop locks the speed to the playback rate
-			//    as the program winds up waiting for the buffer to empty.
-			// ToDo: Adjust Audio Frequency/ Look at Turok in this regard.
-			// We might want to put a Sleep in when executing on the SC?
+			ThreadYield();
 			read_ptr = mReadPtr;
 		}
+
+		if( next_write == read_ptr && gFastForward )
+			continue;
+
 #ifdef USE_SPEEXDSP
 		*write_ptr = out_buf[i];
 #else
 		*write_ptr = out;
 #endif
+		write_ptr = next_write;
+		mWritePtr = write_ptr;
 	}
 
 	//Todo: Check Cache Routines
