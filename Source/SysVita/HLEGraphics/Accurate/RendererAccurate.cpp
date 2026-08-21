@@ -43,6 +43,7 @@ public:
             544,
             0,
             0);
+        mInterpreter->SetRdramMemory(g_pu8RamBase, gRamSize);
 
         DaedalusFast3D_SetDisplayConfiguration(mInterpreter.get(), gAspectRatio);
         mLastAspectRatio = gAspectRatio;
@@ -179,6 +180,7 @@ private:
         case GBI_1: return 2;
         case GBI_2: return 4;
         case GBI_2_S2DEX: return 5;
+        case GBI_1_S2DEX: return 6;
         default: return -1;
         }
     }

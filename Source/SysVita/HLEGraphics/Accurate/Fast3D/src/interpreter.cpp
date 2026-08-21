@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include <algorithm>
 #include <map>
 #include <set>
 #include <unordered_map>
@@ -92,6 +93,7 @@ static constexpr const uint32_t* ucode_attr_handlers[] = {
     f3dexAttrHandler,
     f3dex2AttrHandler,
     f3dex2AttrHandler,
+    f3dexAttrHandler,
 };
 
 static uint32_t get_attr(Attribute attr) {
@@ -2457,6 +2459,11 @@ void Interpreter::GfxSpTexture(uint16_t sc, uint16_t tc, uint8_t level, uint8_t 
 }
 
 void Interpreter::GfxDpSetScissor(uint32_t mode, uint32_t ulx, uint32_t uly, uint32_t lrx, uint32_t lry) {
+    mRdp->scissor_ulx_raw = (uint16_t)ulx;
+    mRdp->scissor_uly_raw = (uint16_t)uly;
+    mRdp->scissor_lrx_raw = (uint16_t)lrx;
+    mRdp->scissor_lry_raw = (uint16_t)lry;
+
     float x = ulx / 4.0f;
     float y = lry / 4.0f;
     float width = (lrx - ulx) / 4.0f;
@@ -3176,33 +3183,1051 @@ void Interpreter::Gfxs2dexBgCopy(F3DuObjBg* bg) {
 }
 
 void Interpreter::Gfxs2dexBg1cyc(F3DuObjBg* bg) {
-    uintptr_t data = (uintptr_t)bg->b.imagePtr;
+    if (bg == nullptr || bg->s.imagePtr == nullptr) return;
 
-    uint32_t texFlags = 0;
-    RawTexMetadata rawTexMetadata = {};
+    const uint32_t imagePtr = [&]() {
+        uint32_t address = 0;
+        memcpy(&address, bg->s.padding, sizeof(address));
+        return address & 0x00FFFFFFu;
+    }();
+    const uint32_t imageWidth = bg->s.imageW >> 2;
+    const uint32_t imageHeight = bg->s.imageH >> 2;
+    if (imageWidth == 0 || imageHeight == 0 || bg->s.scaleW == 0 || bg->s.scaleH == 0) return;
 
-    // TODO: Implement bg scaling correctly
-    s16 uls = bg->b.imageX >> 2;
-    s16 lrs = bg->b.imageW >> 2;
-
-    s16 dsdxRect = 1 << 10;
-    s16 ulsRect = bg->b.imageX << 3;
-    // Flip flag only flips horizontally
-    if (bg->b.imageFlip == G_BG_FLAG_FLIPS) {
-        dsdxRect = -dsdxRect;
-        ulsRect = (bg->b.imageW - bg->b.imageX) << 3;
+    const uint8_t* stagedImage = reinterpret_cast<const uint8_t*>(bg->s.imagePtr);
+    uint32_t stagedImageBytes = 0;
+    switch (bg->s.imageSiz) {
+        case G_IM_SIZ_4b: stagedImageBytes = ((imageWidth * imageHeight) + 1u) >> 1; break;
+        case G_IM_SIZ_8b: stagedImageBytes = imageWidth * imageHeight; break;
+        case G_IM_SIZ_16b: stagedImageBytes = imageWidth * imageHeight * 2u; break;
+        case G_IM_SIZ_32b: stagedImageBytes = imageWidth * imageHeight * 4u; break;
+        default: return;
     }
 
-    GfxDpSetTextureImage(bg->b.imageFmt, bg->b.imageSiz, bg->b.imageW >> 2, nullptr, texFlags, rawTexMetadata,
-                         (void*)data);
-    GfxDpSetTile(bg->b.imageFmt, bg->b.imageSiz, 0, 0, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
-    GfxDpLoadBlock(G_TX_LOADTILE, 0, 0, (bg->b.imageW * bg->b.imageH >> 4) - 1, 0);
-    GfxDpSetTile(bg->b.imageFmt, bg->b.imageSiz, (((lrs - uls) * bg->b.imageSiz) + 7) >> 3, 0, G_TX_RENDERTILE,
-                 bg->b.imagePal, 0, 0, 0, 0, 0, 0);
-    GfxDpSetTileSize(G_TX_RENDERTILE, 0, 0, bg->b.imageW, bg->b.imageH);
+    struct BgTileState {
+        uint8_t fmt = 0;
+        uint8_t siz = 0;
+        uint16_t line = 0;
+        uint16_t tmem = 0;
+        uint8_t palette = 0;
+        uint8_t cmt = 0;
+        uint8_t maskt = 0;
+        uint8_t shiftt = 0;
+        uint8_t cms = 0;
+        uint8_t masks = 0;
+        uint8_t shifts = 0;
+        uint16_t uls = 0;
+        uint16_t ult = 0;
+        uint16_t lrs = 0;
+        uint16_t lrt = 0;
+    };
+    struct BgTextureImageState {
+        uint8_t fmt = 0;
+        uint8_t siz = 0;
+        uint16_t width = 0;
+        uint32_t address = 0;
+        bool valid = false;
+    };
 
-    GfxDpTextureRectangle(bg->b.frameX, bg->b.frameY, bg->b.frameW, bg->b.frameH, G_TX_RENDERTILE, ulsRect,
-                          bg->b.imageY << 3, dsdxRect, 1 << 10, false);
+    BgTileState bgTiles[8] = {};
+    BgTextureImageState bgTimg = {};
+    uint8_t shadowTmem[4096] = {};
+
+    auto readRdramByte = [&](uint32_t address, uint8_t& value) -> bool {
+        address &= 0x00FFFFFFu;
+        if (mRdramBase != nullptr && address < mRdramSize) {
+            value = mRdramBase[address ^ 3u];
+            return true;
+        }
+        if (address >= imagePtr) {
+            const uint32_t offset = address - imagePtr;
+            if (offset < stagedImageBytes) {
+                value = stagedImage[offset];
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto setTileCommand = [&](uint32_t w0, uint32_t w1) {
+        const uint32_t tile = (w1 >> 24) & 7u;
+        BgTileState& t = bgTiles[tile];
+        t.fmt = (uint8_t)((w0 >> 21) & 7u);
+        t.siz = (uint8_t)((w0 >> 19) & 3u);
+        t.line = (uint16_t)((w0 >> 9) & 0x1FFu);
+        t.tmem = (uint16_t)(w0 & 0x1FFu);
+        t.palette = (uint8_t)((w1 >> 20) & 0xFu);
+        t.cmt = (uint8_t)((w1 >> 18) & 3u);
+        t.maskt = (uint8_t)((w1 >> 14) & 0xFu);
+        t.shiftt = (uint8_t)((w1 >> 10) & 0xFu);
+        t.cms = (uint8_t)((w1 >> 8) & 3u);
+        t.masks = (uint8_t)((w1 >> 4) & 0xFu);
+        t.shifts = (uint8_t)(w1 & 0xFu);
+    };
+
+    auto setTileSizeCommand = [&](uint32_t w0, uint32_t w1) {
+        const uint32_t tile = (w1 >> 24) & 7u;
+        BgTileState& t = bgTiles[tile];
+        t.uls = (uint16_t)((w0 >> 12) & 0xFFFu);
+        t.ult = (uint16_t)(w0 & 0xFFFu);
+        t.lrs = (uint16_t)((w1 >> 12) & 0xFFFu);
+        t.lrt = (uint16_t)(w1 & 0xFFFu);
+    };
+
+    auto setTextureImageCommand = [&](uint32_t w0, uint32_t w1) {
+        bgTimg.fmt = (uint8_t)((w0 >> 21) & 7u);
+        bgTimg.siz = (uint8_t)((w0 >> 19) & 3u);
+        bgTimg.width = (uint16_t)((w0 & 0xFFFu) + 1u);
+        bgTimg.address = w1 & 0x00FFFFFFu;
+        bgTimg.valid = true;
+    };
+
+    auto loadTileCommand = [&](uint32_t w0, uint32_t w1) -> bool {
+        if (!bgTimg.valid) return false;
+        const uint32_t tileIndex = (w1 >> 24) & 7u;
+        const BgTileState& tile = bgTiles[tileIndex];
+        const uint32_t uls = (w0 >> 12) & 0xFFFu;
+        const uint32_t ult = w0 & 0xFFFu;
+        const uint32_t lrs = (w1 >> 12) & 0xFFFu;
+        const uint32_t lrt = w1 & 0xFFFu;
+        if (lrs < uls || lrt < ult) return false;
+
+        uint32_t bytesPerTexel = 0;
+        switch (bgTimg.siz) {
+            case G_IM_SIZ_8b: bytesPerTexel = 1; break;
+            case G_IM_SIZ_16b: bytesPerTexel = 2; break;
+            case G_IM_SIZ_32b: bytesPerTexel = 4; break;
+            default: return false;
+        }
+
+        const uint32_t srcX = uls >> 2;
+        const uint32_t srcY = ult >> 2;
+        const uint32_t widthTexels = ((lrs - uls) >> 2) + 1u;
+        const uint32_t heightTexels = ((lrt - ult) >> 2) + 1u;
+        const uint32_t srcLineBytes = (uint32_t)bgTimg.width * bytesPerTexel;
+        const uint32_t copyBytes = widthTexels * bytesPerTexel;
+        const uint32_t dstLineBytes = tile.line != 0 ? (uint32_t)tile.line * 8u : copyBytes;
+        const uint32_t dstBase = (uint32_t)tile.tmem * 8u;
+        if (copyBytes == 0 || dstLineBytes == 0 || dstBase >= sizeof(shadowTmem)) return false;
+
+        for (uint32_t y = 0; y < heightTexels; ++y) {
+            const uint64_t srcRow = (uint64_t)bgTimg.address + (uint64_t)(srcY + y) * srcLineBytes +
+                                    (uint64_t)srcX * bytesPerTexel;
+            const uint64_t dstRow = (uint64_t)dstBase + (uint64_t)y * dstLineBytes;
+            if (dstRow >= sizeof(shadowTmem)) break;
+            const uint32_t rowCopy = (uint32_t)std::min<uint64_t>(copyBytes, sizeof(shadowTmem) - dstRow);
+            for (uint32_t x = 0; x < rowCopy; ++x) {
+                uint8_t value = 0;
+                if (!readRdramByte((uint32_t)(srcRow + x), value)) return false;
+                shadowTmem[dstRow + x] = value;
+            }
+        }
+        return true;
+    };
+
+    RawTexMetadata rawTexMetadata = {};
+    rawTexMetadata.h_byte_scale = 1;
+    rawTexMetadata.v_pixel_scale = 1;
+
+    auto drawTextureRectangleFromShadow = [&](uint32_t w0, uint32_t w1, uint32_t w2, uint32_t w3) {
+        const int32_t lrx = (int32_t)((w0 >> 12) & 0xFFFu);
+        const int32_t lry = (int32_t)(w0 & 0xFFFu);
+        const uint32_t tileIndex = (w1 >> 24) & 7u;
+        const int32_t ulx = (int32_t)((w1 >> 12) & 0xFFFu);
+        const int32_t uly = (int32_t)(w1 & 0xFFFu);
+        const int16_t uls = (int16_t)(w2 >> 16);
+        const int16_t ult = (int16_t)(w2 & 0xFFFFu);
+        const int16_t dsdx = (int16_t)(w3 >> 16);
+        const int16_t dtdy = (int16_t)(w3 & 0xFFFFu);
+        const BgTileState& tile = bgTiles[tileIndex];
+
+        const uint32_t lineBytes = (uint32_t)tile.line * 8u;
+        const uint32_t tmemStart = (uint32_t)tile.tmem * 8u;
+        const uint32_t tmemLimit = tile.fmt == G_IM_FMT_CI ? 2048u : 4096u;
+        if (lineBytes == 0 || tmemStart >= tmemLimit) return;
+        const uint32_t availableBytes = tmemLimit - tmemStart;
+        const uint32_t textureHeight = availableBytes / lineBytes;
+        if (textureHeight == 0) return;
+
+        uint32_t textureWidth = 0;
+        switch (tile.siz) {
+            case G_IM_SIZ_4b: textureWidth = lineBytes * 2u; break;
+            case G_IM_SIZ_8b: textureWidth = lineBytes; break;
+            case G_IM_SIZ_16b: textureWidth = lineBytes / 2u; break;
+            case G_IM_SIZ_32b: textureWidth = lineBytes / 4u; break;
+            default: return;
+        }
+        if (textureWidth == 0) return;
+
+        const uint32_t uploadBytes = lineBytes * textureHeight;
+        if (uploadBytes == 0 || uploadBytes > sizeof(mS2dexBgStripStaging)) return;
+
+        Flush();
+        TextureCacheDelete(mS2dexBgStripStaging);
+        memcpy(mS2dexBgStripStaging, shadowTmem + tmemStart, uploadBytes);
+
+        GfxDpSetTextureImage(tile.fmt, tile.siz, textureWidth, nullptr, 0, rawTexMetadata, mS2dexBgStripStaging);
+        GfxDpSetTile(tile.fmt, tile.siz, 0, 0, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
+        GfxDpLoadBlock(G_TX_LOADTILE, 0, 0, textureWidth * textureHeight - 1u, 0);
+        GfxDpSetTile(tile.fmt, tile.siz, tile.line, 0, (uint8_t)tileIndex, tile.palette,
+                     tile.cmt, tile.maskt, tile.shiftt, tile.cms, tile.masks, tile.shifts);
+        GfxDpSetTileSize((uint8_t)tileIndex, 0, 0, (uint16_t)((textureWidth - 1u) << 2),
+                         (uint16_t)((textureHeight - 1u) << 2));
+        GfxDpTextureRectangle(ulx, uly, lrx, lry, (uint8_t)tileIndex, uls, ult, dsdx, dtdy, false);
+
+    };
+
+    mRdp->other_mode_h = (mRdp->other_mode_h & ~(3u << G_MDSFT_CYCLETYPE)) | G_CYC_1CYCLE;
+
+    const int32_t scissorXh = mRdp->scissor_lrx_raw != 0 ? (int32_t)mRdp->scissor_ulx_raw : 0;
+    const int32_t scissorYh = mRdp->scissor_lry_raw != 0 ? (int32_t)mRdp->scissor_uly_raw : 0;
+    const int32_t scissorXl = mRdp->scissor_lrx_raw != 0 ? (int32_t)mRdp->scissor_lrx_raw : (int32_t)mNativeDimensions.width * 4;
+    const int32_t scissorYl = mRdp->scissor_lry_raw != 0 ? (int32_t)mRdp->scissor_lry_raw : (int32_t)mNativeDimensions.height * 4;
+
+    int32_t E2_1 = 0;
+    uint16_t F1_1 = 0;
+    uint16_t P = 0;
+    int16_t H2 = 0;
+
+    int16_t Aw = (int16_t)((int32_t)bg->s.frameW - ((((uint32_t)bg->s.imageW << 10) / bg->s.scaleW - 1u) & 0xFFFCu));
+    if (Aw < 0) Aw = 0;
+
+    int16_t frameX = bg->s.frameX;
+    int16_t frameY = bg->s.frameY;
+    int32_t imageYorig = bg->s.imageYorig;
+    if ((bg->s.imageFlip & G_BG_FLAG_FLIPS) != 0) frameX = (int16_t)(frameX + Aw);
+
+    int16_t Bw = (int16_t)std::max<int32_t>(0, scissorXh - frameX);
+    int16_t Cw = (int16_t)std::max<int32_t>(0, frameX + (int32_t)bg->s.frameW - scissorXl - Aw);
+    if ((int16_t)bg->s.frameW - Aw - Bw - Cw <= 0) return;
+    const int16_t Dw = (int16_t)(frameX + Bw);
+    const int16_t Ew = (int16_t)(frameX + bg->s.frameW - Aw - Cw);
+
+    int16_t Ah = (int16_t)((int32_t)bg->s.frameH - ((((uint32_t)bg->s.imageH << 10) / bg->s.scaleH - 1u) & 0xFFFCu));
+    if (Ah < 0) Ah = 0;
+    const int16_t Bh = (int16_t)std::max<int32_t>(0, scissorYh - frameY);
+    const int16_t Ch = (int16_t)std::max<int32_t>(0, frameY + (int32_t)bg->s.frameH - scissorYl - Ah);
+    if ((int16_t)bg->s.frameH - Ah - Bh - Ch <= 0) return;
+    const int16_t Dh = (int16_t)(((int32_t)(frameY + Bh) * 0x4000) >> 16);
+    const int16_t Eh = (int16_t)(((int32_t)(bg->s.frameH - Ah - Bh - Ch) * 0x4000) >> 16);
+
+    const uint16_t Fw = (uint16_t)(bg->s.imageW << 3);
+    if ((bg->s.imageFlip & G_BG_FLAG_FLIPS) != 0) Bw = Cw;
+    int16_t Gw = (int16_t)((((uint32_t)bg->s.scaleW * (uint16_t)Bw * 0x0200u) >> 16) + bg->s.imageX);
+    int32_t Hw = (int32_t)Gw - Fw;
+    const uint16_t Fh = (uint16_t)(bg->s.imageH << 3);
+    int16_t Gh = (int16_t)((((uint32_t)bg->s.scaleH * (uint16_t)Bh * 0x0200u) >> 16) + bg->s.imageY);
+    while (Hw >= 0) {
+        Gw = (int16_t)(Gw - Fw);
+        Gh = (int16_t)(Gh + 0x20);
+        imageYorig += 0x20;
+        Hw = (int32_t)Gw - Fw;
+    }
+    int32_t Hh = (int32_t)Gh - Fh;
+    while (Hh >= 0) {
+        Gh = (int16_t)(Gh - Fh);
+        imageYorig -= Fh;
+        Hh = (int32_t)Gh - Fh;
+    }
+
+    const int32_t I = ((int32_t)Gh - imageYorig) << 5;
+    const int16_t J = (int16_t)(((uint32_t)bg->s.scaleW * (uint16_t)(bg->s.frameW - Aw - Bw - Cw)) >> 7);
+    const uint8_t J_2 = (J + Gw + 0x0B < Fw) ? 0u : 1u;
+    const uint8_t K = (uint8_t)((mS2dexObjRenderMode & 0x08u) >> 3);
+
+    static const uint32_t aSize[] = { 0x01FF0080u, 0x00FF0100u, 0x007F0200u, 0x003F0400u };
+    const uint32_t M = aSize[bg->s.imageSiz];
+    const uint16_t MHi = (uint16_t)(M >> 16);
+    const uint16_t MLo = (uint16_t)M;
+    uint16_t L = 0x0400u;
+    if (bg->s.imageFmt == G_IM_FMT_CI) L = 0x0200u;
+    const uint16_t N = (uint16_t)(((uint32_t)bg->s.frameW * bg->s.scaleW) >> 7) + (uint16_t)(K << 5);
+    const uint16_t O = std::min<uint16_t>(N, Fw);
+    P = (uint16_t)((((uint32_t)O + MHi) * MLo >> 16) + 1u);
+    if (P == 0) return;
+
+    const uint16_t Q = (uint16_t)(L / ((uint32_t)P * 2u) + (K != 0 ? 0xFFFFu : 0u));
+    if (Q == 0) return;
+    const int32_t R = (int32_t)((0x100000u * (uint32_t)Q) / bg->s.scaleH);
+    if (R <= 0) return;
+
+    const int32_t S = (int32_t)((((int64_t)I * 0x4000000ll / bg->s.scaleH) >> 16) & 0xFFFFFC00ll);
+    const int16_t T = (int16_t)(((int64_t)(0xFFFFFFFFu / (uint32_t)R) * (int64_t)S) >> 32);
+    const int32_t U = R * ((int32_t)T + 1);
+    int16_t V = T;
+    if (U <= S) ++V;
+    const int32_t W = R * V;
+    const int32_t Z = R - S + W;
+
+    const uint32_t A1 = (uint32_t)(S - (W & 0xFFFFFC00));
+    const uint32_t B1 = (A1 * 0x0040u) >> 16;
+    const uint32_t C1 = B1 * bg->s.scaleH;
+    const uint16_t D1 = (uint16_t)(((C1 * 0x0040u) >> 16) & 0xFFFFu);
+    const uint16_t E1 = (uint16_t)(Q - D1);
+    const uint16_t F1 = (uint16_t)(C1 & 0xFFFFu);
+    F1_1 = (uint16_t)((F1 >> 5) & 0x001Fu);
+
+    int16_t A2 = (int16_t)(((uint32_t)Q * (uint32_t)(uint16_t)V + (uint32_t)D1 +
+                            (uint32_t)((imageYorig << 11) >> 16)) & 0xFFFFu);
+    const uint16_t B2 = (uint16_t)((bg->s.imageH << 14) >> 16);
+    int16_t A2_1 = A2 >= 0 ? A2 : (int16_t)(A2 + B2);
+    if ((int32_t)A2 - B2 >= 0) A2_1 = (int16_t)(A2_1 - B2);
+    const int16_t C2 = (int16_t)((((int32_t)Gw * MLo) >> 16) << 3);
+    const int16_t D2 = (int16_t)((((int32_t)Fw * MLo) >> 16) << 3);
+    const uint16_t C2Bits = (uint16_t)C2;
+    const uint16_t D2Bits = (uint16_t)D2;
+    E2_1 = (int32_t)A2_1 * D2 + C2 + (int32_t)imagePtr;
+    const int32_t F2 = (int32_t)E1 * D2;
+    const int32_t G2 = (int32_t)Q * D2;
+    H2 = (int16_t)(Gw & MHi);
+    if ((bg->s.imageFlip & G_BG_FLAG_FLIPS) != 0) H2 = (int16_t)((H2 + J) * 0xFFFF);
+
+    const uint32_t I2 = 0xFD100000u | ((uint32_t)(D2 >> 1) - 1u);
+    const uint32_t J2 = 0xF5100000u | ((uint32_t)P << 9);
+    const uint32_t J2_1 = (J2 & 0xFF00FFFFu) | ((((uint32_t)bg->s.imageFmt << 5) | ((uint32_t)bg->s.imageSiz << 3)) << 16);
+    const uint32_t K2 = ((uint32_t)bg->s.imagePal << 20) | 0x0007C1F0u;
+    const uint16_t L2 = (uint16_t)(bg->s.imageH >> 2);
+
+    setTileCommand(J2, 0x27000000u);
+    setTileCommand(J2_1, K2);
+    setTileSizeCommand(0xF2000000u, 0);
+
+
+    int16_t AA = (int16_t)((uint16_t)L2 - (uint16_t)A2_1);
+    int32_t CC = (int32_t)(uint16_t)E1;
+    uint32_t DD = (uint32_t)Z;
+    const uint32_t EE = (uint32_t)R;
+    int32_t FF = (int32_t)(uint16_t)Eh;
+    uint16_t JJ = (uint16_t)Dh;
+    uint32_t GG = (uint32_t)F2;
+    const uint32_t HH = (uint32_t)(uint16_t)Dw << 12;
+    const uint32_t II = (uint32_t)(uint16_t)Ew << 12;
+    uint32_t step = 2;
+    int32_t KK = 0;
+    int16_t LL = 0;
+    int16_t MM = 0;
+    int16_t NN = 0;
+    int16_t RR = 0;
+    int16_t AAA = 0;
+    uint32_t SS = 0;
+
+    auto setTexture = [&]() {
+        setTileCommand(J2 | (uint32_t)(int32_t)AAA, 0x27000000u);
+        setTextureImageCommand(I2, SS);
+        const uint32_t loadW1 = (((uint32_t)P + 0x6FFu) << 16) | (((uint32_t)(uint16_t)RR << 2) - 1u);
+        loadTileCommand(0xF4000000u, loadW1);
+    };
+
+    bool stop = false;
+    while (!stop) {
+        switch (step) {
+            case 2:
+                KK = DD >> 10;
+                step = KK > 0 ? 5u : 3u;
+                break;
+            case 3:
+                AA = (int16_t)(AA - CC);
+                if (AA > 0) {
+                    E2_1 += GG;
+                } else {
+                    E2_1 = (int32_t)((uint32_t)imagePtr + (uint32_t)C2Bits +
+                                          (uint32_t)D2Bits * (uint32_t)(-(int32_t)AA));
+                    AA = (int16_t)(AA + L2);
+                }
+                step = 4;
+                break;
+            case 4:
+                DD += EE;
+                CC = Q;
+                GG = G2;
+                F1_1 = 0;
+                step = 2;
+                break;
+            case 5:
+                FF -= KK;
+                DD &= 0x03FF;
+                if (FF < 0) {
+                    CC += (((int32_t)bg->s.scaleH * FF) >> 10) + 1;
+                    KK += FF;
+                    if (CC - (int32_t)Q > 0) CC = Q;
+                }
+                step = 6;
+                break;
+            case 6:
+                LL = (int16_t)(JJ + KK);
+                P = (uint16_t)((((uint32_t)O + MHi) * MLo >> 16) + 1u);
+                MM = (int16_t)(CC + K);
+                NN = (int16_t)(AA - J_2);
+                step = (NN - MM < 0) ? 7u : 77u;
+                break;
+            case 7:
+                RR = (int16_t)(MM - AA);
+                AAA = AA;
+                if (RR > 0) {
+                    SS = imagePtr + (uint32_t)C2Bits;
+                    if ((AAA & 1) != 0) {
+                        --AAA;
+                        ++RR;
+                        SS -= (uint32_t)D2Bits;
+                    }
+                    AAA = (int16_t)(AAA * (int32_t)P);
+                    setTexture();
+                }
+                step = 8;
+                break;
+            case 77: {
+                RR = MM;
+                SS = (uint32_t)E2_1;
+                setTextureImageCommand(I2, SS);
+                const uint32_t loadW1 = (((uint32_t)P + 0x6FFu) << 16) | (((uint32_t)(uint16_t)RR << 2) - 1u);
+                loadTileCommand(0xF4000000u, loadW1);
+                AA = (int16_t)(AA - CC);
+                E2_1 += GG;
+                step = 11;
+            } break;
+            case 8:
+                if (J_2 != 0) {
+                    SS = imagePtr;
+                    int16_t BBB = NN;
+                    RR = (int16_t)(NN & 1);
+                    if (RR != 0) {
+                        --BBB;
+                        SS -= (uint32_t)D2Bits;
+                    }
+                    const uint32_t CCC = (uint32_t)E2_1 +
+                                         (uint32_t)((int32_t)BBB * (int32_t)(uint32_t)D2Bits);
+                    ++RR;
+                    const uint16_t DDD = (uint16_t)((((uint32_t)D2Bits - (uint32_t)C2Bits) * 0x2000u) >> 16);
+                    const uint32_t ZZZ = (uint32_t)((int32_t)BBB * (int32_t)P);
+                    P = (uint16_t)(P - DDD);
+                    AAA = (int16_t)(ZZZ + DDD);
+                    setTexture();
+                    SS = CCC;
+                    AAA = (int16_t)ZZZ;
+                    P = DDD;
+                    setTexture();
+                }
+                step = 9;
+                break;
+            case 9:
+                AA = (int16_t)(AA - CC);
+                if (NN <= 0) {
+                    setTileCommand(J2, 0x27000000u);
+                } else {
+                    P = (uint16_t)((((uint32_t)O + MHi) * MLo >> 16) + 1u);
+                    SS = (uint32_t)E2_1;
+                    RR = NN;
+                    AAA = 0;
+                    setTexture();
+                }
+                step = 10;
+                break;
+            case 10:
+                if (AA > 0) {
+                    E2_1 += GG;
+                } else {
+                    E2_1 = (int32_t)((uint32_t)imagePtr + (uint32_t)C2Bits +
+                                          (uint32_t)D2Bits * (uint32_t)(-(int32_t)AA));
+                    AA = (int16_t)(AA + L2);
+                }
+                step = 11;
+                break;
+            case 11: {
+                const uint32_t w0 = 0xE4000000u | ((uint32_t)(uint16_t)LL << 2) | II;
+                const uint32_t w1 = ((uint32_t)(uint16_t)JJ << 2) | HH;
+                const uint32_t w2 = ((uint32_t)(uint16_t)H2 << 16) | F1_1;
+                const uint32_t w3 = ((uint32_t)bg->s.scaleW << 16) | bg->s.scaleH;
+                drawTextureRectangleFromShadow(w0, w1, w2, w3);
+                if (FF <= 0) {
+                    stop = true;
+                } else {
+                    JJ = LL;
+                    DD += EE;
+                    CC = Q;
+                    GG = G2;
+                    F1_1 = 0;
+                    step = 2;
+                }
+            } break;
+            default:
+                stop = true;
+                break;
+        }
+    }
+}
+
+void Interpreter::SetRdramMemory(uint8_t* rdramBase, uint32_t rdramSize) {
+    mRdramBase = rdramBase;
+    mRdramSize = rdramSize;
+}
+
+void Interpreter::RegisterStagedTextureSource(const uint8_t* staged, uint32_t size, uint32_t rdramAddress) {
+    if (staged == nullptr || size == 0) return;
+    for (StagedTextureSource& source : mStagedTextureSources) {
+        if (source.staged == staged) {
+            source.size = size;
+            source.rdramAddress = rdramAddress;
+            return;
+        }
+    }
+    StagedTextureSource source;
+    source.staged = staged;
+    source.size = size;
+    source.rdramAddress = rdramAddress;
+    mStagedTextureSources.push_back(source);
+}
+
+bool Interpreter::ResolveStagedTextureSource(const uint8_t* stagedAddress, uint32_t* rdramAddress) const {
+    if (stagedAddress == nullptr || rdramAddress == nullptr) return false;
+    const uintptr_t address = reinterpret_cast<uintptr_t>(stagedAddress);
+    for (const StagedTextureSource& source : mStagedTextureSources) {
+        const uintptr_t begin = reinterpret_cast<uintptr_t>(source.staged);
+        const uintptr_t end = begin + source.size;
+        if (address >= begin && address < end) {
+            *rdramAddress = source.rdramAddress + static_cast<uint32_t>(address - begin);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Interpreter::Gfxs2dexMemRect(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint8_t tile, int16_t s, int16_t t) {
+    if (tile >= 8 || y1 <= y0 || mRdp->color_image_address == nullptr) return;
+    if (!PrepareTextureView(tile)) return;
+
+    const uint32_t tmemIndex = mRdp->texture_tile[tile].tmem_index;
+    const auto& loaded = mRdp->loaded_texture[tmemIndex];
+    if (loaded.addr == nullptr || loaded.orig_size_bytes == 0) return;
+
+    uint32_t texWidth = mRdp->texture_tile[tile].line_size_bytes;
+    if (texWidth == 0) texWidth = loaded.line_size_bytes;
+    if (texWidth == 0) return;
+
+    const int64_t sTexel = ((int32_t)s) >> 5;
+    const int64_t tTexel = ((int32_t)t) >> 5;
+    const int64_t unalignedOffset = sTexel * (int64_t)texWidth + tTexel;
+
+    if (mRdramBase == nullptr || mRdramSize == 0) return;
+
+    uint32_t liveRdramBase = 0;
+    const bool haveLegacySource = ResolveStagedTextureSource(loaded.addr, &liveRdramBase);
+
+    int64_t sourceOffset = unalignedOffset;
+    uint32_t liveSource = 0;
+    if (haveLegacySource) {
+        const int64_t absolute = (int64_t)liveRdramBase + unalignedOffset;
+        if (absolute < 0 || absolute >= (int64_t)mRdramSize) return;
+        liveSource = (uint32_t)((absolute + 3) & ~int64_t(3));
+        sourceOffset = (int64_t)liveSource - (int64_t)liveRdramBase;
+    } else {
+        sourceOffset = (sourceOffset + 3) & ~int64_t(3);
+    }
+    if (sourceOffset < 0 || (uint64_t)sourceOffset >= loaded.orig_size_bytes) return;
+
+    const uintptr_t rdramBase = (uintptr_t)mRdramBase;
+    const uintptr_t rawColor = (uintptr_t)mRdp->color_image_address;
+    uint32_t colorOffset;
+    if (rawColor < mRdramSize) {
+        colorOffset = (uint32_t)rawColor;
+    } else if (rawColor >= rdramBase && rawColor - rdramBase < mRdramSize) {
+        colorOffset = (uint32_t)(rawColor - rdramBase);
+    } else {
+        return;
+    }
+
+    uint32_t bottom = y1;
+    const float scissorBottomF = mRdp->scissor.y + mRdp->scissor.height;
+    if (scissorBottomF > 0.0f) {
+        const uint32_t scissorBottom = (uint32_t)(scissorBottomF + 0.5f);
+        if (bottom > scissorBottom) bottom = scissorBottom;
+    }
+    if (bottom <= y0 || mRdp->color_image_width == 0) return;
+
+    constexpr uint32_t copyBytes = 16;
+    uint32_t copiedRows = 0;
+    for (uint32_t y = y0; y < bottom; ++y) {
+        const uint64_t stagedOff = (uint64_t)sourceOffset + (uint64_t)(y - y0) * texWidth;
+        const uint64_t dstOff = (uint64_t)colorOffset + (uint64_t)y * mRdp->color_image_width + x0;
+        if (stagedOff + copyBytes > loaded.orig_size_bytes) break;
+        if (dstOff + copyBytes > mRdramSize) break;
+
+        if (haveLegacySource) {
+            const uint64_t srcOff = (uint64_t)liveSource + (uint64_t)(y - y0) * texWidth;
+            if (srcOff + copyBytes > mRdramSize) break;
+
+            const uint32_t* src = reinterpret_cast<const uint32_t*>(mRdramBase + srcOff);
+            uint32_t* dst = reinterpret_cast<uint32_t*>(mRdramBase + dstOff);
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+            dst[3] = src[3];
+        } else {
+            const uint8_t* src = loaded.addr + stagedOff;
+            for (uint32_t i = 0; i < copyBytes; ++i) {
+                mRdramBase[((uint32_t)dstOff + i) ^ U8_TWIDDLE] = src[i];
+            }
+        }
+        ++copiedRows;
+    }
+
+    if (copiedRows != 0) {
+        const uint64_t dirtyStart = (uint64_t)colorOffset + (uint64_t)y0 * mRdp->color_image_width + x0;
+        const uint64_t dirtyEnd = (uint64_t)colorOffset + (uint64_t)(y0 + copiedRows - 1) * mRdp->color_image_width + x0 + copyBytes;
+        if (dirtyStart < mRdramSize && dirtyEnd > dirtyStart) {
+            const uint32_t dirtySize = (uint32_t)std::min<uint64_t>(dirtyEnd - dirtyStart, mRdramSize - dirtyStart);
+            RDRAM_MarkDirtyRange((uint32_t)dirtyStart, dirtySize);
+        }
+    }
+}
+
+void Interpreter::Gfxs2dexResetObjMatrix() {
+    mS2dexObjMtx.A = 1 << 16;
+    mS2dexObjMtx.B = 0;
+    mS2dexObjMtx.C = 0;
+    mS2dexObjMtx.D = 1 << 16;
+    mS2dexObjMtx.X = 0;
+    mS2dexObjMtx.Y = 0;
+    mS2dexObjMtx.BaseScaleX = 1 << 10;
+    mS2dexObjMtx.BaseScaleY = 1 << 10;
+}
+
+void Interpreter::Gfxs2dexObjMoveMem(uint16_t index, const void* data) {
+    if (!data) return;
+
+    switch (index) {
+        case 0: {
+            const F3DuObjMtx* mtx = (const F3DuObjMtx*)data;
+            mS2dexObjMtx = mtx->m;
+            break;
+        }
+        case 2: {
+            const F3DuObjSubMtx* mtx = (const F3DuObjSubMtx*)data;
+            mS2dexObjMtx.X = mtx->m.X;
+            mS2dexObjMtx.Y = mtx->m.Y;
+            mS2dexObjMtx.BaseScaleX = mtx->m.BaseScaleX;
+            mS2dexObjMtx.BaseScaleY = mtx->m.BaseScaleY;
+            break;
+        }
+        case 8:
+            CalcAndSetViewport((const F3DVp_t*)data);
+            break;
+    }
+}
+
+void Interpreter::Gfxs2dexObjRenderMode(uint32_t mode) {
+    mS2dexObjRenderMode = mode;
+}
+
+void Interpreter::Gfxs2dexObjMoveWord(uint8_t index, uint16_t offset, uint32_t data) {
+    if (index == 0x08) {
+        if (offset <= 12 && (offset & 3) == 0) {
+            mS2dexStatus[offset >> 2] = data;
+        }
+        return;
+    }
+    GfxSpMovewordF3d(index, offset, data);
+}
+
+void Interpreter::Gfxs2dexObjLoadTxtr(const S2DEXObjTxtrData* txtr) {
+    if (!txtr || !txtr->image || txtr->sid > 12 || (txtr->sid & 3) != 0) return;
+
+    const uint32_t statusIndex = txtr->sid >> 2;
+    uint32_t& status = mS2dexStatus[statusIndex];
+    if (txtr->imageBytes == 0) return;
+
+    std::vector<uint8_t>* snapshot = nullptr;
+    if (txtr->type == G_OBJLT_TLUT) {
+        snapshot = &mS2dexPaletteSnapshot;
+        if (!snapshot->empty()) TextureCacheClear();
+    } else {
+        snapshot = &mS2dexTextureSnapshots[txtr->p0 != 0];
+        if (!snapshot->empty()) TextureCacheDelete(snapshot->data());
+    }
+    snapshot->assign(txtr->image, txtr->image + txtr->imageBytes);
+    const uint8_t* image = snapshot->data();
+
+    RawTexMetadata rawTexMetadata = {};
+    switch (txtr->type) {
+        case G_OBJLT_TXTRBLOCK:
+            GfxDpSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, txtr->p1 + 1, nullptr, 0, rawTexMetadata, image);
+            GfxDpSetTile(G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, txtr->p0, G_TX_LOADTILE, 0,
+                         G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD);
+            GfxDpLoadBlock(G_TX_LOADTILE, 0, 0, txtr->p1 << 2, txtr->p2);
+            break;
+        case G_OBJLT_TXTRTILE:
+            GfxDpSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, txtr->p1 + 1, nullptr, 0, rawTexMetadata, image);
+            GfxDpSetTile(G_IM_FMT_RGBA, G_IM_SIZ_16b, (txtr->p1 + 1) >> 2, txtr->p0, G_TX_LOADTILE, 0,
+                         G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD);
+            GfxDpLoadTile(G_TX_LOADTILE, 0, 0, txtr->p1 << 2, txtr->p2);
+            break;
+        case G_OBJLT_TLUT:
+            GfxDpSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, nullptr, 0, rawTexMetadata, image);
+            GfxDpSetTile(G_IM_FMT_RGBA, G_IM_SIZ_4b, 0, txtr->p0, G_TX_LOADTILE, 0,
+                         G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD);
+            GfxDpLoadTlut(G_TX_LOADTILE, txtr->p1);
+            break;
+        default:
+            return;
+    }
+
+    status = (status & ~txtr->mask) | (txtr->flag & txtr->mask);
+}
+
+void Interpreter::Gfxs2dexObjSprite(const F3DuObjSprite* spr) {
+    if (!spr) return;
+
+    const uint32_t w = std::max<uint32_t>(spr->s.imageW >> 5, 1);
+    const uint32_t h = std::max<uint32_t>(spr->s.imageH >> 5, 1);
+    GfxDpSetTile(spr->s.imageFmt, spr->s.imageSiz, spr->s.imageStride, spr->s.imageAdrs, G_TX_RENDERTILE,
+                 spr->s.imagePal, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOLOD, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOLOD);
+    GfxDpSetTileSize(G_TX_RENDERTILE, 0, 0, (w - 1) << 2, (h - 1) << 2);
+    GfxSpTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, 1);
+
+    static const uint32_t correctorsA01[] = {
+        0x00000000, 0x00100020, 0x00200040, 0x00300060,
+        0x0000FFF4, 0x00100014, 0x00200034, 0x00300054
+    };
+    static const uint32_t correctorsA23[] = {
+        0x0001FFFE, 0xFFFEFFFE, 0x00010000, 0x00000000
+    };
+    static const uint32_t correctorsB03[] = {
+        0xFFFC0000, 0x00000001, 0xFFFF0003, 0xFFF00000
+    };
+
+    const int16_t* a01 = reinterpret_cast<const int16_t*>(correctorsA01);
+    const int16_t* a23 = reinterpret_cast<const int16_t*>(correctorsA23);
+    const int16_t* b03 = reinterpret_cast<const int16_t*>(correctorsB03);
+    const uint32_t o1 = (mS2dexObjRenderMode & (0x10u | 0x20u | 0x40u)) >> 3;
+    const uint32_t o2 = (mS2dexObjRenderMode & (0x10u | 0x08u)) >> 2;
+    const uint32_t o3 = (mS2dexObjRenderMode & 0x08u) >> 1;
+    const int16_t A1 = a01[(1 + o1) ^ 1];
+    const int16_t A3 = a23[(1 + o2) ^ 1];
+    const int16_t B0 = b03[(0 + o3) ^ 1];
+    const int16_t B3 = b03[(3 + o3) ^ 1];
+
+    const int16_t x0 = (mS2dexObjMtx.X + B3) & B0;
+    const int16_t y0 = (mS2dexObjMtx.Y + B3) & B0;
+    const int16_t ulx = spr->s.objX + A3;
+    const int16_t uly = spr->s.objY + A3;
+    const uint32_t scaleW = std::max<uint32_t>(spr->s.scaleW, 1);
+    const uint32_t scaleH = std::max<uint32_t>(spr->s.scaleH, 1);
+    const int16_t lrx = (int16_t)(((((uint64_t)spr->s.imageW - A1) << 8) *
+                                   (0x80007FFFu / scaleW)) >> 32) + ulx;
+    const int16_t lry = (int16_t)(((((uint64_t)spr->s.imageH - A1) << 8) *
+                                   (0x80007FFFu / scaleH)) >> 32) + uly;
+
+    auto calcX = [&](int16_t x, int16_t y) -> float {
+        const int16_t v = x0 + (int16_t)(((int64_t)x * mS2dexObjMtx.A) >> 16) +
+                              (int16_t)(((int64_t)y * mS2dexObjMtx.B) >> 16);
+        return v / 4.0f;
+    };
+    auto calcY = [&](int16_t x, int16_t y) -> float {
+        const int16_t v = y0 + (int16_t)(((int64_t)x * mS2dexObjMtx.C) >> 16) +
+                              (int16_t)(((int64_t)y * mS2dexObjMtx.D) >> 16);
+        return v / 4.0f;
+    };
+
+    float uls = 0.0f;
+    float lrs = spr->s.imageW / 32.0f - 1.0f;
+    float ult = 0.0f;
+    float lrt = spr->s.imageH / 32.0f - 1.0f;
+    if (spr->s.imageFlags & G_OBJ_FLAG_FLIPS) std::swap(uls, lrs);
+    if (spr->s.imageFlags & G_OBJ_FLAG_FLIPT) std::swap(ult, lrt);
+
+    struct ObjVtx { float x, y, s, t; };
+    ObjVtx ov[4] = {
+        { calcX(ulx, uly), calcY(ulx, uly), uls, ult },
+        { calcX(lrx, uly), calcY(lrx, uly), lrs, ult },
+        { calcX(ulx, lry), calcY(ulx, lry), uls, lrt },
+        { calcX(lrx, lry), calcY(lrx, lry), lrs, lrt },
+    };
+
+    LoadedVertex* out[4] = {
+        &mRsp->loaded_vertices[MAX_VERTICES + 0],
+        &mRsp->loaded_vertices[MAX_VERTICES + 1],
+        &mRsp->loaded_vertices[MAX_VERTICES + 2],
+        &mRsp->loaded_vertices[MAX_VERTICES + 3],
+    };
+    for (uint32_t i = 0; i < 4; ++i) {
+        float x = ov[i].x / HALF_SCREEN_WIDTH(mActiveFrameBuffer) - 1.0f;
+        float y = -ov[i].y / HALF_SCREEN_HEIGHT(mActiveFrameBuffer) + 1.0f;
+        out[i]->x = AdjXForAspectRatio(x);
+        out[i]->y = y;
+        out[i]->z = -1.0f;
+        out[i]->w = 1.0f;
+        out[i]->u = ov[i].s * 32.0f;
+        out[i]->v = ov[i].t * 32.0f;
+        out[i]->color = { 255, 255, 255, 255 };
+        out[i]->clip_rej = 0;
+    }
+
+    XYWidthHeight defaultViewport;
+    if (!mFbActive) {
+        defaultViewport = { 0, (int16_t)mNativeDimensions.height, mNativeDimensions.width, mNativeDimensions.height };
+    } else {
+        defaultViewport = { 0, (int16_t)mActiveFrameBuffer->second.orig_height, mActiveFrameBuffer->second.orig_width,
+                            mActiveFrameBuffer->second.orig_height };
+    }
+    XYWidthHeight savedViewport = mRdp->viewport;
+    uint32_t savedGeometryMode = mRsp->geometry_mode;
+    AdjustVIewportOrScissor(&defaultViewport);
+    mRdp->viewport = defaultViewport;
+    mRdp->viewport_or_scissor_changed = true;
+    mRsp->geometry_mode = 0;
+
+    GfxSpTri1(MAX_VERTICES + 0, MAX_VERTICES + 2, MAX_VERTICES + 1, true);
+    GfxSpTri1(MAX_VERTICES + 2, MAX_VERTICES + 3, MAX_VERTICES + 1, true);
+
+    mRsp->geometry_mode = savedGeometryMode;
+    mRdp->viewport = savedViewport;
+    mRdp->viewport_or_scissor_changed = true;
+}
+
+void Interpreter::Gfxs2dexObjRectangle(const F3DuObjSprite* spr) {
+    if (!spr) return;
+
+    const uint32_t w = std::max<uint32_t>(spr->s.imageW >> 5, 1);
+    const uint32_t h = std::max<uint32_t>(spr->s.imageH >> 5, 1);
+    GfxDpSetTile(spr->s.imageFmt, spr->s.imageSiz, spr->s.imageStride, spr->s.imageAdrs, G_TX_RENDERTILE,
+                 spr->s.imagePal, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOLOD, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOLOD);
+    GfxDpSetTileSize(G_TX_RENDERTILE, 0, 0, (w - 1) << 2, (h - 1) << 2);
+    GfxSpTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, 1);
+
+    static const uint32_t correctorsA01[] = {
+        0x00000000, 0x00100020, 0x00200040, 0x00300060,
+        0x0000FFF4, 0x00100014, 0x00200034, 0x00300054
+    };
+    static const uint32_t correctorsA23[] = {
+        0x0001FFFE, 0xFFFEFFFE, 0x00010000, 0x00000000
+    };
+    static const uint32_t correctorsB03[] = {
+        0xFFFC0000, 0x00000001, 0xFFFF0003, 0xFFF00000
+    };
+
+    const int16_t* a01 = reinterpret_cast<const int16_t*>(correctorsA01);
+    const int16_t* a23 = reinterpret_cast<const int16_t*>(correctorsA23);
+    const int16_t* b03 = reinterpret_cast<const int16_t*>(correctorsB03);
+    const uint32_t o1 = (mS2dexObjRenderMode & (0x10u | 0x20u | 0x40u)) >> 3;
+    const uint32_t o2 = (mS2dexObjRenderMode & (0x10u | 0x08u)) >> 2;
+    const uint32_t o3 = (mS2dexObjRenderMode & 0x08u) >> 1;
+    const int16_t A0 = a01[(0 + o1) ^ 1];
+    const int16_t A1 = a01[(1 + o1) ^ 1];
+    const int16_t A2 = a23[(0 + o2) ^ 1];
+    const int16_t B0 = b03[(0 + o3) ^ 1];
+    const int16_t B2 = b03[(2 + o3) ^ 1];
+
+    const uint32_t scaleW = std::max<uint32_t>(spr->s.scaleW, 1);
+    const uint32_t scaleH = std::max<uint32_t>(spr->s.scaleH, 1);
+
+    const int16_t xh = (int16_t)((spr->s.objX + A2) & B0);
+    const int16_t xl = (int16_t)((((((uint64_t)spr->s.imageW - A1) << 24) *
+                                   (0x80007FFFu / scaleW)) >> 48) + xh);
+    const int16_t yh = (int16_t)((spr->s.objY + A2) & B0);
+    const int16_t yl = (int16_t)((((((uint64_t)spr->s.imageH - A1) << 24) *
+                                   (0x80007FFFu / scaleH)) >> 48) + yh);
+
+    const int16_t sh = (int16_t)(A0 + B2);
+    const int16_t sl = (int16_t)(sh + spr->s.imageW + A0 - A1 - 1);
+    const int16_t th = (int16_t)(sh - ((((int32_t)yh & 3) * 0x0200 * scaleH) >> 16));
+    const int16_t tl = (int16_t)(th + spr->s.imageH + A0 - A1 - 1);
+
+    float ulx = xh / 4.0f;
+    float lrx = xl / 4.0f;
+    float uly = yh / 4.0f;
+    float lry = yl / 4.0f;
+    float uls = sh / 32.0f;
+    float lrs = sl / 32.0f;
+    float ult = th / 32.0f;
+    float lrt = tl / 32.0f;
+
+    if (spr->s.imageFlags & G_OBJ_FLAG_FLIPS) std::swap(uls, lrs);
+    if (spr->s.imageFlags & G_OBJ_FLAG_FLIPT) std::swap(ult, lrt);
+
+    struct ObjVtx { float x, y, s, t; };
+    ObjVtx ov[4] = {
+        { ulx, uly, uls, ult },
+        { lrx, uly, lrs, ult },
+        { ulx, lry, uls, lrt },
+        { lrx, lry, lrs, lrt },
+    };
+
+    LoadedVertex* out[4] = {
+        &mRsp->loaded_vertices[MAX_VERTICES + 0],
+        &mRsp->loaded_vertices[MAX_VERTICES + 1],
+        &mRsp->loaded_vertices[MAX_VERTICES + 2],
+        &mRsp->loaded_vertices[MAX_VERTICES + 3],
+    };
+    for (uint32_t i = 0; i < 4; ++i) {
+        float x = ov[i].x / HALF_SCREEN_WIDTH(mActiveFrameBuffer) - 1.0f;
+        float y = -ov[i].y / HALF_SCREEN_HEIGHT(mActiveFrameBuffer) + 1.0f;
+        out[i]->x = AdjXForAspectRatio(x);
+        out[i]->y = y;
+        out[i]->z = -1.0f;
+        out[i]->w = 1.0f;
+        out[i]->u = ov[i].s * 32.0f;
+        out[i]->v = ov[i].t * 32.0f;
+        out[i]->color = { 255, 255, 255, 255 };
+        out[i]->clip_rej = 0;
+    }
+
+    XYWidthHeight defaultViewport;
+    if (!mFbActive) {
+        defaultViewport = { 0, (int16_t)mNativeDimensions.height, mNativeDimensions.width, mNativeDimensions.height };
+    } else {
+        defaultViewport = { 0, (int16_t)mActiveFrameBuffer->second.orig_height, mActiveFrameBuffer->second.orig_width,
+                            mActiveFrameBuffer->second.orig_height };
+    }
+    XYWidthHeight savedViewport = mRdp->viewport;
+    uint32_t savedGeometryMode = mRsp->geometry_mode;
+    AdjustVIewportOrScissor(&defaultViewport);
+    mRdp->viewport = defaultViewport;
+    mRdp->viewport_or_scissor_changed = true;
+    mRsp->geometry_mode = 0;
+
+    GfxSpTri1(MAX_VERTICES + 0, MAX_VERTICES + 2, MAX_VERTICES + 1, true);
+    GfxSpTri1(MAX_VERTICES + 2, MAX_VERTICES + 3, MAX_VERTICES + 1, true);
+
+    mRsp->geometry_mode = savedGeometryMode;
+    mRdp->viewport = savedViewport;
+    mRdp->viewport_or_scissor_changed = true;
+}
+
+void Interpreter::Gfxs2dexObjRectangleR(const F3DuObjSprite* spr) {
+    if (!spr) return;
+
+    const uint32_t w = std::max<uint32_t>(spr->s.imageW >> 5, 1);
+    const uint32_t h = std::max<uint32_t>(spr->s.imageH >> 5, 1);
+    GfxDpSetTile(spr->s.imageFmt, spr->s.imageSiz, spr->s.imageStride, spr->s.imageAdrs, G_TX_RENDERTILE,
+                 spr->s.imagePal, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOLOD, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOLOD);
+    GfxDpSetTileSize(G_TX_RENDERTILE, 0, 0, (w - 1) << 2, (h - 1) << 2);
+    GfxSpTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, 1);
+
+    static const uint32_t correctorsA01[] = {
+        0x00000000, 0x00100020, 0x00200040, 0x00300060,
+        0x0000FFF4, 0x00100014, 0x00200034, 0x00300054
+    };
+    static const uint32_t correctorsA23[] = {
+        0x0001FFFE, 0xFFFEFFFE, 0x00010000, 0x00000000
+    };
+    static const uint32_t correctorsB03[] = {
+        0xFFFC0000, 0x00000001, 0xFFFF0003, 0xFFF00000
+    };
+
+    const int16_t* a01 = reinterpret_cast<const int16_t*>(correctorsA01);
+    const int16_t* a23 = reinterpret_cast<const int16_t*>(correctorsA23);
+    const int16_t* b03 = reinterpret_cast<const int16_t*>(correctorsB03);
+    const uint32_t o1 = (mS2dexObjRenderMode & (0x10u | 0x20u | 0x40u)) >> 3;
+    const uint32_t o2 = (mS2dexObjRenderMode & (0x10u | 0x08u)) >> 2;
+    const uint32_t o3 = (mS2dexObjRenderMode & 0x08u) >> 1;
+    const int16_t A0 = a01[(0 + o1) ^ 1];
+    const int16_t A1 = a01[(1 + o1) ^ 1];
+    const int16_t A2 = a23[(0 + o2) ^ 1];
+    const int16_t B0 = b03[(0 + o3) ^ 1];
+    const int16_t B2 = b03[(2 + o3) ^ 1];
+
+    const uint32_t objScaleW = std::max<uint32_t>(spr->s.scaleW, 1);
+    const uint32_t objScaleH = std::max<uint32_t>(spr->s.scaleH, 1);
+    const uint32_t baseScaleX = std::max<uint32_t>(mS2dexObjMtx.BaseScaleX, 1);
+    const uint32_t baseScaleY = std::max<uint32_t>(mS2dexObjMtx.BaseScaleY, 1);
+    const uint32_t scaleW = std::max<uint32_t>((baseScaleX * 0x40u * objScaleW) >> 16, 1);
+    const uint32_t scaleH = std::max<uint32_t>((baseScaleY * 0x40u * objScaleH) >> 16, 1);
+
+    const int64_t objXFixed = (int64_t)spr->s.objX * 65536ll;
+    const int16_t xBaseHi = (int16_t)((mS2dexObjMtx.X + A2) & B0);
+    const int32_t xBase = (int32_t)xBaseHi * 65536;
+    const int32_t xhp = (int32_t)(((objXFixed * 0x0800ll *
+                                   (0x80007FFFu / baseScaleX)) >> 32) + xBase);
+    const int16_t xh = (int16_t)(xhp >> 16);
+    const int32_t xlp = xhp + (int32_t)((((uint64_t)spr->s.imageW - A1) << 24) *
+                                        (0x80007FFFu / scaleW) >> 32);
+    const int16_t xl = (int16_t)(xlp >> 16);
+
+    const int64_t objYFixed = (int64_t)spr->s.objY * 65536ll;
+    const int16_t yBaseHi = (int16_t)((mS2dexObjMtx.Y + A2) & B0);
+    const int32_t yBase = (int32_t)yBaseHi * 65536;
+    const int32_t yhp = (int32_t)(((objYFixed * 0x0800ll *
+                                   (0x80007FFFu / baseScaleY)) >> 32) + yBase);
+    const int16_t yh = (int16_t)(yhp >> 16);
+    const int32_t ylp = yhp + (int32_t)((((uint64_t)spr->s.imageH - A1) << 24) *
+                                        (0x80007FFFu / scaleH) >> 32);
+    const int16_t yl = (int16_t)(ylp >> 16);
+
+    const int16_t sh = (int16_t)(A0 + B2);
+    const int16_t sl = (int16_t)(sh + spr->s.imageW + A0 - A1 - 1);
+    const int16_t th = (int16_t)(sh - ((((int32_t)yh & 3) * 0x0200 * scaleH) >> 16));
+    const int16_t tl = (int16_t)(th + spr->s.imageH + A0 - A1 - 1);
+
+    float ulx = xh / 4.0f;
+    float lrx = xl / 4.0f;
+    float uly = yh / 4.0f;
+    float lry = yl / 4.0f;
+    float uls = sh / 32.0f;
+    float lrs = sl / 32.0f;
+    float ult = th / 32.0f;
+    float lrt = tl / 32.0f;
+
+    if (spr->s.imageFlags & G_OBJ_FLAG_FLIPS) std::swap(uls, lrs);
+    if (spr->s.imageFlags & G_OBJ_FLAG_FLIPT) std::swap(ult, lrt);
+
+    struct ObjVtx { float x, y, s, t; };
+    ObjVtx ov[4] = {
+        { ulx, uly, uls, ult },
+        { lrx, uly, lrs, ult },
+        { ulx, lry, uls, lrt },
+        { lrx, lry, lrs, lrt },
+    };
+
+    LoadedVertex* out[4] = {
+        &mRsp->loaded_vertices[MAX_VERTICES + 0],
+        &mRsp->loaded_vertices[MAX_VERTICES + 1],
+        &mRsp->loaded_vertices[MAX_VERTICES + 2],
+        &mRsp->loaded_vertices[MAX_VERTICES + 3],
+    };
+    for (uint32_t i = 0; i < 4; ++i) {
+        float x = ov[i].x / HALF_SCREEN_WIDTH(mActiveFrameBuffer) - 1.0f;
+        float y = -ov[i].y / HALF_SCREEN_HEIGHT(mActiveFrameBuffer) + 1.0f;
+        out[i]->x = AdjXForAspectRatio(x);
+        out[i]->y = y;
+        out[i]->z = -1.0f;
+        out[i]->w = 1.0f;
+        out[i]->u = ov[i].s * 32.0f;
+        out[i]->v = ov[i].t * 32.0f;
+        out[i]->color = { 255, 255, 255, 255 };
+        out[i]->clip_rej = 0;
+    }
+
+    XYWidthHeight defaultViewport;
+    if (!mFbActive) {
+        defaultViewport = { 0, (int16_t)mNativeDimensions.height, mNativeDimensions.width, mNativeDimensions.height };
+    } else {
+        defaultViewport = { 0, (int16_t)mActiveFrameBuffer->second.orig_height, mActiveFrameBuffer->second.orig_width,
+                            mActiveFrameBuffer->second.orig_height };
+    }
+    XYWidthHeight savedViewport = mRdp->viewport;
+    uint32_t savedGeometryMode = mRsp->geometry_mode;
+    AdjustVIewportOrScissor(&defaultViewport);
+    mRdp->viewport = defaultViewport;
+    mRdp->viewport_or_scissor_changed = true;
+    mRsp->geometry_mode = 0;
+
+    GfxSpTri1(MAX_VERTICES + 0, MAX_VERTICES + 2, MAX_VERTICES + 1, true);
+    GfxSpTri1(MAX_VERTICES + 2, MAX_VERTICES + 3, MAX_VERTICES + 1, true);
+
+    mRsp->geometry_mode = savedGeometryMode;
+    mRdp->viewport = savedViewport;
+    mRdp->viewport_or_scissor_changed = true;
+}
+
+void Interpreter::Gfxs2dexObjLoadTxSprite(const S2DEXObjTxSpriteData* txsp) {
+    if (!txsp) return;
+    Gfxs2dexObjLoadTxtr(&txsp->txtr);
+    Gfxs2dexObjSprite(&txsp->sprite);
+}
+
+void Interpreter::Gfxs2dexObjLoadTxRectR(const S2DEXObjTxSpriteData* txsp) {
+    if (!txsp) return;
+    Gfxs2dexObjLoadTxtr(&txsp->txtr);
+    Gfxs2dexObjRectangleR(&txsp->sprite);
 }
 
 void Interpreter::Gfxs2dexRecyCopy(F3DuObjSprite* spr) {
@@ -3987,8 +5012,72 @@ bool gfx_obj_rectangle_handler_s2dex(F3DGfx** cmd0) {
     F3DGfx* cmd = *(cmd0);
 
     if (!gfx->mMarkerOn) {
-        gfx->Gfxs2dexRecyCopy((F3DuObjSprite*)cmd->words.w1); // not gfx->SegAddr here it seems
+        gfx->Gfxs2dexObjRectangle((const F3DuObjSprite*)cmd->words.w1);
     }
+    return false;
+}
+
+bool gfx_obj_movemem_handler_s2dex(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *(cmd0);
+
+    gfx->Gfxs2dexObjMoveMem(C0(0, 16), (const void*)cmd->words.w1);
+    return false;
+}
+
+bool gfx_obj_rendermode_handler_s2dex(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *(cmd0);
+
+    gfx->Gfxs2dexObjRenderMode((uint32_t)cmd->words.w1);
+    return false;
+}
+
+bool gfx_moveword_handler_s2dex1(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *cmd0;
+    gfx->Gfxs2dexObjMoveWord(C0(0, 8), C0(8, 16), cmd->words.w1);
+    return false;
+}
+
+bool gfx_obj_loadtxtr_handler_s2dex1(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *cmd0;
+    gfx->Gfxs2dexObjLoadTxtr((const S2DEXObjTxtrData*)cmd->words.w1);
+    return false;
+}
+
+bool gfx_obj_ldtx_sprite_handler_s2dex1(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *cmd0;
+    gfx->Gfxs2dexObjLoadTxSprite((const S2DEXObjTxSpriteData*)cmd->words.w1);
+    return false;
+}
+
+bool gfx_obj_ldtx_rect_r_handler_s2dex1(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *cmd0;
+    gfx->Gfxs2dexObjLoadTxRectR((const S2DEXObjTxSpriteData*)cmd->words.w1);
+    return false;
+}
+
+bool gfx_rdphalf_0_handler_s2dex1(F3DGfx** cmd0) {
+    Interpreter* gfx = gInstance;
+    F3DGfx* cmd = *cmd0;
+
+    const uint32_t x1 = (cmd->words.w0 >> 14) & 0x3FF;
+    const uint32_t y1 = (cmd->words.w0 >> 2) & 0x3FF;
+    const uint8_t tile = (cmd->words.w1 >> 24) & 0x7;
+    const uint32_t x0 = (cmd->words.w1 >> 14) & 0x3FF;
+    const uint32_t y0 = (cmd->words.w1 >> 2) & 0x3FF;
+
+    ++(*cmd0);
+    cmd = *cmd0;
+    const int16_t s = (int16_t)(cmd->words.w1 >> 16);
+    const int16_t t = (int16_t)(cmd->words.w1 & 0xFFFF);
+
+    ++(*cmd0);
+    gfx->Gfxs2dexMemRect(x0, y0, x1, y1, tile, s, t);
     return false;
 }
 
@@ -4136,6 +5225,26 @@ static const UcodeHandler s2dexHandlers = {
     { F3DEX2_G_ENDDL, { "G_ENDDL", gfx_end_dl_handler_common } },
 };
 
+static const UcodeHandler s2dex1Handlers = {
+    { F3DEX_G_SPNOOP, { "G_SPNOOP", gfx_spnoop_command_handler_f3dex2 } },
+    { F3DEX_G_BG_1CYC, { "G_BG_1CYC", gfx_bg_1cyc_handler_s2dex } },
+    { F3DEX_G_BG_COPY, { "G_BG_COPY", gfx_bg_copy_handler_s2dex } },
+    { F3DEX_G_OBJ_RECTANGLE, { "G_OBJ_RECTANGLE", gfx_obj_rectangle_handler_s2dex } },
+    { F3DEX_G_OBJ_MOVEMEM, { "G_OBJ_MOVEMEM", gfx_obj_movemem_handler_s2dex } },
+    { F3DEX_G_OBJ_RENDERMODE, { "G_OBJ_RENDERMODE", gfx_obj_rendermode_handler_s2dex } },
+    { F3DEX_G_OBJ_LOADTXTR, { "G_OBJ_LOADTXTR", gfx_obj_loadtxtr_handler_s2dex1 } },
+    { F3DEX_G_OBJ_LDTX_SPRITE, { "G_OBJ_LDTX_SPRITE", gfx_obj_ldtx_sprite_handler_s2dex1 } },
+    { F3DEX_G_OBJ_LDTX_RECT_R, { "G_OBJ_LDTX_RECT_R", gfx_obj_ldtx_rect_r_handler_s2dex1 } },
+    { F3DEX_G_RDPHALF_0, { "G_RDPHALF_0", gfx_rdphalf_0_handler_s2dex1 } },
+    { F3DEX_G_DL, { "G_DL", gfx_dl_handler_common } },
+    { F3DEX_G_MOVEWORD, { "G_MOVEWORD", gfx_moveword_handler_s2dex1 } },
+    { F3DEX_G_SETOTHERMODE_H, { "G_SETOTHERMODE_H", gfx_othermode_h_handler_f3d } },
+    { F3DEX_G_SETOTHERMODE_L, { "G_SETOTHERMODE_L", gfx_othermode_l_handler_f3d } },
+    { F3DEX_G_ENDDL, { "G_ENDDL", gfx_end_dl_handler_common } },
+    { F3DEX_G_RDPHALF_1, { "G_RDPHALF_1", gfx_stubbed_command_handler } },
+    { F3DEX_G_RDPHALF_2, { "G_RDPHALF_2", gfx_stubbed_command_handler } },
+};
+
 static const UcodeHandler* ucode_handlers[] = {
     &f3dHandlers,    // ucode_f3db
     &f3dHandlers,    // ucode_f3d
@@ -4143,9 +5252,13 @@ static const UcodeHandler* ucode_handlers[] = {
     &f3dexHandlers,  // ucode_f3dexb
     &f3dex2Handlers, // ucode_f3dex2
     &s2dexHandlers,  // ucode_s2dex
+    &s2dex1Handlers, // ucode_s2dex1
 };
 
 const char* GfxGetOpcodeName(int8_t opcode) {
+    if (ucode_handler_index == ucode_s2dex1 && opcode == F3DEX_G_RDPHALF_0) {
+        return s2dex1Handlers.at(opcode).first;
+    }
     if (rdpHandlers.contains(opcode)) {
         return rdpHandlers.at(opcode).first;
     }
@@ -4179,6 +5292,10 @@ static void gfx_set_ucode_handler(UcodeHandlers ucode) {
             gfx->mRsp->fog_mul = 0;
             gfx->mRsp->fog_offset = 0;
             break;
+        case ucode_s2dex:
+        case ucode_s2dex1:
+            gfx->Gfxs2dexResetObjMatrix();
+            break;
         default:
             break;
     }
@@ -4196,7 +5313,11 @@ static void gfx_step() {
         // Instead of having a handler for each ucode for switching ucode, just check for it early and return.
     }
 
-    if (rdpHandlers.contains(opcode)) {
+    if (ucode_handler_index == ucode_s2dex1 && opcode == F3DEX_G_RDPHALF_0) {
+        if (s2dex1Handlers.at(opcode).second(&cmd)) {
+            return;
+        }
+    } else if (rdpHandlers.contains(opcode)) {
         if (rdpHandlers.at(opcode).second(&cmd)) {
             return;
         }

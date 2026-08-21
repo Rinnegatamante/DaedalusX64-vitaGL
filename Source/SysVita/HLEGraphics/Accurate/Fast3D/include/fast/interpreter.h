@@ -248,6 +248,24 @@ struct RawTexMetadata {
     Fast::TextureType type;
 };
 
+struct S2DEXObjTxtrData {
+    uint32_t type;
+    const uint8_t* image;
+    uint32_t imageAddress;
+    uint16_t p0;
+    uint16_t p1;
+    uint16_t p2;
+    uint16_t sid;
+    uint32_t imageBytes;
+    uint32_t flag;
+    uint32_t mask;
+};
+
+struct S2DEXObjTxSpriteData {
+    S2DEXObjTxtrData txtr;
+    F3DuObjSprite sprite;
+};
+
 #define MAX_LIGHTS 32
 #define MAX_VERTICES 64
 
@@ -337,6 +355,7 @@ struct RDP {
     int16_t convert_k[6]; // YUV convert coefficients (G_SETCONVERT) — K0-K5
 
     struct XYWidthHeight viewport, scissor;
+    uint16_t scissor_ulx_raw, scissor_uly_raw, scissor_lrx_raw, scissor_lry_raw;
     bool viewport_or_scissor_changed;
     void* z_buf_address;
     void* color_image_address;
@@ -432,6 +451,9 @@ class Interpreter {
     void RegisterFbTexture(const void* cpuAddr, int fbId);
     void UnregisterFbTexture(const void* cpuAddr);
     bool SyncColorImageToRdram(uint8_t* rdramBase, uint32_t rdramSize);
+    void SetRdramMemory(uint8_t* rdramBase, uint32_t rdramSize);
+    void RegisterStagedTextureSource(const uint8_t* staged, uint32_t size, uint32_t rdramAddress);
+    bool ResolveStagedTextureSource(const uint8_t* stagedAddress, uint32_t* rdramAddress) const;
 
     void SetNativeDimensions(float width, float height);
     void SetDisplayConfiguration(uint32_t width, uint32_t height, int32_t x, int32_t y, float aspectDelta);
@@ -508,6 +530,17 @@ class Interpreter {
     void Gfxs2dexBgCopy(F3DuObjBg* bg);
     void Gfxs2dexBg1cyc(F3DuObjBg* bg);
     void Gfxs2dexRecyCopy(F3DuObjSprite* spr);
+    void Gfxs2dexObjMoveMem(uint16_t index, const void* data);
+    void Gfxs2dexObjRenderMode(uint32_t mode);
+    void Gfxs2dexObjMoveWord(uint8_t index, uint16_t offset, uint32_t data);
+    void Gfxs2dexObjLoadTxtr(const S2DEXObjTxtrData* txtr);
+    void Gfxs2dexObjSprite(const F3DuObjSprite* spr);
+    void Gfxs2dexObjRectangle(const F3DuObjSprite* spr);
+    void Gfxs2dexObjRectangleR(const F3DuObjSprite* spr);
+    void Gfxs2dexObjLoadTxSprite(const S2DEXObjTxSpriteData* txsp);
+    void Gfxs2dexObjLoadTxRectR(const S2DEXObjTxSpriteData* txsp);
+    void Gfxs2dexMemRect(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint8_t tile, int16_t s, int16_t t);
+    void Gfxs2dexResetObjMatrix();
 
     void AdjustWidthHeightForScale(uint32_t& width, uint32_t& height, uint32_t nativeWidth,
                                    uint32_t nativeHeight) const;
@@ -528,6 +561,18 @@ class Interpreter {
     RSP* mRsp;
     RDP* mRdp;
     RenderingState mRenderingState{};
+    F3DuObjMtx_t mS2dexObjMtx{ 1 << 16, 0, 0, 1 << 16, 0, 0, 1 << 10, 1 << 10 };
+    uint32_t mS2dexObjRenderMode = 0;
+    uint32_t mS2dexStatus[4] = {};
+    std::vector<uint8_t> mS2dexTextureSnapshots[2];
+    std::vector<uint8_t> mS2dexPaletteSnapshot;
+    struct StagedTextureSource {
+        const uint8_t* staged = nullptr;
+        uint32_t size = 0;
+        uint32_t rdramAddress = 0;
+    };
+    std::vector<StagedTextureSource> mStagedTextureSources;
+    uint8_t mS2dexBgStripStaging[4096] = {};
 
     GfxTextureCache mTextureCache{};
     std::unordered_map<const void*, std::shared_ptr<Ship::IResource>> mResolvedResourceCache;
@@ -566,6 +611,8 @@ class Interpreter {
     uint32_t mRdramReadbackWidth = 0;
     uint32_t mRdramReadbackHeight = 0;
     std::vector<uint16_t> mRdramReadbackBuffer;
+    uint8_t* mRdramBase = nullptr;
+    uint32_t mRdramSize = 0;
 
     std::set<std::pair<float, float>> mGetPixelDepthPending; // get_pixel_depth_pending;
     std::unordered_map<std::pair<float, float>, uint16_t, hash_pair_ff> mGetPixelDepthCached; // get_pixel_depth_cached;

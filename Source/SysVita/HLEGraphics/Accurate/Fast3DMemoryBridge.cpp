@@ -254,6 +254,9 @@ bool Fast3DMemoryBridge::StageTextureImage(u32 requiredBytes, bool palette, u32 
 
     stage->dirty = false;
     stage->validatedBuild = mBuildSerial;
+    if (mInterpreter) {
+        mInterpreter->RegisterStagedTextureSource(stage->data, stage->size, sourceAddress);
+    }
     mTextureImageStaging = stage->data;
     ((HostGfx*)mTextureImageCommand)->w1 = (u32)(uintptr_t)stage->data;
     return true;
@@ -336,7 +339,7 @@ void* Fast3DMemoryBridge::StageS2DEXImage(u32 address, u16 imageW, u16 imageH, u
     return data;
 }
 
-void* Fast3DMemoryBridge::ConvertS2DEXBg(u32 address) {
+void* Fast3DMemoryBridge::ConvertS2DEXBg(u32 address, bool scalable) {
     address = Resolve(address);
     if (address >= gRamSize || 40 > gRamSize - address) return nullptr;
 
@@ -354,13 +357,28 @@ void* Fast3DMemoryBridge::ConvertS2DEXBg(u32 address) {
     bg->b.frameH = ReadU16(address + 14);
 
     const u32 imageAddress = Read32(address + 16);
+    const u32 resolvedImageAddress = Resolve(imageAddress);
     bg->b.imageLoad = ReadU16(address + 20);
     bg->b.imageFmt = ReadU8(address + 22);
     bg->b.imageSiz = ReadU8(address + 23);
     bg->b.imagePal = ReadU16(address + 24);
     bg->b.imageFlip = ReadU16(address + 26);
 
-    void* image = StageS2DEXImage(imageAddress, bg->b.imageW, bg->b.imageH, bg->b.imageSiz);
+    if (scalable) {
+        bg->s.scaleW = ReadU16(address + 28);
+        bg->s.scaleH = ReadU16(address + 30);
+        bg->s.imageYorig = (s32)Read32(address + 32);
+        memcpy(bg->s.padding, &resolvedImageAddress, sizeof(resolvedImageAddress));
+    } else {
+        bg->b.tmemW = ReadU16(address + 28);
+        bg->b.tmemH = ReadU16(address + 30);
+        bg->b.tmemLoadSH = ReadU16(address + 32);
+        bg->b.tmemLoadTH = ReadU16(address + 34);
+        bg->b.tmemSizeW = ReadU16(address + 36);
+        bg->b.tmemSize = ReadU16(address + 38);
+    }
+
+    void* image = StageS2DEXImage(resolvedImageAddress, bg->b.imageW, bg->b.imageH, bg->b.imageSiz);
     if (!image) return nullptr;
     bg->b.imagePtr = (unsigned long long int*)image;
     return bg;
@@ -389,6 +407,150 @@ void* Fast3DMemoryBridge::ConvertS2DEXSprite(u32 address) {
     sprite->s.imagePal = ReadU8(address + 22);
     sprite->s.imageFlags = ReadU8(address + 23);
     return sprite;
+}
+
+void* Fast3DMemoryBridge::ConvertS2DEXObjMtx(u32 address) {
+    address = Resolve(address);
+    if (address >= gRamSize || 24 > gRamSize - address) return nullptr;
+
+    Fast::F3DuObjMtx* mtx = (Fast::F3DuObjMtx*)Alloc(sizeof(Fast::F3DuObjMtx), 8);
+    if (!mtx) return nullptr;
+
+    mtx->m.A = (s32)Read32(address + 0);
+    mtx->m.B = (s32)Read32(address + 4);
+    mtx->m.C = (s32)Read32(address + 8);
+    mtx->m.D = (s32)Read32(address + 12);
+    mtx->m.X = ReadS16(address + 16);
+    mtx->m.Y = ReadS16(address + 18);
+    mtx->m.BaseScaleX = ReadU16(address + 20);
+    mtx->m.BaseScaleY = ReadU16(address + 22);
+    return mtx;
+}
+
+void* Fast3DMemoryBridge::ConvertS2DEXObjSubMtx(u32 address) {
+    address = Resolve(address);
+    if (address >= gRamSize || 8 > gRamSize - address) return nullptr;
+
+    Fast::F3DuObjSubMtx* mtx = (Fast::F3DuObjSubMtx*)Alloc(sizeof(Fast::F3DuObjSubMtx), 8);
+    if (!mtx) return nullptr;
+
+    mtx->m.X = ReadS16(address + 0);
+    mtx->m.Y = ReadS16(address + 2);
+    mtx->m.BaseScaleX = ReadU16(address + 4);
+    mtx->m.BaseScaleY = ReadU16(address + 6);
+    return mtx;
+}
+
+void* Fast3DMemoryBridge::ConvertS2DEXObjTxtr(u32 address) {
+    address = Resolve(address);
+    if (address >= gRamSize || 24 > gRamSize - address) return nullptr;
+
+    Fast::S2DEXObjTxtrData* txtr =
+        (Fast::S2DEXObjTxtrData*)Alloc(sizeof(Fast::S2DEXObjTxtrData), 8);
+    if (!txtr) return nullptr;
+    memset(txtr, 0, sizeof(*txtr));
+
+    txtr->type = Read32(address + 0);
+    const u32 imageAddress = Read32(address + 4);
+    txtr->p0 = ReadU16(address + 8);
+    txtr->p1 = ReadU16(address + 10);
+    txtr->p2 = ReadU16(address + 12);
+    txtr->sid = ReadU16(address + 14);
+    txtr->flag = Read32(address + 16);
+    txtr->mask = Read32(address + 20);
+
+    u64 imageBytes = 0;
+    if (txtr->type == G_OBJLT_TXTRBLOCK) {
+        imageBytes = (u64)(txtr->p1 + 1) * 8;
+    } else if (txtr->type == G_OBJLT_TXTRTILE) {
+        const u64 width = (u64)txtr->p1 + 1;
+        const u64 height = ((u64)txtr->p2 >> 2) + 1;
+        imageBytes = width * height * 2;
+    } else if (txtr->type == G_OBJLT_TLUT) {
+        imageBytes = ((u64)txtr->p1 + 1) * 2;
+    } else {
+        return nullptr;
+    }
+
+    txtr->imageBytes = (u32)imageBytes;
+
+    const u32 resolvedImage = Resolve(imageAddress);
+    txtr->imageAddress = resolvedImage;
+    if (imageBytes == 0 || imageBytes > 0xFFFFFFFFu || resolvedImage >= gRamSize ||
+        imageBytes > gRamSize - resolvedImage) {
+        return nullptr;
+    }
+
+    u8* stagedImage = (u8*)Alloc((u32)imageBytes, 16);
+    if (!stagedImage) return nullptr;
+    CopyRdramBytes(stagedImage, resolvedImage, (u32)imageBytes);
+    txtr->image = stagedImage;
+
+    return txtr;
+}
+
+void* Fast3DMemoryBridge::ConvertS2DEXObjTxSprite(u32 address) {
+    address = Resolve(address);
+    if (address >= gRamSize || 48 > gRamSize - address) return nullptr;
+
+    Fast::S2DEXObjTxSpriteData* txsp =
+        (Fast::S2DEXObjTxSpriteData*)Alloc(sizeof(Fast::S2DEXObjTxSpriteData), 8);
+    if (!txsp) return nullptr;
+    memset(txsp, 0, sizeof(*txsp));
+
+    txsp->txtr.type = Read32(address + 0);
+    const u32 imageAddress = Read32(address + 4);
+    txsp->txtr.p0 = ReadU16(address + 8);
+    txsp->txtr.p1 = ReadU16(address + 10);
+    txsp->txtr.p2 = ReadU16(address + 12);
+    txsp->txtr.sid = ReadU16(address + 14);
+    txsp->txtr.flag = Read32(address + 16);
+    txsp->txtr.mask = Read32(address + 20);
+
+    u64 imageBytes = 0;
+    if (txsp->txtr.type == G_OBJLT_TXTRBLOCK) {
+        imageBytes = (u64)(txsp->txtr.p1 + 1) * 8;
+    } else if (txsp->txtr.type == G_OBJLT_TXTRTILE) {
+        const u64 width = (u64)txsp->txtr.p1 + 1;
+        const u64 height = ((u64)txsp->txtr.p2 >> 2) + 1;
+        imageBytes = width * height * 2;
+    } else if (txsp->txtr.type == G_OBJLT_TLUT) {
+        imageBytes = ((u64)txsp->txtr.p1 + 1) * 2;
+    } else {
+        return nullptr;
+    }
+
+    txsp->txtr.imageBytes = (u32)imageBytes;
+
+    const u32 resolvedImage = Resolve(imageAddress);
+    txsp->txtr.imageAddress = resolvedImage;
+    if (imageBytes == 0 || imageBytes > 0xFFFFFFFFu || resolvedImage >= gRamSize ||
+        imageBytes > gRamSize - resolvedImage) {
+        return nullptr;
+    }
+
+    u8* stagedImage = (u8*)Alloc((u32)imageBytes, 16);
+    if (!stagedImage) return nullptr;
+    CopyRdramBytes(stagedImage, resolvedImage, (u32)imageBytes);
+    txsp->txtr.image = stagedImage;
+
+    const u32 sp = address + 24;
+    txsp->sprite.s.objX = ReadS16(sp + 0);
+    txsp->sprite.s.scaleW = ReadU16(sp + 2);
+    txsp->sprite.s.imageW = ReadU16(sp + 4);
+    txsp->sprite.s.paddingX = ReadU16(sp + 6);
+    txsp->sprite.s.objY = ReadS16(sp + 8);
+    txsp->sprite.s.scaleH = ReadU16(sp + 10);
+    txsp->sprite.s.imageH = ReadU16(sp + 12);
+    txsp->sprite.s.paddingY = ReadU16(sp + 14);
+    txsp->sprite.s.imageStride = ReadU16(sp + 16);
+    txsp->sprite.s.imageAdrs = ReadU16(sp + 18);
+    txsp->sprite.s.imageFmt = ReadU8(sp + 20);
+    txsp->sprite.s.imageSiz = ReadU8(sp + 21);
+    txsp->sprite.s.imagePal = ReadU8(sp + 22);
+    txsp->sprite.s.imageFlags = ReadU8(sp + 23);
+
+    return txsp;
 }
 
 u32 Fast3DMemoryBridge::CountListCommands(u32 address, GBIVersion version) const {
@@ -656,14 +818,91 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
                     if (!ptr) return fail();
                     dst->w1 = (u32)(uintptr_t)ptr;
                 } else if (op == 0x09 || op == 0x0A) {
-                    void* ptr = ConvertS2DEXBg(w1);
+                    void* ptr = ConvertS2DEXBg(w1, op == 0x09);
                     if (!ptr) return fail();
                     dst->w1 = (u32)(uintptr_t)ptr;
                 }
             }
             if (op == 0xDF) break;
         } else {
-            if (version == GBI_GE && op == 0xBD) {
+            if (version == GBI_1_S2DEX) {
+                if (op == 0xAF) {
+                    if (n == 0) return fail();
+
+                    const u32 previousPC = pc - 8;
+                    const u32 previousW0 = Read32(previousPC);
+                    const u32 previousW1 = Read32(previousPC + 4);
+                    if ((u8)(previousW0 >> 24) != 0xB4) return fail();
+
+                    const u32 codeBase = Resolve(w1);
+                    const u32 dataBase = Resolve(previousW1);
+                    const u32 dataSize = (w0 & 0xFFFF) + 1;
+                    if (codeBase >= gRamSize || dataBase >= gRamSize || dataSize > gRamSize - dataBase) return fail();
+
+                    const UcodeInfo loadedUcode = GBIMicrocode_DetectVersion(codeBase, 0, dataBase, dataSize);
+                    u32 fastUcode = 0;
+                    if (loadedUcode.version == GBI_1) {
+                        fastUcode = (u32)ucode_f3dex;
+                    } else if (loadedUcode.version == GBI_1_S2DEX) {
+                        fastUcode = (u32)ucode_s2dex1;
+                    } else if (loadedUcode.version == GBI_2) {
+                        fastUcode = (u32)ucode_f3dex2;
+                    } else if (loadedUcode.version == GBI_2_S2DEX) {
+                        fastUcode = (u32)ucode_s2dex;
+                    } else {
+                        return fail();
+                    }
+
+                    dst->w0 = (0xDDu << 24) | fastUcode;
+                    dst->w1 = 0;
+                    version = loadedUcode.version;
+                } else if (op == 0xBC && (w0 & 0xFF) == G_MW_SEGMENT) {
+                    const u32 offset = (w0 >> 8) & 0xFFFF;
+                    const u32 seg = (offset >> 2) & 0xF;
+                    mSegments[seg] = w1 & 0x00FFFFFF;
+                    dst->w0 = 0;
+                    dst->w1 = 0;
+                } else if (op == 0x06) {
+                    void* ptr = TranslateList(w1, version, depth + 1);
+                    if (!ptr) {
+                        if (!mTranslationFailed) return fail();
+                        return nullptr;
+                    }
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                    if (((w0 >> 16) & 0xFF) == G_DL_NOPUSH) break;
+                } else if (op == 0x01 || op == 0x02) {
+                    void* ptr = ConvertS2DEXBg(w1, op == 0x01);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0x03) {
+                    void* ptr = ConvertS2DEXSprite(w1);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0x05) {
+                    const u32 index = w0 & 0xFFFF;
+                    void* ptr = nullptr;
+                    if (index == 0) ptr = ConvertS2DEXObjMtx(w1);
+                    else if (index == 2) ptr = ConvertS2DEXObjSubMtx(w1);
+                    else if (index == 8) ptr = ConvertViewport(w1);
+                    else {
+                        return fail();
+                    }
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0xC1) {
+                    void* ptr = ConvertS2DEXObjTxtr(w1);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0xC2 || op == 0xC4) {
+                    void* ptr = ConvertS2DEXObjTxSprite(w1);
+                    if (!ptr) return fail();
+                    dst->w1 = (u32)(uintptr_t)ptr;
+                } else if (op == 0x04 || op == 0xB0 || op == 0xB2 ||
+                           op == 0xC3) {
+                    return fail();
+                }
+                if (op == 0xB8) break;
+            } else if (version == GBI_GE && op == 0xBD) {
                 if ((w0 & 0xFF) == G_MW_SEGMENT) {
                     const u32 offset = (w0 >> 8) & 0xFFFF;
                     const u32 seg = (offset >> 2) & 0xF;
@@ -674,7 +913,35 @@ void* Fast3DMemoryBridge::TranslateList(u32 address, GBIVersion& version, u32 de
                     dst->w0 = (0xBCu << 24) | (w0 & 0x00FFFFFFu);
                 }
             } else if (op == 0xAF) {
-                return fail();
+                if (n == 0) return fail();
+
+                const u32 previousPC = pc - 8;
+                const u32 previousW0 = Read32(previousPC);
+                const u32 previousW1 = Read32(previousPC + 4);
+                if ((u8)(previousW0 >> 24) != 0xB4) return fail();
+
+                const u32 codeBase = Resolve(w1);
+                const u32 dataBase = Resolve(previousW1);
+                const u32 dataSize = (w0 & 0xFFFF) + 1;
+                if (codeBase >= gRamSize || dataBase >= gRamSize || dataSize > gRamSize - dataBase) return fail();
+
+                const UcodeInfo loadedUcode = GBIMicrocode_DetectVersion(codeBase, 0, dataBase, dataSize);
+                u32 fastUcode = 0;
+                if (loadedUcode.version == GBI_1) {
+                    fastUcode = (u32)ucode_f3dex;
+                } else if (loadedUcode.version == GBI_1_S2DEX) {
+                    fastUcode = (u32)ucode_s2dex1;
+                } else if (loadedUcode.version == GBI_2) {
+                    fastUcode = (u32)ucode_f3dex2;
+                } else if (loadedUcode.version == GBI_2_S2DEX) {
+                    fastUcode = (u32)ucode_s2dex;
+                } else {
+                    return fail();
+                }
+
+                dst->w0 = (0xDDu << 24) | fastUcode;
+                dst->w1 = 0;
+                version = loadedUcode.version;
             } else if (op == 0xBC && (w0 & 0xFF) == G_MW_SEGMENT) {
                 const u32 offset = (w0 >> 8) & 0xFFFF;
                 const u32 seg = (offset >> 2) & 0xF;
