@@ -22,7 +22,11 @@
 #define SCE_CTRL_RLEFT  SCE_CTRL_VOLDOWN
 #define SCE_CTRL_RRIGHT SCE_CTRL_POWER
 
+#include "SysVita/Input/TouchZoneMapping.h"
+
 extern bool gUseRearpad;
+extern bool touch_zones_window;
+extern bool pause_emu;
 
 namespace
 {
@@ -416,6 +420,17 @@ void IInputManager::GetState( OSContPad pPad[4] )
 					if (touch.report[j].y < 544) pad.buttons |= SCE_CTRL_R2;
 					else pad.buttons |= SCE_CTRL_R3;
 				}
+			}
+		}
+
+		if (sceTouchPeek(SCE_TOUCH_PORT_FRONT, &gFrontTouchData, 1) >= 0) {
+			if (gCanvasEditMode || touch_zones_window || pause_emu) {
+				pPad[i].button = 0;
+				pPad[i].stick_x = 0;
+				pPad[i].stick_y = 0;
+				continue;
+			} else if (gFrontTouchData.reportNum > 0) {
+				pad.buttons |= EvaluateFrontTouchZones(gFrontTouchData);
 			}
 		}
 		

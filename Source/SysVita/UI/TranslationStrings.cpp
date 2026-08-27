@@ -43,6 +43,7 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Unload Game Settings", // STR_MENU_UNLOAD_GAME_SETTINGS
 	"UI Theme", // STR_MENU_UI_THEME
 	"Hide Menubar", // STR_MENU_MENUBAR
+	"Disable Touch Menu (Toggle with SELECT)", // STR_MENU_DISABLE_TOUCH_MENU
 	"Auto Update at Boot", // STR_MENU_AUTOUPDATE
 	"Update Compat List at Boot", // STR_MENU_COMPAT_LIST
 	"Textures Dumper", // STR_MENU_TEX_DUMPER

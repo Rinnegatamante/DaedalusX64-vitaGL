@@ -60,7 +60,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 178
+#define LANG_STRINGS_NUM 179
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -100,6 +100,7 @@ enum {
 	FUNC(STR_MENU_UNLOAD_GAME_SETTINGS) \
 	FUNC(STR_MENU_UI_THEME) \
 	FUNC(STR_MENU_MENUBAR) \
+	FUNC(STR_MENU_DISABLE_TOUCH_MENU) \
 	FUNC(STR_MENU_AUTOUPDATE) \
 	FUNC(STR_MENU_COMPAT_LIST) \
 	FUNC(STR_MENU_TEX_DUMPER) \
@@ -356,6 +357,7 @@ extern PostProcessingEffect *effects_list;
 
 // Config Variables
 extern bool gHideMenubar;
+extern bool gDisableTouchMenu;
 extern int  gLanguageIndex;
 extern int  gUseVSync;
 extern int  gCpuMode;

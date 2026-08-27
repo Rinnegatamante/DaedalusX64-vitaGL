@@ -23,6 +23,9 @@
 #include "Utility/ROMFile.h"
 #include "Utility/Timer.h"
 #include "SysVita/UI/Menu.h"
+#include "SysVita/Input/TouchZoneMapping.h"
+
+extern bool touch_zones_window;
 
 static uint64_t tmr1;
 bool pause_emu = false;
@@ -60,15 +63,24 @@ int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks)
 void DrawInGameMenu() {
 	// Handling menubar disappear
 	SceTouchData touch;
-	sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	
+	memset(&touch, 0, sizeof(SceTouchData));
+	if (!gDisableTouchMenu) {
+		sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	
+	}
 	uint64_t delta_touch = sceKernelGetProcessTimeWide() - tmr1;
-	if (touch.reportNum > 0 || pause_emu){
-		ImGui::GetIO().MouseDrawCursor = true;
-		show_menubar = true;
-		tmr1 = sceKernelGetProcessTimeWide();
-	}else if (delta_touch > 3000000){
-		ImGui::GetIO().MouseDrawCursor = false;
+	
+	if (gDisableTouchMenu) {
 		show_menubar = !gHideMenubar;
+		ImGui::GetIO().MouseDrawCursor = show_menubar || touch_zones_window || pause_emu;
+	} else {
+		if (touch.reportNum > 0 || pause_emu) {
+			ImGui::GetIO().MouseDrawCursor = true;
+			show_menubar = true;
+			tmr1 = sceKernelGetProcessTimeWide();
+		} else if (delta_touch > 3000000) {
+			show_menubar = !gHideMenubar;
+			ImGui::GetIO().MouseDrawCursor = show_menubar || touch_zones_window || pause_emu;
+		}
 	}
 
 	DrawInGameMenuBar();
@@ -82,16 +94,22 @@ void DrawInGameMenu() {
 	SceCtrlData pad;
 	sceCtrlPeekBufferPositive(0, &pad, 1);
 	int statusSelectBtn = update_button(&selectBtn, &pad, sceKernelGetProcessTimeWide());
-	if(statusSelectBtn == BUTTON_SHORT_RELEASED){
-		pause_emu = !pause_emu;
-		EnableMenuButtons(pause_emu);
-	} else if(statusSelectBtn == BUTTON_LONG_HOLD){
-		if(!gFastForward && !pause_emu){
+	if (statusSelectBtn == BUTTON_SHORT_RELEASED) {
+		if (gDisableTouchMenu) {
+			gHideMenubar = !gHideMenubar;
+			show_menubar = !gHideMenubar;
+			ImGui::GetIO().MouseDrawCursor = show_menubar || touch_zones_window || pause_emu;
+			EnableMenuButtons(show_menubar);
+		} else {
+			pause_emu = !pause_emu;
+			EnableMenuButtons(pause_emu);
+		}
+	} else if (statusSelectBtn == BUTTON_LONG_HOLD) {
+		if (!gFastForward && !pause_emu) {
 			gFastForward = true;
 			vglWaitVblankStart(GL_FALSE);
 		}
-	}
-	else if(statusSelectBtn == BUTTON_LONG_RELEASED){
+	} else if (statusSelectBtn == BUTTON_LONG_RELEASED) {
 		gFastForward = false;
 		vglWaitVblankStart(gUseVSync);
 	}

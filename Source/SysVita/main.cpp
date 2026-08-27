@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "BuildOptions.h"
+#include "SysVita/Input/TouchZoneMapping.h"
 #include "Config/ConfigOptions.h"
 #include "Core/Cheats.h"
 #include "Core/CPU.h"
@@ -446,6 +447,8 @@ static void Initialize()
 	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG_WIDE);
 	sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
 	sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
+	sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
+	LoadTouchZonesConfig();
 	
 	// Turn off auto updater if build is marked as dirty
 	bool gSkipAutoUpdate = !gStandaloneMode || (strstr(stringify(GIT_VERSION), "dirty") != nullptr);
@@ -878,6 +881,7 @@ void loadConfig(const char *game) {
 			else if (strcmp("gSortOrder", buffer) == 0) gSortOrder = value;
 			else if (strcmp("gUiTheme", buffer) == 0) gUiTheme = value;
 			else if (strcmp("gHideMenubar", buffer) == 0) gHideMenubar = value;
+			else if (strcmp("gDisableTouchMenu", buffer) == 0) gDisableTouchMenu = (bool)value;
 			else if (strcmp("gSkipCompatListUpdate", buffer) == 0) gSkipCompatListUpdate = (bool)value;
 			else if (strcmp("gAutoUpdate", buffer) == 0) gAutoUpdate = (bool)value;
 			else if (strcmp("gLanguageIndex", buffer) == 0) gLanguageIndex = value;

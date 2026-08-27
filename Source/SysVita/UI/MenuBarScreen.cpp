@@ -25,6 +25,7 @@
 #include "Utility/Timer.h"
 #include "Utility/stb_image.h"
 #include "SysVita/UI/Menu.h"
+#include "SysVita/Input/TouchZoneMapping.h"
 
 #define MAX_SAVESLOT 9
 
@@ -78,12 +79,21 @@ extern char rom_game_name[256];
 bool gBigText = false;
 bool show_menubar = true;
 bool gHideMenubar = true;
+bool gDisableTouchMenu = false;
 bool run_emu = true;
 bool restart_rom = false;
 
 int gCpuMode = CPU_DYNAREC;
 int gSortOrder = SORT_A_TO_Z;
 
+#ifndef SCE_CTRL_RUP
+#define SCE_CTRL_RUP    SCE_CTRL_HEADPHONE
+#define SCE_CTRL_RDOWN  SCE_CTRL_VOLUP
+#define SCE_CTRL_RLEFT  SCE_CTRL_VOLDOWN
+#define SCE_CTRL_RRIGHT SCE_CTRL_POWER
+#endif
+
+bool touch_zones_window = false;
 static bool vflux_window = false;
 static bool vflux_enabled = false;
 static bool credits_window = false;
@@ -348,6 +358,7 @@ void saveConfig(const char *game)
 		fprintf(config, "%s=%d\n", "gSortOrder", gSortOrder);
 		fprintf(config, "%s=%d\n", "gUiTheme", gUiTheme);
 		fprintf(config, "%s=%d\n", "gHideMenubar", gHideMenubar);
+		fprintf(config, "%s=%d\n", "gDisableTouchMenu", (int)gDisableTouchMenu);
 		fprintf(config, "%s=%d\n", "gSkipCompatListUpdate", (int)gSkipCompatListUpdate);
 		fprintf(config, "%s=%d\n", "gAutoUpdate", (int)gAutoUpdate);
 		fprintf(config, "%s=%d\n", "gLanguageIndex", gLanguageIndex);
@@ -535,6 +546,9 @@ void DrawExtraMenu() {
 		}
 		if (ImGui::MenuItem(lang_strings[STR_MENU_MENUBAR], nullptr, gHideMenubar)) {
 			gHideMenubar = !gHideMenubar;
+		}
+		if (ImGui::MenuItem(lang_strings[STR_MENU_DISABLE_TOUCH_MENU], nullptr, gDisableTouchMenu)) {
+			gDisableTouchMenu = !gDisableTouchMenu;
 		}
 		if (ImGui::MenuItem(lang_strings[STR_BIG_TEXT], nullptr, gBigText, gLanguageIndex != SCE_SYSTEM_PARAM_LANG_CHINESE_S)) {
 			gBigText = !gBigText;
@@ -807,6 +821,9 @@ void DrawCommonMenuBar() {
 			}
 			ImGui::EndMenu();
 		}
+		if (ImGui::MenuItem("Touch Zone Coordinate Mapping", nullptr, touch_zones_window)) {
+			touch_zones_window = !touch_zones_window;
+		}
 		ImGui::Separator();
 		char ctrl_str[64];
 		sprintf(ctrl_str, "%s 1", lang_strings[STR_CONTROLLER]);
@@ -931,11 +948,283 @@ void DrawCommonMenuBar() {
 	}
 }
 
+static int selected_zone = 0;
+
+static const char *kButtonNames[] = {
+	"N64 A",
+	"N64 B",
+	"N64 Z Trigger",
+	"N64 L Button",
+	"N64 R Button",
+	"N64 Start",
+	"N64 C-Up",
+	"N64 C-Down",
+	"N64 C-Left",
+	"N64 C-Right",
+	"N64 D-Pad Up",
+	"N64 D-Pad Down",
+	"N64 D-Pad Left",
+	"N64 D-Pad Right"
+};
+
+static const uint32_t kButtonValues[] = {
+	SCE_CTRL_CROSS,
+	SCE_CTRL_SQUARE,
+	SCE_CTRL_L1,
+	SCE_CTRL_LTRIGGER,
+	SCE_CTRL_R1,
+	SCE_CTRL_START,
+	SCE_CTRL_RUP,
+	SCE_CTRL_RDOWN,
+	SCE_CTRL_RLEFT,
+	SCE_CTRL_RRIGHT,
+	SCE_CTRL_UP,
+	SCE_CTRL_DOWN,
+	SCE_CTRL_LEFT,
+	SCE_CTRL_RIGHT
+};
+
+static const int kNumButtons = sizeof(kButtonValues) / sizeof(kButtonValues[0]);
+
+static const char *kShapeNames[] = {
+	"Rectangle",
+	"Square",
+	"Circle"
+};
+
+void DrawCanvasEditOverlay() {
+	if (!gCanvasEditMode) return;
+
+	ProcessCanvasEditInput();
+
+	if (gSelectedTouchZone < 0 || gSelectedTouchZone >= MAX_TOUCH_ZONES) {
+		gSelectedTouchZone = 0;
+	}
+
+	// 1. Fully transparent full-screen viewport (960x544) over 100% clean game graphics
+	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(960, 544), ImGuiCond_Always);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar |
+	                         ImGuiWindowFlags_NoResize |
+	                         ImGuiWindowFlags_NoMove |
+	                         ImGuiWindowFlags_NoScrollbar |
+	                         ImGuiWindowFlags_NoSavedSettings |
+	                         ImGuiWindowFlags_NoInputs;
+
+	ImGui::Begin("##ZeroUICanvasEditOverlay", nullptr, flags);
+
+	ImDrawList *draw_list = ImGui::GetWindowDrawList();
+
+	// Render all active touch hitboxes
+	for (int z = 0; z < MAX_TOUCH_ZONES; z++) {
+		if (!gTouchZones[z].enabled) continue;
+
+		uint8_t shape = gTouchZones[z].shape;
+		if (shape > 2) shape = 0;
+
+		float cx = (float)gTouchZones[z].center_x * (960.0f / 1920.0f);
+		float cy = (float)gTouchZones[z].center_y * (544.0f / 1088.0f);
+		float rw = (float)gTouchZones[z].radius_w * (960.0f / 1920.0f);
+		float rh = (float)gTouchZones[z].radius_h * (544.0f / 1088.0f);
+
+		bool is_sel = (z == gSelectedTouchZone);
+
+		ImU32 col_fill = is_sel ? IM_COL32(0, 220, 255, 120) : IM_COL32(255, 180, 0, 75);
+		ImU32 col_border = is_sel ? IM_COL32(0, 255, 255, 255) : IM_COL32(255, 200, 0, 220);
+
+		if (shape == HITBOX_CIRCLE) {
+			draw_list->AddCircleFilled(ImVec2(cx, cy), rw, col_fill);
+			draw_list->AddCircle(ImVec2(cx, cy), rw, col_border, 48, 2.5f);
+		} else if (shape == HITBOX_SQUARE) {
+			draw_list->AddRectFilled(ImVec2(cx - rw, cy - rw), ImVec2(cx + rw, cy + rw), col_fill);
+			draw_list->AddRect(ImVec2(cx - rw, cy - rw), ImVec2(cx + rw, cy + rw), col_border, 0.0f, 15, 2.5f);
+		} else { // HITBOX_RECTANGLE
+			draw_list->AddRectFilled(ImVec2(cx - rw, cy - rh), ImVec2(cx + rw, cy + rh), col_fill);
+			draw_list->AddRect(ImVec2(cx - rw, cy - rh), ImVec2(cx + rw, cy + rh), col_border, 0.0f, 15, 2.5f);
+		}
+
+		// Draw center target crosshair
+		draw_list->AddLine(ImVec2(cx - 10, cy), ImVec2(cx + 10, cy), IM_COL32(255, 255, 255, 255), 2.0f);
+		draw_list->AddLine(ImVec2(cx, cy - 10), ImVec2(cx, cy + 10), IM_COL32(255, 255, 255, 255), 2.0f);
+
+		// Label showing Zone & Button
+		char zlabel[64];
+		const char *zname = gTouchZones[z].name[0] ? gTouchZones[z].name : "Zone";
+		snprintf(zlabel, sizeof(zlabel), "Z%d: %s (%s)", z + 1, zname, kShapeNames[shape]);
+		draw_list->AddText(ImVec2(cx - rw + 4, cy - rh - 18), IM_COL32(255, 255, 255, 255), zlabel);
+	}
+
+	// Sleek Bottom Control Bar Legend
+	draw_list->AddRectFilled(ImVec2(0, 504), ImVec2(960, 544), IM_COL32(10, 10, 15, 210));
+	draw_list->AddLine(ImVec2(0, 504), ImVec2(960, 504), IM_COL32(0, 200, 255, 255), 1.5f);
+
+	char legend_str[256];
+	if (gTouchZones[gSelectedTouchZone].shape == HITBOX_RECTANGLE) {
+		snprintf(legend_str, sizeof(legend_str),
+			"[DPAD/L-Stick] Move  |  [TRIANGLE] Size+  [CROSS] Size-  |  [R-Stick] Width/Height (%dx%dpx)  |  [SQUARE] Shape  |  [L1/R1] Zone %d/8  |  [START] Save & Exit",
+			gTouchZones[gSelectedTouchZone].radius_w, gTouchZones[gSelectedTouchZone].radius_h, gSelectedTouchZone + 1);
+	} else {
+		snprintf(legend_str, sizeof(legend_str),
+			"[DPAD/L-Stick] Move  |  [TRIANGLE] Size+  [CROSS] Size- (%dpx)  |  [SQUARE] Shape  |  [L1/R1] Zone %d/8  |  [START] Save & Exit",
+			gTouchZones[gSelectedTouchZone].radius_w, gSelectedTouchZone + 1);
+	}
+
+	draw_list->AddText(ImVec2(12, 516), IM_COL32(255, 255, 255, 255), legend_str);
+
+	ImGui::End();
+	ImGui::PopStyleColor();
+}
+
+void DrawTouchZonesWindow() {
+	if (!touch_zones_window) return;
+
+	// Support physical L1 / R1 buttons for zone switching in mapping window
+	SceCtrlData win_pad;
+	memset(&win_pad, 0, sizeof(SceCtrlData));
+	sceCtrlPeekBufferPositive(0, &win_pad, 1);
+	static uint32_t last_win_buttons = 0;
+	uint32_t win_pressed = win_pad.buttons & ~last_win_buttons;
+	last_win_buttons = win_pad.buttons;
+
+	bool l1_pressed = (win_pressed & (SCE_CTRL_L1 | SCE_CTRL_LTRIGGER)) != 0;
+	bool r1_pressed = (win_pressed & (SCE_CTRL_R1 | SCE_CTRL_RTRIGGER)) != 0;
+
+	if (r1_pressed) {
+		selected_zone = (selected_zone + 1) % MAX_TOUCH_ZONES;
+		gSelectedTouchZone = selected_zone;
+	}
+	if (l1_pressed) {
+		selected_zone = (selected_zone + MAX_TOUCH_ZONES - 1) % MAX_TOUCH_ZONES;
+		gSelectedTouchZone = selected_zone;
+	}
+
+	ImGui::SetNextWindowSize(ImVec2(720, 540), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Touch Zone Coordinate Mapping", &touch_zones_window)) {
+		ImGui::Checkbox("Enable Front Touch Zones", &gTouchZonesActive);
+		ImGui::SameLine(500);
+		if (ImGui::Button("Save Settings", ImVec2(180, 26))) {
+			SaveTouchZonesConfig();
+			showAlert("Touch Zones Saved", ALERT_MESSAGE);
+		}
+
+		ImGui::Separator();
+
+		// Highlighted prominent action button to visually move and place touch buttons on screen
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.55f, 0.95f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.7f, 1.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.45f, 0.85f, 1.0f));
+
+		if (ImGui::Button("POSITION & MOVE BUTTONS ON SCREEN (VISUAL EDITOR)", ImVec2(-1, 36))) {
+			gCanvasEditMode = true;
+			touch_zones_window = false;
+		}
+
+		ImGui::PopStyleColor(3);
+
+		ImGui::TextColored(ImVec4(0.4f, 0.85f, 1.0f, 1.0f), "💡 Click this blue button to visually place, move, and resize touch zones over the game screen.");
+
+		ImGui::Separator();
+
+		for (int i = 0; i < MAX_TOUCH_ZONES; i++) {
+			char zbtn_lbl[128];
+			const char *zname = gTouchZones[i].name[0] ? gTouchZones[i].name : "Zone";
+			snprintf(zbtn_lbl, sizeof(zbtn_lbl), "Z%d: %s##zbtn%d", i + 1, gTouchZones[i].enabled ? zname : "[Off]", i);
+			if (i % 4 != 0) ImGui::SameLine();
+			bool was_selected = (selected_zone == i);
+			if (was_selected) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.7f, 1.0f, 1.0f));
+			}
+			if (ImGui::Button(zbtn_lbl, ImVec2(155, 28))) {
+				selected_zone = i;
+				gSelectedTouchZone = i;
+			}
+			if (was_selected) {
+				ImGui::PopStyleColor();
+			}
+		}
+
+		ImGui::Separator();
+
+		if (selected_zone < 0 || selected_zone >= MAX_TOUCH_ZONES) selected_zone = 0;
+		TouchZone &tz = gTouchZones[selected_zone];
+		ImGui::PushID(selected_zone);
+
+		ImGui::Text("Configuring: Zone %d - %s", selected_zone + 1, tz.enabled ? "ENABLED" : "DISABLED");
+
+		ImGui::Checkbox("Enable this zone", &tz.enabled);
+
+		ImGui::Text("Hitbox Shape:");
+		for (int s = 0; s < 3; s++) {
+			bool is_s_sel = (tz.shape == s);
+			if (is_s_sel) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.7f, 1.0f, 1.0f));
+			if (s > 0) ImGui::SameLine();
+			char shape_btn_lbl[32];
+			snprintf(shape_btn_lbl, sizeof(shape_btn_lbl), "%s##shapebtn%d", kShapeNames[s], s);
+			if (ImGui::Button(shape_btn_lbl, ImVec2(110, 26))) {
+				tz.shape = (uint8_t)s;
+			}
+			if (is_s_sel) ImGui::PopStyleColor();
+		}
+
+		ImGui::Separator();
+		ImGui::Text("Select N64 Mapped Button:");
+
+		for (int b = 0; b < kNumButtons; b++) {
+			bool is_selected = (tz.mapped_button == kButtonValues[b]);
+			if (is_selected) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.7f, 1.0f, 1.0f));
+			}
+
+			if (b % 4 != 0) ImGui::SameLine();
+
+			char btn_lbl[64];
+			snprintf(btn_lbl, sizeof(btn_lbl), "%s##mappedbtn%d", kButtonNames[b], b);
+			if (ImGui::Button(btn_lbl, ImVec2(155, 28))) {
+				tz.mapped_button = kButtonValues[b];
+			}
+
+			if (is_selected) {
+				ImGui::PopStyleColor();
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::Text("Center and Size Settings:");
+
+		int cx = tz.center_x;
+		int cy = tz.center_y;
+		int rw = tz.radius_w;
+		int rh = tz.radius_h;
+
+		if (ImGui::SliderInt("Center X (px)", &cx, 0, 1920)) tz.center_x = (uint16_t)cx;
+		if (ImGui::SliderInt("Center Y (px)", &cy, 0, 1088)) tz.center_y = (uint16_t)cy;
+
+		if (tz.shape == HITBOX_RECTANGLE) {
+			if (ImGui::SliderInt("Width / Radius X (px)", &rw, 10, 800)) tz.radius_w = (uint16_t)rw;
+			if (ImGui::SliderInt("Height / Radius Y (px)", &rh, 10, 500)) tz.radius_h = (uint16_t)rh;
+		} else {
+			if (ImGui::SliderInt("Radius / Size (px)", &rw, 10, 800)) {
+				tz.radius_w = (uint16_t)rw;
+				tz.radius_h = (uint16_t)rw;
+			}
+		}
+
+		ImGui::PopID();
+
+		ImGui::End();
+	}
+}
+
 void DrawCommonWindows() {
 	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_ALPHA_TEST);
+	
+	DrawTouchZonesWindow();
+	DrawCanvasEditOverlay();
 	
 	if (vflux_window) {
 		ImGui::Begin(lang_strings[STR_VFLUX_CONFIG], &vflux_window);

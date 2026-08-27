@@ -58,7 +58,7 @@ set_source_files_properties(
 
 set (VITA_HLEGRAPHICS_FILES SysVita/HLEGraphics/GraphicsPluginVita.cpp SysVita/HLEGraphics/RendererLegacy.cpp SysVita/HLEGraphics/RendererModern.cpp SysVita/HLEGraphics/ColourAdjuster.cpp SysVita/HLEGraphics/BlendModes.cpp SysVita/HLEGraphics/Combiner/BlendConstant.cpp SysVita/HLEGraphics/Combiner/CombinerExpression.cpp SysVita/HLEGraphics/Combiner/CombinerTree.cpp SysVita/HLEGraphics/Combiner/RenderSettings.cpp SysVita/HLEGraphics/Accurate/RendererAccurate.cpp SysVita/HLEGraphics/Accurate/Fast3DCompat.cpp SysVita/HLEGraphics/Accurate/Fast3DMemoryBridge.cpp ${FAST3D_ACCURATE_SOURCES})
 set (VITA_HLEAUDIO_FILES SysVita/HLEAudio/AudioPluginVita.cpp SysVita/HLEAudio/AudioOutput.cpp)
-set (VITA_INPUT_FILES SysVita/Input/InputManagerVita.cpp)
+set (VITA_INPUT_FILES SysVita/Input/InputManagerVita.cpp SysVita/Input/TouchZoneMapping.cpp)
 set (VITA_UI_FILES SysVita/UI/TranslationStrings.cpp SysVita/UI/MainMenuScreen.cpp SysVita/UI/InGameMenuScreen.cpp SysVita/UI/MenuBarScreen.cpp SysVita/UI/DownloaderScreen.cpp)
 set (VITA_UTILITY_FILES SysVita/Utility/ThreadVita.cpp SysVita/Utility/IOVita.cpp SysVita/Utility/TimingVita.cpp minizip/ioapi.c minizip/zip.c minizip/unzip.c)
 set (VITA_BUILD ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES} ${VITA_HLEAUDIO_FILES} ${VITA_HLEGRAPHICS_FILES} ${VITA_INPUT_FILES} ${VITA_UI_FILES} ${VITA_UTILITY_FILES})
@@ -126,6 +126,8 @@ target_link_libraries(${PROJECT_NAME}.elf
 	crypto
 	speexdsp
 	soloud
+	png
+	z
 	pthread
 	taihen_stub
 	SceDisplay_stub
