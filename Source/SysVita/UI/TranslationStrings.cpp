@@ -184,4 +184,8 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"FPU Registers Access Optimization", // STR_MENU_DYNAREC_FPU_REG_OPT
 	"CTC1 Opcode Optimization", // STR_MENU_DYNAREC_CTC1_OPT
 	"Fallback Hot Self-Modifying Code Blocks", // STR_MENU_DYNAREC_SMC_OPT
+	"%lu games", // STR_ROM_SELECTOR_GAMES
+	"START Menu   < > Browse   L/R Filter   SQUARE Search   R-STICK Rotate   X Launch   TRIANGLE Details", // STR_ROM_SELECTOR_HINTS
+	"No ROMs match the current search or filter.", // STR_ROM_SELECTOR_EMPTY
+	"TRIANGLE  Close", // STR_ROM_DETAILS_CLOSE
 };
