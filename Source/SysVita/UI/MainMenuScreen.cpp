@@ -1151,15 +1151,14 @@ static void DrawN64CartridgeCarousel3D(const std::vector<RomSelection*> &visible
 	const float center_y = top + 256.0f;
 	const int begin = selected_index > 3 ? selected_index - 3 : 0;
 	const int end = MIN((int)visible_roms.size() - 1, selected_index + 3);
-	for (int index = begin; index <= end; index++) {
+	auto draw_cartridge = [&](int index, bool is_selected) {
 		const float distance = (float)index - carousel_position;
 		const float abs_distance = distance < 0.0f ? -distance : distance;
 		if (abs_distance > 3.1f)
-			continue;
+			return;
 		float scale = 1.0f - abs_distance * 0.19f;
 		if (scale < 0.50f)
 			scale = 0.50f;
-		const bool is_selected = index == selected_index;
 		const float idle_phase = idle_time * 1.45f + (float)index * 0.72f;
 		const float bob = sinf(idle_phase) * (is_selected ? 5.0f : 2.5f);
 		const float idle_yaw = sinf(idle_phase * 0.73f) * (is_selected ? 2.2f : 1.1f);
@@ -1172,7 +1171,18 @@ static void DrawN64CartridgeCarousel3D(const std::vector<RomSelection*> &visible
 		const float yaw = -distance * 18.0f + base_yaw + idle_yaw + (is_selected ? manual_yaw : 0.0f);
 		const float pitch = base_pitch + idle_pitch + (is_selected ? manual_pitch : 0.0f);
 		DrawN64Cartridge3D(visible_roms[index], x, y, z, 286.0f * scale, yaw, pitch, is_selected);
+	};
+
+	for (int index = begin; index <= end; index++) {
+		if (index == selected_index)
+			continue;
+		draw_cartridge(index, false);
 	}
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	draw_cartridge(selected_index, true);
 
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
