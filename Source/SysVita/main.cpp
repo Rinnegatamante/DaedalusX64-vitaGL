@@ -1053,6 +1053,26 @@ int main(int argc, char* argv[]) {
 
 		EnableMenuButtons(false);
 		ImGui_ImplVitaGL_TouchUsage(true);
+		glUseProgram(0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glActiveTexture(GL_TEXTURE0);
+		glClientActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		glDisable(GL_SCISSOR_TEST);
+		glDisable(GL_BLEND);
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		glScissor(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0, SCR_WIDTH, SCR_HEIGHT, 0, -1, 1);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
 		System_Open(rom);
 
 		if (gRendererChanged) {

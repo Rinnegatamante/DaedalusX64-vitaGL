@@ -508,6 +508,8 @@ static ShaderProgram * GetShaderForConfig(const ShaderConfiguration & config)
 void RendererModern::RestoreRenderStates()
 {
 	// Initialise the device to our default state
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	// We do our own culling
 	glDisable(GL_CULL_FACE);

@@ -1117,6 +1117,11 @@ static void RestoreMenuGLState() {
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0f, SCR_WIDTH, SCR_HEIGHT, 0.0f, -1.0f, 1.0f);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 }
 
 static void DrawN64CartridgeCarousel3D(const std::vector<RomSelection*> &visible_roms,
