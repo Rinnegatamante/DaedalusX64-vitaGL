@@ -91,8 +91,9 @@ char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE] = {
 	"Salvy & frangarcj for the help with some bugfixes", // STR_CREDITS_5
 	"Inssame for some additions to the UI code", // STR_CREDITS_6
 	"That One Seong & TheIronUniverse for the Livearea assets", // STR_CREDITS_7
-	"withLogic for the high-res preview assets", // STR_CREDITS_8
-	"Rob Scotcher for the Daedalus X64 logo image", // STR_CREDITS_9
+	"Rob Scotcher for the Daedalus X64 logo image", // STR_CREDITS_8
+	"EmuMovies for the N64 cartridge label/cover pack", // STR_CREDITS_9
+	"diskturbo for the Nintendo 64 cartridge 3D model", // STR_CREDITS_10
 	"Cartridge ID", // STR_CART_ID
 	"Installed GFX Microcode", // STR_GFX_UCODE
 	"Installed Audio Microcode", // STR_AUDIO_UCODE

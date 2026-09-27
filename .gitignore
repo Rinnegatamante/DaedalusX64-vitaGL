@@ -20,4 +20,4 @@ preferences.ini
 rom.db
 .svn/
 Source/tmp
-Source/build
+Source/build*

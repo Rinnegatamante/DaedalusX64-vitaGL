@@ -60,7 +60,7 @@ enum {
 };
 
 // Translation strings
-#define LANG_STRINGS_NUM 182
+#define LANG_STRINGS_NUM 183
 
 #define FOREACH_STR(FUNC) \
 	FUNC(STR_DOWNLOADER_COMPAT_LIST) \
@@ -150,6 +150,7 @@ enum {
 	FUNC(STR_CREDITS_7) \
 	FUNC(STR_CREDITS_8) \
 	FUNC(STR_CREDITS_9) \
+	FUNC(STR_CREDITS_10) \
 	FUNC(STR_CART_ID) \
 	FUNC(STR_GFX_UCODE) \
 	FUNC(STR_AUDIO_UCODE) \
@@ -263,6 +264,9 @@ enum {
 extern char lang_identifiers[LANG_STRINGS_NUM][LANG_ID_SIZE];
 extern char lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE];
 extern bool show_menubar;
+extern bool gFrontendMenuFocusRequest;
+extern bool gFrontendMenuActive;
+extern bool gFrontendMenuCloseRequest;
 
 // Dialog types
 enum {

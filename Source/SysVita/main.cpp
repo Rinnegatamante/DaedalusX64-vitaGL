@@ -174,7 +174,7 @@ void dump2file(void *ptr, uint32_t size, char *filename) {
 
 void EnableMenuButtons(bool status) {
 	ImGui_ImplVitaGL_GamepadUsage(status);
-	ImGui_ImplVitaGL_MouseStickUsage(status);
+	ImGui_ImplVitaGL_MouseStickUsage(false);
 }
 
 static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream)
@@ -473,8 +473,10 @@ static void Initialize()
 	sprintf(fnt_fname, "%sRoboto.ttf", DAEDALUS_VITA_PATH("Resources/"));
 	reloadFont();
 	ImGui_ImplVitaGL_Init();
-	ImGui_ImplVitaGL_TouchUsage(true);
+	ImGui_ImplVitaGL_TouchUsage(false);
 	ImGui_ImplVitaGL_UseIndirectFrontTouch(true);
+	ImGui_ImplVitaGL_MouseStickUsage(false);
+	ImGui_ImplVitaGL_GamepadUsage(true);
 	ImGui::StyleColorsDark();
 	
 	// Initializing additional stuffs
@@ -527,12 +529,11 @@ static void Initialize()
 		ImGui_ImplVitaGL_MouseStickUsage(false);
 		ImGui_ImplVitaGL_GamepadUsage(true);
 		DrawChangeListScreen(f);
-		ImGui_ImplVitaGL_GamepadUsage(false);
-		ImGui_ImplVitaGL_MouseStickUsage(true);
+		EnableMenuButtons(true);
 		sceIoRemove(LOG_DOWNLOAD_NAME);
 	}
 	
-	ImGui::GetIO().MouseDrawCursor = true;
+	ImGui::GetIO().MouseDrawCursor = false;
 }
 
 void setCpuMode(int cpu_mode)
@@ -680,6 +681,14 @@ void showDialog(char *text, void (*yes_func)(), void (*no_func)(), int type, cha
 }
 
 void setTranslation(int idx) {
+	static bool default_strings_captured = false;
+	static char default_lang_strings[LANG_STRINGS_NUM][LANG_STR_SIZE];
+	if (!default_strings_captured) {
+		memcpy(default_lang_strings, lang_strings, sizeof(lang_strings));
+		default_strings_captured = true;
+	}
+	memcpy(lang_strings, default_lang_strings, sizeof(lang_strings));
+
 	if (idx != gLanguageIndex && (gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CHINESE_S || idx == SCE_SYSTEM_PARAM_LANG_CHINESE_S || idx == SCE_SYSTEM_PARAM_LANG_JAPANESE || idx == SCE_SYSTEM_PARAM_LANG_RYUKYUAN))
 		fontDirty = true;
 	
@@ -996,6 +1005,8 @@ int main(int argc, char* argv[]) {
 
 	while (run_emu) {
 		loadConfig("default");
+		ImGui_ImplVitaGL_TouchUsage(false);
+		ImGui::GetIO().MouseDrawCursor = false;
 		EnableMenuButtons(true);
 
 		if (restart_rom) {
@@ -1041,6 +1052,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		EnableMenuButtons(false);
+		ImGui_ImplVitaGL_TouchUsage(true);
 		System_Open(rom);
 
 		if (gRendererChanged) {

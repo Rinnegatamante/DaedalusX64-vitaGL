@@ -58,6 +58,8 @@ int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks)
 }
 
 void DrawInGameMenu() {
+	ImGui_ImplVitaGL_TouchUsage(true);
+
 	// Handling menubar disappear
 	SceTouchData touch;
 	sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	

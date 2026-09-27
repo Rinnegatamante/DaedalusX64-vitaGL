@@ -77,6 +77,9 @@ extern char rom_game_name[256];
 
 bool gBigText = false;
 bool show_menubar = true;
+bool gFrontendMenuFocusRequest = false;
+bool gFrontendMenuActive = false;
+bool gFrontendMenuCloseRequest = false;
 bool gHideMenubar = true;
 bool run_emu = true;
 bool restart_rom = false;
@@ -515,8 +518,54 @@ void SetDescription(const char *text) {
 		ImGui::SetTooltip(text);
 }
 
+enum EFrontendTopLevelMenu {
+	FRONTEND_TOP_OPTIONS,
+	FRONTEND_TOP_EMULATION,
+	FRONTEND_TOP_GRAPHICS,
+	FRONTEND_TOP_AUDIO,
+	FRONTEND_TOP_INPUT,
+	FRONTEND_TOP_LANGUAGE,
+	FRONTEND_TOP_EXTRA
+};
+
+static int gFrontendLastTopLevelMenu = FRONTEND_TOP_OPTIONS;
+static bool gFrontendTopLevelOpenThisFrame = false;
+
+static const char *GetFrontendTopLevelMenuLabel(int menu) {
+	switch (menu) {
+	case FRONTEND_TOP_EMULATION:
+		return lang_strings[STR_MENU_EMULATION];
+	case FRONTEND_TOP_GRAPHICS:
+		return lang_strings[STR_MENU_GRAPHICS];
+	case FRONTEND_TOP_AUDIO:
+		return lang_strings[STR_MENU_AUDIO];
+	case FRONTEND_TOP_INPUT:
+		return lang_strings[STR_MENU_INPUT];
+	case FRONTEND_TOP_LANGUAGE:
+		return lang_strings[STR_MENU_LANG];
+	case FRONTEND_TOP_EXTRA:
+		return lang_strings[STR_MENU_EXTRA];
+	case FRONTEND_TOP_OPTIONS:
+	default:
+		return lang_strings[STR_MENU_OPTIONS];
+	}
+}
+
+static bool BeginFrontendTopLevelMenu(int menu, const char *label) {
+	const bool open = ImGui::BeginMenu(label);
+	if (open) {
+		gFrontendTopLevelOpenThisFrame = true;
+		gFrontendLastTopLevelMenu = menu;
+		if (gFrontendMenuCloseRequest) {
+			ImGui::CloseCurrentPopup();
+			gFrontendMenuCloseRequest = false;
+		}
+	}
+	return open;
+}
+
 void DrawExtraMenu() {
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_EXTRA])) {
+	if (BeginFrontendTopLevelMenu(FRONTEND_TOP_EXTRA, lang_strings[STR_MENU_EXTRA])) {
 		if (ImGui::MenuItem(lang_strings[STR_MENU_GLOBAL_SETTINGS])) {
 			saveConfig("default");
 		}
@@ -567,7 +616,7 @@ void DrawExtraMenu() {
 void DrawCommonMenuBar() {
 	SceCtrlPortInfo pinfo;
 	sceCtrlGetControllerPortInfo(&pinfo);
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_EMULATION])) {
+	if (BeginFrontendTopLevelMenu(FRONTEND_TOP_EMULATION, lang_strings[STR_MENU_EMULATION])) {
 		if (ImGui::BeginMenu("CPU")) {
 			if (ImGui::MenuItem(lang_strings[STR_MENU_DYNAREC], nullptr, gCpuMode == CPU_DYNAREC)) {
 				setCpuMode(CPU_DYNAREC);
@@ -636,7 +685,7 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_AUDIO_RATE]);
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_GRAPHICS])) {
+	if (BeginFrontendTopLevelMenu(FRONTEND_TOP_GRAPHICS, lang_strings[STR_MENU_GRAPHICS])) {
 		if (ImGui::BeginMenu(lang_strings[STR_MENU_ASPECT_RATIO])) {
 			if (ImGui::MenuItem("16:9", nullptr, gAspectRatio == RATIO_16_9)) {
 				gAspectRatio = RATIO_16_9;
@@ -773,7 +822,7 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_WAIT_REND]);
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_AUDIO])) {
+	if (BeginFrontendTopLevelMenu(FRONTEND_TOP_AUDIO, lang_strings[STR_MENU_AUDIO])) {
 		if (ImGui::MenuItem(lang_strings[STR_DISABLED], nullptr, gAudioPluginEnabled == APM_DISABLED)) {
 			gAudioPluginEnabled = APM_DISABLED;
 		}
@@ -790,7 +839,7 @@ void DrawCommonMenuBar() {
 		SetDescription(lang_strings[STR_DESC_MP3_INSTR]);
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_INPUT])) {
+	if (BeginFrontendTopLevelMenu(FRONTEND_TOP_INPUT, lang_strings[STR_MENU_INPUT])) {
 		if (!sceKernelIsPSVitaTV()) {
 			if (ImGui::MenuItem(lang_strings[STR_MENU_REARPAD], nullptr, gUseRearpad)) {
 				gUseRearpad = !gUseRearpad;
@@ -863,7 +912,7 @@ void DrawCommonMenuBar() {
 		}
 		ImGui::EndMenu();
 	}
-	if (ImGui::BeginMenu(lang_strings[STR_MENU_LANG])) {
+	if (BeginFrontendTopLevelMenu(FRONTEND_TOP_LANGUAGE, lang_strings[STR_MENU_LANG])) {
 		if (ImGui::MenuItem("Català", nullptr, gLanguageIndex == SCE_SYSTEM_PARAM_LANG_CATALAN)) {
 			setTranslation(SCE_SYSTEM_PARAM_LANG_CATALAN);
 		}
@@ -967,6 +1016,7 @@ void DrawCommonWindows() {
 		ImGui::Text(lang_strings[STR_CREDITS_7]);
 		ImGui::Text(lang_strings[STR_CREDITS_8]);
 		ImGui::Text(lang_strings[STR_CREDITS_9]);
+		ImGui::Text(lang_strings[STR_CREDITS_10]);
 		ImGui::Separator();
 		ImGui::TextColored(ImVec4(255, 255, 0, 255), lang_strings[STR_CREDITS_TRANSLATORS]);
 		ImGui::Text("Rinnegatamante (ITA)");
@@ -1129,6 +1179,12 @@ void DrawPendingDialog() {
 }
 
 void DrawMenuBar() {
+	static uint32_t frontend_menu_oldpad = 0;
+	SceCtrlData frontend_menu_pad = {};
+	sceCtrlPeekBufferPositive(0, &frontend_menu_pad, 1);
+	const uint32_t frontend_menu_pressed = frontend_menu_pad.buttons & ~frontend_menu_oldpad;
+	frontend_menu_oldpad = frontend_menu_pad.buttons;
+
 	// Checking if a UI scale change is performed
 	if (fontDirty) {
 		ImGui::GetIO().Fonts->Clear();
@@ -1148,8 +1204,21 @@ void DrawMenuBar() {
 	}
 	
 	ImGui_ImplVitaGL_NewFrame();
+	gFrontendTopLevelOpenThisFrame = false;
+	const bool focus_frontend_menubar = gFrontendMenuFocusRequest;
+	if (focus_frontend_menubar)
+		ImGui::SetNextWindowFocus();
 	if (ImGui::BeginMainMenuBar()) {
-		if (ImGui::BeginMenu(lang_strings[STR_MENU_OPTIONS])) {
+		if (focus_frontend_menubar) {
+			gFrontendLastTopLevelMenu = FRONTEND_TOP_OPTIONS;
+			gFrontendMenuCloseRequest = false;
+			ImGui::OpenPopup(lang_strings[STR_MENU_OPTIONS]);
+			gFrontendMenuActive = true;
+			gFrontendMenuFocusRequest = false;
+		}
+		const bool options_open = BeginFrontendTopLevelMenu(
+			FRONTEND_TOP_OPTIONS, lang_strings[STR_MENU_OPTIONS]);
+		if (options_open) {
 			if (ImGui::MenuItem(lang_strings[STR_DOWNLOAD_DATA])) {
 				queueDownload(lang_strings[STR_DLG_DOWNLOAD_DATA], "https://github.com/Rinnegatamante/DaedalusX64-vitaGL/releases/download/Nightly/DaedalusX64.zip", 26 * 1024 * 1024, install_data_files, FILE_DOWNLOAD);
 			}
@@ -1190,6 +1259,12 @@ void DrawMenuBar() {
 		}
 		DrawCommonMenuBar();
 		DrawExtraMenu();
+		if (gFrontendMenuActive && !pendingDialog &&
+			!gFrontendMenuCloseRequest && (frontend_menu_pressed & SCE_CTRL_CROSS)) {
+			const char *active_label = GetFrontendTopLevelMenuLabel(gFrontendLastTopLevelMenu);
+			if (!ImGui::IsPopupOpen(active_label))
+				ImGui::OpenPopup(active_label);
+		}
 		ImGui::SameLine();
 		
 		if (calculate_ver_len) {
@@ -1201,6 +1276,10 @@ void DrawMenuBar() {
 		ImGui::SetCursorPosX(950 - ver_len * UI_SCALE);
 		ImGui::Text(ver_str); 
 		ImGui::EndMainMenuBar();
+	}
+	if (!gFrontendMenuActive) {
+		if (!gFrontendTopLevelOpenThisFrame)
+			gFrontendMenuCloseRequest = false;
 	}
 	DrawCommonWindows();
 }

@@ -56,5 +56,6 @@ https://samilops2.gitbook.io/vita-troubleshooting-guide/daedalus-x64/making-cust
 - Salvy & frangarcj for several improvements and bugfixes
 - Inssame for some additions to the UI code
 - That One Seong & TheIronUniverse for the LiveArea assets
-- withLogic for the high-res preview assets
 - Rob Scotcher for the DaedalusX64 logo image
+- EmuMovies for the cover arts pack used in the main menu
+- diskturbo for the N64 cartridge 3D model
