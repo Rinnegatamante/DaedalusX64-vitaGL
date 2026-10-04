@@ -96,10 +96,16 @@ jobs:
             git log -n 20 --pretty=format:'- %s' >> changelog.md
           fi
 
+      - name: Update Nightly tag
+        run: |
+          git tag -f Nightly "${GITHUB_SHA}"
+          git push origin refs/tags/Nightly --force
+
       - name: Publish Nightly release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: Nightly
+          target_commitish: ${{ github.sha }}
           name: "Nightly ${{ github.run_number }}"
           body_path: changelog.md
           files: |
