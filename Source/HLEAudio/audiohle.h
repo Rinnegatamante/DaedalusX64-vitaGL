@@ -427,6 +427,7 @@ void UNKNOWN(AudioHLECommand command);
 // Use these functions to interface with the HLE Audio...
 void Audio_Ucode();
 void Audio_Reset();
+bool Audio_IsMusyx();
 
 enum { NAUDIO_COUNT = 0x170 }; /* ie 184 samples */
 enum {

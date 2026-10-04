@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ROMBuffer.h"
 
 #include "Config/ConfigOptions.h"
+#include "HLEAudio/audiohle.h"
 #include "OSHLE/ultra_R4300.h"
 #include "OSHLE/ultra_mbi.h"
 #include "OSHLE/ultra_sptask.h"
@@ -604,6 +605,7 @@ void MemoryUpdateSPStatus( u32 flags )
 	const u32 old_status = Memory_SP_GetRegister( SP_STATUS_REG );
 	const OSTask *task = (const OSTask *)(g_pu8SpMemBase + 0x0FC0);
 	const bool replay_completed_gfx_yield =
+		Audio_IsMusyx() &&
 		(flags & SP_SET_YIELD) != 0 &&
 		(old_status & SP_STATUS_YIELD) == 0 &&
 		(old_status & (SP_STATUS_HALT | SP_STATUS_BROKE | SP_STATUS_TASKDONE)) == (SP_STATUS_HALT | SP_STATUS_BROKE | SP_STATUS_TASKDONE) &&
