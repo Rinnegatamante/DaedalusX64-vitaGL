@@ -4,11 +4,11 @@ DaedalusX64 is a Nintendo 64 emulator originally for Linux and PSP. This reposit
 
 ## Build Instructions
 
-You need to have vitaGL compiled with `READBACKS_SPEEDHACK=1 HAVE_GLSL_TEXTURE_SIZE=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 SHADER_COMPILER_SPEEDHACK=1 HAVE_CUSTOM_HEAP=1 SINGLE_THREADED_GC=1 HAVE_FFP_SHADER_SUPPORT=1 DEPTH_STENCIL_HACK=1 CIRCULAR_VERTEX_POOL=2 ENABLE_LEGACY_PIPELINE=1 NO_SPLASHSCREEN=1` in order to properly compile DaedalusX64.<br>
+You need to have vitaGL compiled with `READBACKS_SPEEDHACK=1 HAVE_GLSL_TEXTURE_SIZE=1 NO_DEBUG=1 HAVE_UNFLIPPED_FBOS=1 NO_TEX_COMBINER=1 HAVE_CUSTOM_HEAP=1 SINGLE_THREADED_GC=1 HAVE_FFP_SHADER_SUPPORT=1 DEPTH_STENCIL_HACK=1 CIRCULAR_POOL_SPEEDHACK=1 ENABLE_LEGACY_PIPELINE=1 NO_SPLASHSCREEN=1` in order to properly compile DaedalusX64.<br>
 Also, before compiling it, run:
 ```
 sed -i "s/float fog_dist = coords.z \/ coords.w;/float fog_dist = coords.z;/" source/shaders/ffp_f.h
-sed -i "s/#define SHADER_CACHE_MAGIC /#define SHADER_CACHE_MAGIC 99/" source/shared.h
+sed -i "s/#define FFP_SHADER_CACHE_MAGIC /#define FFP_SHADER_CACHE_MAGIC 99/" source/shared.h
 ```
 This will apply an hack to the lib to make it handle better N64 fogging.<br><br>
 
@@ -28,7 +28,7 @@ A compatibility list can be found on [this GitHub repository](https://github.com
 
 You can head to Vita Nuova discord server to get help with DaedalusX64-vitaGL. We have a dedicated channel (#daedalus-x64) for discussing futur developments, suggesitons, help, etc.
  
-Invite link: https://discord.gg/PyCaBx9
+Invite link: https://discord.gg/Mz7MmktcuK
 
 ## HD Textures Pack Tutorial
 In order to create an HD texture pack (or adapt an existing one to DaedalusX64). You'll need to follow these steps:
