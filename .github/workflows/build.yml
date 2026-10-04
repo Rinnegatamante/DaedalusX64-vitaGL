@@ -101,12 +101,18 @@ jobs:
           git tag -f Nightly "${GITHUB_SHA}"
           git push origin refs/tags/Nightly --force
 
+      - name: Generate Nightly name
+        id: nightly_name
+        run: |
+          echo "date=$(git show -s --format=%cs "${GITHUB_SHA}")" >> "${GITHUB_OUTPUT}"
+          echo "sha=$(git rev-parse --short=7 "${GITHUB_SHA}")" >> "${GITHUB_OUTPUT}"
+
       - name: Publish Nightly release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: Nightly
           target_commitish: ${{ github.sha }}
-          name: "Nightly ${{ github.run_number }}"
+          name: "Nightly ${{ steps.nightly_name.outputs.date }} - ${{ steps.nightly_name.outputs.sha }}"
           body_path: changelog.md
           files: |
             daedbuild/DaedalusX64.vpk
