@@ -504,7 +504,7 @@ static void EnsureRomCoverLoader() {
 	if (cover_loader_thread >= 0)
 		return;
 
-	cover_loader_mutex = sceKernelCreateMutex("ROM Cover Loader Mutex", 0, 1, NULL);
+	cover_loader_mutex = sceKernelCreateMutex("ROM Cover Loader Mutex", 0, 0, NULL);
 	if (cover_loader_mutex < 0)
 		return;
 
@@ -1373,6 +1373,7 @@ char *DrawRomSelector(bool skip_reloads) {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	if (bg_image != 0xDEADBEEF) DrawBackground();
+	ImGui_ImplVitaGL_GamepadUsage(gFrontendMenuActive);
 	DrawMenuBar();
 	
 	if (last_launched && !skip_reloads) {
@@ -1508,6 +1509,8 @@ char *DrawRomSelector(bool skip_reloads) {
 		carousel_position = 0.0f;
 		carousel_initialised = false;
 		details_open = false;
+		cartridge_manual_yaw = 0.0f;
+		cartridge_manual_pitch = 0.0f;
 	} else {
 		int found_index = -1;
 		for (int i = 0; i < (int)visible_roms.size(); i++) {
@@ -1521,6 +1524,8 @@ char *DrawRomSelector(bool skip_reloads) {
 			selected_rom = visible_roms[0];
 			carousel_position = 0.0f;
 			carousel_initialised = true;
+			cartridge_manual_yaw = 0.0f;
+			cartridge_manual_pitch = 0.0f;
 		} else {
 			selected_index = found_index;
 		}
@@ -1530,7 +1535,8 @@ char *DrawRomSelector(bool skip_reloads) {
 	sceCtrlPeekBufferPositive(0, &pad, 1);
 	const float dt = ImGui::GetIO().DeltaTime > 0.0f ? ImGui::GetIO().DeltaTime : (1.0f / 60.0f);
 	const uint32_t pressed = pad.buttons & ~oldpad;
-	const bool imgui_nav_capture = ImGui::GetIO().NavActive || ImGui::GetIO().WantCaptureKeyboard;
+	const bool imgui_nav_capture = gFrontendMenuActive &&
+		(ImGui::GetIO().NavActive || ImGui::GetIO().WantCaptureKeyboard);
 	const bool modal_capture = pendingDialog;
 
 	if (gFrontendMenuActive) {
@@ -1582,6 +1588,8 @@ char *DrawRomSelector(bool skip_reloads) {
 				return false;
 			selected_index = next_index;
 			selected_rom = visible_roms[selected_index];
+			cartridge_manual_yaw = 0.0f;
+			cartridge_manual_pitch = 0.0f;
 			return true;
 		};
 
