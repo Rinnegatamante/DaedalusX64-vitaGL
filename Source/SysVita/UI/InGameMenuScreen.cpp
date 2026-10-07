@@ -60,6 +60,27 @@ int update_button(ButtonSce* btn, const SceCtrlData* pad, uint32_t ticks)
 void DrawInGameMenu() {
 	ImGui_ImplVitaGL_TouchUsage(true);
 
+	SceCtrlData pad;
+	sceCtrlPeekBufferPositive(0, &pad, 1);
+	int statusSelectBtn = update_button(&selectBtn, &pad, sceKernelGetProcessTimeWide());
+	if(statusSelectBtn == BUTTON_SHORT_RELEASED){
+		if (!pause_emu)
+			GraphicsContextVita_CapturePausedFrame();
+		else
+			GraphicsContextVita_InvalidatePausedFrame();
+		pause_emu = !pause_emu;
+		EnableMenuButtons(pause_emu);
+	} else if(statusSelectBtn == BUTTON_LONG_HOLD){
+		if(!gFastForward && !pause_emu){
+			gFastForward = true;
+			vglWaitVblankStart(GL_FALSE);
+		}
+	}
+	else if(statusSelectBtn == BUTTON_LONG_RELEASED){
+		gFastForward = false;
+		vglWaitVblankStart(gUseVSync);
+	}
+
 	// Handling menubar disappear
 	SceTouchData touch;
 	sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);	
@@ -80,21 +101,4 @@ void DrawInGameMenu() {
 	ImGui::Render();
 	ImGui_ImplVitaGL_RenderDrawData(ImGui::GetDrawData());
 	
-	// Handling select button (menu pause and fast-forward)
-	SceCtrlData pad;
-	sceCtrlPeekBufferPositive(0, &pad, 1);
-	int statusSelectBtn = update_button(&selectBtn, &pad, sceKernelGetProcessTimeWide());
-	if(statusSelectBtn == BUTTON_SHORT_RELEASED){
-		pause_emu = !pause_emu;
-		EnableMenuButtons(pause_emu);
-	} else if(statusSelectBtn == BUTTON_LONG_HOLD){
-		if(!gFastForward && !pause_emu){
-			gFastForward = true;
-			vglWaitVblankStart(GL_FALSE);
-		}
-	}
-	else if(statusSelectBtn == BUTTON_LONG_RELEASED){
-		gFastForward = false;
-		vglWaitVblankStart(gUseVSync);
-	}
 }

@@ -46,6 +46,8 @@ extern int gAspectRatio;
 extern int gRendererType;
 
 u32 GraphicsContextVita_GetPostProcessFramebuffer();
+void GraphicsContextVita_CapturePausedFrame();
+void GraphicsContextVita_InvalidatePausedFrame();
 #endif
 
 class c32;

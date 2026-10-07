@@ -36,6 +36,9 @@ extern int time_unif;
 extern float gamma_val;
 
 static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex, emu_depth_buf_tex;
+static GLuint paused_frame_fb = 0xDEADBEEF;
+static GLuint paused_frame_tex = 0;
+static bool paused_frame_valid = false;
 
 u32 GraphicsContextVita_GetPostProcessFramebuffer()
 {
@@ -52,6 +55,46 @@ u32 GraphicsContextVita_GetPostProcessFramebuffer()
 	}
 
 	return emu_fb;
+}
+
+static void GraphicsContextVita_EnsurePausedFrame()
+{
+	if (paused_frame_fb != 0xDEADBEEF)
+		return;
+
+	glGenTextures(1, &paused_frame_tex);
+	glBindTexture(GL_TEXTURE_2D, paused_frame_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glGenFramebuffers(1, &paused_frame_fb);
+	glNamedFramebufferTexture2D(paused_frame_fb, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, paused_frame_tex, 0);
+}
+
+void GraphicsContextVita_CapturePausedFrame()
+{
+	GraphicsContextVita_EnsurePausedFrame();
+	glBlitNamedFramebuffer(0, paused_frame_fb,
+		0, 0, SCR_WIDTH, SCR_HEIGHT,
+		0, 0, SCR_WIDTH, SCR_HEIGHT,
+		GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	paused_frame_valid = true;
+}
+
+void GraphicsContextVita_InvalidatePausedFrame()
+{
+	paused_frame_valid = false;
+}
+
+static void GraphicsContextVita_DrawPausedFrame()
+{
+	if (!paused_frame_valid)
+		return;
+
+	glBlitNamedFramebuffer(paused_frame_fb, 0,
+		0, 0, SCR_WIDTH, SCR_HEIGHT,
+		0, 0, SCR_WIDTH, SCR_HEIGHT,
+		GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 class IGraphicsContext : public CGraphicsContext
@@ -213,52 +256,62 @@ void IGraphicsContext::EndFrame()
 
 void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 {
-	if (gPostProcessing && emu_fb != 0xDEADBEEF) {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, 960, 544, 0, -1, 1);
-		glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
-		glUseProgram(cur_prog);
+	bool redraw_paused_frame = false;
+	do {
+		if (redraw_paused_frame) {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			GraphicsContextVita_DrawPausedFrame();
+			DrawInGameMenu();
+			glDisableClientState(GL_COLOR_ARRAY);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			DrawPendingDialog();
+		}
+
+		if (!redraw_paused_frame && gPostProcessing && emu_fb != 0xDEADBEEF) {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, 960, 544, 0, -1, 1);
+			glBindTexture(GL_TEXTURE_2D, emu_fb_tex);
+			glUseProgram(cur_prog);
 			
-		int i = 0;
-		while (prog_uniforms[i].idx != 0xDEADBEEF) {
-			switch (prog_uniforms[i].type) {
-			case UNIF_FLOAT:
-				glUniform1f(prog_uniforms[i].idx, prog_uniforms[i].value[0]);
-				break;
-			case UNIF_COLOR:
-				glUniform3fv(prog_uniforms[i].idx, 1, prog_uniforms[i].value);
-				break;
-			default:
-				break;
+			int i = 0;
+			while (prog_uniforms[i].idx != 0xDEADBEEF) {
+				switch (prog_uniforms[i].type) {
+				case UNIF_FLOAT:
+					glUniform1f(prog_uniforms[i].idx, prog_uniforms[i].value[0]);
+					break;
+				case UNIF_COLOR:
+					glUniform3fv(prog_uniforms[i].idx, 1, prog_uniforms[i].value);
+					break;
+				default:
+					break;
+				}
+				i++;
 			}
-			i++;
-		}
-		if (time_unif != -1) {
-			glUniform1f(time_unif, (float)sceKernelGetProcessTimeLow() / 1000000.0f);
-		}
+			if (time_unif != -1) {
+				glUniform1f(time_unif, (float)sceKernelGetProcessTimeLow() / 1000000.0f);
+			}
 			
-		vglVertexAttribPointerMapped(0, vflux_vertices);
-		vglVertexAttribPointerMapped(1, vflux_texcoords);
-		vglDrawObjects(GL_TRIANGLE_FAN, 4);
-		glUseProgram(0);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		if (gOverlay) {
-			glBindTexture(GL_TEXTURE_2D, cur_overlay);
-			gRenderer->DrawUITexture();
+			vglVertexAttribPointerMapped(0, vflux_vertices);
+			vglVertexAttribPointerMapped(1, vflux_texcoords);
+			vglDrawObjects(GL_TRIANGLE_FAN, 4);
+			glUseProgram(0);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			if (gOverlay) {
+				glBindTexture(GL_TEXTURE_2D, cur_overlay);
+				gRenderer->DrawUITexture();
+			}
+			DrawInGameMenu();
+			glDisableClientState(GL_COLOR_ARRAY);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		}
-		DrawInGameMenu();
-		glDisableClientState(GL_COLOR_ARRAY);
-		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	}
-	vglSwapBuffers(GL_FALSE);
+
+		vglSwapBuffers(GL_FALSE);
+		redraw_paused_frame = pause_emu;
+	} while (pause_emu);
+
 	new_frame = true;
-	if (pause_emu) {
-		BeginFrame();
-		EndFrame();
-		UpdateFrame(false);
-	}
 }
 
 void IGraphicsContext::SetDebugScreenTarget(ETargetSurface buffer)
