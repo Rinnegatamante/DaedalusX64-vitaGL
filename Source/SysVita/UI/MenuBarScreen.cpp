@@ -1278,6 +1278,7 @@ void DrawMenuBar() {
 		ImGui::EndMainMenuBar();
 	}
 	if (!gFrontendMenuActive) {
+		ImGui::SetWindowFocus(NULL);
 		if (!gFrontendTopLevelOpenThisFrame)
 			gFrontendMenuCloseRequest = false;
 	}
