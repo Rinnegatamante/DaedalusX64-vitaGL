@@ -81,6 +81,7 @@ void DrawDownloaderScreen(int index, float downloaded_bytes, float total_bytes, 
 }
 
 void DrawDownloaderScreenCompat(float downloaded_bytes, float total_bytes, char *text) {
+	ImGui_ImplVitaGL_GamepadUsage(false);
 	ImGui_ImplVitaGL_NewFrame();
 	
 	ImVec2 pos = ImGui::CalcTextSize(text);
