@@ -147,7 +147,7 @@ void extract_file(char *file, char *dir) {
 		if ((zip_idx + 1) < num_files) unzGoToNextFile(zipfile);
 	}
 	unzClose(zipfile);
-	ImGui::GetIO().MouseDrawCursor = true;
+	ImGui::GetIO().MouseDrawCursor = false;
 }
 
 void log2file(const char *format, ...) {
