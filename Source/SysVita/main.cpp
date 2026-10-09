@@ -83,6 +83,7 @@ static bool sys_initialized = false;
 uint64_t rom_start_tick = 0;
 uint8_t *rom_mem_buffer = nullptr;
 volatile uint32_t temp_download_size = 0;
+bool reload_frontend_music = false;
 
 int gUseCdram = GL_TRUE;
 int gUseVSync = GL_TRUE;
@@ -1022,13 +1023,14 @@ int main(int argc, char* argv[]) {
 			SoLoud::Soloud audio_engine;
 			SoLoud::WavStream bg_mus;
 			audio_engine.init();
-			sprintf(music_file, "%sbg.ogg", DAEDALUS_VITA_PATH("Resources/"));
-			if (bg_mus.load(music_file)) {
+			auto load_bg_music = [&]() {
+				sprintf(music_file, "%sbg.ogg", DAEDALUS_VITA_PATH("Resources/"));
+				if (!bg_mus.loadToMem(music_file))
+					return true;
 				sprintf(music_file, "%sbg.wav", DAEDALUS_VITA_PATH("Resources/"));
-				if (bg_mus.load(music_file)) {
-					has_bg_music = false;
-				}
-			}
+				return bg_mus.loadToMem(music_file) == 0;
+			};
+			has_bg_music = load_bg_music();
 			if (has_bg_music) {
 				bg_mus.setLooping(true);
 				audio_engine.playBackground(bg_mus);
@@ -1037,6 +1039,15 @@ int main(int argc, char* argv[]) {
 			glDisable(GL_FRAMEBUFFER_SRGB);
 			do {
 				rom = DrawRomSelector(false);
+				if (reload_frontend_music) {
+					bg_mus.stop();
+					has_bg_music = load_bg_music();
+					if (has_bg_music) {
+						bg_mus.setLooping(true);
+						audio_engine.playBackground(bg_mus);
+					}
+					reload_frontend_music = false;
+				}
 			} while (rom == nullptr);
 			rom_game_name[0] = 0;
 			if (has_bg_music)

@@ -399,6 +399,7 @@ extern uint64_t cur_playtime;
 extern char *raw_net_romlist;
 extern uint8_t *rom_mem_buffer;
 extern volatile uint32_t temp_download_size;
+extern bool reload_frontend_music;
 
 char *DrawRomSelector(bool skip_reloads);
 void DrawInGameMenu();

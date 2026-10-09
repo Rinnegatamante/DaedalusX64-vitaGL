@@ -281,6 +281,7 @@ void install_data_files() {
 	extract_file(TEMP_DOWNLOAD_NAME, "ux0:data/");
 	sceIoRemove(TEMP_DOWNLOAD_NAME);
 	resetRomList();
+	reload_frontend_music = true;
 }
 
 void saveCustomRomPath()
