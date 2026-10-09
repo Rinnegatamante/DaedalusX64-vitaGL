@@ -1171,7 +1171,7 @@ static void DrawN64CartridgeCarousel3D(const std::vector<RomSelection*> &visible
 		const float x = center_x + distance * 230.0f;
 		const float y = center_y + abs_distance * 14.0f + bob + (is_selected ? 9.0f : 4.0f);
 		const float z = 80.0f - abs_distance * 28.0f + cosf(idle_phase * 0.8f) * 2.0f;
-		const float base_yaw = is_selected ? -7.5f : -5.0f;
+		const float base_yaw = is_selected ? 0.0f : -5.0f;
 		const float base_pitch = is_selected ? 27.0f : 19.0f;
 		const float yaw = -distance * 18.0f + base_yaw + idle_yaw + (is_selected ? manual_yaw : 0.0f);
 		const float pitch = base_pitch + idle_pitch + (is_selected ? manual_pitch : 0.0f);
