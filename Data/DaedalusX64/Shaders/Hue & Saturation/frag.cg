@@ -2,8 +2,9 @@ static const float Epsilon = 1e-10;
 
 float3 RGBtoHSV(float3 RGB)
 {
-    float4 P = (RGB.g < RGB.b) ? float4(RGB.bg, -1.0, 2.0/3.0) : float4(RGB.gb, 0.0, -1.0/3.0);
-    float4 Q = (RGB.r < P.x) ? float4(P.xyw, RGB.r) : float4(RGB.r, P.yzx);
+    float4 P = lerp(float4(RGB.bg, -1.0, 2.0/3.0),
+                    float4(RGB.gb, 0.0, -1.0/3.0), step(RGB.b, RGB.g));
+    float4 Q = lerp(float4(P.xyw, RGB.r), float4(RGB.r, P.yzx), step(P.x, RGB.r));
     float C = Q.x - min(Q.w, Q.y);
     float H = abs((Q.w - Q.y) / (6.0 * C + Epsilon) + Q.z);
     float3 HCV = float3(H, C, Q.x);

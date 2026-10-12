@@ -33,11 +33,10 @@ float4 main
 
 	float3 res = tex2D(s0, mod_texel / texture_size).rgb;
 
-	float2 sine_comp = float2(SCANLINE_SINE_COMP_A, SCANLINE_SINE_COMP_B);
-	
-	float2 omega = float2(2.0 * 3.1415 * texture_size.x, 3.1415 * output_size.y);
-
-	float3 scanline = res * (SCANLINE_BASE_BRIGHTNESS + dot(sine_comp * sin(vTexcoord * omega), float2(1.0, 1.0)));
-
+	float2 phase = frac(float2(vTexcoord.x * texture_size.x,
+	                            vTexcoord.y * (output_size.y * 0.5)) - 0.25);
+	float2 wave = 4.0 * abs(phase - 0.5) - 1.0;
+	float3 scanline = res * (SCANLINE_BASE_BRIGHTNESS +
+	                      dot(float2(SCANLINE_SINE_COMP_A, SCANLINE_SINE_COMP_B), wave));
 	return float4(scanline, 1.0);
 }

@@ -33,6 +33,8 @@ float *gTexCoordBufferPtr;
 bool new_frame = true;
 
 extern int time_unif;
+extern GLint gDaltonicGreenRow;
+extern GLint gDaltonicBlueRow;
 extern float gamma_val;
 
 static GLuint emu_fb = 0xDEADBEEF, emu_fb_tex, emu_depth_buf_tex;
@@ -291,6 +293,17 @@ void IGraphicsContext::UpdateFrame(bool wait_for_vbl)
 			}
 			if (time_unif != -1) {
 				glUniform1f(time_unif, (float)sceKernelGetProcessTimeLow() / 1000000.0f);
+			}
+			if (gDaltonicGreenRow >= 0 && gDaltonicBlueRow >= 0) {
+				static const GLfloat rows[3][6] = {
+					{0.50894941f, 0.49105389f, 0.00000069f, 0.61732665f, -0.61732265f, 1.00000083f},
+					{0.20232475f, 0.79767449f, -0.00000015f, 0.51741093f, -0.51741286f, 0.99999962f},
+					{-0.13853643f, 1.13853827f, 0.00000021f, 3.36558457f, -3.36562933f, 0.99999501f}
+				};
+				int mode = prog_uniforms[2].value[0] > 1.0f ? 2 :
+					(prog_uniforms[1].value[0] > 1.0f ? 1 : 0);
+				glUniform3fv(gDaltonicGreenRow, 1, rows[mode]);
+				glUniform3fv(gDaltonicBlueRow, 1, rows[mode] + 3);
 			}
 			
 			vglVertexAttribPointerMapped(0, vflux_vertices);

@@ -71,15 +71,8 @@ float4 fxaa(sampler2D tex, float2 fragCoord, float2 resolution,
 	float3 rgbA = 0.5 * (
 		tex2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +
 		tex2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);
-	float3 rgbB = rgbA * 0.5 + 0.25 * (
-		tex2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +
-		tex2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);
-
-	float lumaB = dot(rgbB, luma);
-	if ((lumaB < lumaMin) || (lumaB > lumaMax))
-		return float4(rgbA, texColor.a);
-	else
-		return float4(rgbB, texColor.a);
+	float contrast = saturate((lumaMax - lumaMin) * 12.0 - 0.1);
+	return float4(lerp(rgbM, rgbA, contrast), texColor.a);
 }
 
 static const float2 iResolution = float2(960.0f, 544.0f);

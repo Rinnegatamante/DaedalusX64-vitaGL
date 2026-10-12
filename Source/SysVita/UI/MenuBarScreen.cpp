@@ -112,6 +112,8 @@ Overlay *overlays_list = nullptr;
 
 Uniform prog_uniforms[8];
 int time_unif = -1;
+GLint gDaltonicGreenRow = -1;
+GLint gDaltonicBlueRow = -1;
 
 GLuint ff_icon = 0xDEADBEEF;
 /*GLuint achievement_icon = 0xDEADBEEF;
@@ -152,7 +154,7 @@ void loadUniformSettings(const char *path) {
 	{
 		prog_uniforms[i].idx = glGetUniformLocation(cur_prog, prog_uniforms[i].name);
 		prog_uniforms[i].type = (UnifType)value;
-		prog_uniforms[i].value[0] = prog_uniforms[i].value[1] = prog_uniforms[i].value[2] = prog_uniforms[i].value[3] = 1.0f;
+		prog_uniforms[i].value[0] = prog_uniforms[i].value[1] = prog_uniforms[i].value[2] = 1.0f;
 		i++;
 	}
 
@@ -267,6 +269,8 @@ bool setPostProcessingEffect(int idx, PostProcessingEffect *p) {
 		cur_prog = program[shader_idx];
 		glUniform1i(glGetUniformLocation(program[shader_idx], "colorMap"), 0);
 		time_unif = glGetUniformLocation(cur_prog, "iTime");
+		gDaltonicGreenRow = glGetUniformLocation(cur_prog, "uGreenRow");
+		gDaltonicBlueRow = glGetUniformLocation(cur_prog, "uBlueRow");
 		
 		if (p->customizable) {
 			sprintf(fpath, "%s%s/unif.txt", DAEDALUS_VITA_PATH_EXT("ux0:", "Shaders/"), p->name);

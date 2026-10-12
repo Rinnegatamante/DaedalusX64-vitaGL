@@ -6,9 +6,7 @@
 /* configuration (higher values mean brighter image but reduced effect depth) */
 static const int brighten_scanlines = 16;
 static const int brighten_lcd = 4;
-static const float2 omega = 3.141592654 * 2 * float2(640.0f, 480.0f);
-
-static const float3 offsets = 3.141592654 * float3(1.0/2,1.0/2 - 2.0/3,1.0/2-4.0/3);
+static const float3 subpixelOffset = float3(0.0, -1.0/3.0, -2.0/3.0);
 
 float4 main (
 	float2 tex : TEXCOORD,
@@ -16,10 +14,12 @@ float4 main (
 {
 	float3 res = tex2D(s0, tex).xyz;
 
-	float2 angle = tex * omega;
-	
-	float yfactor = (brighten_scanlines + sin(angle.y)) / (brighten_scanlines + 1);
-	float3 xfactors = (brighten_lcd + sin(angle.x + offsets)) / (brighten_lcd + 1);
+	float3 subpixelPhase = frac(tex.x * 640.0 + subpixelOffset);
+	float3 subpixelWave = 4.0 * abs(subpixelPhase - 0.5) - 1.0;
+	float linePhase = frac(tex.y * 480.0 - 0.25);
+	float lineWave = 4.0 * abs(linePhase - 0.5) - 1.0;
+	float yfactor = (brighten_scanlines + lineWave) / (brighten_scanlines + 1);
+	float3 xfactors = (brighten_lcd + subpixelWave) / (brighten_lcd + 1);
 	
 	float3 color = yfactor * xfactors * res;
 	
