@@ -67,7 +67,8 @@ set (VITA_BUILD ${VITA_DYNAREC_FILES} ${VITA_GRAPHICS_FILES} ${VITA_HLEAUDIO_FIL
 set_property(SOURCE SysVita/DynaRec/DynarecStubARM.S PROPERTY LANGUAGE C)
 
 include("${VITASDK}/share/vita.cmake" REQUIRED)
-
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(libcurl REQUIRED IMPORTED_TARGET libcurl)
 message("PSVita Release Build..")
 	
 execute_process(COMMAND git describe --abbrev=6 --dirty --always
@@ -115,18 +116,16 @@ target_include_directories(${PROJECT_NAME}.elf PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME}.elf
-	-Wl,--whole-archive daedalus -Wl,--no-whole-archive
+	-pthread
+	-Wl,--whole-archive daedalus SceNetCtl_stub SceSysmodule_stub -Wl,--no-whole-archive
 	imgui
 	vitaGL
 	vitashark
 	SceShaccCgExt
 	mathneon
-	curl
-	ssl
-	crypto
+	PkgConfig::libcurl
 	speexdsp
 	soloud
-	pthread
 	taihen_stub
 	SceDisplay_stub
 	SceGxm_stub
@@ -134,8 +133,6 @@ target_link_libraries(${PROJECT_NAME}.elf
 	SceKernelThreadMgr_stub
 	SceCtrl_stub
 	SceKernelDmacMgr_stub
-	-Wl,--whole-archive SceNetCtl_stub -Wl,--no-whole-archive
-	-Wl,--whole-archive SceSysmodule_stub -Wl,--no-whole-archive
 	SceTouch_stub
 	SceAudio_stub
 	ScePower_stub
