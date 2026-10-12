@@ -1,0 +1,45 @@
+/*
+	Source: https://www.shadertoy.com/view/Ms23DR
+*/
+
+float2 curve(float2 uv)
+{
+	float2 p = (uv - 0.5) * 2.2;
+	p.x *= 1.0 + 0.04 * p.y * p.y;
+	p.y *= 1.0 + 0.0625 * p.x * p.x;
+	return p * 0.46 + 0.5;
+}
+
+varying out float4 fragColor : COLOR;
+varying in float2 fragCoord : WPOS;
+uniform float iTime;
+uniform sampler2D s0;
+
+void main( )
+{
+	float2 q = fragCoord.xy * float2(1.0 / 960.0, 1.0 / 544.0);
+	float2 uv = curve(q);
+	float2 fetchUV = uv;
+	float3 center = tex2D(s0, fetchUV).rgb;
+	float2 bleedOffset = float2(2.0 / 960.0, 0.0);
+	float2 bleedMin = float2(0.5 / 960.0, 0.5 / 544.0);
+	float2 bleedMax = float2(1.0, 1.0) - bleedMin;
+	float3 left = tex2D(s0, clamp(fetchUV - bleedOffset, bleedMin, bleedMax)).rgb;
+	float3 right = tex2D(s0, clamp(fetchUV + bleedOffset, bleedMin, bleedMax)).rgb;
+	float3 bleed = lerp(center, 0.5 * (left + right), 0.42);
+	bleed += dot(center - bleed, float3(0.299, 0.587, 0.114));
+	float3 col = bleed * 1.065 + 0.05;
+
+	col = saturate(col * (0.6 + 0.4 * col));
+	float vig = max(16.0 * uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y), 0.0);
+	float vignetting = sqrt(sqrt(vig));
+	// Preserve the original 1.5 rad/pixel period and avoid vertical scanline aliasing.
+	float linePhase = abs(frac(uv.y * (544.0 * 0.2387324146) + 0.25 * iTime) - 0.5);
+	float scanline = 0.38 + 0.8 * linePhase;
+	// Use raster pixel coordinates: the mask must follow raster pixels.
+	short pixelX = (short)floor(fragCoord.x);
+	float mask = 1.0 - 0.65 * (float)(pixelX & 1);
+	float valid = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+	col *= vignetting * scanline * mask * valid * 2.8;
+	fragColor = float4(col * float3(0.95, 1.05, 0.95), 1.0);
+}
